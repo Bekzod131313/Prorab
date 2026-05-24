@@ -495,21 +495,43 @@ input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.6}
 <div id="choice-bg" class="sheet-bg" onclick="if(event.target===this)closeChoiceSheet()">
   <div class="sheet" style="padding-bottom:40px">
     <div class="s-handle"></div>
-    <div class="s-title">Operatsiya turi</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <button onclick="closeChoiceSheet();openOpSheet('chiqim')" style="padding:20px 12px;border-radius:18px;border:2px solid var(--red);background:var(--red-bg);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:10px;font-family:inherit">
-        <div style="width:52px;height:52px;border-radius:26px;background:var(--red);display:flex;align-items:center;justify-content:center">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    <div class="s-title">Nima uchun?</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+      <button onclick="pickCat('usta')" style="padding:14px 6px;border-radius:16px;border:1.5px solid var(--border);background:#fff;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;font-family:inherit">
+        <div style="width:48px;height:48px;border-radius:24px;background:#fff7ed;display:flex;align-items:center;justify-content:center">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
         </div>
-        <div style="font-size:15px;font-weight:700;color:var(--red)">Pul berdi</div>
-        <div style="font-size:11px;color:var(--muted)">Chiqim</div>
+        <div style="font-size:12px;font-weight:600;color:var(--text)">Usta</div>
       </button>
-      <button onclick="closeChoiceSheet();openOpSheet('kirim')" style="padding:20px 12px;border-radius:18px;border:2px solid var(--green);background:var(--green-bg);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:10px;font-family:inherit">
-        <div style="width:52px;height:52px;border-radius:26px;background:var(--green);display:flex;align-items:center;justify-content:center">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      <button onclick="pickCat('bozor')" style="padding:14px 6px;border-radius:16px;border:1.5px solid var(--border);background:#fff;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;font-family:inherit">
+        <div style="width:48px;height:48px;border-radius:24px;background:var(--green-bg);display:flex;align-items:center;justify-content:center">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
         </div>
-        <div style="font-size:15px;font-weight:700;color:var(--green)">Pul oldi</div>
-        <div style="font-size:11px;color:var(--muted)">Kirim</div>
+        <div style="font-size:12px;font-weight:600;color:var(--text)">Bozor</div>
+      </button>
+      <button onclick="pickCat('dostavka')" style="padding:14px 6px;border-radius:16px;border:1.5px solid var(--border);background:#fff;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;font-family:inherit">
+        <div style="width:48px;height:48px;border-radius:24px;background:#eff6ff;display:flex;align-items:center;justify-content:center">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        </div>
+        <div style="font-size:12px;font-weight:600;color:var(--text)">Dostavka</div>
+      </button>
+      <button onclick="pickCat('dokon')" style="padding:14px 6px;border-radius:16px;border:1.5px solid var(--border);background:#fff;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;font-family:inherit">
+        <div style="width:48px;height:48px;border-radius:24px;background:#fdf4ff;display:flex;align-items:center;justify-content:center">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+        </div>
+        <div style="font-size:12px;font-weight:600;color:var(--text)">Do'kon</div>
+      </button>
+      <button onclick="pickCat('dop')" style="padding:14px 6px;border-radius:16px;border:1.5px solid var(--border);background:#fff;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;font-family:inherit">
+        <div style="width:48px;height:48px;border-radius:24px;background:var(--red-bg);display:flex;align-items:center;justify-content:center">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        </div>
+        <div style="font-size:12px;font-weight:600;color:var(--text)">Qo'shimcha</div>
+      </button>
+      <button onclick="pickCat('ovqat')" style="padding:14px 6px;border-radius:16px;border:1.5px solid var(--border);background:#fff;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;font-family:inherit">
+        <div style="width:48px;height:48px;border-radius:24px;background:#fffbeb;display:flex;align-items:center;justify-content:center">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+        </div>
+        <div style="font-size:12px;font-weight:600;color:var(--text)">Ovqat</div>
       </button>
     </div>
   </div>
@@ -596,17 +618,17 @@ let confirmDelId = null;
 
 // Kategoriyalar
 const CATS_KIRIM = [
-  {id:'mijoz', icon:'🏦', lbl:'Mijoz'},
-  {id:'investor', icon:'💼', lbl:'Investor'},
-  {id:'boshqa', icon:'📦', lbl:'Boshqa'},
+  {id:'mijoz', icon:'mijoz', lbl:'Mijoz'},
+  {id:'investor', icon:'investor', lbl:'Investor'},
+  {id:'boshqa', icon:'boshqa', lbl:'Boshqa'},
 ];
 const CATS_CHIQIM = [
-  {id:'ishchi', icon:'👷', lbl:'Ishchi'},
-  {id:'material', icon:'🧱', lbl:'Material'},
-  {id:'transport', icon:'🚛', lbl:'Transport'},
-  {id:'asbob', icon:'🔧', lbl:'Asbob'},
-  {id:'komunal', icon:'⚡', lbl:'Komunal'},
-  {id:'boshqa', icon:'📦', lbl:'Boshqa'},
+  {id:'usta', icon:'usta', lbl:'Usta'},
+  {id:'bozor', icon:'bozor', lbl:'Bozor'},
+  {id:'dostavka', icon:'dostavka', lbl:'Dostavka'},
+  {id:'dokon', icon:'dokon', lbl:"Do'kon"},
+  {id:"dop", icon:"dop", lbl:"Qoshimcha"},
+  {id:'ovqat', icon:'ovqat', lbl:'Ovqat'},
 ];
 let selCat = 'boshqa';
 
@@ -933,9 +955,11 @@ function opRowHtml(op, showBal=true) {
 }
 
 function getCatIcon(cat, isKirim) {
-  const map = {ishchi:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',material:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/></svg>',mijoz:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>'};
-  const icon = map[cat] || (isKirim?'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>':'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>');
-  return `<div style="color:${isKirim?'var(--green)':'var(--red)'}">${icon}</div>`;
+  const ic = (typeof CAT_ICONS !== 'undefined' && CAT_ICONS[cat]) ? CAT_ICONS[cat] : null;
+  const svg = ic ? ic.svg : (isKirim
+    ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>'
+    : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>');
+  return `<div style="color:${isKirim?'var(--green)':'var(--red)'}">${svg}</div>`;
 }
 
 // ── OPERATSIYALAR ─────────────────────────────────────────────────────────────
@@ -1124,12 +1148,33 @@ function openOpSheet(type, obId) {
 
 function setOpType(t) {
   curOpType=t;
-  $('tb-kirim').className='type-btn'+(t==='kirim'?' kirim':'');
-  $('tb-chiqim').className='type-btn'+(t==='chiqim'?' chiqim':'');
-  // Auto-select category
-  if(t==='kirim') selCat='mijoz';
-  else if(t==='chiqim') selCat='ishchi';
   renderCats();
+  updateOpCatHeader();
+}
+
+const CAT_ICONS = {
+  usta: {svg:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>', bg:'#fff7ed'},
+  bozor: {svg:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>', bg:'var(--green-bg)'},
+  dostavka: {svg:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>', bg:'#eff6ff'},
+  dokon: {svg:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>', bg:'#fdf4ff'},
+  dop: {svg:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>', bg:'var(--red-bg)'},
+  ovqat: {svg:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>', bg:'#fffbeb'},
+  mijoz: {svg:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>', bg:'var(--green-bg)'},
+  investor: {svg:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>', bg:'#eff6ff'},
+  boshqa: {svg:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>', bg:'var(--subtle)'},
+};
+
+const CAT_NAMES = {usta:'Usta',bozor:'Bozor',dostavka:'Dostavka',dokon:"Do'kon",dop:"Qo'shimcha",ovqat:'Ovqat',mijoz:'Mijoz',investor:'Investor',boshqa:'Boshqa'};
+
+function updateOpCatHeader(){
+  const ic = CAT_ICONS[selCat] || CAT_ICONS.boshqa;
+  const nm = CAT_NAMES[selCat] || selCat;
+  const iconEl = $('op-cat-icon');
+  const nameEl = $('op-cat-name');
+  const typeEl = $('op-cat-type');
+  if(iconEl) { iconEl.style.background=ic.bg; iconEl.innerHTML=ic.svg; }
+  if(nameEl) nameEl.textContent = nm;
+  if(typeEl) typeEl.textContent = curOpType==='chiqim' ? 'Chiqim (Pul berdi)' : 'Kirim (Pul oldi)';
 }
 
 function renderCats() {
@@ -1479,6 +1524,11 @@ async function savePr(){
 
 function openChoiceSheet(){ $('choice-bg').classList.add('open'); }
 function closeChoiceSheet(){ $('choice-bg').classList.remove('open'); }
+function pickCat(cat){
+  closeChoiceSheet();
+  selCat = cat;
+  openOpSheet('chiqim');
+}
 
 // ── AI ────────────────────────────────────────────────────────────────────────
 let isRec=false, recog=null;
