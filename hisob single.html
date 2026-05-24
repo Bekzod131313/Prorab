@@ -1,0 +1,1487 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Prorab</title>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Prorab">
+<meta name="theme-color" content="#ffffff">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#f5f6f8;
+  --card:#ffffff;
+  --border:#e8eaed;
+  --accent:#f97316;
+  --green:#16a34a;
+  --green-bg:#f0fdf4;
+  --green-b:#bbf7d0;
+  --red:#ef4444;
+  --red-bg:#fef2f2;
+  --red-b:#fecaca;
+  --text:#111827;
+  --muted:#6b7280;
+  --subtle:#f3f4f6;
+  --yellow:#d97706;
+  --radius:16px;
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;overflow-x:hidden;-webkit-text-size-adjust:100%;padding-bottom:72px}
+button:active{opacity:.85;transform:scale(.97)}
+svg{display:block;flex-shrink:0}
+
+/* AUTH */
+#auth-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px 24px;background:#fff}
+.auth-logo{width:88px;height:88px;border-radius:24px;object-fit:cover;margin-bottom:16px;box-shadow:0 4px 20px rgba(249,115,22,.3)}
+.auth-title{font-size:28px;font-weight:900;color:var(--text);margin-bottom:6px}
+.auth-sub{font-size:14px;color:var(--muted);margin-bottom:32px;text-align:center;line-height:1.5}
+.auth-tabs{display:flex;background:var(--subtle);border-radius:14px;padding:4px;width:100%;max-width:360px;margin-bottom:22px}
+.auth-tab{flex:1;padding:12px;border-radius:11px;border:none;background:transparent;color:var(--muted);font-size:14px;font-weight:600;font-family:inherit;cursor:pointer}
+.auth-tab.active{background:#fff;color:var(--accent);box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.auth-form{width:100%;max-width:360px;display:flex;flex-direction:column;gap:12px}
+.auth-input{width:100%;padding:15px 16px;border-radius:14px;border:1.5px solid var(--border);background:#fff;color:var(--text);font-size:15px;font-family:inherit;outline:none;transition:border-color .2s}
+.auth-input:focus{border-color:var(--accent)}
+.auth-input::placeholder{color:var(--muted)}
+.auth-btn{width:100%;padding:16px;border-radius:14px;border:none;background:var(--accent);color:#fff;font-weight:700;font-size:16px;font-family:inherit;cursor:pointer;margin-top:4px}
+.auth-err{color:var(--red);font-size:12px;text-align:center;min-height:18px}
+.auth-msg{color:var(--green);font-size:13px;text-align:center;padding:12px;background:var(--green-bg);border:1px solid var(--green-b);border-radius:12px;display:none}
+.role-btn{flex:1;padding:13px;border-radius:12px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:14px;font-weight:600;font-family:inherit;cursor:pointer}
+.role-btn.active{border-color:var(--accent);color:var(--accent);background:#fff7ed}
+
+/* PENDING */
+#pending-screen{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:32px 24px;text-align:center;background:#fff}
+
+/* APP */
+#app{display:none}
+
+/* HEADER */
+#header{background:#fff;padding:12px 16px 10px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;border-bottom:1px solid var(--border)}
+.h-left{display:flex;align-items:center;gap:10px}
+.h-avatar{width:38px;height:38px;border-radius:19px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;background:var(--subtle)}
+.h-name{font-size:16px;font-weight:700;color:var(--text)}
+.h-role{font-size:11px;color:var(--muted);margin-top:1px}
+.h-logout{width:36px;height:36px;border-radius:18px;border:1.5px solid var(--border);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+
+/* SYNC */
+#sync-bar{background:#fff;padding:5px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+#sync-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:background .3s}
+#sync-dot.synced{background:var(--green);box-shadow:0 0 4px var(--green)}
+#sync-dot.saving{background:var(--yellow)}
+#sync-dot.error{background:var(--red)}
+
+/* WORKER TABS */
+#worker-tabs{display:none;padding:10px 16px;gap:8px;overflow-x:auto;background:#fff;border-bottom:1px solid var(--border);scrollbar-width:none}
+#worker-tabs::-webkit-scrollbar{display:none}
+#worker-tabs.show{display:flex}
+.wtab{padding:7px 16px;border-radius:20px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap;flex-shrink:0;font-weight:500}
+.wtab.active{border-color:var(--accent);background:#fff7ed;color:var(--accent);font-weight:700}
+
+/* PAGES */
+.page{display:none}.page.active{display:block}
+
+/* ═══ HOME ═══ */
+/* BALANS CARD */
+.balans-card{margin:14px 16px;background:linear-gradient(135deg,var(--accent),#ea580c);border-radius:22px;padding:20px;color:#fff;box-shadow:0 4px 20px rgba(249,115,22,.35)}
+.bc-label{font-size:11px;opacity:.85;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+.bc-sum{font-size:36px;font-weight:900;letter-spacing:-1.5px;margin-bottom:16px}
+.bc-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.bc-item{background:rgba(255,255,255,.18);border-radius:14px;padding:12px}
+.bc-item-lbl{font-size:10px;opacity:.8;margin-bottom:4px}
+.bc-item-val{font-size:18px;font-weight:800}
+
+/* SECTION */
+.sec-hdr{display:flex;justify-content:space-between;align-items:center;padding:14px 16px 10px}
+.sec-title{font-size:16px;font-weight:700;color:var(--text)}
+.sec-link{font-size:13px;color:var(--accent);font-weight:600;cursor:pointer}
+
+/* OB SCROLL */
+.ob-scroll{display:flex;gap:12px;padding:0 16px 16px;overflow-x:auto;scrollbar-width:none}
+.ob-scroll::-webkit-scrollbar{display:none}
+.ob-card{flex-shrink:0;width:160px;background:#fff;border-radius:20px;overflow:hidden;border:1px solid var(--border);cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.07)}
+.ob-card:active{transform:scale(.97)}
+.ob-img{height:100px;position:relative;overflow:hidden;display:flex;align-items:flex-end}
+.ob-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.ob-img-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 30%,rgba(0,0,0,.55))}
+.ob-badge{position:absolute;top:8px;left:8px;color:#fff;font-size:9px;font-weight:700;padding:3px 8px;border-radius:20px}
+.ob-name-over{position:absolute;bottom:8px;left:10px;right:10px;color:#fff;font-size:12px;font-weight:700;z-index:1;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+.ob-body{padding:10px 12px 12px}
+.ob-bal{font-size:16px;font-weight:800}
+.ob-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.ob-add{flex-shrink:0;width:120px;border-radius:20px;border:2px dashed var(--border);background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;min-height:155px}
+.ob-add:active{transform:scale(.97)}
+
+/* QUICK ACTIONS */
+.quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:0 16px 16px}
+.qbtn{background:#fff;border-radius:16px;padding:12px 6px;border:1px solid var(--border);display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
+.qbtn:active{background:var(--subtle)}
+.qicon{width:42px;height:42px;border-radius:21px;display:flex;align-items:center;justify-content:center}
+.qlabel{font-size:11px;font-weight:600;color:var(--text);text-align:center;line-height:1.2}
+.qsub{font-size:10px;color:var(--muted);text-align:center}
+
+/* OP LIST */
+.op-list{background:#fff;border-radius:18px;margin:0 16px 16px;overflow:hidden;border:1px solid var(--border)}
+.op-row{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--border);cursor:pointer}
+.op-row:last-child{border-bottom:none}
+.op-row:active{background:var(--subtle)}
+.op-icon{width:40px;height:40px;border-radius:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.op-info{flex:1;min-width:0}
+.op-name{font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.op-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.op-amount{text-align:right;flex-shrink:0}
+.op-sum{font-size:15px;font-weight:800}
+.op-date{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ═══ OPERATSIYALAR PAGE ═══ */
+.filter-bar{display:flex;gap:8px;padding:12px 16px;background:#fff;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+.filter-bar::-webkit-scrollbar{display:none}
+#search-inp{flex:1;min-width:120px;padding:9px 14px;border-radius:22px;border:1.5px solid var(--border);background:var(--subtle);color:var(--text);font-size:13px;font-family:inherit;outline:none}
+#search-inp::placeholder{color:var(--muted)}
+.fbtn{padding:9px 16px;border-radius:22px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap;font-weight:500}
+.fbtn.active{background:#fff7ed;border-color:var(--accent);color:var(--accent);font-weight:700}
+
+#op-section{background:#fff;border-radius:18px;margin:12px 16px;overflow:hidden;border:1px solid var(--border)}
+.t-row{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--border);cursor:pointer}
+.t-row:last-child{border-bottom:none}
+.t-row:active{background:var(--subtle)}
+.row-icon{width:40px;height:40px;border-radius:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.row-info{flex:1;min-width:0}
+.row-name{font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.row-amount{text-align:right;flex-shrink:0}
+.row-sum{font-size:15px;font-weight:800}
+.row-bal{font-size:11px;color:var(--muted);margin-top:2px}
+.total-bar{padding:12px 16px;background:var(--subtle);display:flex;justify-content:space-between;align-items:center;border-top:2px solid var(--border)}
+.total-lbl{font-size:12px;font-weight:700}
+.total-nums{display:flex;gap:10px;font-size:12px;font-weight:700}
+
+/* ═══ OBYEKTLAR PAGE ═══ */
+.ob-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px 16px}
+.ob-grid-card{background:#fff;border-radius:18px;overflow:hidden;border:1px solid var(--border);cursor:pointer;box-shadow:0 1px 6px rgba(0,0,0,.06)}
+.ob-grid-card:active{transform:scale(.98)}
+.ob-grid-img{height:100px;position:relative;overflow:hidden}
+.ob-grid-img img{width:100%;height:100%;object-fit:cover}
+.ob-grid-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 30%,rgba(0,0,0,.6))}
+.ob-grid-badge{position:absolute;top:8px;left:8px;color:#fff;font-size:9px;font-weight:700;padding:3px 8px;border-radius:20px}
+.ob-grid-name{position:absolute;bottom:8px;left:10px;right:10px;color:#fff;font-size:13px;font-weight:700;z-index:1}
+.ob-grid-body{padding:10px 12px 12px}
+.ob-grid-bal{font-size:16px;font-weight:800}
+.ob-grid-stats{display:flex;justify-content:space-between;margin-top:6px}
+.ob-grid-stat{font-size:10px;color:var(--muted)}
+
+/* ═══ HISOBOT ═══ */
+.period-tabs{display:flex;gap:8px;padding:14px 16px 10px}
+.ptab{flex:1;padding:11px;border-radius:12px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:13px;font-family:inherit;cursor:pointer;font-weight:600;text-align:center}
+.ptab.active{border-color:var(--accent);background:#fff7ed;color:var(--accent)}
+.chart-card{background:#fff;border-radius:18px;margin:0 16px 12px;border:1px solid var(--border);padding:18px}
+.chart-title{font-size:14px;font-weight:700;margin-bottom:14px}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.bar-lbl{font-size:11px;color:var(--muted);width:68px;flex-shrink:0;text-align:right}
+.bar-wrap{flex:1;height:24px;background:var(--subtle);border-radius:6px;overflow:hidden}
+.bar-fill{height:100%;border-radius:6px;transition:width .5s}
+.bar-val{font-size:11px;font-weight:700;width:60px;flex-shrink:0}
+.sum-card{background:#fff;border-radius:18px;margin:0 16px 12px;border:1px solid var(--border);padding:20px}
+
+/* ═══ ISHCHILAR ═══ */
+.ishchi-card{background:#fff;border-radius:18px;margin:0 16px 12px;overflow:hidden;border:1px solid var(--border);cursor:pointer}
+.ishchi-top{display:flex;align-items:center;gap:12px;padding:14px 16px}
+.ishchi-av{width:44px;height:44px;border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.ishchi-info{flex:1}
+.ishchi-name{font-size:15px;font-weight:700}
+.ishchi-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.ishchi-bal{font-size:17px;font-weight:800;flex-shrink:0}
+.ishchi-stats{display:flex;border-top:1px solid var(--border)}
+.istat{flex:1;padding:10px;text-align:center;border-right:1px solid var(--border)}
+.istat:last-child{border-right:none}
+.istat-val{font-size:13px;font-weight:700}
+.istat-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;margin-top:2px}
+
+/* ═══ ADMIN ═══ */
+.sa-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:14px 16px}
+.sa-stat{background:#fff;border:1px solid var(--border);border-radius:16px;padding:14px 10px;text-align:center}
+.sa-num{font-size:28px;font-weight:800;line-height:1}
+.sa-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;margin-top:4px}
+.admin-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px;margin:0 16px 10px}
+.admin-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.admin-nm{font-size:15px;font-weight:700}
+.admin-mt{font-size:11px;color:var(--muted);margin-top:2px}
+.sbadge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.sbadge.pending{color:var(--yellow);background:#fffbeb;border:1px solid #fde68a}
+.sbadge.active{color:var(--green);background:var(--green-bg);border:1px solid var(--green-b)}
+.sbadge.blocked{color:var(--red);background:var(--red-bg);border:1px solid var(--red-b)}
+.admin-actions{display:flex;gap:8px;flex-wrap:wrap}
+.abtn{padding:8px 14px;border-radius:20px;border:none;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer}
+.abtn-ok{background:var(--green-bg);color:var(--green);border:1px solid var(--green-b)}
+.abtn-bl{background:var(--red-bg);color:var(--red);border:1px solid var(--red-b)}
+.abtn-un{background:#fff7ed;color:var(--accent);border:1px solid #fed7aa}
+.abtn-del{background:var(--subtle);color:var(--muted);border:1px solid var(--border)}
+
+/* BOTTOM NAV */
+#bnav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);display:flex;z-index:200;padding-bottom:env(safe-area-inset-bottom)}
+.nbtn{flex:1;padding:10px 0 8px;display:flex;flex-direction:column;align-items:center;gap:3px;border:none;background:transparent;color:var(--muted);font-family:inherit;cursor:pointer;font-size:10px;font-weight:500}
+.nbtn.active{color:var(--accent)}
+
+/* FAB */
+#fab{display:none;position:fixed;bottom:82px;right:16px;width:54px;height:54px;border-radius:27px;background:var(--accent);border:none;color:#fff;cursor:pointer;z-index:150;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(249,115,22,.5)}
+#fab2{display:none;position:fixed;bottom:82px;right:76px;width:46px;height:46px;border-radius:23px;background:var(--green);border:none;color:#fff;cursor:pointer;z-index:150;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(22,163,74,.4)}
+
+/* SHEETS */
+.sheet-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;align-items:flex-end;justify-content:center}
+.sheet-bg.open{display:flex}
+.sheet{background:#fff;border-radius:24px 24px 0 0;padding:20px 18px 36px;width:100%;max-height:92vh;overflow-y:auto}
+.s-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px}
+.s-title{font-size:17px;font-weight:700;margin-bottom:18px;text-align:center}
+.frow{margin-bottom:13px}
+.flbl{display:block;font-size:11px;color:var(--muted);font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.finput{width:100%;padding:14px;border-radius:14px;border:1.5px solid var(--border);background:#fff;color:var(--text);font-size:16px;font-family:inherit;outline:none}
+.finput:focus{border-color:var(--accent)}
+input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.6}
+.sbtns{display:flex;gap:10px;margin-top:18px}
+.sbtn-ok{flex:1;padding:15px;border-radius:14px;border:none;background:var(--accent);color:#fff;font-weight:700;font-size:16px;font-family:inherit;cursor:pointer}
+.sbtn-cn{flex:1;padding:15px;border-radius:14px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:16px;font-family:inherit;cursor:pointer}
+
+/* OP TYPE TOGGLE */
+.type-row{display:flex;gap:8px;margin-bottom:16px}
+.type-btn{flex:1;padding:13px;border-radius:14px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;border:2px solid var(--border);background:#fff;color:var(--muted);text-align:center}
+.type-btn.kirim{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.type-btn.chiqim{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+
+/* CATEGORY GRID */
+.cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.cat-btn{padding:12px 6px;border-radius:12px;border:1.5px solid var(--border);background:#fff;text-align:center;cursor:pointer;font-family:inherit}
+.cat-btn.active{border-color:var(--accent);background:#fff7ed}
+.cat-icon{font-size:20px;margin-bottom:4px}
+.cat-lbl{font-size:11px;font-weight:600;color:var(--text)}
+
+/* OB DETAIL PAGE */
+.ob-hero{height:200px;position:relative;overflow:hidden}
+.ob-hero img{width:100%;height:100%;object-fit:cover}
+.ob-hero-bg{width:100%;height:100%;display:flex;align-items:flex-end}
+.ob-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.15) 0%,rgba(0,0,0,.65) 100%)}
+.ob-back{position:absolute;top:14px;left:14px;width:36px;height:36px;border-radius:18px;background:rgba(255,255,255,.9);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2}
+.ob-cam{position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:18px;background:rgba(255,255,255,.9);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2}
+.ob-htitle{position:absolute;bottom:14px;left:16px;right:60px;z-index:2}
+.ob-hname{font-size:22px;font-weight:800;color:#fff}
+.ob-hsub{font-size:12px;color:rgba(255,255,255,.8);margin-top:2px}
+.ob-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:14px 16px}
+.ob-stat{background:#fff;border-radius:14px;padding:12px 8px;text-align:center;border:1px solid var(--border)}
+.ob-stat-val{font-size:17px;font-weight:800;margin-bottom:3px}
+.ob-stat-lbl{font-size:9px;color:var(--muted);text-transform:uppercase}
+.ob-actions{display:flex;gap:10px;padding:0 16px 14px}
+.ob-act{flex:1;padding:13px 8px;border-radius:14px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;border:none;display:flex;align-items:center;justify-content:center;gap:6px}
+.ob-tabs{display:flex;gap:8px;padding:0 16px 12px;overflow-x:auto;scrollbar-width:none}
+.ob-tab{padding:7px 16px;border-radius:20px;font-size:12px;font-weight:600;border:1.5px solid var(--border);background:#fff;color:var(--muted);cursor:pointer;white-space:nowrap;flex-shrink:0;font-family:inherit}
+.ob-tab.active{border-color:var(--accent);background:#fff7ed;color:var(--accent)}
+
+/* AI */
+.ai-bar{background:var(--subtle);border-radius:14px;padding:10px 12px;margin-bottom:14px;display:flex;gap:8px;align-items:center}
+.ai-inp{flex:1;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border);background:#fff;color:var(--text);font-size:13px;font-family:inherit;outline:none}
+.ai-inp::placeholder{color:var(--muted)}
+.ai-mic{width:40px;height:40px;border-radius:10px;border:1.5px solid var(--border);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ai-go{width:40px;height:40px;border-radius:10px;border:none;background:var(--accent);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ai-status{font-size:11px;color:var(--muted);margin-top:5px;min-height:16px}
+
+/* BADGE */
+.badge{display:inline-block;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
+.badge.pos{color:var(--green);background:var(--green-bg);border:1px solid var(--green-b)}
+.badge.neg{color:var(--red);background:var(--red-bg);border:1px solid var(--red-b)}
+.badge.zero{color:var(--muted);border:1px solid var(--border)}
+
+.empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px}
+.spin{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:sp .8s linear infinite;margin:30px auto}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <img id="auth-logo" class="auth-logo" src="" alt="Prorab">
+  <div class="auth-title">Prorab</div>
+  <div class="auth-sub">Qurilish prorablar uchun moliyaviy boshqaruv tizimi</div>
+  <div class="auth-tabs">
+    <button class="auth-tab active" onclick="switchTab('login',this)">Kirish</button>
+    <button class="auth-tab" onclick="switchTab('register',this)">Ro'yxatdan o'tish</button>
+  </div>
+  <div class="auth-form">
+    <div id="rn" style="display:none"><input class="auth-input" id="aname" placeholder="Ism familiya" type="text"></div>
+    <div id="rr" style="display:none">
+      <div style="display:flex;gap:8px">
+        <button type="button" class="role-btn active" id="r-prorab" onclick="setRole('prorab')">👷 Prorab</button>
+        <button type="button" class="role-btn" id="r-ishchi" onclick="setRole('ishchi')">🔧 Ishchi</button>
+      </div>
+    </div>
+    <div id="rc" style="display:none"><input class="auth-input" id="acomp" placeholder="Kompaniya nomi" type="text"></div>
+    <div id="rps" style="display:none"><select class="auth-input" id="apsel"><option value="">Prorabingizni tanlang...</option></select></div>
+    <input class="auth-input" id="aphone" placeholder="Telefon: 901234567" type="tel">
+    <input class="auth-input" id="apass" placeholder="Parol" type="password">
+    <div class="auth-err" id="aerr"></div>
+    <button class="auth-btn" id="asubmit" onclick="doAuth()">Kirish</button>
+    <div class="auth-msg" id="amsg"></div>
+  </div>
+</div>
+
+<!-- PENDING -->
+<div id="pending-screen">
+  <div style="font-size:56px;margin-bottom:16px">⏳</div>
+  <div style="font-size:22px;font-weight:800;margin-bottom:10px">Tasdiq kutilmoqda</div>
+  <div style="font-size:14px;color:var(--muted);margin-bottom:24px">Prorab tasdiqlagandan so'ng kira olasiz.</div>
+  <button onclick="doLogout()" style="padding:12px 24px;border-radius:12px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:14px;font-family:inherit;cursor:pointer">Chiqish</button>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div id="header">
+    <div class="h-left">
+      <div class="h-avatar" id="h-av"></div>
+      <div><div class="h-name" id="h-name">—</div><div class="h-role" id="h-role">—</div></div>
+    </div>
+    <button class="h-logout" onclick="doLogout()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    </button>
+  </div>
+  <div id="sync-bar"><span id="sync-dot"></span><span id="sync-text">Yuklanmoqda...</span></div>
+  <div id="worker-tabs"></div>
+
+  <!-- HOME -->
+  <div class="page active" id="pg-home">
+    <div class="balans-card">
+      <div class="bc-label">Qo'limdagi balans</div>
+      <div class="bc-sum" id="bc-bal">—</div>
+      <div class="bc-row">
+        <div class="bc-item"><div class="bc-item-lbl">↓ Jami kirim</div><div class="bc-item-val" id="bc-in">—</div></div>
+        <div class="bc-item"><div class="bc-item-lbl">↑ Jami chiqim</div><div class="bc-item-val" id="bc-out">—</div></div>
+      </div>
+    </div>
+    <div class="sec-hdr"><span class="sec-title">Obyektlar</span><span class="sec-link" onclick="gp('obyekt')">Barchasi ›</span></div>
+    <div class="ob-scroll" id="home-obs"><div class="spin"></div></div>
+    <div class="sec-hdr"><span class="sec-title">Tezkor amallar</span></div>
+    <div class="quick-grid">
+      <div class="qbtn" onclick="openOpSheet('kirim')">
+        <div class="qicon" style="background:var(--green-bg)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+        <div class="qlabel">Pul oldi</div><div class="qsub">Kirim</div>
+      </div>
+      <div class="qbtn" onclick="openOpSheet('chiqim')">
+        <div class="qicon" style="background:var(--red-bg)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+        <div class="qlabel">Pul berdi</div><div class="qsub">Chiqim</div>
+      </div>
+      <div class="qbtn" id="qb-ob" onclick="openAddOb()">
+        <div class="qicon" style="background:#eff6ff"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg></div>
+        <div class="qlabel">Yangi obyekt</div><div class="qsub">Qo'shish</div>
+      </div>
+      <div class="qbtn" onclick="gp('hisobot')">
+        <div class="qicon" style="background:#fdf4ff"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+        <div class="qlabel">Hisobot</div><div class="qsub">Ko'rish</div>
+      </div>
+    </div>
+    <div class="sec-hdr"><span class="sec-title">So'nggi operatsiyalar</span><span class="sec-link" onclick="gp('ops')">Barchasi ›</span></div>
+    <div id="home-ops"><div class="spin"></div></div>
+  </div>
+
+  <!-- OPERATSIYALAR -->
+  <div class="page" id="pg-ops">
+    <div class="filter-bar">
+      <input id="search-inp" type="text" placeholder="Qidirish..." oninput="renderOps()">
+      <button class="fbtn active" onclick="setFilt('all',this)">Hammasi</button>
+      <button class="fbtn" onclick="setFilt('kirim',this)">↓ Kirim</button>
+      <button class="fbtn" onclick="setFilt('chiqim',this)">↑ Chiqim</button>
+    </div>
+    <div id="op-section"><div class="spin"></div></div>
+  </div>
+
+  <!-- OBYEKTLAR -->
+  <div class="page" id="pg-obyekt">
+    <div class="sec-hdr"><span class="sec-title">Obyektlar</span></div>
+    <div class="ob-grid" id="ob-grid"><div class="spin"></div></div>
+  </div>
+
+  <!-- OB DETAIL -->
+  <div class="page" id="pg-ob-detail">
+    <div id="ob-detail-body"></div>
+  </div>
+
+  <!-- HISOBOT -->
+  <div class="page" id="pg-hisobot">
+    <div class="period-tabs">
+      <button class="ptab active" onclick="setPeriod('month',this)">Bu oy</button>
+      <button class="ptab" onclick="setPeriod('year',this)">Bu yil</button>
+    </div>
+    <div id="chart-body"></div>
+  </div>
+
+  <!-- ISHCHILAR -->
+  <div class="page" id="pg-ishchilar">
+    <div class="sec-hdr"><span class="sec-title">Ishchilar</span><span class="sec-link" id="add-ishchi-btn" onclick="openAddIshchi()">＋ Qo'shish</span></div>
+    <div id="ishchilar-list"><div class="spin"></div></div>
+  </div>
+
+  <!-- ADMIN -->
+  <div class="page" id="pg-admin">
+    <div id="sa-stats" style="display:none">
+      <div class="sa-grid">
+        <div class="sa-stat"><div class="sa-num" id="sa-active" style="color:var(--green)">0</div><div class="sa-lbl">Faol</div></div>
+        <div class="sa-stat"><div class="sa-num" id="sa-pending" style="color:var(--yellow)">0</div><div class="sa-lbl">Kutilmoqda</div></div>
+        <div class="sa-stat"><div class="sa-num" id="sa-blocked" style="color:var(--red)">0</div><div class="sa-lbl">Bloklangan</div></div>
+      </div>
+      <div id="sa-exp" style="display:none;margin:0 16px 10px;padding:10px 14px;background:var(--red-bg);border:1px solid var(--red-b);border-radius:12px;font-size:12px;color:var(--red)"></div>
+    </div>
+    <div class="sec-hdr"><span class="sec-title" id="admin-title">Boshqaruv</span></div>
+    <div id="admin-list"><div class="spin"></div></div>
+  </div>
+
+  <!-- FABs -->
+  <button id="fab2" onclick="openAddIshchi()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="17" y1="11" x2="23" y2="11"/></svg>
+  </button>
+  <button id="fab" onclick="openOpSheet('kirim')">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  </button>
+
+  <!-- BOTTOM NAV -->
+  <div id="bnav">
+    <button class="nbtn active" data-pg="home" onclick="sp('home',this)">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+      <span>Asosiy</span>
+    </button>
+    <button class="nbtn" data-pg="obyekt" onclick="sp('obyekt',this)">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+      <span>Obyektlar</span>
+    </button>
+    <button class="nbtn" data-pg="ops" onclick="sp('ops',this)">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <span>Operatsiya</span>
+    </button>
+    <button class="nbtn" data-pg="hisobot" onclick="sp('hisobot',this)">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      <span>Hisobot</span>
+    </button>
+    <button class="nbtn" id="nb-admin" style="display:none" data-pg="admin" onclick="sp('admin',this)">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>Admin</span>
+    </button>
+    <button class="nbtn" id="nb-ishchi" style="display:none" data-pg="ishchilar" onclick="sp('ishchilar',this)">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      <span>Ishchilar</span>
+    </button>
+  </div>
+</div>
+
+<!-- SHEETS -->
+<!-- OPERATSIYA SHEET -->
+<div id="op-sheet-bg" class="sheet-bg" onclick="if(event.target===this)closeOpSheet()">
+  <div class="sheet">
+    <div class="s-handle"></div>
+    <div class="s-title" id="op-sheet-title">Yangi operatsiya</div>
+    <div class="type-row">
+      <button class="type-btn kirim" id="tb-kirim" onclick="setOpType('kirim')">↓ Pul oldi</button>
+      <button class="type-btn" id="tb-chiqim" onclick="setOpType('chiqim')">↑ Pul berdi</button>
+    </div>
+    <!-- AI -->
+    <div class="ai-bar">
+      <input type="text" class="ai-inp" id="ai-inp" placeholder='masalan: "Akmal 500 Yunusobod"'>
+      <button class="ai-mic" id="ai-mic" onclick="startVoice()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
+      <button class="ai-go" onclick="aiAnalyze()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></button>
+    </div>
+    <div class="ai-status" id="ai-status"></div>
+    <div class="frow"><label class="flbl">Summa ($)</label><input type="number" class="finput" id="op-sum" placeholder="0.00" inputmode="decimal" style="font-size:24px;font-weight:800;text-align:center"></div>
+    <div class="frow"><label class="flbl">Sana</label><input type="date" class="finput" id="op-date"></div>
+    <div class="frow">
+      <label class="flbl">Obyekt</label>
+      <div id="op-ob-sel" onclick="openObPicker()" style="width:100%;padding:14px;border-radius:14px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:15px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
+        <span id="op-ob-txt">Tanlang</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <input type="hidden" id="op-ob-id">
+    </div>
+    <div class="frow" id="ob-new-row" style="display:none"><input type="text" class="finput" id="op-ob-new" placeholder="Yangi obyekt nomi"></div>
+    <div class="frow">
+      <label class="flbl">Kategoriya</label>
+      <div class="cat-grid" id="cat-grid"></div>
+    </div>
+    <div class="frow"><label class="flbl">Ishchi (ixtiyoriy)</label>
+      <select class="finput" id="op-worker"><option value="">— Ishchi tanlang —</option></select>
+    </div>
+    <div class="frow"><label class="flbl">Izoh</label><input type="text" class="finput" id="op-izoh" placeholder="Qo'shimcha ma'lumot"></div>
+    <div style="color:var(--red);font-size:12px;margin-bottom:8px;min-height:16px" id="op-err"></div>
+    <div class="sbtns"><button onclick="saveOp()" class="sbtn-ok" id="op-save-btn">Saqlash</button><button onclick="closeOpSheet()" class="sbtn-cn">Bekor</button></div>
+  </div>
+</div>
+
+<!-- OB PICKER -->
+<div id="ob-picker-bg" class="sheet-bg" onclick="if(event.target===this)closeObPicker()">
+  <div class="sheet"><div class="s-handle"></div><div class="s-title">Obyekt tanlang</div><div id="ob-picker-list" style="display:flex;flex-direction:column;gap:8px"></div><button onclick="closeObPicker()" class="sbtn-cn" style="width:100%;margin-top:12px">Bekor</button></div>
+</div>
+
+<!-- ADD OB -->
+<div id="add-ob-bg" class="sheet-bg" onclick="if(event.target===this)closeAddOb()">
+  <div class="sheet"><div class="s-handle"></div><div class="s-title">Yangi obyekt</div>
+  <div class="frow"><label class="flbl">Obyekt nomi</label><input type="text" id="ob-nm" class="finput" placeholder="masalan: Yunusobod uy"></div>
+  <div style="color:var(--red);font-size:12px;margin-bottom:8px;min-height:16px" id="ob-err"></div>
+  <div class="sbtns"><button onclick="saveOb()" class="sbtn-ok">Saqlash</button><button onclick="closeAddOb()" class="sbtn-cn">Bekor</button></div></div>
+</div>
+
+<!-- ADD ISHCHI -->
+<div id="add-ishchi-bg" class="sheet-bg" onclick="if(event.target===this)closeAddIshchi()">
+  <div class="sheet"><div class="s-handle"></div><div class="s-title">Yangi ishchi</div>
+  <div class="frow"><label class="flbl">Ism</label><input type="text" id="ish-nm" class="finput" placeholder="Ishchi ismi"></div>
+  <div class="frow"><label class="flbl">Telefon</label><input type="tel" id="ish-ph" class="finput" placeholder="901234567"></div>
+  <div class="frow"><label class="flbl">Parol</label><input type="text" id="ish-pw" class="finput" placeholder="Parol"></div>
+  <div style="color:var(--red);font-size:12px;margin-bottom:8px;min-height:16px" id="ish-err"></div>
+  <div class="sbtns"><button onclick="saveIshchi()" class="sbtn-ok">Saqlash</button><button onclick="closeAddIshchi()" class="sbtn-cn">Bekor</button></div></div>
+</div>
+
+<!-- ADD PRORAB (super admin) -->
+<div id="add-pr-bg" class="sheet-bg" onclick="if(event.target===this)closeAddPr()">
+  <div class="sheet"><div class="s-handle"></div><div class="s-title">Yangi Prorab</div>
+  <div class="frow"><label class="flbl">Ism</label><input type="text" id="pr-nm" class="finput" placeholder="Prorab ismi"></div>
+  <div class="frow"><label class="flbl">Kompaniya</label><input type="text" id="pr-co" class="finput" placeholder="Kompaniya nomi"></div>
+  <div class="frow"><label class="flbl">Telefon</label><input type="tel" id="pr-ph" class="finput" placeholder="901234567"></div>
+  <div class="frow"><label class="flbl">Parol</label><input type="text" id="pr-pw" class="finput" placeholder="Parol"></div>
+  <div style="color:var(--red);font-size:12px;margin-bottom:8px;min-height:16px" id="pr-err"></div>
+  <div class="sbtns"><button onclick="savePr()" class="sbtn-ok">Saqlash</button><button onclick="closeAddPr()" class="sbtn-cn">Bekor</button></div></div>
+</div>
+
+<!-- OP DETAIL SHEET -->
+<div id="op-detail-bg" class="sheet-bg" onclick="if(event.target===this)closeOpDetail()">
+  <div class="sheet">
+    <div class="s-handle"></div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <div id="od-icon" style="width:50px;height:50px;border-radius:25px;display:flex;align-items:center;justify-content:center;flex-shrink:0"></div>
+      <div><div id="od-title" style="font-size:17px;font-weight:700"></div><div id="od-meta" style="font-size:12px;color:var(--muted);margin-top:2px"></div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div style="background:var(--subtle);border-radius:14px;padding:14px;text-align:center"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Summa</div><div id="od-sum" style="font-size:22px;font-weight:800"></div></div>
+      <div style="background:var(--subtle);border-radius:14px;padding:14px;text-align:center"><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Balans</div><div id="od-bal" style="font-size:22px;font-weight:800"></div></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:6px"><span id="od-date"></span><span id="od-ob" style="color:var(--accent)"></span></div>
+    <div id="od-worker" style="font-size:12px;color:var(--muted);margin-bottom:18px"></div>
+    <div id="od-actions" style="display:flex;gap:10px">
+      <button onclick="editOp()" class="sbtn-ok">✏️ Tahrirlash</button>
+      <button onclick="deleteOp()" id="od-del" style="flex:1;padding:15px;border-radius:14px;border:1.5px solid var(--red);background:var(--red-bg);color:var(--red);font-weight:700;font-size:16px;font-family:inherit;cursor:pointer">O'chirish</button>
+    </div>
+    <button onclick="closeOpDetail()" class="sbtn-cn" style="width:100%;margin-top:10px">Yopish</button>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const SB_URL = 'https://djreovvpojsiccndlgzu.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqcmVvdnZwb2pzaWNjbmRsZ3p1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NzMzOTksImV4cCI6MjA5NTA0OTM5OX0.fgaat8STrBIj6WC_p98zYN3Tfp6kScDKYXuHk1lLDKk';
+const SA_PHONE = '700000000', SA_PASS = '7777';
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let CU = null; // current user
+let OBS = []; // obyektlar
+let OPS = []; // operatsiyalar
+let ISHCHILAR = []; // ishchilar
+let PRORABLAR = []; // super admin uchun
+let curPage = 'home';
+let curObId = null;
+let opFilt = 'all';
+let opPeriod = 'month';
+let editOpId = null;
+let curOpType = 'kirim';
+let syncSt = 'loading';
+let confirmDelId = null;
+
+// Kategoriyalar
+const CATS_KIRIM = [
+  {id:'mijoz', icon:'🏦', lbl:'Mijoz'},
+  {id:'investor', icon:'💼', lbl:'Investor'},
+  {id:'boshqa', icon:'📦', lbl:'Boshqa'},
+];
+const CATS_CHIQIM = [
+  {id:'ishchi', icon:'👷', lbl:'Ishchi'},
+  {id:'material', icon:'🧱', lbl:'Material'},
+  {id:'transport', icon:'🚛', lbl:'Transport'},
+  {id:'asbob', icon:'🔧', lbl:'Asbob'},
+  {id:'komunal', icon:'⚡', lbl:'Komunal'},
+  {id:'boshqa', icon:'📦', lbl:'Boshqa'},
+];
+let selCat = 'boshqa';
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const usd = v => v === 0 ? '$0' : '$' + Math.abs(v).toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0});
+const fmtD = iso => { if(!iso) return ''; const[y,m,d]=iso.split('-'); return d+'.'+m+'.'+String(y).slice(2); };
+const today = () => new Date().toISOString().split('T')[0];
+const badge = v => `<span class="badge ${v>0?'pos':v<0?'neg':'zero'}">${v>0?'+':''}${usd(v)}</span>`;
+
+async function sb(path, opts={}) {
+  const r = await fetch(SB_URL + path, {
+    ...opts,
+    headers: {'Content-Type':'application/json', 'apikey':SB_KEY, 'Authorization':'Bearer '+SB_KEY, ...(opts.headers||{})}
+  });
+  const t = await r.text();
+  try { return {ok:r.ok, status:r.status, data:JSON.parse(t)}; }
+  catch { return {ok:r.ok, status:r.status, data:t}; }
+}
+
+function setSt(s) {
+  syncSt = s;
+  const d = $('sync-dot'), t = $('sync-text');
+  if(d) d.className = s;
+  if(t) t.textContent = {loading:'Yuklanmoqda...',synced:'Saqlangan ✓',saving:'Saqlanmoqda...',error:'Xato'}[s]||'';
+}
+
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+let authMode = 'login', selRole = 'prorab';
+
+function switchTab(m, btn) {
+  authMode = m;
+  document.querySelectorAll('.auth-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const reg = m==='register';
+  $('rn').style.display = reg?'block':'none';
+  $('rr').style.display = reg?'block':'none';
+  $('rc').style.display = reg&&selRole==='prorab'?'block':'none';
+  $('rps').style.display = reg&&selRole==='ishchi'?'block':'none';
+  $('asubmit').textContent = reg?"Ro'yxatdan o'tish":"Kirish";
+  $('aerr').textContent='';
+  $('amsg').style.display='none';
+  if(reg && selRole==='ishchi') loadProrabList();
+}
+
+function setRole(r) {
+  selRole = r;
+  $('r-prorab').classList.toggle('active', r==='prorab');
+  $('r-ishchi').classList.toggle('active', r==='ishchi');
+  $('rc').style.display = r==='prorab'?'block':'none';
+  $('rps').style.display = r==='ishchi'?'block':'none';
+  if(r==='ishchi') loadProrabList();
+}
+
+async function loadProrabList() {
+  const s = $('apsel'); if(!s) return;
+  s.innerHTML = '<option value="">Yuklanmoqda...</option>';
+  const r = await sb('/rest/v1/prorablar?status=eq.active&select=id,name,company');
+  if(r.ok && r.data) s.innerHTML = '<option value="">Prorabingizni tanlang...</option>' + r.data.map(p=>`<option value="${p.id}">${p.name} (${p.company})</option>`).join('');
+}
+
+async function doAuth() {
+  const phone = $('aphone').value.trim();
+  const pass = $('apass').value.trim();
+  const err = $('aerr');
+  err.textContent = '';
+  if(!phone||!pass) { err.textContent='Telefon va parol kiriting!'; return; }
+
+  if(phone===SA_PHONE && pass===SA_PASS) {
+    CU = {id:'super_admin', name:'Super Admin', phone:SA_PHONE, role:'super_admin', status:'active'};
+    localStorage.setItem('ph',phone); localStorage.setItem('pw',pass);
+    showApp(); return;
+  }
+
+  if(authMode==='login') {
+    const rp = await sb('/rest/v1/prorablar?phone=eq.'+phone+'&select=*');
+    if(rp.ok && rp.data && rp.data.length>0) {
+      const p=rp.data[0];
+      if(p.password!==pass){err.textContent='Parol noto\'g\'ri!';return;}
+      if(p.status==='pending'){CU=p;showPending();return;}
+      if(p.status==='blocked'){err.textContent='Akkaunt bloklangan!';return;}
+      CU={...p,role:'prorab'};
+      localStorage.setItem('ph',phone);localStorage.setItem('pw',pass);
+      showApp();return;
+    }
+    const ri = await sb('/rest/v1/ishchilar?phone=eq.'+phone+'&select=*');
+    if(ri.ok && ri.data && ri.data.length>0) {
+      const i=ri.data[0];
+      if(i.password!==pass){err.textContent='Parol noto\'g\'ri!';return;}
+      if(i.status==='pending'){CU=i;showPending();return;}
+      if(i.status==='blocked'){err.textContent='Akkaunt bloklangan!';return;}
+      CU={...i,role:'ishchi'};
+      localStorage.setItem('ph',phone);localStorage.setItem('pw',pass);
+      showApp();return;
+    }
+    err.textContent='Telefon yoki parol noto\'g\'ri!';
+  } else {
+    const name=$('aname').value.trim();
+    if(!name){err.textContent='Ismingizni kiriting!';return;}
+    if(selRole==='prorab') {
+      const comp=$('acomp').value.trim();
+      if(!comp){err.textContent='Kompaniya nomini kiriting!';return;}
+      const chk=await sb('/rest/v1/prorablar?phone=eq.'+phone+'&select=id');
+      if(chk.data&&chk.data.length>0){err.textContent='Bu telefon allaqachon mavjud!';return;}
+      const ins=await sb('/rest/v1/prorablar',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify({name,company:comp,phone,password:pass,status:'pending'})});
+      if(!ins.ok){err.textContent='Xato yuz berdi!';return;}
+    } else {
+      const pid=$('apsel').value;
+      if(!pid){err.textContent='Prorabingizni tanlang!';return;}
+      const ins=await sb('/rest/v1/ishchilar',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify({name,phone,password:pass,prorab_id:pid,status:'pending'})});
+      if(!ins.ok){err.textContent='Xato yuz berdi!';return;}
+    }
+    const msg=$('amsg');
+    msg.style.display='block';
+    msg.textContent="Ro'yxatdan o'tdingiz! Tasdiqdan so'ng kira olasiz.";
+  }
+}
+
+function showPending() {
+  $('auth-screen').style.display='none';
+  $('pending-screen').style.display='flex';
+}
+
+function doLogout() {
+  CU=null; OBS=[]; OPS=[]; ISHCHILAR=[];
+  localStorage.removeItem('ph'); localStorage.removeItem('pw');
+  $('app').style.display='none';
+  $('pending-screen').style.display='none';
+  $('auth-screen').style.display='flex';
+  $('aphone').value=''; $('apass').value='';
+}
+
+// ── SHOW APP ──────────────────────────────────────────────────────────────────
+async function showApp() {
+  $('auth-screen').style.display='none';
+  $('pending-screen').style.display='none';
+  $('app').style.display='block';
+
+  const isSA = CU.role==='super_admin';
+  const isIsh = CU.role==='ishchi';
+  const isPr = CU.role==='prorab';
+
+  $('h-av').textContent = isSA?'👑':isIsh?'🔧':'👷';
+  $('h-av').style.background = isSA?'#fff7ed':isIsh?'var(--green-bg)':'#fff7ed';
+  $('h-name').textContent = isSA?'Super Admin':isIsh?(CU.name||'Ishchi'):(CU.name||CU.company||'Prorab').toUpperCase();
+  $('h-role').textContent = isSA?'Super Admin':isIsh?'Ishchi':'Prorab';
+
+  // Nav visibility
+  $('nb-admin').style.display = isSA?'flex':'none';
+  $('nb-ishchi').style.display = isPr?'flex':'none';
+  $('fab').style.display = (isPr||isSA)?'flex':'none';
+  $('fab2').style.display = isPr?'flex':'none';
+  $('add-ishchi-btn') && ($('add-ishchi-btn').style.display = isPr?'block':'none');
+
+  if(isSA) {
+    sp('admin', document.querySelector('[data-pg=admin]'));
+    await loadSA();
+  } else if(isIsh) {
+    await loadData();
+    sp('home', document.querySelector('[data-pg=home]'));
+  } else {
+    await loadData();
+    sp('home', document.querySelector('[data-pg=home]'));
+  }
+}
+
+// ── DATA LOADING ──────────────────────────────────────────────────────────────
+async function loadData() {
+  setSt('loading');
+  try {
+    const pid = CU.role==='prorab' ? CU.id : CU.prorab_id;
+
+    if(CU.role==='prorab') {
+      // Load obyektlar
+      const ro = await sb('/rest/v1/obyektlar?prorab_id=eq.'+pid+'&select=*&order=created_at.asc');
+      OBS = ro.ok ? (ro.data||[]) : [];
+      // Load ishchilar
+      const ri = await sb('/rest/v1/ishchilar?prorab_id=eq.'+pid+'&select=*&order=name.asc');
+      ISHCHILAR = ri.ok ? (ri.data||[]) : [];
+    } else if(CU.role==='ishchi') {
+      // Load only this ishchi's ob
+      const ro = await sb('/rest/v1/obyektlar?prorab_id=eq.'+CU.prorab_id+'&select=*');
+      OBS = ro.ok ? (ro.data||[]) : [];
+    }
+
+    // Load operatsiyalar
+    const qp = CU.role==='prorab' ? 'prorab_id=eq.'+pid : 'ishchi_id=eq.'+CU.id;
+    const rops = await sb('/rest/v1/operatsiyalar?'+qp+'&select=*&order=sana.desc,created_at.desc');
+    OPS = rops.ok ? (rops.data||[]) : [];
+
+    setSt('synced');
+  } catch(e) { setSt('error'); }
+  renderHome();
+  renderOps();
+  renderObs();
+  renderIshchilar();
+}
+
+async function loadSA() {
+  setSt('loading');
+  const r = await sb('/rest/v1/prorablar?select=*&order=created_at.desc');
+  PRORABLAR = r.ok ? (r.data||[]) : [];
+  setSt('synced');
+  renderAdmin();
+}
+
+// ── PAGE NAVIGATION ───────────────────────────────────────────────────────────
+function sp(pg, btn) {
+  curPage = pg;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const pgEl = $('pg-'+pg);
+  if(pgEl) pgEl.classList.add('active');
+  document.querySelectorAll('.nbtn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  // FAB visibility
+  $('fab').style.display = (pg==='home'||pg==='ops'||pg==='ob-detail') && CU.role!=='ishchi' ? 'flex' : 'none';
+  $('fab2').style.display = pg==='ishchilar' && CU.role==='prorab' ? 'flex' : 'none';
+
+  if(pg==='hisobot') renderHisobot();
+  if(pg==='obs') renderObs();
+  if(pg==='admin') renderAdmin();
+  if(pg==='ishchilar') renderIshchilar();
+}
+
+function gp(pg) {
+  const btn = document.querySelector('[data-pg='+pg+']');
+  sp(pg, btn);
+}
+
+// ── HOME ──────────────────────────────────────────────────────────────────────
+function renderHome() {
+  if(!CU) return;
+  const totalIn = OPS.filter(o=>o.tur==='kirim').reduce((s,o)=>s+o.summa,0);
+  const totalOut = OPS.filter(o=>o.tur==='chiqim').reduce((s,o)=>s+o.summa,0);
+  const bal = totalIn - totalOut;
+
+  $('bc-bal').textContent = (bal>=0?'+':'') + usd(bal);
+  $('bc-in').textContent = usd(totalIn);
+  $('bc-out').textContent = usd(totalOut);
+
+  // Ob scroll
+  renderHomeObs();
+
+  // Last 5 ops
+  const last5 = OPS.slice(0,5);
+  const homeOps = $('home-ops');
+  if(!homeOps) return;
+  if(!last5.length) { homeOps.innerHTML='<div class="empty">Hali operatsiya yoq</div>'; return; }
+  homeOps.innerHTML = '<div class="op-list">' + last5.map(op => opRowHtml(op)).join('') + '</div>';
+}
+
+function renderHomeObs() {
+  const sc = $('home-obs'); if(!sc) return;
+  const colors = ['#f97316','#16a34a','#2563eb','#7c3aed','#dc2626','#0891b2'];
+  let html = OBS.map((ob,i) => {
+    const obOps = OPS.filter(o=>o.obyekt_id===ob.id);
+    const bal = obOps.reduce((s,o)=>o.tur==='kirim'?s+o.summa:s-o.summa, 0);
+    const c = colors[i%colors.length];
+    const imgH = ob.rasm_url ? `<img src="${ob.rasm_url}" alt="">` : '';
+    return `<div class="ob-card" onclick="openObDetail('${ob.id}')">
+      <div class="ob-img" style="background:linear-gradient(135deg,${c},${c}bb)">
+        ${imgH}<div class="ob-img-overlay"></div>
+        <div class="ob-badge" style="background:${c}">Faol</div>
+        <div class="ob-name-over">${ob.nomi}</div>
+      </div>
+      <div class="ob-body">
+        <div class="ob-bal" style="color:${bal>=0?'var(--green)':'var(--red)'}">${(bal>=0?'+':'')+usd(bal)}</div>
+        <div class="ob-sub">Qoldiq · ${obOps.length} op.</div>
+      </div>
+    </div>`;
+  }).join('');
+  if(CU.role!=='ishchi') {
+    html += `<div class="ob-add" onclick="openAddOb()">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <div style="font-size:12px;font-weight:600;color:var(--accent)">Yangi</div>
+    </div>`;
+  }
+  sc.innerHTML = html || '<div class="empty" style="min-width:200px">Obyekt yoq</div>';
+}
+
+function opRowHtml(op, showBal=true) {
+  const isKirim = op.tur==='kirim';
+  const catIcon = getCatIcon(op.kategoriya, isKirim);
+  const obName = OBS.find(o=>o.id===op.obyekt_id)?.nomi || '';
+  const wName = ISHCHILAR.find(w=>w.id===op.ishchi_id)?.name || '';
+  const meta = [fmtD(op.sana), obName, wName].filter(Boolean).join(' · ');
+  return `<div class="op-row" onclick="openOpDetail('${op.id}')">
+    <div class="op-icon" style="background:${isKirim?'var(--green-bg)':'var(--red-bg)'}">${catIcon}</div>
+    <div class="op-info">
+      <div class="op-name">${op.izoh || op.kategoriya || (isKirim?'Kirim':'Chiqim')}</div>
+      <div class="op-meta">${meta}</div>
+    </div>
+    <div class="op-amount">
+      <div class="op-sum" style="color:${isKirim?'var(--green)':'var(--red)'}">${isKirim?'+':'-'}${usd(op.summa)}</div>
+      <div class="op-date">${fmtD(op.sana)}</div>
+    </div>
+  </div>`;
+}
+
+function getCatIcon(cat, isKirim) {
+  const map = {ishchi:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',material:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/></svg>',mijoz:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>'};
+  const icon = map[cat] || (isKirim?'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>':'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>');
+  return `<div style="color:${isKirim?'var(--green)':'var(--red)'}">${icon}</div>`;
+}
+
+// ── OPERATSIYALAR ─────────────────────────────────────────────────────────────
+function setFilt(f, btn) {
+  opFilt=f;
+  document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderOps();
+}
+
+function renderOps() {
+  const el = $('op-section'); if(!el) return;
+  const q = ($('search-inp')?.value||'').toLowerCase();
+  let ops = OPS.filter(o=>{
+    const m = (o.izoh||'').toLowerCase().includes(q) || (o.kategoriya||'').toLowerCase().includes(q) || (OBS.find(ob=>ob.id===o.obyekt_id)?.nomi||'').toLowerCase().includes(q);
+    if(opFilt==='kirim') return o.tur==='kirim'&&m;
+    if(opFilt==='chiqim') return o.tur==='chiqim'&&m;
+    return m;
+  });
+
+  if(!ops.length) { el.innerHTML='<div class="empty">Hech narsa topilmadi</div>'; return; }
+
+  const tIn = ops.filter(o=>o.tur==='kirim').reduce((s,o)=>s+o.summa,0);
+  const tOut = ops.filter(o=>o.tur==='chiqim').reduce((s,o)=>s+o.summa,0);
+  const bal = tIn-tOut;
+
+  el.innerHTML = ops.map(op=>opRowHtml(op)).join('') +
+    `<div class="total-bar">
+      <div class="total-lbl">Jami (${ops.length})</div>
+      <div class="total-nums">
+        <span style="color:var(--green)">+${usd(tIn)}</span>
+        <span style="color:var(--muted)">·</span>
+        <span style="color:var(--red)">-${usd(tOut)}</span>
+        <span style="color:var(--muted)">·</span>
+        <span style="color:${bal>=0?'var(--green)':'var(--red)'}">${(bal>=0?'+':'')+usd(bal)}</span>
+      </div>
+    </div>`;
+}
+
+// ── OBYEKTLAR ─────────────────────────────────────────────────────────────────
+function renderObs() {
+  const el = $('ob-grid'); if(!el) return;
+  const colors=['#f97316','#16a34a','#2563eb','#7c3aed','#dc2626','#0891b2'];
+  if(!OBS.length) { el.innerHTML='<div class="empty" style="grid-column:1/-1">Hali obyekt yaratilmagan</div>'; return; }
+  el.innerHTML = OBS.map((ob,i)=>{
+    const obOps=OPS.filter(o=>o.obyekt_id===ob.id);
+    const tIn=obOps.filter(o=>o.tur==='kirim').reduce((s,o)=>s+o.summa,0);
+    const tOut=obOps.filter(o=>o.tur==='chiqim').reduce((s,o)=>s+o.summa,0);
+    const bal=tIn-tOut;
+    const c=colors[i%colors.length];
+    const imgH=ob.rasm_url?`<img src="${ob.rasm_url}" alt="">`:'';
+    return `<div class="ob-grid-card" onclick="openObDetail('${ob.id}')">
+      <div class="ob-grid-img" style="background:linear-gradient(135deg,${c},${c}bb)">
+        ${imgH}<div class="ob-grid-overlay"></div>
+        <div class="ob-grid-badge" style="background:${c}">Faol</div>
+        <div class="ob-grid-name">${ob.nomi}</div>
+      </div>
+      <div class="ob-grid-body">
+        <div class="ob-grid-bal" style="color:${bal>=0?'var(--green)':'var(--red)'}">${(bal>=0?'+':'')+usd(bal)}</div>
+        <div class="ob-grid-stats">
+          <span style="color:var(--green)">+${usd(tIn)}</span>
+          <span style="color:var(--red)">-${usd(tOut)}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── OB DETAIL ─────────────────────────────────────────────────────────────────
+function openObDetail(obId) {
+  curObId = obId;
+  const ob = OBS.find(o=>o.id===obId);
+  if(!ob) return;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  $('pg-ob-detail').classList.add('active');
+  document.querySelectorAll('.nbtn').forEach(b=>b.classList.remove('active'));
+  $('fab').style.display = CU.role!=='ishchi'?'flex':'none';
+  $('fab2').style.display = 'none';
+  curPage = 'ob-detail';
+  renderObDetail(ob);
+}
+
+function renderObDetail(ob) {
+  const obOps = OPS.filter(o=>o.obyekt_id===ob.id);
+  const tIn = obOps.filter(o=>o.tur==='kirim').reduce((s,o)=>s+o.summa,0);
+  const tOut = obOps.filter(o=>o.tur==='chiqim').reduce((s,o)=>s+o.summa,0);
+  const bal = tIn-tOut;
+  const colors=['#f97316','#16a34a','#2563eb','#7c3aed','#dc2626','#0891b2'];
+  const idx = OBS.findIndex(o=>o.id===ob.id);
+  const c = colors[idx%colors.length];
+  const canEdit = CU.role!=='ishchi';
+  const imgH = ob.rasm_url ? `<img src="${ob.rasm_url}" alt="">` : '';
+
+  const actBtns = canEdit ? `
+    <div class="ob-actions">
+      <button class="ob-act" style="background:var(--green-bg);color:var(--green)" onclick="openOpSheet('kirim','${ob.id}')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        Pul oldi
+      </button>
+      <button class="ob-act" style="background:var(--red-bg);color:var(--red)" onclick="openOpSheet('chiqim','${ob.id}')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        Pul berdi
+      </button>
+      <button class="ob-act" style="background:var(--subtle);color:var(--muted)" onclick="trigCam()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        Rasm
+      </button>
+    </div>` : '';
+
+  $('ob-detail-body').innerHTML = `
+    <div class="ob-hero" style="background:linear-gradient(135deg,${c},${c}bb)">
+      <div class="ob-hero-bg">${imgH}</div>
+      <div class="ob-overlay"></div>
+      <button class="ob-back" onclick="gp('obyekt')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+      ${canEdit?`<button class="ob-cam" onclick="trigCam()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg></button><input type="file" id="ob-cam-inp" accept="image/*" style="display:none" onchange="uploadObImg(this)">`:``}
+      <div class="ob-htitle">
+        <div class="ob-hname">${ob.nomi}</div>
+        <div class="ob-hsub">${obOps.length} ta operatsiya · Faol</div>
+      </div>
+    </div>
+    <div class="ob-stats">
+      <div class="ob-stat"><div class="ob-stat-val" style="color:var(--green)">${usd(tIn)}</div><div class="ob-stat-lbl">Kirim</div></div>
+      <div class="ob-stat"><div class="ob-stat-val" style="color:var(--red)">${usd(tOut)}</div><div class="ob-stat-lbl">Chiqim</div></div>
+      <div class="ob-stat"><div class="ob-stat-val" style="color:${bal>=0?'var(--green)':'var(--red)'}">${(bal>=0?'+':'')+usd(bal)}</div><div class="ob-stat-lbl">Qoldiq</div></div>
+    </div>
+    ${actBtns}
+    <div style="font-size:15px;font-weight:700;color:var(--text);padding:4px 16px 10px">Operatsiyalar</div>
+    <div class="op-list" style="margin:0 16px 80px">
+      ${obOps.length ? obOps.map(op=>opRowHtml(op,false)).join('') : '<div class="empty">Bu obyektda operatsiya yoq</div>'}
+    </div>`;
+}
+
+function trigCam() { const f=$('ob-cam-inp'); if(f) f.click(); }
+
+async function uploadObImg(inp) {
+  const ob=OBS.find(o=>o.id===curObId);
+  if(!inp.files||!inp.files[0]||!ob) return;
+  const reader=new FileReader();
+  reader.onload=async(e)=>{
+    const b64=e.target.result;
+    await sb('/rest/v1/obyektlar?id=eq.'+ob.id,{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify({rasm_url:b64})});
+    ob.rasm_url=b64;
+    renderObDetail(ob); renderHomeObs();
+  };
+  reader.readAsDataURL(inp.files[0]);
+}
+
+// ── OPERATSIYA SHEET ──────────────────────────────────────────────────────────
+function openOpSheet(type, obId) {
+  curOpType = type;
+  editOpId = null;
+  setOpType(type);
+  $('op-sum').value='';
+  $('op-date').value=today();
+  $('op-izoh').value='';
+  $('op-ob-id').value=obId||'';
+  $('ai-inp').value='';
+  $('ai-status').textContent='';
+  $('op-err').textContent='';
+  if(obId) {
+    const ob=OBS.find(o=>o.id===obId);
+    $('op-ob-txt').textContent='🏗️ '+(ob?.nomi||'');
+    $('op-ob-txt').style.color='var(--text)';
+  } else {
+    $('op-ob-txt').textContent='Tanlang';
+    $('op-ob-txt').style.color='var(--muted)';
+  }
+  // Worker select
+  const ws=$('op-worker');
+  ws.innerHTML='<option value="">— Ishchi (ixtiyoriy) —</option>'+ISHCHILAR.map(w=>`<option value="${w.id}">${w.name}</option>`).join('');
+  $('op-sheet-bg').classList.add('open');
+  setTimeout(()=>$('op-sum').focus(),300);
+}
+
+function setOpType(t) {
+  curOpType=t;
+  $('tb-kirim').className='type-btn'+(t==='kirim'?' kirim':'');
+  $('tb-chiqim').className='type-btn'+(t==='chiqim'?' chiqim':'');
+  renderCats();
+}
+
+function renderCats() {
+  const cats = curOpType==='kirim'?CATS_KIRIM:CATS_CHIQIM;
+  if(!selCat||!cats.find(c=>c.id===selCat)) selCat=cats[0].id;
+  $('cat-grid').innerHTML=cats.map(c=>`
+    <div class="cat-btn${selCat===c.id?' active':''}" onclick="selCatFn('${c.id}')">
+      <div class="cat-icon">${c.icon}</div>
+      <div class="cat-lbl">${c.lbl}</div>
+    </div>`).join('');
+}
+
+function selCatFn(id) {
+  selCat=id;
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+}
+
+function closeOpSheet() { $('op-sheet-bg').classList.remove('open'); }
+
+function openObPicker() {
+  const list=$('ob-picker-list');
+  list.innerHTML=OBS.map(ob=>`
+    <div onclick="pickOb('${ob.id}','${ob.nomi}')" style="background:var(--subtle);border:1.5px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+      <div style="font-size:15px;font-weight:600">${ob.nomi}</div>
+    </div>`).join('')+`
+  <div onclick="pickOb('__new__','')" style="background:#fff;border:2px dashed var(--accent);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    <div style="font-size:15px;font-weight:600;color:var(--accent)">Yangi obyekt yaratish</div>
+  </div>`;
+  $('ob-picker-bg').classList.add('open');
+}
+
+function closeObPicker() { $('ob-picker-bg').classList.remove('open'); }
+
+function pickOb(id, nomi) {
+  closeObPicker();
+  if(id==='__new__') {
+    $('op-ob-id').value='__new__';
+    $('op-ob-txt').textContent='Yangi...';
+    $('op-ob-txt').style.color='var(--accent)';
+    $('ob-new-row').style.display='block';
+    $('op-ob-new').focus();
+  } else {
+    $('op-ob-id').value=id;
+    $('op-ob-txt').textContent='🏗️ '+nomi;
+    $('op-ob-txt').style.color='var(--text)';
+    $('ob-new-row').style.display='none';
+  }
+}
+
+async function saveOp() {
+  const summa=parseFloat($('op-sum').value)||0;
+  const sana=$('op-date').value;
+  const izoh=$('op-izoh').value.trim();
+  const ishchiId=$('op-worker').value||null;
+  const err=$('op-err');
+  err.textContent='';
+
+  if(!summa||summa<=0){err.textContent='Summani kiriting!';return;}
+  if(!sana){err.textContent='Sanani kiriting!';return;}
+
+  let obId=$('op-ob-id').value;
+  // Create new ob if needed
+  if(obId==='__new__') {
+    const newNm=$('op-ob-new').value.trim();
+    if(!newNm){err.textContent='Obyekt nomini kiriting!';return;}
+    const pid=CU.role==='prorab'?CU.id:CU.prorab_id;
+    const res=await sb('/rest/v1/obyektlar',{method:'POST',headers:{'Prefer':'return=representation'},body:JSON.stringify({nomi:newNm,prorab_id:pid})});
+    if(!res.ok){err.textContent='Obyekt yaratilmadi!';return;}
+    if(res.data&&res.data[0]){OBS.unshift(res.data[0]);obId=res.data[0].id;}
+  }
+
+  setSt('saving');
+  const pid=CU.role==='prorab'?CU.id:CU.prorab_id;
+  const body={tur:curOpType,summa,sana,kategoriya:selCat,izoh:izoh||null,obyekt_id:obId||null,prorab_id:pid,ishchi_id:ishchiId||null};
+
+  let res;
+  if(editOpId) {
+    res=await sb('/rest/v1/operatsiyalar?id=eq.'+editOpId,{method:'PATCH',headers:{'Prefer':'return=representation'},body:JSON.stringify(body)});
+    if(res.ok&&res.data&&res.data[0]) OPS=OPS.map(o=>o.id===editOpId?res.data[0]:o);
+  } else {
+    res=await sb('/rest/v1/operatsiyalar',{method:'POST',headers:{'Prefer':'return=representation'},body:JSON.stringify(body)});
+    if(res.ok&&res.data&&res.data[0]) OPS.unshift(res.data[0]);
+  }
+
+  if(!res.ok){err.textContent='Xato yuz berdi!';setSt('error');return;}
+  setSt('synced');
+  closeOpSheet();
+  editOpId=null;
+  renderHome(); renderOps(); renderObs();
+  if(curPage==='ob-detail'&&curObId) renderObDetail(OBS.find(o=>o.id===curObId));
+}
+
+// ── OP DETAIL ─────────────────────────────────────────────────────────────────
+function openOpDetail(opId) {
+  const op=OPS.find(o=>o.id===opId); if(!op) return;
+  const isK=op.tur==='kirim';
+  const ob=OBS.find(o=>o.id===op.obyekt_id);
+  const w=ISHCHILAR.find(w=>w.id===op.ishchi_id);
+
+  // Running balance for this ob
+  const obOps=OPS.filter(o=>o.obyekt_id===op.obyekt_id).sort((a,b)=>a.sana.localeCompare(b.sana));
+  let runBal=0;
+  for(const o of obOps){runBal+=o.tur==='kirim'?o.summa:-o.summa;if(o.id===opId)break;}
+
+  $('od-icon').style.background=isK?'var(--green-bg)':'var(--red-bg)';
+  $('od-icon').innerHTML=getCatIcon(op.kategoriya,isK);
+  $('od-title').textContent=op.izoh||(op.kategoriya||'')||(isK?'Kirim':'Chiqim');
+  $('od-meta').textContent=(ob?.nomi||'')+(w?' · 👷 '+w.name:'');
+  $('od-sum').textContent=(isK?'+':'-')+usd(op.summa);
+  $('od-sum').style.color=isK?'var(--green)':'var(--red)';
+  $('od-bal').textContent=(runBal>=0?'+':'')+usd(runBal);
+  $('od-bal').style.color=runBal>=0?'var(--green)':'var(--red)';
+  $('od-date').textContent='📅 '+fmtD(op.sana);
+  $('od-ob').textContent=ob?'🏗️ '+ob.nomi:'';
+  $('od-worker').textContent=w?'👷 '+w.name+' ('+op.kategoriya+')':'';
+  $('od-actions').style.display=CU.role==='ishchi'?'none':'flex';
+
+  $('od-del').dataset.id=opId;
+  $('od-del').textContent="O'chirish";
+  $('od-del').dataset.confirm='0';
+  $('op-detail-bg').classList.add('open');
+}
+
+function closeOpDetail(){$('op-detail-bg').classList.remove('open');}
+
+function editOp(){
+  const op=OPS.find(o=>o.id===$('od-del').dataset.id);
+  if(!op) return;
+  closeOpDetail();
+  editOpId=op.id;
+  curOpType=op.tur;
+  setOpType(op.tur);
+  $('op-sum').value=op.summa;
+  $('op-date').value=op.sana;
+  $('op-izoh').value=op.izoh||'';
+  $('op-ob-id').value=op.obyekt_id||'';
+  const ob=OBS.find(o=>o.id===op.obyekt_id);
+  $('op-ob-txt').textContent=ob?'🏗️ '+ob.nomi:'Tanlang';
+  $('op-ob-txt').style.color=ob?'var(--text)':'var(--muted)';
+  selCat=op.kategoriya||'boshqa';
+  renderCats();
+  $('op-sheet-bg').classList.add('open');
+}
+
+async function deleteOp(){
+  const btn=$('od-del');
+  const id=btn.dataset.id;
+  if(btn.dataset.confirm!=='1'){
+    btn.textContent="Tasdiqlang?";
+    btn.dataset.confirm='1';
+    setTimeout(()=>{btn.textContent="O'chirish";btn.dataset.confirm='0';},3000);
+    return;
+  }
+  await sb('/rest/v1/operatsiyalar?id=eq.'+id,{method:'DELETE'});
+  OPS=OPS.filter(o=>o.id!==id);
+  closeOpDetail();
+  renderHome();renderOps();renderObs();
+  if(curPage==='ob-detail'&&curObId)renderObDetail(OBS.find(o=>o.id===curObId));
+}
+
+// ── OBYEKT CRUD ───────────────────────────────────────────────────────────────
+function openAddOb(){$('ob-nm').value='';$('ob-err').textContent='';$('add-ob-bg').classList.add('open');}
+function closeAddOb(){$('add-ob-bg').classList.remove('open');}
+async function saveOb(){
+  const nm=$('ob-nm').value.trim();
+  if(!nm){$('ob-err').textContent='Nom kiriting!';return;}
+  const pid=CU.id;
+  const res=await sb('/rest/v1/obyektlar',{method:'POST',headers:{'Prefer':'return=representation'},body:JSON.stringify({nomi:nm,prorab_id:pid})});
+  if(!res.ok){$('ob-err').textContent='Xato!';return;}
+  if(res.data&&res.data[0])OBS.unshift(res.data[0]);
+  closeAddOb();
+  renderHomeObs();renderObs();
+}
+
+// ── ISHCHILAR ─────────────────────────────────────────────────────────────────
+function renderIshchilar(){
+  const el=$('ishchilar-list');if(!el)return;
+  if(!ISHCHILAR.length){el.innerHTML='<div class="empty">Ishchi yoq. Qo\'shing!</div>';return;}
+  const colors=['#f97316','#16a34a','#2563eb','#7c3aed'];
+  el.innerHTML=ISHCHILAR.map((w,i)=>{
+    const wOps=OPS.filter(o=>o.ishchi_id===w.id);
+    const tA=wOps.filter(o=>o.tur==='chiqim'&&o.kategoriya==='ishchi').reduce((s,o)=>s+o.summa,0);
+    const ish=0; // placeholder - can add ish haqqi column later
+    const bal=ish-tA;
+    const c=colors[i%colors.length];
+    return `<div class="ishchi-card">
+      <div class="ishchi-top">
+        <div class="ishchi-av" style="background:${c}22;color:${c}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+        <div class="ishchi-info"><div class="ishchi-name">${w.name}</div><div class="ishchi-meta">${wOps.length} ta operatsiya</div></div>
+        <div class="ishchi-bal" style="color:${tA>0?'var(--red)':'var(--muted)'}">-${usd(tA)}</div>
+      </div>
+      <div class="ishchi-stats">
+        <div class="istat"><div class="istat-val" style="color:var(--red)">${usd(tA)}</div><div class="istat-lbl">Berildi</div></div>
+        <div class="istat"><div class="istat-val">${wOps.length}</div><div class="istat-lbl">Operatsiya</div></div>
+        <div class="istat"><div class="istat-val" style="color:${w.status==='active'?'var(--green)':'var(--yellow)'}">●</div><div class="istat-lbl">${w.status==='active'?'Faol':'Kutilmoqda'}</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openAddIshchi(){$('ish-nm').value='';$('ish-ph').value='';$('ish-pw').value='';$('ish-err').textContent='';$('add-ishchi-bg').classList.add('open');}
+function closeAddIshchi(){$('add-ishchi-bg').classList.remove('open');}
+async function saveIshchi(){
+  const nm=$('ish-nm').value.trim(),ph=$('ish-ph').value.trim(),pw=$('ish-pw').value.trim();
+  if(!nm||!ph||!pw){$('ish-err').textContent='Barcha maydonlarni toldiring!';return;}
+  const chk=await sb('/rest/v1/ishchilar?phone=eq.'+ph+'&select=id');
+  if(chk.data&&chk.data.length>0){$('ish-err').textContent='Bu telefon mavjud!';return;}
+  const res=await sb('/rest/v1/ishchilar',{method:'POST',headers:{'Prefer':'return=representation'},body:JSON.stringify({name:nm,phone:ph,password:pw,prorab_id:CU.id,status:'active'})});
+  if(!res.ok){$('ish-err').textContent='Xato!';return;}
+  if(res.data&&res.data[0])ISHCHILAR.push(res.data[0]);
+  closeAddIshchi();renderIshchilar();
+}
+
+// ── HISOBOT ───────────────────────────────────────────────────────────────────
+function setPeriod(p,btn){
+  opPeriod=p;
+  document.querySelectorAll('.ptab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderHisobot();
+}
+
+function renderHisobot(){
+  const el=$('chart-body');if(!el)return;
+  const now=new Date();
+  let filtOps=OPS.filter(o=>{
+    const d=new Date(o.sana);
+    return opPeriod==='month'?d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth():d.getFullYear()===now.getFullYear();
+  });
+
+  const tIn=filtOps.filter(o=>o.tur==='kirim').reduce((s,o)=>s+o.summa,0);
+  const tOut=filtOps.filter(o=>o.tur==='chiqim').reduce((s,o)=>s+o.summa,0);
+  const bal=tIn-tOut;
+  const label=opPeriod==='month'?'Bu oy':'Bu yil';
+
+  // Bar data
+  let bars=[];
+  if(opPeriod==='year'){
+    const ms=['Yan','Fev','Mar','Apr','May','Iyun','Iyul','Avg','Sen','Okt','Noy','Dek'];
+    bars=ms.slice(0,now.getMonth()+1).map((m,mi)=>{
+      const mOps=OPS.filter(o=>{const d=new Date(o.sana);return d.getFullYear()===now.getFullYear()&&d.getMonth()===mi;});
+      return{lbl:m,in:mOps.filter(o=>o.tur==='kirim').reduce((s,o)=>s+o.summa,0),out:mOps.filter(o=>o.tur==='chiqim').reduce((s,o)=>s+o.summa,0)};
+    });
+  } else {
+    [[1,7],[8,14],[15,21],[22,31]].forEach(([s,e])=>{
+      const mOps=OPS.filter(o=>{const d=new Date(o.sana);return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth()&&d.getDate()>=s&&d.getDate()<=e;});
+      bars.push({lbl:s+'-'+e,in:mOps.filter(o=>o.tur==='kirim').reduce((s,o)=>s+o.summa,0),out:mOps.filter(o=>o.tur==='chiqim').reduce((s,o)=>s+o.summa,0)});
+    });
+  }
+  const maxBar=Math.max(...bars.map(b=>Math.max(b.in,b.out)),1);
+
+  // Ob breakdown
+  const obBreak=OBS.map(ob=>{
+    const obOps=filtOps.filter(o=>o.obyekt_id===ob.id);
+    const b=obOps.reduce((s,o)=>o.tur==='kirim'?s+o.summa:s-o.summa,0);
+    return{name:ob.nomi,bal:b};
+  }).filter(o=>o.bal!==0).sort((a,b)=>Math.abs(b.bal)-Math.abs(a.bal));
+
+  el.innerHTML=`
+    <div class="sum-card">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px">${label} balans</div>
+      <div style="font-size:32px;font-weight:900;color:${bal>=0?'var(--green)':'var(--red)'};margin-bottom:12px">${(bal>=0?'+':'')+usd(bal)}</div>
+      <div style="display:flex;gap:20px;font-size:13px">
+        <span style="color:var(--green)">+${usd(tIn)} kirim</span>
+        <span style="color:var(--red)">-${usd(tOut)} chiqim</span>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">${opPeriod==='year'?'Oylar':'Haftalar'} bo'yicha</div>
+      ${bars.map(b=>`
+        <div class="bar-row">
+          <div class="bar-lbl">${b.lbl}</div>
+          <div style="flex:1">
+            <div class="bar-wrap" style="margin-bottom:4px"><div class="bar-fill" style="width:${Math.max(b.in?Math.round(b.in/maxBar*100):2,2)}%;background:var(--green)"></div></div>
+            <div class="bar-wrap"><div class="bar-fill" style="width:${Math.max(b.out?Math.round(b.out/maxBar*100):2,2)}%;background:var(--red)"></div></div>
+          </div>
+          <div class="bar-val">
+            <div style="color:var(--green);font-size:10px">+${usd(b.in)}</div>
+            <div style="color:var(--red);font-size:10px">-${usd(b.out)}</div>
+          </div>
+        </div>`).join('')}
+    </div>
+    ${obBreak.length?`<div class="chart-card">
+      <div class="chart-title">Obyektlar bo'yicha</div>
+      ${obBreak.map(o=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;font-weight:600">🏗️ ${o.name}</span><span style="font-size:14px;font-weight:800;color:${o.bal>=0?'var(--green)':'var(--red)'}">${(o.bal>=0?'+':'')+usd(o.bal)}</span></div>`).join('')}
+    </div>`:''}`;
+}
+
+// ── ADMIN ─────────────────────────────────────────────────────────────────────
+function renderAdmin(){
+  if(!CU||CU.role!=='super_admin') return;
+  const active=PRORABLAR.filter(p=>p.status==='active').length;
+  const pending=PRORABLAR.filter(p=>p.status==='pending').length;
+  const blocked=PRORABLAR.filter(p=>p.status==='blocked').length;
+  $('sa-stats').style.display='block';
+  $('sa-active').textContent=active;
+  $('sa-pending').textContent=pending;
+  $('sa-blocked').textContent=blocked;
+
+  const exp=PRORABLAR.filter(p=>{
+    if(p.status!=='active')return false;
+    return Math.ceil((new Date(p.created_at).getTime()+30*24*60*60*1000-Date.now())/(1000*60*60*24))<=5;
+  });
+  const expEl=$('sa-exp');
+  if(exp.length){expEl.style.display='block';expEl.textContent='⚠️ '+exp.map(p=>p.name).join(', ')+' — muddat tugayapti!';}
+  else expEl.style.display='none';
+
+  const el=$('admin-list');
+  if(!PRORABLAR.length){el.innerHTML='<div class="empty">Hali prorab yoq</div>';return;}
+  el.innerHTML=PRORABLAR.map(p=>{
+    const days=Math.ceil((new Date(p.created_at).getTime()+30*24*60*60*1000-Date.now())/(1000*60*60*24));
+    const sub=p.status==='active'?`<div style="font-size:11px;margin-top:8px;padding:7px 10px;background:var(--subtle);border-radius:8px;display:flex;justify-content:space-between"><span style="color:var(--muted)">Obuna:</span><span style="color:${days<=3?'var(--red)':days<=7?'var(--yellow)':'var(--green)'};font-weight:700">${days>0?days+' kun':' Tugagan!'}</span></div>`:'';
+    let acts='';
+    if(p.status==='pending') acts=`<button class="abtn abtn-ok" data-id="${p.id}" onclick="approvePr(this)">✅ Tasdiqlash</button><button class="abtn abtn-bl" data-id="${p.id}" onclick="blockPr(this)">🚫 Rad</button><button class="abtn abtn-del" data-id="${p.id}" onclick="delPr(this)">🗑 O'chirish</button>`;
+    else if(p.status==='active') acts=`<button class="abtn abtn-bl" data-id="${p.id}" onclick="blockPr(this)">🚫 Bloklash</button><button class="abtn abtn-un" data-id="${p.id}" onclick="renewPr(this)">🔄 Yangilash</button><button class="abtn abtn-del" data-id="${p.id}" onclick="delPr(this)">🗑 O'chirish</button>`;
+    else acts=`<button class="abtn abtn-ok" data-id="${p.id}" onclick="approvePr(this)">✅ Ochish</button><button class="abtn abtn-del" data-id="${p.id}" onclick="delPr(this)">🗑 O'chirish</button>`;
+    return `<div class="admin-card"><div class="admin-top"><div><div class="admin-nm">${p.name}</div><div class="admin-mt">${p.company} · ${p.phone}</div></div><span class="sbadge ${p.status}">${{pending:'⏳ Kutilmoqda',active:'✅ Faol',blocked:'🚫 Bloklangan'}[p.status]}</span></div>${sub}<div class="admin-actions" style="margin-top:10px">${acts}</div></div>`;
+  }).join('');
+}
+
+async function approvePr(btn){const id=btn.dataset.id;await sb('/rest/v1/prorablar?id=eq.'+id,{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify({status:'active',created_at:new Date().toISOString()})});await loadSA();}
+async function blockPr(btn){const id=btn.dataset.id;await sb('/rest/v1/prorablar?id=eq.'+id,{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify({status:'blocked'})});await loadSA();}
+async function renewPr(btn){const id=btn.dataset.id;await sb('/rest/v1/prorablar?id=eq.'+id,{method:'PATCH',headers:{'Prefer':'return=minimal'},body:JSON.stringify({created_at:new Date().toISOString()})});await loadSA();}
+async function delPr(btn){if(!confirm("Prorabni ochirishni tasdiqlaysizmi?"))return;const id=btn.dataset.id;await sb('/rest/v1/prorablar?id=eq.'+id,{method:'DELETE'});await loadSA();}
+
+// Super admin prorab qo'shish
+function openAddPr(){$('pr-nm').value='';$('pr-co').value='';$('pr-ph').value='';$('pr-pw').value='';$('pr-err').textContent='';$('add-pr-bg').classList.add('open');}
+function closeAddPr(){$('add-pr-bg').classList.remove('open');}
+async function savePr(){
+  const nm=$('pr-nm').value.trim(),co=$('pr-co').value.trim(),ph=$('pr-ph').value.trim(),pw=$('pr-pw').value.trim();
+  if(!nm||!co||!ph||!pw){$('pr-err').textContent='Barcha maydonlarni toldiring!';return;}
+  const res=await sb('/rest/v1/prorablar',{method:'POST',headers:{'Prefer':'return=minimal'},body:JSON.stringify({name:nm,company:co,phone:ph,password:pw,status:'active'})});
+  if(!res.ok){$('pr-err').textContent='Xato!';return;}
+  closeAddPr();await loadSA();
+}
+
+// ── AI ────────────────────────────────────────────────────────────────────────
+let isRec=false, recog=null;
+
+function startVoice(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){$('ai-status').textContent="Ovoz qollab quvvatlanmaydi";return;}
+  if(isRec){recog&&recog.stop();return;}
+  recog=new SR(); recog.lang='uz-UZ'; recog.continuous=false; recog.interimResults=false;
+  recog.onstart=()=>{isRec=true;$('ai-mic').style.background='var(--red-bg)';$('ai-status').textContent="Gapiring...";};
+  recog.onresult=(e)=>{const t=e.results[0][0].transcript;$('ai-inp').value=t;$('ai-status').textContent='Eshitildi: "'+t+'"';aiAnalyze();};
+  recog.onerror=()=>{$('ai-status').textContent="Ovoz eshitilmadi";stopRec();};
+  recog.onend=stopRec;
+  recog.start();
+}
+function stopRec(){isRec=false;const m=$('ai-mic');if(m){m.style.background='';}}
+
+async function aiAnalyze(){
+  const text=$('ai-inp').value.trim();
+  if(!text){$('ai-status').textContent="Biror narsa yozing!";return;}
+  $('ai-status').textContent="AI tahlil qilyapti...";
+  const wNames=ISHCHILAR.map(w=>w.name).join(', ')||'yoq';
+  const obNames=OBS.map(o=>o.nomi).join(', ')||'yoq';
+  const prompt=`Matndan pul operatsiyasi ma'lumotlarini ajrat. Faqat JSON qaytargil:
+Matn: "${text}"
+Ishchilar: ${wNames}
+Obyektlar: ${obNames}
+JSON:{"tur":"kirim yoki chiqim","summa":raqam,"kategoriya":"ishchi/material/mijoz/transport/boshqa","ishchi_name":"","obyekt_name":"","izoh":""}
+Qoidalar: avans/berildi=chiqim, olindi/tushdi=kirim. Faqat JSON.`;
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:300,messages:[{role:'user',content:prompt}]})});
+    const d=await r.json();
+    const raw=d.content&&d.content[0]?d.content[0].text:'';
+    const p=JSON.parse(raw.replace(/```json|```/g,'').trim());
+    if(p.summa)$('op-sum').value=p.summa;
+    if(p.tur)setOpType(p.tur);
+    if(p.kategoriya){selCat=p.kategoriya;renderCats();}
+    if(p.izoh)$('op-izoh').value=p.izoh;
+    if(p.ishchi_name){const w=ISHCHILAR.find(x=>x.name.toLowerCase().includes(p.ishchi_name.toLowerCase()));if(w)$('op-worker').value=w.id;}
+    if(p.obyekt_name){const ob=OBS.find(x=>x.nomi.toLowerCase().includes(p.obyekt_name.toLowerCase()));if(ob)pickOb(ob.id,ob.nomi);}
+    $('ai-status').textContent="Toldirildi: "+(p.tur==='kirim'?'Kirim':'Chiqim')+" $"+p.summa;
+  }catch(e){$('ai-status').textContent="Xato, qolda kiriting";}
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+// Set icon
+document.getElementById('auth-logo').src='data:image/jpeg;base64,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';
+
+// Vibration
+document.addEventListener('click',e=>{if(e.target.closest('button')&&navigator.vibrate)navigator.vibrate(20);});
+
+// Auto-login
+(async()=>{
+  const ph=localStorage.getItem('ph'),pw=localStorage.getItem('pw');
+  if(!ph||!pw)return;
+  if(ph===SA_PHONE&&pw===SA_PASS){CU={id:'super_admin',name:'Super Admin',phone:SA_PHONE,role:'super_admin',status:'active'};showApp();return;}
+  const rp=await sb('/rest/v1/prorablar?phone=eq.'+ph+'&select=*');
+  if(rp.ok&&rp.data&&rp.data.length>0){const p=rp.data[0];if(p.password===pw&&p.status==='active'){CU={...p,role:'prorab'};showApp();return;}}
+  const ri=await sb('/rest/v1/ishchilar?phone=eq.'+ph+'&select=*');
+  if(ri.ok&&ri.data&&ri.data.length>0){const i=ri.data[0];if(i.password===pw&&i.status==='active'){CU={...i,role:'ishchi'};showApp();return;}}
+  localStorage.removeItem('ph');localStorage.removeItem('pw');
+})();
+
+// Refresh every 15s
+setInterval(()=>{if(syncSt==='synced'&&CU){if(CU.role==='super_admin')loadSA();else loadData();}},15000);
+</script>
+</body>
+</html>
