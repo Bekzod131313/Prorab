@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Prorab</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --acc:#f97316;--acc2:#ea580c;
+  --green:#16a34a;--green-bg:#f0fdf4;
+  --red:#ef4444;--red-bg:#fef2f2;
+  --blue:#2563eb;
+  --text:#111827;--muted:#6b7280;
+  --border:#e8eaed;--bg:#f5f6f8;--card:#fff;
+  --yellow:#d97706;
+}
+body{background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;overflow-x:hidden}
+button{font-family:inherit;cursor:pointer}
+button:active{opacity:.85}
+svg{display:block;flex-shrink:0}
+
+/* SIDEBAR OVERLAY */
+#sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:800}
+#sb-overlay.open{display:block}
+
+/* SIDEBAR */
+#sidebar{position:fixed;top:0;left:-280px;width:280px;height:100%;background:#1e2433;z-index:900;transition:left .3s;display:flex;flex-direction:column;overflow-y:auto}
+#sidebar.open{left:0}
+.sb-profile{padding:32px 20px 20px;border-bottom:1px solid rgba(255,255,255,.1)}
+.sb-av{width:56px;height:56px;border-radius:28px;background:#fff7ed;display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:12px}
+.sb-name{font-size:18px;font-weight:800;color:#fff}
+.sb-role{font-size:12px;color:rgba(255,255,255,.5);margin-top:3px}
+.sb-menu{flex:1;padding:12px 0}
+.sb-item{display:flex;align-items:center;gap:14px;padding:14px 20px;color:rgba(255,255,255,.7);font-size:14px;font-weight:500;cursor:pointer;transition:background .2s}
+.sb-item:active,.sb-item.active{background:rgba(249,115,22,.15);color:#f97316}
+.sb-item svg{opacity:.7}
+.sb-item.active svg{opacity:1}
+.sb-section{padding:8px 20px 4px;font-size:10px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+.sb-bottom{padding:16px 20px;border-top:1px solid rgba(255,255,255,.1)}
+.sb-logout{display:flex;align-items:center;gap:12px;color:var(--red);font-size:14px;font-weight:600;padding:12px;border-radius:12px;background:rgba(239,68,68,.1);cursor:pointer}
+
+/* HEADER */
+#topbar{background:#fff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.tb-menu{width:36px;height:36px;border-radius:18px;background:var(--bg);border:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px}
+.tb-line{width:18px;height:2px;background:var(--text);border-radius:1px}
+.tb-title{font-size:17px;font-weight:700;color:var(--text)}
+.tb-bell{width:36px;height:36px;border-radius:18px;background:var(--bg);border:none;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+
+/* PAGES */
+.page{display:none;padding-bottom:80px}.page.active{display:block}
+
+/* BALANS */
+.balans-card{margin:14px 16px;background:linear-gradient(135deg,var(--acc),var(--acc2));border-radius:22px;padding:20px;color:#fff;box-shadow:0 4px 20px rgba(249,115,22,.35)}
+.bc-lbl{font-size:11px;opacity:.8;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+.bc-sum{font-size:34px;font-weight:900;letter-spacing:-1px;margin-bottom:16px}
+.bc-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.bc-item{background:rgba(255,255,255,.18);border-radius:14px;padding:12px}
+.bc-ilbl{font-size:10px;opacity:.8;margin-bottom:4px}
+.bc-ival{font-size:17px;font-weight:800}
+
+/* SECTION */
+.sec-hdr{display:flex;justify-content:space-between;align-items:center;padding:14px 16px 10px}
+.sec-ttl{font-size:16px;font-weight:700;color:var(--text)}
+.sec-lnk{font-size:13px;color:var(--acc);font-weight:600;cursor:pointer}
+
+/* OB LIST (rasm chap, ma'lumot o'ng) */
+.ob-list-item{display:flex;align-items:center;gap:12px;background:#fff;border-radius:16px;margin:0 16px 10px;padding:12px;border:1px solid var(--border);cursor:pointer;box-shadow:0 1px 6px rgba(0,0,0,.05)}
+.ob-list-item:active{background:var(--bg)}
+.ob-list-img{width:68px;height:68px;border-radius:14px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.ob-list-img img{width:100%;height:100%;object-fit:cover}
+.ob-list-info{flex:1;min-width:0}
+.ob-list-name{font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px}
+.ob-list-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;margin-bottom:6px}
+.ob-list-stats{display:flex;gap:12px}
+.ob-list-stat{font-size:11px;color:var(--muted)}
+.ob-list-bal{font-size:15px;font-weight:800;text-align:right;flex-shrink:0}
+.ob-list-sub{font-size:10px;color:var(--muted);text-align:right;margin-top:2px}
+
+/* OP LIST */
+.op-list{background:#fff;border-radius:18px;margin:0 16px 12px;overflow:hidden;border:1px solid var(--border)}
+.op-row{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--border);cursor:pointer}
+.op-row:last-child{border-bottom:none}
+.op-row:active{background:var(--bg)}
+.op-ico{width:40px;height:40px;border-radius:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.op-info{flex:1;min-width:0}
+.op-name{font-size:14px;font-weight:600;color:var(--text)}
+.op-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.op-amt{text-align:right;flex-shrink:0}
+.op-sum{font-size:15px;font-weight:800}
+.op-date{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* BOTTOM NAV */
+#bnav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);display:flex;z-index:200;padding-bottom:env(safe-area-inset-bottom)}
+.nb{flex:1;padding:10px 0 8px;display:flex;flex-direction:column;align-items:center;gap:3px;border:none;background:transparent;color:var(--muted);font-size:10px;font-weight:500}
+.nb.active{color:var(--acc)}
+
+/* FAB */
+#fab{position:fixed;bottom:76px;right:16px;width:54px;height:54px;border-radius:27px;background:var(--acc);border:none;color:#fff;z-index:150;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(249,115,22,.5)}
+
+/* SHEETS */
+.sbg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;align-items:flex-end}
+.sbg.open{display:flex}
+.sht{background:#fff;border-radius:24px 24px 0 0;padding:18px 18px 36px;width:100%;max-height:92vh;overflow-y:auto}
+.s-hdl{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
+.s-ttl{font-size:17px;font-weight:700;margin-bottom:18px;text-align:center}
+.frow{margin-bottom:14px}
+.flbl{display:block;font-size:11px;color:var(--muted);font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.finp{width:100%;padding:14px;border-radius:14px;border:1.5px solid var(--border);background:#fff;color:var(--text);font-size:15px;font-family:inherit;outline:none}
+.finp:focus{border-color:var(--acc)}
+.sbtns{display:flex;gap:10px;margin-top:18px}
+.sbtn-ok{flex:1;padding:15px;border-radius:14px;border:none;background:var(--acc);color:#fff;font-weight:700;font-size:16px;font-family:inherit}
+.sbtn-cn{flex:1;padding:15px;border-radius:14px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:16px;font-family:inherit}
+
+/* CHOICE SHEET - kategoriyalar */
+.cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.cat-btn{padding:14px 6px;border-radius:16px;border:1.5px solid var(--border);background:#fff;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;font-family:inherit}
+.cat-btn:active{background:var(--bg)}
+.cat-ico{width:46px;height:46px;border-radius:23px;display:flex;align-items:center;justify-content:center}
+.cat-nm{font-size:12px;font-weight:600;color:var(--text)}
+
+/* OB DETAIL */
+.ob-hero{height:200px;position:relative;overflow:hidden}
+.ob-hero img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+.ob-hero-bg{width:100%;height:100%;display:flex;align-items:flex-end}
+.ob-ov{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.15),rgba(0,0,0,.65))}
+.ob-back-btn{position:absolute;top:14px;left:14px;width:36px;height:36px;border-radius:18px;background:rgba(255,255,255,.9);border:none;display:flex;align-items:center;justify-content:center;z-index:2}
+.ob-cam-btn{position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:18px;background:rgba(255,255,255,.9);border:none;display:flex;align-items:center;justify-content:center;z-index:2}
+.ob-htitle{position:absolute;bottom:14px;left:16px;right:60px;z-index:2}
+.ob-hname{font-size:22px;font-weight:800;color:#fff}
+.ob-hsub{font-size:12px;color:rgba(255,255,255,.8);margin-top:2px}
+.ob-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:14px 16px}
+.ob-stat{background:#fff;border-radius:14px;padding:12px 8px;text-align:center;border:1px solid var(--border)}
+.ob-sv{font-size:17px;font-weight:800;margin-bottom:3px}
+.ob-sl{font-size:9px;color:var(--muted);text-transform:uppercase}
+.ob-acts{display:flex;gap:10px;padding:0 16px 14px}
+.ob-act{flex:1;padding:13px 8px;border-radius:14px;font-size:13px;font-weight:700;border:none;display:flex;align-items:center;justify-content:center;gap:6px}
+
+/* FILTER */
+.filt-bar{display:flex;gap:8px;padding:12px 16px;background:#fff;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+.filt-bar::-webkit-scrollbar{display:none}
+.srch-inp{flex:1;min-width:100px;padding:9px 14px;border-radius:22px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;font-family:inherit;outline:none}
+.fbtn{padding:9px 16px;border-radius:22px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap;font-weight:500;flex-shrink:0}
+.fbtn.on{background:#fff7ed;border-color:var(--acc);color:var(--acc);font-weight:700}
+
+/* PERIOD TABS */
+.ptabs{display:flex;gap:8px;padding:14px 16px 10px}
+.ptab{flex:1;padding:11px;border-radius:12px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:13px;font-family:inherit;cursor:pointer;font-weight:600;text-align:center}
+.ptab.on{border-color:var(--acc);background:#fff7ed;color:var(--acc)}
+
+/* CHART */
+.chart-card{background:#fff;border-radius:18px;margin:0 16px 12px;border:1px solid var(--border);padding:18px}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.bar-lbl{font-size:11px;color:var(--muted);width:60px;flex-shrink:0;text-align:right}
+.bar-wrap{flex:1;height:22px;background:var(--bg);border-radius:6px;overflow:hidden}
+.bar-fill{height:100%;border-radius:6px}
+.bar-val{font-size:11px;font-weight:700;width:56px;flex-shrink:0}
+
+/* ISHCHI CARD */
+.ish-card{background:#fff;border-radius:18px;margin:0 16px 10px;overflow:hidden;border:1px solid var(--border);cursor:pointer}
+.ish-top{display:flex;align-items:center;gap:12px;padding:14px 16px}
+.ish-av{width:44px;height:44px;border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.ish-info{flex:1}
+.ish-nm{font-size:15px;font-weight:700}
+.ish-mt{font-size:11px;color:var(--muted);margin-top:2px}
+.ish-bal{font-size:17px;font-weight:800;flex-shrink:0}
+.ish-stats{display:flex;border-top:1px solid var(--border)}
+.ist{flex:1;padding:10px;text-align:center;border-right:1px solid var(--border)}
+.ist:last-child{border-right:none}
+.ist-v{font-size:13px;font-weight:700}
+.ist-l{font-size:9px;color:var(--muted);text-transform:uppercase;margin-top:2px}
+
+/* SOZLAMALAR */
+.soz-profile{background:#fff;margin:0 0 12px;padding:24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:16px}
+.soz-av{width:64px;height:64px;border-radius:32px;background:#fff7ed;display:flex;align-items:center;justify-content:center;font-size:30px;flex-shrink:0}
+.soz-name{font-size:18px;font-weight:800;color:var(--text)}
+.soz-info{font-size:12px;color:var(--muted);margin-top:3px}
+.soz-section{background:#fff;border-radius:18px;margin:0 16px 10px;overflow:hidden;border:1px solid var(--border)}
+.soz-item{display:flex;align-items:center;gap:14px;padding:15px 16px;border-bottom:1px solid var(--border);cursor:pointer}
+.soz-item:last-child{border-bottom:none}
+.soz-item:active{background:var(--bg)}
+.soz-ico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.soz-lbl{flex:1;font-size:14px;font-weight:500;color:var(--text)}
+.soz-val{font-size:13px;color:var(--muted);margin-right:8px}
+.soz-arr{color:var(--muted)}
+
+.empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px}
+.spin{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--acc);border-radius:50%;animation:sp .8s linear infinite;margin:40px auto}
+@keyframes sp{to{transform:rotate(360deg)}}
+.grp-lbl{padding:8px 16px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+
+.total-bar{padding:12px 16px;background:var(--bg);display:flex;justify-content:space-between;align-items:center;border-top:2px solid var(--border)}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR OVERLAY -->
+<div id="sb-overlay" onclick="closeSidebar()"></div>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="sb-profile">
+    <div class="sb-av">👷</div>
+    <div class="sb-name">ALISHER</div>
+    <div class="sb-role">Prorab · Zodpro</div>
+  </div>
+  <div class="sb-menu">
+    <div class="sb-section">Asosiy</div>
+    <div class="sb-item active" onclick="gp('home',this)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+      Asosiy
+    </div>
+    <div class="sb-item" onclick="gp('obyekt',this)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+      Obyektlar
+    </div>
+    <div class="sb-item" onclick="gp('ops',this)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+      Operatsiyalar
+    </div>
+    <div class="sb-item" onclick="gp('hisobot',this)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Hisobotlar
+    </div>
+    <div class="sb-section">Xodimlar</div>
+    <div class="sb-item" onclick="gp('ishchilar',this)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      Ishchilar
+    </div>
+    <div class="sb-section">Boshqa</div>
+    <div class="sb-item" onclick="gp('sozlamalar',this)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      Sozlamalar
+    </div>
+  </div>
+  <div class="sb-bottom">
+    <div class="sb-logout">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Chiqish
+    </div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <button class="tb-menu" onclick="openSidebar()">
+    <div class="tb-line"></div>
+    <div class="tb-line"></div>
+    <div class="tb-line"></div>
+  </button>
+  <div class="tb-title" id="page-title">Asosiy</div>
+  <button class="tb-bell">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+  </button>
+</div>
+
+<!-- PAGES -->
+<!-- HOME -->
+<div class="page active" id="pg-home">
+  <div class="balans-card">
+    <div class="bc-lbl">Qo'limdagi balans</div>
+    <div class="bc-sum" id="bc-bal">+$0</div>
+    <div class="bc-row">
+      <div class="bc-item"><div class="bc-ilbl">↓ Jami kirim</div><div class="bc-ival" id="bc-in">$0</div></div>
+      <div class="bc-item"><div class="bc-ilbl">↑ Jami chiqim</div><div class="bc-ival" id="bc-out">$0</div></div>
+    </div>
+  </div>
+  <div class="sec-hdr"><span class="sec-ttl">Obyektlar</span><span class="sec-lnk" onclick="gp('obyekt')">Barchasi ›</span></div>
+  <div id="home-obs"><div class="spin"></div></div>
+  <div class="sec-hdr"><span class="sec-ttl">So'nggi operatsiyalar</span><span class="sec-lnk" onclick="gp('ops')">Barchasi ›</span></div>
+  <div id="home-ops"><div class="spin"></div></div>
+</div>
+
+<!-- OBYEKTLAR -->
+<div class="page" id="pg-obyekt">
+  <div class="sec-hdr"><span class="sec-ttl">Barcha obyektlar</span><span class="sec-lnk" onclick="openAddOb()">＋ Qo'shish</span></div>
+  <div id="ob-list"><div class="spin"></div></div>
+</div>
+
+<!-- OB DETAIL -->
+<div class="page" id="pg-ob-detail">
+  <div id="ob-detail-body"></div>
+</div>
+
+<!-- OPERATSIYALAR -->
+<div class="page" id="pg-ops">
+  <div class="filt-bar">
+    <input class="srch-inp" type="text" placeholder="Qidirish..." oninput="renderOps()">
+    <button class="fbtn on" onclick="setFilt('all',this)">Hammasi</button>
+    <button class="fbtn" onclick="setFilt('kirim',this)">↓ Kirim</button>
+    <button class="fbtn" onclick="setFilt('chiqim',this)">↑ Chiqim</button>
+  </div>
+  <div id="op-section"><div class="spin"></div></div>
+</div>
+
+<!-- HISOBOT -->
+<div class="page" id="pg-hisobot">
+  <div class="ptabs">
+    <button class="ptab on" onclick="setPer('month',this)">Bu oy</button>
+    <button class="ptab" onclick="setPer('year',this)">Bu yil</button>
+  </div>
+  <div id="chart-body"></div>
+</div>
+
+<!-- ISHCHILAR -->
+<div class="page" id="pg-ishchilar">
+  <div class="sec-hdr"><span class="sec-ttl">Ishchilar</span><span class="sec-lnk" onclick="openAddIsh()">＋ Qo'shish</span></div>
+  <div id="ish-list"><div class="spin"></div></div>
+</div>
+
+<!-- SOZLAMALAR -->
+<div class="page" id="pg-sozlamalar">
+  <div class="soz-profile">
+    <div class="soz-av">👷</div>
+    <div>
+      <div class="soz-name" id="soz-name">ALISHER</div>
+      <div class="soz-info" id="soz-phone">+998 90 123 45 67</div>
+      <div class="soz-info" id="soz-comp">Zodpro kompaniyasi</div>
+    </div>
+  </div>
+  <div class="soz-section">
+    <div class="soz-item">
+      <div class="soz-ico" style="background:#fff7ed"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+      <div class="soz-lbl">Profilni tahrirlash</div>
+      <span class="soz-arr">›</span>
+    </div>
+    <div class="soz-item">
+      <div class="soz-ico" style="background:#eff6ff"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div>
+      <div class="soz-lbl">Parolni o'zgartirish</div>
+      <span class="soz-arr">›</span>
+    </div>
+  </div>
+  <div class="soz-section">
+    <div class="soz-item">
+      <div class="soz-ico" style="background:#f0fdf4"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></div>
+      <div class="soz-lbl">Bildirishnomalar</div>
+      <span class="soz-arr">›</span>
+    </div>
+    <div class="soz-item">
+      <div class="soz-ico" style="background:#fdf4ff"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg></div>
+      <div class="soz-lbl">Til</div>
+      <span class="soz-val">O'zbekcha</span>
+      <span class="soz-arr">›</span>
+    </div>
+  </div>
+  <div class="soz-section">
+    <div class="soz-item">
+      <div class="soz-ico" style="background:var(--bg)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+      <div class="soz-lbl">Zaxira nusxa</div>
+      <span class="soz-arr">›</span>
+    </div>
+    <div class="soz-item">
+      <div class="soz-ico" style="background:var(--bg)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+      <div class="soz-lbl">Ilova haqida</div>
+      <div class="soz-val">v2.0</div>
+      <span class="soz-arr">›</span>
+    </div>
+  </div>
+  <div style="margin:16px">
+    <button style="width:100%;padding:15px;border-radius:14px;border:none;background:var(--red-bg);color:var(--red);font-size:15px;font-weight:700;font-family:inherit">Chiqish</button>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div id="bnav">
+  <button class="nb active" onclick="gp('home',this)" data-pg="home">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+    Asosiy
+  </button>
+  <button class="nb" onclick="gp('obyekt',this)" data-pg="obyekt">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+    Obyektlar
+  </button>
+  <button class="nb" onclick="gp('ops',this)" data-pg="ops">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+    Operatsiya
+  </button>
+  <button class="nb" onclick="gp('hisobot',this)" data-pg="hisobot">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    Hisobot
+  </button>
+  <button class="nb" onclick="gp('ishchilar',this)" data-pg="ishchilar">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+    Ishchilar
+  </button>
+</div>
+
+<!-- FAB -->
+<button id="fab" onclick="openChoiceSheet()">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</button>
+
+<!-- CHOICE SHEET -->
+<div id="choice-bg" class="sbg" onclick="if(event.target===this)closeChoiceSheet()">
+  <div class="sht">
+    <div class="s-hdl"></div>
+    <div class="s-ttl">Nima uchun?</div>
+    <div class="cat-grid">
+      <button class="cat-btn" onclick="pickCat('usta')">
+        <div class="cat-ico" style="background:#fff7ed"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linecap="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></div>
+        <div class="cat-nm">Usta</div>
+      </button>
+      <button class="cat-btn" onclick="pickCat('bozor')">
+        <div class="cat-ico" style="background:var(--green-bg)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></div>
+        <div class="cat-nm">Bozor</div>
+      </button>
+      <button class="cat-btn" onclick="pickCat('dostavka')">
+        <div class="cat-ico" style="background:#eff6ff"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
+        <div class="cat-nm">Dostavka</div>
+      </button>
+      <button class="cat-btn" onclick="pickCat('dokon')">
+        <div class="cat-ico" style="background:#fdf4ff"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg></div>
+        <div class="cat-nm">Do'kon</div>
+      </button>
+      <button class="cat-btn" onclick="pickCat('dop')">
+        <div class="cat-ico" style="background:var(--red-bg)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+        <div class="cat-nm">Qo'shimcha</div>
+      </button>
+      <button class="cat-btn" onclick="pickCat('ovqat')">
+        <div class="cat-ico" style="background:#fffbeb"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)" stroke-width="2" stroke-linecap="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></div>
+        <div class="cat-nm">Ovqat</div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- OP SHEET -->
+<div id="op-bg" class="sbg" onclick="if(event.target===this)closeOp()">
+  <div class="sht">
+    <div class="s-hdl"></div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;background:var(--bg);padding:12px;border-radius:14px">
+      <div id="op-cat-ico" style="width:40px;height:40px;border-radius:20px;display:flex;align-items:center;justify-content:center;flex-shrink:0"></div>
+      <div style="flex:1"><div id="op-cat-nm" style="font-size:15px;font-weight:700"></div><div id="op-cat-tp" style="font-size:11px;color:var(--muted)"></div></div>
+      <button onclick="closeOp();openChoiceSheet()" style="font-size:12px;color:var(--acc);font-weight:600;background:none;border:none;font-family:inherit">O'zgartirish</button>
+    </div>
+    <div class="frow"><label class="flbl">Summa (so'm)</label><input type="number" class="finp" id="op-sum" placeholder="0" inputmode="decimal" style="font-size:26px;font-weight:800;text-align:center"></div>
+    <div class="frow"><label class="flbl">Sana</label><input type="date" class="finp" id="op-date"></div>
+    <div class="frow">
+      <label class="flbl">Obyekt</label>
+      <div id="op-ob-sel" onclick="openObPicker()" style="width:100%;padding:14px;border-radius:14px;border:1.5px solid var(--border);background:#fff;font-size:15px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
+        <span id="op-ob-txt" style="color:var(--muted)">Tanlang</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <input type="hidden" id="op-ob-id">
+    </div>
+    <div class="frow" id="wkr-row" style="display:none"><label class="flbl">Ishchi</label><select class="finp" id="op-wkr"><option value="">— Tanlang —</option></select></div>
+    <div class="frow"><label class="flbl">Izoh</label><input type="text" class="finp" id="op-izoh" placeholder="Qo'shimcha ma'lumot"></div>
+    <div style="color:var(--red);font-size:12px;margin-bottom:8px;min-height:16px" id="op-err"></div>
+    <div class="sbtns">
+      <button onclick="saveOp()" class="sbtn-ok">Saqlash</button>
+      <button onclick="closeOp()" class="sbtn-cn">Bekor</button>
+    </div>
+  </div>
+</div>
+
+<!-- OB PICKER -->
+<div id="obpick-bg" class="sbg" onclick="if(event.target===this)closeObPicker()">
+  <div class="sht"><div class="s-hdl"></div><div class="s-ttl">Obyekt tanlang</div>
+    <div id="ob-pick-list" style="display:flex;flex-direction:column;gap:8px"></div>
+    <button onclick="closeObPicker()" class="sbtn-cn" style="width:100%;margin-top:12px">Bekor</button>
+  </div>
+</div>
+
+<!-- ADD OB -->
+<div id="addob-bg" class="sbg" onclick="if(event.target===this)closeAddOb()">
+  <div class="sht"><div class="s-hdl"></div><div class="s-ttl">Yangi obyekt</div>
+    <div class="frow"><label class="flbl">Nomi</label><input type="text" id="ob-nm" class="finp" placeholder="masalan: Yunusobod uy"></div>
+    <div class="frow"><label class="flbl">Boshlanish sanasi</label><input type="date" id="ob-start" class="finp"></div>
+    <div class="frow"><label class="flbl">Muddat (kun)</label><input type="number" id="ob-days" class="finp" placeholder="masalan: 40" inputmode="numeric"></div>
+    <div style="color:var(--red);font-size:12px;margin-bottom:8px;min-height:16px" id="ob-err"></div>
+    <div class="sbtns"><button onclick="saveOb()" class="sbtn-ok">Saqlash</button><button onclick="closeAddOb()" class="sbtn-cn">Bekor</button></div>
+  </div>
+</div>
+
+<!-- ADD ISHCHI -->
+<div id="addish-bg" class="sbg" onclick="if(event.target===this)closeAddIsh()">
+  <div class="sht"><div class="s-hdl"></div><div class="s-ttl">Yangi ishchi</div>
+    <div class="frow"><label class="flbl">Ism</label><input type="text" id="ish-nm" class="finp" placeholder="Ishchi ismi"></div>
+    <div class="frow"><label class="flbl">Telefon</label><input type="tel" id="ish-ph" class="finp" placeholder="901234567"></div>
+    <div style="color:var(--red);font-size:12px;margin-bottom:8px;min-height:16px" id="ish-err"></div>
+    <div class="sbtns"><button onclick="saveIsh()" class="sbtn-ok">Saqlash</button><button onclick="closeAddIsh()" class="sbtn-cn">Bekor</button></div>
+  </div>
+</div>
+
+<!-- OB KIRIM -->
+<div id="obkirim-bg" class="sbg" onclick="if(event.target===this)document.getElementById('obkirim-bg').classList.remove('open')">
+  <div class="sht"><div class="s-hdl"></div>
+    <div style="text-align:center;font-size:14px;color:var(--muted);margin-bottom:4px">Pul olindi —</div>
+    <div class="s-ttl" id="obkirim-nm"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <button onclick="pickKirim('mijoz')" style="padding:18px 10px;border-radius:18px;border:2px solid var(--green);background:var(--green-bg);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:10px;font-family:inherit">
+        <div style="width:50px;height:50px;border-radius:25px;background:var(--green);display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
+        <div style="font-size:14px;font-weight:700;color:var(--green)">Mijozdan</div>
+        <div style="font-size:11px;color:var(--muted)">To'lov olindi</div>
+      </button>
+      <button onclick="pickKirim('dokon')" style="padding:18px 10px;border-radius:18px;border:2px solid #a855f7;background:#fdf4ff;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:10px;font-family:inherit">
+        <div style="width:50px;height:50px;border-radius:25px;background:#a855f7;display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg></div>
+        <div style="font-size:14px;font-weight:700;color:#a855f7">Do'kondan</div>
+        <div style="font-size:11px;color:var(--muted)">Vozvrat</div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DEMO DATA ─────────────────────────────────────────────────────────────────
+const OBS = [
+  {id:'ob1', nomi:'Iyikota', rasm_url:'', boshlanish_sana:'2026-04-01', muddat_kun:60},
+  {id:'ob2', nomi:'Xuvaydo', rasm_url:'', boshlanish_sana:'2026-03-15', muddat_kun:90},
+  {id:'ob3', nomi:"Yangiyo'l", rasm_url:'', boshlanish_sana:'2026-05-01', muddat_kun:45},
+];
+
+const OPS = [
+  {id:'op1', tur:'kirim', summa:7500, sana:'2026-05-24', kategoriya:'mijoz', izoh:'Mijoz to\'lovi', obyekt_id:'ob1', ishchi_id:null},
+  {id:'op2', tur:'chiqim', summa:5000, sana:'2026-05-24', kategoriya:'bozor', izoh:'Qurilish materiallari', obyekt_id:'ob1', ishchi_id:null},
+  {id:'op3', tur:'chiqim', summa:2500, sana:'2026-05-23', kategoriya:'dostavka', izoh:'Yoqilgi', obyekt_id:'ob1', ishchi_id:'ish1'},
+  {id:'op4', tur:'kirim', summa:3000, sana:'2026-05-22', kategoriya:'mijoz', izoh:'', obyekt_id:'ob2', ishchi_id:null},
+  {id:'op5', tur:'chiqim', summa:1200, sana:'2026-05-22', kategoriya:'usta', izoh:'Ish haqi', obyekt_id:'ob3', ishchi_id:'ish2'},
+  {id:'op6', tur:'chiqim', summa:800, sana:'2026-05-21', kategoriya:'ovqat', izoh:'Obedga', obyekt_id:'ob2', ishchi_id:null},
+];
+
+const ISHCHILAR = [
+  {id:'ish1', name:'Akmal Toshmatov', phone:'+998901234567'},
+  {id:'ish2', name:'Sirojiddin Karimov', phone:'+998902345678'},
+  {id:'ish3', name:'Bayruz Xoliqov', phone:'+998903456789'},
+];
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const usd = v => '$' + Math.abs(v).toLocaleString('en-US', {maximumFractionDigits:0});
+const fmtD = iso => { if(!iso) return ''; const[y,m,d]=iso.split('-'); return d+'.'+m+'.'+String(y).slice(2); };
+const today = () => new Date().toISOString().split('T')[0];
+
+const CAT_ICONS = {
+  usta:{svg:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>',bg:'#fff7ed',c:'var(--acc)'},
+  bozor:{svg:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>',bg:'var(--green-bg)',c:'var(--green)'},
+  dostavka:{svg:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>',bg:'#eff6ff',c:'var(--blue)'},
+  dokon:{svg:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>',bg:'#fdf4ff',c:'#a855f7'},
+  dop:{svg:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>',bg:'var(--red-bg)',c:'var(--red)'},
+  ovqat:{svg:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>',bg:'#fffbeb',c:'var(--yellow)'},
+  mijoz:{svg:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>',bg:'var(--green-bg)',c:'var(--green)'},
+};
+const CAT_NMS = {usta:'Usta',bozor:'Bozor',dostavka:'Dostavka',dokon:"Do'kon",dop:"Qo'shimcha",ovqat:'Ovqat',mijoz:'Mijoz'};
+
+let curPage='home', curCat='usta', curType='chiqim', editOpId=null, curObId=null, opFilt='all', perPer='month';
+
+// ── SIDEBAR ───────────────────────────────────────────────────────────────────
+function openSidebar(){ $('sidebar').classList.add('open'); $('sb-overlay').classList.add('open'); }
+function closeSidebar(){ $('sidebar').classList.remove('open'); $('sb-overlay').classList.remove('open'); }
+
+// ── PAGES ─────────────────────────────────────────────────────────────────────
+const pgTitles = {home:'Asosiy',obyekt:'Obyektlar',ops:'Operatsiyalar',hisobot:'Hisobotlar',ishchilar:'Ishchilar',sozlamalar:'Sozlamalar','ob-detail':''};
+
+function gp(pg, el) {
+  closeSidebar();
+  curPage = pg;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const pgEl = $('pg-'+pg);
+  if(pgEl) pgEl.classList.add('active');
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  const nb = document.querySelector('[data-pg='+pg+']');
+  if(nb) nb.classList.add('active');
+  document.querySelectorAll('.sb-item').forEach(b=>b.classList.remove('active'));
+  if(el && el.classList && el.classList.contains('sb-item')) el.classList.add('active');
+  $('page-title').textContent = pgTitles[pg]||'';
+  $('fab').style.display = ['home','ops','ob-detail'].includes(pg)?'flex':'none';
+  if(pg==='home') renderHome();
+  if(pg==='obyekt') renderObs();
+  if(pg==='ops') renderOps();
+  if(pg==='hisobot') renderChart();
+  if(pg==='ishchilar') renderIshchilar();
+}
+
+// ── HOME ──────────────────────────────────────────────────────────────────────
+function renderHome(){
+  const tIn = OPS.filter(o=>o.tur==='kirim').reduce((s,o)=>s+o.summa,0);
+  const tOut = OPS.filter(o=>o.tur==='chiqim').reduce((s,o)=>s+o.summa,0);
+  const bal = tIn-tOut;
+  $('bc-bal').textContent = (bal>=0?'+':'')+usd(bal);
+  $('bc-bal').style.color = bal<0?'#fca5a5':'#fff';
+  $('bc-in').textContent = usd(tIn);
+  $('bc-out').textContent = usd(tOut);
+
+  // Ob list (rasm chap, ma'lumot o'ng)
+  const colors=['#f97316','#16a34a','#2563eb','#7c3aed','#dc2626','#0891b2'];
+  const obsEl = $('home-obs');
+  obsEl.innerHTML = OBS.slice(0,4).map((ob,i)=>{
+    const obOps = OPS.filter(o=>o.obyekt_id===ob.id);
+    const bal2 = obOps.reduce((s,o)=>o.tur==='kirim'?s+o.summa:s-o.summa,0);
+    const c = colors[i%colors.length];
+    const m = getMuddat(ob);
+    return `<div class="ob-list-item" onclick="openObDetail('${ob.id}')">
+      <div class="ob-list-img" style="background:${c}">
+        ${ob.rasm_url?`<img src="${ob.rasm_url}">`:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" opacity=".7"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>`}
+      </div>
+      <div class="ob-list-info">
+        <div class="ob-list-name">${ob.nomi}</div>
+        <span class="ob-list-badge" style="background:${c}22;color:${c}">● Faol</span>
+        <div class="ob-list-stats">
+          <span class="ob-list-stat" style="color:var(--green)">+${usd(obOps.filter(o=>o.tur==='kirim').reduce((s,o)=>s+o.summa,0))}</span>
+          <span class="ob-list-stat">·</span>
+          <span class="ob-list-stat" style="color:var(--red)">-${usd(obOps.filter(o=>o.tur==='chiqim').reduce((s,o)=>s+o.summa,0))}</span>
+        </div>
+        ${m?`<div style="margin-top:6px"><div style="height:4px;background:var(--border);border-radius:2px"><div style="width:${m.pct}%;height:100%;background:${m.color};border-radius:2px"></div></div><div style="font-size:10px;color:${m.color};margin-top:3px">${m.txt}</div></div>`:''}
+      </div>
+      <div>
+        <div class="ob-list-bal" style="color:${bal2>=0?'var(--green)':'var(--red)'}">${(bal2>=0?'+':'')+usd(bal2)}</div>
+        <div class="ob-list-sub">${obOps.length} op.</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Last ops
+  const last = OPS.slice(0,5);
+  $('home-ops').innerHTML = last.length
+    ? '<div class="op-list">'+last.map(op=>opRowHtml(op)).join('')+'</div>'
+    : '<div class="empty">Hali operatsiya yo\'q</div>';
+}
+
+function getMuddat(ob){
+  if(!ob.boshlanish_sana||!ob.muddat_kun) return null;
+  const end = new Date(ob.boshlanish_sana);
+  end.setDate(end.getDate()+parseInt(ob.muddat_kun));
+  const left = Math.ceil((end-new Date())/(1000*60*60*24));
+  const pct = Math.min(Math.max(100-Math.round(left/ob.muddat_kun*100),0),100);
+  const color = left>ob.muddat_kun*0.5?'var(--green)':left>5?'var(--yellow)':'var(--red)';
+  const txt = left>0?left+' kun qoldi':'Muddat tugagan!';
+  return {left,pct,color,txt};
+}
+
+function opRowHtml(op){
+  const isK = op.tur==='kirim';
+  const ic = CAT_ICONS[op.kategoriya]||CAT_ICONS.usta;
+  const ob = OBS.find(o=>o.id===op.obyekt_id);
+  const w = ISHCHILAR.find(w=>w.id===op.ishchi_id);
+  const meta = [fmtD(op.sana),ob?.nomi,w?.name].filter(Boolean).join(' · ');
+  return `<div class="op-row" onclick="openOpDetail('${op.id}')">
+    <div class="op-ico" style="background:${ic.bg};color:${ic.c}">${ic.svg}</div>
+    <div class="op-info">
+      <div class="op-name">${op.izoh||CAT_NMS[op.kategoriya]||op.kategoriya}</div>
+      <div class="op-meta">${meta}</div>
+    </div>
+    <div class="op-amt">
+      <div class="op-sum" style="color:${isK?'var(--green)':'var(--red)'}">${isK?'+':'-'}${usd(op.summa)}</div>
+      <div class="op-date">${op.kategoriya}</div>
+    </div>
+  </div>`;
+}
+
+// ── OBYEKTLAR ─────────────────────────────────────────────────────────────────
+function renderObs(){
+  const colors=['#f97316','#16a34a','#2563eb','#7c3aed','#dc2626','#0891b2'];
+  $('ob-list').innerHTML = OBS.map((ob,i)=>{
+    const obOps = OPS.filter(o=>o.obyekt_id===ob.id);
+    const tI = obOps.filter(o=>o.tur==='kirim').reduce((s,o)=>s+o.summa,0);
+    const tO = obOps.filter(o=>o.tur==='chiqim').reduce((s,o)=>s+o.summa,0);
+    const bal = tI-tO;
+    const c = colors[i%colors.length];
+    const m = getMuddat(ob);
+    return `<div class="ob-list-item" onclick="openObDetail('${ob.id}')">
+      <div class="ob-list-img" style="background:${c}">
+        ${ob.rasm_url?`<img src="${ob.rasm_url}">`:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" opacity=".7"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>`}
+      </div>
+      <div class="ob-list-info">
+        <div class="ob-list-name">${ob.nomi}</div>
+        <span class="ob-list-badge" style="background:${c}22;color:${c}">● Faol</span>
+        <div class="ob-list-stats">
+          <span class="ob-list-stat" style="color:var(--green)">+${usd(tI)}</span>
+          <span class="ob-list-stat">·</span>
+          <span class="ob-list-stat" style="color:var(--red)">-${usd(tO)}</span>
+        </div>
+        ${m?`<div style="margin-top:5px;font-size:10px;color:${m.color}">${m.txt}</div>`:''}
+      </div>
+      <div>
+        <div class="ob-list-bal" style="color:${bal>=0?'var(--green)':'var(--red)'}">${(bal>=0?'+':'')+usd(bal)}</div>
+        <div class="ob-list-sub">${obOps.length} op.</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── OB DETAIL ─────────────────────────────────────────────────────────────────
+function openObDetail(obId){
+  curObId = obId;
+  const ob = OBS.find(o=>o.id===obId); if(!ob) return;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  $('pg-ob-detail').classList.add('active');
+  $('page-title').textContent = ob.nomi;
+  curPage = 'ob-detail';
+  $('fab').style.display = 'flex';
+
+  const obOps = OPS.filter(o=>o.obyekt_id===ob.id);
+  const tI = obOps.filter(o=>o.tur==='kirim').reduce((s,o)=>s+o.summa,0);
+  const tO = obOps.filter(o=>o.tur==='chiqim').reduce((s,o)=>s+o.summa,0);
+  const bal = tI-tO;
+  const colors=['#f97316','#16a34a','#2563eb','#7c3aed','#dc2626','#0891b2'];
+  const idx = OBS.findIndex(o=>o.id===ob.id);
+  const c = colors[idx%colors.length];
+
+  $('ob-detail-body').innerHTML = `
+    <div class="ob-hero" style="background:linear-gradient(135deg,${c},${c}bb)">
+      ${ob.rasm_url?`<img src="${ob.rasm_url}">`:''}
+      <div class="ob-ov"></div>
+      <button class="ob-back-btn" onclick="gp('obyekt')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <button class="ob-cam-btn" onclick="trigCam()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
+      <input type="file" id="ob-cam-inp" accept="image/*" style="display:none" onchange="uploadObImg(this)">
+      <div class="ob-htitle"><div class="ob-hname">${ob.nomi}</div><div class="ob-hsub">${obOps.length} ta operatsiya · Faol</div></div>
+    </div>
+    <div class="ob-stats">
+      <div class="ob-stat"><div class="ob-sv" style="color:var(--green)">${usd(tI)}</div><div class="ob-sl">Kirim</div></div>
+      <div class="ob-stat"><div class="ob-sv" style="color:var(--red)">${usd(tO)}</div><div class="ob-sl">Chiqim</div></div>
+      <div class="ob-stat"><div class="ob-sv" style="color:${bal>=0?'var(--green)':'var(--red)'}">${(bal>=0?'+':'')+usd(bal)}</div><div class="ob-sl">Qoldiq</div></div>
+    </div>
+    <div class="ob-acts">
+      <button class="ob-act" style="background:var(--green-bg);color:var(--green)" onclick="openObKirim('${ob.id}')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        Pul oldi
+      </button>
+      <button class="ob-act" style="background:var(--red-bg);color:var(--red)" onclick="openObChiqim('${ob.id}')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        Pul berdi
+      </button>
+    </div>
+    <div style="font-size:14px;font-weight:700;padding:4px 16px 10px;color:var(--text)">Operatsiyalar</div>
+    <div class="op-list" style="margin:0 16px 12px">
+      ${obOps.length?obOps.map(op=>opRowHtml(op)).join(''):'<div class="empty">Bu obyektda operatsiya yo\'q</div>'}
+    </div>
+    <button onclick="deleteObConfirm('${ob.id}')" id="del-ob-${ob.id}" style="width:calc(100%-32px);margin:0 16px 16px;display:block;padding:14px;border-radius:14px;border:1.5px solid var(--red);background:#fff;color:var(--red);font-size:14px;font-weight:700;font-family:inherit">🗑 Obyektni o'chirish</button>
+  `;
+}
+
+function trigCam(){ const f=$('ob-cam-inp');if(f)f.click(); }
+function uploadObImg(inp){
+  const ob=OBS.find(o=>o.id===curObId);if(!inp.files||!inp.files[0]||!ob)return;
+  const r=new FileReader();
+  r.onload=e=>{ob.rasm_url=e.target.result;openObDetail(curObId);};
+  r.readAsDataURL(inp.files[0]);
+}
+
+function openObKirim(obId){
+  curObId=obId;
+  const ob=OBS.find(o=>o.id===obId);
+  $('obkirim-nm').textContent=ob?.nomi||'';
+  $('obkirim-bg').classList.add('open');
+}
+
+function openObChiqim(obId){ curObId=obId; openChoiceSheet(); }
+
+function pickKirim(cat){
+  $('obkirim-bg').classList.remove('open');
+  curCat=cat; curType='kirim';
+  openOpForm(curObId);
+}
+
+function deleteObConfirm(obId){
+  const btn=$('del-ob-'+obId);
+  if(!btn)return;
+  if(btn.dataset.c!=='1'){
+    btn.textContent='Tasdiqlaysizmi? Yana bosing!';
+    btn.style.background='var(--red)';btn.style.color='#fff';
+    btn.dataset.c='1';
+    setTimeout(()=>{btn.textContent="🗑 Obyektni o'chirish";btn.style.background='#fff';btn.style.color='var(--red)';btn.dataset.c='0';},3000);
+    return;
+  }
+  const idx=OBS.findIndex(o=>o.id===obId);
+  if(idx!==-1) OBS.splice(idx,1);
+  OPS.filter(o=>o.obyekt_id===obId).forEach(op=>OPS.splice(OPS.indexOf(op),1));
+  gp('obyekt');
+}
+
+// ── OPERATSIYALAR ─────────────────────────────────────────────────────────────
+function setFilt(f,btn){
+  opFilt=f;
+  document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderOps();
+}
+
+function renderOps(){
+  const q=($('srch-inp')||{value:''}).value?.toLowerCase()||'';
+  let ops=OPS.filter(o=>{
+    const m=(o.izoh||'').toLowerCase().includes(q)||(o.kategoriya||'').toLowerCase().includes(q)||(OBS.find(ob=>ob.id===o.obyekt_id)?.nomi||'').toLowerCase().includes(q);
+    if(opFilt==='kirim') return o.tur==='kirim'&&m;
+    if(opFilt==='chiqim') return o.tur==='chiqim'&&m;
+    return m;
+  });
+  const el=$('op-section');if(!el)return;
+  if(!ops.length){el.innerHTML='<div class="empty">Hech narsa topilmadi</div>';return;}
+  const tI=ops.filter(o=>o.tur==='kirim').reduce((s,o)=>s+o.summa,0);
+  const tO=ops.filter(o=>o.tur==='chiqim').reduce((s,o)=>s+o.summa,0);
+  el.innerHTML='<div class="op-list">'+ops.map(op=>opRowHtml(op)).join('')+'</div>'
+    +`<div class="total-bar"><span style="font-size:12px;font-weight:700">Jami (${ops.length})</span><div style="display:flex;gap:8px;font-size:12px;font-weight:700"><span style="color:var(--green)">+${usd(tI)}</span><span style="color:var(--red)">-${usd(tO)}</span></div></div>`;
+}
+
+// ── HISOBOT ───────────────────────────────────────────────────────────────────
+function setPer(p,btn){
+  perPer=p;
+  document.querySelectorAll('.ptab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderChart();
+}
+
+function renderChart(){
+  const el=$('chart-body');if(!el)return;
+  const now=new Date();
+  const fOps=OPS.filter(o=>{
+    const d=new Date(o.sana);
+    return perPer==='month'?d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth():d.getFullYear()===now.getFullYear();
+  });
+  const tI=fOps.filter(o=>o.tur==='kirim').reduce((s,o)=>s+o.summa,0);
+  const tO=fOps.filter(o=>o.tur==='chiqim').reduce((s,o)=>s+o.summa,0);
+  const bal=tI-tO;
+
+  const bars=[[1,7],[8,14],[15,21],[22,31]].map(([s,e])=>{
+    const mo=OPS.filter(o=>{const d=new Date(o.sana);return d.getMonth()===now.getMonth()&&d.getDate()>=s&&d.getDate()<=e;});
+    return{lbl:s+'-'+e,in:mo.filter(o=>o.tur==='kirim').reduce((s,o)=>s+o.summa,0),out:mo.filter(o=>o.tur==='chiqim').reduce((s,o)=>s+o.summa,0)};
+  });
+  const mx=Math.max(...bars.map(b=>Math.max(b.in,b.out)),1);
+
+  el.innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px 10px">
+      <div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:14px">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Tushum</div>
+        <div style="font-size:20px;font-weight:800;color:var(--green)">+${usd(tI)}</div>
+      </div>
+      <div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:14px">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Rasxod</div>
+        <div style="font-size:20px;font-weight:800;color:var(--red)">-${usd(tO)}</div>
+      </div>
+    </div>
+    <div style="background:#fff;border-radius:14px;border:1px solid var(--border);padding:14px;margin:0 16px 10px">
+      <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Sof foyda</div>
+      <div style="font-size:24px;font-weight:800;color:${bal>=0?'var(--green)':'var(--red)'}">${(bal>=0?'+':'')+usd(bal)}</div>
+    </div>
+    <div class="chart-card">
+      <div class="chartttl" style="font-size:13px;font-weight:700;margin-bottom:12px">Tushum va rasxod dinamikasi</div>
+      ${bars.map(b=>`<div class="bar-row">
+        <div class="bar-lbl">${b.lbl}</div>
+        <div style="flex:1">
+          <div class="bar-wrap" style="margin-bottom:4px"><div class="bar-fill" style="width:${b.in?Math.round(b.in/mx*100):2}%;background:var(--green)"></div></div>
+          <div class="bar-wrap"><div class="bar-fill" style="width:${b.out?Math.round(b.out/mx*100):2}%;background:var(--red)"></div></div>
+        </div>
+        <div class="bar-val"><div style="color:var(--green);font-size:10px">+${usd(b.in)}</div><div style="color:var(--red);font-size:10px">-${usd(b.out)}</div></div>
+      </div>`).join('')}
+    </div>
+    <div class="chart-card">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px">Obyektlar bo'yicha</div>
+      ${OBS.map(ob=>{
+        const obOps=fOps.filter(o=>o.obyekt_id===ob.id);
+        const b2=obOps.reduce((s,o)=>o.tur==='kirim'?s+o.summa:s-o.summa,0);
+        return b2!==0?`<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;font-weight:600">🏗️ ${ob.nomi}</span><span style="font-size:14px;font-weight:800;color:${b2>=0?'var(--green)':'var(--red)'}">${(b2>=0?'+':'')+usd(b2)}</span></div>`:'';
+      }).join('')}
+    </div>`;
+}
+
+// ── ISHCHILAR ─────────────────────────────────────────────────────────────────
+function renderIshchilar(){
+  const colors=['#f97316','#16a34a','#2563eb','#7c3aed'];
+  $('ish-list').innerHTML=ISHCHILAR.map((w,i)=>{
+    const wOps=OPS.filter(o=>o.ishchi_id===w.id&&o.kategoriya==='usta');
+    const berildi=wOps.filter(o=>o.tur==='chiqim').reduce((s,o)=>s+o.summa,0);
+    const c=colors[i%colors.length];
+    return `<div class="ish-card">
+      <div class="ish-top">
+        <div class="ish-av" style="background:${c}22;color:${c}">👷</div>
+        <div class="ish-info"><div class="ish-nm">${w.name}</div><div class="ish-mt">${w.phone}</div></div>
+        <div class="ish-bal" style="color:${berildi>0?'var(--red)':'var(--muted)'}">-${usd(berildi)}</div>
+      </div>
+      <div class="ish-stats">
+        <div class="ist"><div class="ist-v" style="color:var(--red)">${usd(berildi)}</div><div class="ist-l">Berildi</div></div>
+        <div class="ist"><div class="ist-v">${wOps.length}</div><div class="ist-l">Operatsiya</div></div>
+        <div class="ist"><div class="ist-v" style="color:var(--green)">● Faol</div><div class="ist-l">Holat</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── CHOICE & OP SHEET ─────────────────────────────────────────────────────────
+function openChoiceSheet(){ $('choice-bg').classList.add('open'); }
+function closeChoiceSheet(){ $('choice-bg').classList.remove('open'); }
+
+function pickCat(cat){
+  closeChoiceSheet();
+  curCat=cat; curType='chiqim';
+  openOpForm(curObId||null);
+}
+
+function openOpForm(obId){
+  editOpId=null;
+  const ic=CAT_ICONS[curCat]||CAT_ICONS.usta;
+  $('op-cat-ico').style.background=ic.bg;
+  $('op-cat-ico').innerHTML=ic.svg;
+  $('op-cat-ico').style.color=ic.c;
+  $('op-cat-nm').textContent=CAT_NMS[curCat]||curCat;
+  $('op-cat-tp').textContent=curType==='chiqim'?'Chiqim — Pul berdi':'Kirim — Pul oldi';
+  $('op-sum').value='';
+  $('op-date').value=today();
+  $('op-izoh').value='';
+  $('op-err').textContent='';
+  $('op-ob-id').value=obId||'';
+  const ob=OBS.find(o=>o.id===obId);
+  $('op-ob-txt').textContent=ob?'🏗 '+ob.nomi:'Tanlang';
+  $('op-ob-txt').style.color=ob?'var(--text)':'var(--muted)';
+  $('wkr-row').style.display=curCat==='usta'?'block':'none';
+  const ws=$('op-wkr');
+  ws.innerHTML='<option value="">— Ishchi tanlang —</option>'+ISHCHILAR.map(w=>`<option value="${w.id}">${w.name}</option>`).join('');
+  $('op-bg').classList.add('open');
+  setTimeout(()=>$('op-sum').focus(),350);
+}
+
+function closeOp(){ $('op-bg').classList.remove('open'); }
+
+function openObPicker(){
+  $('ob-pick-list').innerHTML=OBS.map(ob=>`
+    <div onclick="pickOb('${ob.id}','${ob.nomi}')" style="background:var(--bg);border:1.5px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+      <div style="font-size:15px;font-weight:600">${ob.nomi}</div>
+    </div>`).join('');
+  $('obpick-bg').classList.add('open');
+}
+function closeObPicker(){ $('obpick-bg').classList.remove('open'); }
+function pickOb(id,nm){
+  closeObPicker();
+  $('op-ob-id').value=id;
+  $('op-ob-txt').textContent='🏗 '+nm;
+  $('op-ob-txt').style.color='var(--text)';
+}
+
+function saveOp(){
+  const summa=parseFloat($('op-sum').value)||0;
+  const sana=$('op-date').value;
+  const izoh=$('op-izoh').value.trim();
+  const obId=$('op-ob-id').value;
+  const ishchiId=$('op-wkr').value||null;
+  const err=$('op-err');
+  if(!summa||summa<=0){err.textContent='Summani kiriting!';return;}
+  if(!sana){err.textContent='Sanani kiriting!';return;}
+  if(!obId){err.textContent='Obyektni tanlang!';return;}
+  const newOp={id:'op'+Date.now(),tur:curType,summa,sana,kategoriya:curCat,izoh:izoh||null,obyekt_id:obId,ishchi_id:ishchiId};
+  OPS.unshift(newOp);
+  closeOp();
+  if(curPage==='home') renderHome();
+  if(curPage==='ops') renderOps();
+  if(curPage==='ob-detail'&&curObId) openObDetail(curObId);
+}
+
+function openOpDetail(opId){
+  // Simple alert for demo
+  const op=OPS.find(o=>o.id===opId);if(!op)return;
+  // Could show detail sheet
+}
+
+// ── OB CRUD ───────────────────────────────────────────────────────────────────
+function openAddOb(){ $('ob-start').value=today(); $('ob-nm').value=''; $('ob-days').value=''; $('ob-err').textContent=''; $('addob-bg').classList.add('open'); }
+function closeAddOb(){ $('addob-bg').classList.remove('open'); }
+function saveOb(){
+  const nm=$('ob-nm').value.trim();
+  if(!nm){$('ob-err').textContent='Nom kiriting!';return;}
+  OBS.unshift({id:'ob'+Date.now(),nomi:nm,rasm_url:'',boshlanish_sana:$('ob-start').value||today(),muddat_kun:parseInt($('ob-days').value)||null});
+  closeAddOb(); renderObs(); renderHome();
+}
+
+// ── ISHCHI CRUD ───────────────────────────────────────────────────────────────
+function openAddIsh(){ $('ish-nm').value=''; $('ish-ph').value=''; $('ish-err').textContent=''; $('addish-bg').classList.add('open'); }
+function closeAddIsh(){ $('addish-bg').classList.remove('open'); }
+function saveIsh(){
+  const nm=$('ish-nm').value.trim(),ph=$('ish-ph').value.trim();
+  if(!nm){$('ish-err').textContent='Ism kiriting!';return;}
+  ISHCHILAR.push({id:'ish'+Date.now(),name:nm,phone:ph});
+  closeAddIsh(); renderIshchilar();
+}
+
+// ── SHEETS CLOSE ON BG ────────────────────────────────────────────────────────
+document.querySelectorAll('.sbg').forEach(el=>{
+  el.addEventListener('click',function(e){ if(e.target===this) this.classList.remove('open'); });
+});
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+renderHome();
+</script>
+</body>
+</html>
