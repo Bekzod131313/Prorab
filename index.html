@@ -1442,6 +1442,63 @@ function getStats(){
   return {tI,tO,bal:tI-tO,cats};
 }
 
+// Raqamni matndan topish: "ikki ming", "2000", "2k" va h.k.
+function extractSum(q){
+  const words={'bir':1,'ikki':2,'uch':3,'tort':4,'besh':5,'olti':6,'yetti':7,'sakkiz':8,'togʻiz':9,'toʻqqiz':9,'on':10,'yigirma':20,'otuz':30,'qirq':40,'ellik':50,'oltmish':60,'yetmish':70,'sakson':80,'toʻqson':90,'yuz':100,'ming':1000,'million':1000000};
+  let q2=q.replace(/[,\.]/g,'').toLowerCase();
+  // "2 ming", "ikki ming 500" pattern
+  let total=0, cur=0;
+  q2.split(/\s+/).forEach(w=>{
+    const n=parseInt(w);
+    if(!isNaN(n)){cur+=n;}
+    else if(words[w]!==undefined){
+      if(words[w]>=1000){total=(total+cur||1)*words[w];cur=0;}
+      else if(words[w]===100){cur=(cur||1)*100;}
+      else cur+=words[w];
+    }
+  });
+  total+=cur;
+  if(total>0) return total;
+  // to'g'ridan raqam
+  const m=q.match(/\b(\d[\d\s]*)\b/);
+  if(m) return parseInt(m[1].replace(/\s/g,''));
+  return null;
+}
+
+// Ishchi ismini gapdan topish
+function findWorker(q){
+  const ql=q.toLowerCase();
+  return ISHCHILAR.find(w=>ql.includes(w.name.toLowerCase().split(' ')[0].toLowerCase()));
+}
+
+// Obyektni gapdan topish
+function findObyekt(q){
+  const ql=q.toLowerCase();
+  return OBS.find(ob=>ql.includes(ob.nomi.toLowerCase()));
+}
+
+// Kategoriyani gapdan topish
+function detectKat(q){
+  const ql=q.toLowerCase();
+  if(ql.includes('bozor')||ql.includes('material')||ql.includes('temir')||ql.includes('sement')||ql.includes('qum')) return 'bozor';
+  if(ql.includes('dostavka')||ql.includes('mashina')||ql.includes('yetkazib')||ql.includes('yoqilg')) return 'dostavka';
+  if(ql.includes('ovqat')||ql.includes('tushlik')||ql.includes('non')||ql.includes('choy')) return 'ovqat';
+  if(ql.includes('do\'kon')||ql.includes('dokon')||ql.includes('magazin')) return 'dokon';
+  if(ql.includes('usta')||ql.includes('ishchi')||ql.includes('avans')||ql.includes('ber')) return 'usta';
+  if(ql.includes('mijoz')||ql.includes('oldi')||ql.includes('tolov')||ql.includes('to\'lov')) return 'mijoz';
+  return 'dop';
+}
+
+// Operatsiya turini aniqlash
+function detectTur(q){
+  const ql=q.toLowerCase();
+  // Kirim belgilari
+  if(ql.includes('oldi')||ql.includes('berdi mijoz')||ql.includes('tolov keldi')||ql.includes('pul keldi')||ql.includes('mijoz berdi')) return 'kirim';
+  // Chiqim belgilari
+  if(ql.includes('berdim')||ql.includes('xarajat')||ql.includes('sotib')||ql.includes('rasxod')||ql.includes('chiqim')||ql.includes('to\'ladim')||ql.includes('toladim')) return 'chiqim';
+  return 'chiqim'; // default
+}
+
 function smartAnswer(q){
   const qu=q.toLowerCase();
   const {tI,tO,bal,cats}=getStats();
@@ -1449,65 +1506,92 @@ function smartAnswer(q){
   const topCat=catSorted[0];
   const mainOps=OPS.filter(o=>o.kategoriya!=='ish_haqqi');
 
-  // Xarajat / rasxod
-  if(qu.includes('rasxod')||qu.includes('xarajat')||qu.includes('chiqim')||qu.includes('ko\'p qayerda')||qu.includes('qayerda')){
-    if(!catSorted.length) return '📊 Hali chiqim operatsiyalari yo\'q.';
+  // ── OPERATSIYA YARATISH (ovozli buyruq) ──────────────────────────────────
+  const summa=extractSum(q);
+  const worker=findWorker(q);
+  const ob=findObyekt(q);
+  const tur=detectTur(q);
+  const kat=detectKat(q);
+
+  // Ishchiga pul berish: "Akmalga 2000 berdim"
+  if(summa && worker && (qu.includes('berd')||qu.includes('avans')||qu.includes('toladim')||qu.includes('to\'ladim'))){
+    const obForOp = ob || OBS.find(o=>o.holat==='faol');
+    if(!obForOp) return `⚠️ Avval obyekt qo'shing, keyin "${worker.name}ga ${summa}$ berdim" deb ayting.`;
+    const newOp={id:'op'+Date.now(),tur:'chiqim',summa,sana:today(),kategoriya:'usta',izoh:worker.name+' — avans',obyekt_id:obForOp.id,ishchi_id:worker.id};
+    OPS.unshift(newOp);
+    if(curPage==='home')renderHome();
+    if(curPage==='ops')renderOps();
+    if(curPage==='ishchilar')renderIshchilar();
+    const avans=OPS.filter(o=>o.ishchi_id===worker.id&&o.tur==='chiqim').reduce((s,o)=>s+o.summa,0);
+    const qoldiq=(worker.ish_haqqi||0)-avans;
+    return `✅ <b>Operatsiya saqlandi!</b><br><br>👷 Ishchi: <b>${worker.name}</b><br>💸 Avans: <b>$${summa}</b><br>🏗 Obyekt: <b>${obForOp.nomi}</b><br><br>📊 Ushbu ishchining qoldig'i: <b style="color:${qoldiq>=0?'#16a34a':'#ef4444'}">${qoldiq>=0?'+':''}$${qoldiq}</b>`;
+  }
+
+  // Mijozdan pul olish: "Mijozdan 5000 oldim"
+  if(summa && (qu.includes('mijoz')||qu.includes('buyurtmachi')||qu.includes('oldim')||qu.includes('olindi'))){
+    const obForOp = ob || OBS.find(o=>o.holat==='faol');
+    if(!obForOp) return `⚠️ Avval obyekt qo'shing.`;
+    const newOp={id:'op'+Date.now(),tur:'kirim',summa,sana:today(),kategoriya:'mijoz',izoh:'Mijoz to\'lovi',obyekt_id:obForOp.id,ishchi_id:null};
+    OPS.unshift(newOp);
+    if(curPage==='home')renderHome();
+    if(curPage==='ops')renderOps();
+    return `✅ <b>Kirim saqlandi!</b><br><br>💰 Summa: <b>$${summa}</b><br>🏗 Obyekt: <b>${obForOp.nomi}</b><br>📈 Yangi balans: <b style="color:#16a34a">+$${getStats().bal}</b>`;
+  }
+
+  // Bozor/material xarajat: "Bozordan 300 ga material oldim"
+  if(summa && (qu.includes('bozor')||qu.includes('material')||qu.includes('sotib')||qu.includes('dostavka')||qu.includes('ovqat')||qu.includes('do\'kon'))){
+    const obForOp = ob || OBS.find(o=>o.holat==='faol');
+    if(!obForOp) return `⚠️ Avval obyekt qo'shing.`;
+    const newOp={id:'op'+Date.now(),tur:'chiqim',summa,sana:today(),kategoriya:kat,izoh:q,obyekt_id:obForOp.id,ishchi_id:null};
+    OPS.unshift(newOp);
+    if(curPage==='home')renderHome();
+    if(curPage==='ops')renderOps();
+    return `✅ <b>Xarajat saqlandi!</b><br><br>💸 Kategoriya: <b>${CAT_NMS[kat]}</b><br>💵 Summa: <b>$${summa}</b><br>🏗 Obyekt: <b>${obForOp.nomi}</b>`;
+  }
+
+  // Faqat summa aytilgan: "500 berdim"
+  if(summa && (qu.includes('berd')||qu.includes('toladim')||qu.includes('xarajat'))){
+    const obForOp = ob || OBS.find(o=>o.holat==='faol');
+    if(!obForOp) return `⚠️ Avval obyekt qo'shing.`;
+    const newOp={id:'op'+Date.now(),tur:'chiqim',summa,sana:today(),kategoriya:kat,izoh:q,obyekt_id:obForOp.id,ishchi_id:worker?.id||null};
+    OPS.unshift(newOp);
+    if(curPage==='home')renderHome();
+    if(curPage==='ops')renderOps();
+    return `✅ <b>Chiqim saqlandi!</b><br><br>💸 Summa: <b>$${summa}</b><br>🏗 Obyekt: <b>${obForOp.nomi}</b><br><br>Noaniq bo'lsa Operatsiyalar bo'limida o'zgartiring.`;
+  }
+
+  // ── TAHLIL SAVOLLARI ─────────────────────────────────────────────────────
+  if(qu.includes('rasxod')||qu.includes('xarajat')||qu.includes('chiqim')||qu.includes('qayerda')||qu.includes('ko\'p')){
+    if(!catSorted.length) return '📊 Hali chiqim yo\'q.';
     const list=catSorted.map(([k,v],i)=>`${i+1}. ${CAT_NMS[k]||k}: <b>$${v}</b> (${Math.round(v/tO*100)}%)`).join('<br>');
-    return `💸 <b>Xarajatlar taqsimoti:</b><br><br>${list}<br><br>Eng ko'p: <b>${CAT_NMS[topCat[0]]||topCat[0]}</b> — $${topCat[1]}<br>Jami chiqim: <b>$${tO}</b>`;
+    return `💸 <b>Xarajatlar:</b><br><br>${list}<br><br>Eng ko'p: <b>${CAT_NMS[topCat[0]]||topCat[0]}</b> — $${topCat[1]}`;
   }
 
-  // Balans / foyda
-  if(qu.includes('balans')||qu.includes('foyda')||qu.includes('daromad')||qu.includes('dinamika')){
-    const emoji=bal>=0?'📈':'📉';
-    const holat=bal>=0?'✅ Ijobiy':'⚠️ Salbiy';
-    const eng=OBS.map(ob=>{
-      const ops=mainOps.filter(o=>o.obyekt_id===ob.id);
-      return {ob,b:ops.reduce((s,o)=>o.tur==='kirim'?s+o.summa:s-o.summa,0)};
-    }).sort((a,b)=>b.b-a.b);
-    return `${emoji} <b>Moliyaviy holat: ${holat}</b><br><br>💰 Kirim: <b>$${tI}</b><br>💸 Chiqim: <b>$${tO}</b><br>📊 Balans: <b style="color:${bal>=0?'#16a34a':'#ef4444'}">${bal>=0?'+':''}$${bal}</b><br><br>🏆 Eng foydali: <b>${eng[0]?.ob.nomi}</b> (+$${Math.max(0,eng[0]?.b||0)})`;
+  if(qu.includes('balans')||qu.includes('foyda')||qu.includes('daromad')||qu.includes('dinamika')||qu.includes('holat')||qu.includes('qanday')){
+    const faol=OBS.filter(o=>o.holat==='faol').length;
+    return `📊 <b>Moliyaviy holat:</b><br><br>💰 Kirim: <b>$${tI}</b><br>💸 Chiqim: <b>$${tO}</b><br>📈 Balans: <b style="color:${bal>=0?'#16a34a':'#ef4444'}">${bal>=0?'+':''}$${bal}</b><br>🏗 Faol obyektlar: <b>${faol} ta</b><br><br>${bal>=0?'✅ Holat yaxshi!':'⚠️ Balans manfiy, ehtiyot bo\'ling!'}`;
   }
 
-  // Obyekt foydasi
-  if(qu.includes('obyekt')||qu.includes('foyda')||qu.includes('qaysi')){
+  if(qu.includes('ishchi')||qu.includes('hisob')||qu.includes('avans')){
+    const list=ISHCHILAR.map(w=>{
+      const av=OPS.filter(o=>o.ishchi_id===w.id&&o.tur==='chiqim').reduce((s,o)=>s+o.summa,0);
+      const q2=(w.ish_haqqi||0)-av;
+      return `👷 <b>${w.name}</b>: qoldiq <b style="color:${q2>=0?'#16a34a':'#ef4444'}">${q2>=0?'+':''}$${q2}</b>`;
+    }).join('<br>');
+    return `👷 <b>Ishchilar:</b><br><br>${list||'Hali ishchi yo\'q.'}`;
+  }
+
+  if(qu.includes('obyekt')||qu.includes('qaysi')){
     const list=OBS.map(ob=>{
       const ops=mainOps.filter(o=>o.obyekt_id===ob.id);
       const b=ops.reduce((s,o)=>o.tur==='kirim'?s+o.summa:s-o.summa,0);
-      return `🏗 <b>${ob.nomi}</b>: ${b>=0?'+':''}$${b} (${ops.length} ta op.)`;
+      return `🏗 <b>${ob.nomi}</b>: ${b>=0?'+':''}$${b}`;
     }).join('<br>');
-    const best=OBS.map(ob=>{const ops=mainOps.filter(o=>o.obyekt_id===ob.id);return{ob,b:ops.reduce((s,o)=>o.tur==='kirim'?s+o.summa:s-o.summa,0)};}).sort((a,b)=>b.b-a.b)[0];
-    return `🏗 <b>Obyektlar bo'yicha balans:</b><br><br>${list}<br><br>🏆 Eng yaxshi: <b>${best?.ob.nomi}</b>`;
+    return `🏗 <b>Obyektlar:</b><br><br>${list}`;
   }
 
-  // Ishchilar
-  if(qu.includes('ishchi')||qu.includes('hisob')||qu.includes('avans')||qu.includes('ish haqq')){
-    const list=ISHCHILAR.map(w=>{
-      const avans=OPS.filter(o=>o.ishchi_id===w.id&&o.tur==='chiqim').reduce((s,o)=>s+o.summa,0);
-      const q2=(w.ish_haqqi||0)-avans;
-      return `👷 <b>${w.name}</b><br>   Haqqi: $${w.ish_haqqi||0} | Avans: $${avans} | Qoldiq: <b style="color:${q2>=0?'#16a34a':'#ef4444'}">${q2>=0?'+':''}$${q2}</b>`;
-    }).join('<br><br>');
-    return `👷 <b>Ishchilar hisobi:</b><br><br>${list||'Hali ishchi yo\'q.'}`;
-  }
-
-  // Maslahat / kamaytirish
-  if(qu.includes('maslahat')||qu.includes('kamayti')||qu.includes('tejash')||qu.includes('yaxshi')){
-    const tips=[];
-    if(topCat) tips.push(`💡 Eng katta xarajat — <b>${CAT_NMS[topCat[0]]||topCat[0]}</b> ($${topCat[1]}). Shu kategoriyani optimallashtiring.`);
-    if(bal<0) tips.push(`⚠️ Balans manfiy ($${bal}). Yangi mijozdan to'lov olishni tezlashtiring.`);
-    const faolOb=OBS.filter(o=>o.holat==='faol').length;
-    if(faolOb>2) tips.push(`📋 ${faolOb} ta faol obyekt bor. Har birini alohida nazorat qiling.`);
-    tips.push(`📅 Har hafta xarajatlarni tekshirib boring.`);
-    tips.push(`💰 Mijozdan avans olishni unutmang — bu oqim uchun muhim.`);
-    return `💡 <b>Amaliy maslahatlar:</b><br><br>${tips.join('<br><br>')}`;
-  }
-
-  // Umumiy holat / salom
-  if(qu.includes('holat')||qu.includes('xulosa')||qu.includes('umumiy')||qu.includes('salom')||qu.includes('nima')){
-    const faol=OBS.filter(o=>o.holat==='faol').length;
-    return `📊 <b>Umumiy holat:</b><br><br>🏗 Faol obyektlar: <b>${faol} ta</b><br>👷 Ishchilar: <b>${ISHCHILAR.length} ta</b><br>📋 Operatsiyalar: <b>${OPS.length} ta</b><br><br>💰 Kirim: <b>$${tI}</b><br>💸 Chiqim: <b>$${tO}</b><br>📈 Balans: <b style="color:${bal>=0?'#16a34a':'#ef4444'}">${bal>=0?'+':''}$${bal}</b><br><br>${bal>=0?'✅ Moliyaviy holat yaxshi!':'⚠️ Ehtiyot bo\'ling — balans manfiy.'}`;
-  }
-
-  // Default
-  return `🤖 Tushundim! Quyidagi mavzularda yordam bera olaman:<br><br>📊 <b>Xarajatlar tahlili</b> — "Eng ko'p xarajat qayerda?"<br>📈 <b>Balans / foyda</b> — "Balans qanday?"<br>🏗 <b>Obyektlar</b> — "Qaysi obyekt foydali?"<br>👷 <b>Ishchilar</b> — "Ishchilar hisobi qanday?"<br>💡 <b>Maslahat</b> — "Xarajatni qanday kamaytirish?"`;
+  // Default — foydalanish qo'llanmasi
+  return `🎤 <b>Ovozda shunday ayting:</b><br><br>👷 <i>"Akmalga ikki ming berdim"</i><br>💰 <i>"Mijozdan besh ming oldim"</i><br>🛒 <i>"Bozordan uch yuz sarf qildim"</i><br>🚚 <i>"Dostavkaga yuz berdim"</i><br><br>📊 <b>Savol uchun:</b><br><i>"Balans qanday?"</i><br><i>"Eng ko'p xarajat qayerda?"</i><br><i>"Ishchilar hisobi?"</i>`;
 }
 
 function sendAI(){
@@ -1561,7 +1645,7 @@ function startMic(){
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     recognition=new SR();
     // Safari uchun eng mos til
-    recognition.lang='ru-RU';
+    recognition.lang='uz-UZ';
     recognition.interimResults=true;
     recognition.continuous=false;
     recognition.maxAlternatives=1;
