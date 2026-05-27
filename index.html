@@ -480,15 +480,15 @@ a{text-decoration:none}
   </div>
   <div class="ai-input-wrap">
     <div class="ai-input-row">
-      <button id="mic-btn" onclick="toggleMic()" style="width:44px;height:44px;border-radius:14px;border:1.5px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s">
-        <svg id="mic-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      <button id="mic-btn" ontouchstart="event.preventDefault();toggleMic()" onclick="toggleMic()" style="width:52px;height:52px;min-width:52px;border-radius:14px;border:2px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-appearance:none;cursor:pointer;touch-action:manipulation">
+        <svg id="mic-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
       </button>
-      <input class="ai-inp" id="ai-inp" type="text" placeholder="Savol yozing yoki 🎤 bosing..." onkeydown="if(event.key==='Enter')sendAI()">
-      <button class="ai-send" onclick="sendAI()">
+      <input class="ai-inp" id="ai-inp" type="text" placeholder="Savol yozing..." onkeydown="if(event.key==='Enter')sendAI()">
+      <button class="ai-send" ontouchstart="event.preventDefault();sendAI()" onclick="sendAI()" style="touch-action:manipulation;-webkit-appearance:none">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
       </button>
     </div>
-    <div id="mic-status" style="text-align:center;font-size:12px;font-weight:700;color:var(--red);padding-top:6px;display:none">🔴 Tinglayapman... (qayta bosing — to'xtatish)</div>
+    <div id="mic-status" style="text-align:center;font-size:12px;font-weight:700;color:var(--red);padding-top:6px;display:none">🔴 Gapiring... (qayta bosing — toxtatish)</div>
   </div>
 </div>
 
@@ -1543,46 +1543,73 @@ function askAI(q){
 let recognition=null, micActive=false;
 
 function toggleMic(){
-  if(!('webkitSpeechRecognition' in window||'SpeechRecognition' in window)){
-    alert('Kechirasiz, brauzeringiz ovozni qo\'llab-quvvatlamaydi.\nChrome yoki Safari ishlatib ko\'ring.');
-    return;
-  }
-  if(micActive){ stopMic(); return; }
-  startMic();
+  console.log("mic tapped");
+  $("mic-status").style.display="block";
+  $("mic-status").textContent="⏳ Tekshirilmoqda...";
+  setTimeout(()=>{
+    if(!("webkitSpeechRecognition" in window||"SpeechRecognition" in window)){
+      $("mic-status").textContent="❌ Brauzer qollab-quvvatlamaydi";
+      return;
+    }
+    if(micActive){ stopMic(); return; }
+    startMic();
+  },100);
 }
 
 function startMic(){
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  recognition=new SR();
-  recognition.lang='uz-UZ';
-  recognition.interimResults=true;
-  recognition.continuous=false;
-  micActive=true;
-  // UI
-  const btn=$('mic-btn'), ico=$('mic-icon'), st=$('mic-status');
-  btn.style.background='var(--red)'; btn.style.border='none';
-  ico.style.stroke='#fff';
-  st.style.display='block';
+  try{
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    recognition=new SR();
+    // Safari uchun eng mos til
+    recognition.lang='ru-RU';
+    recognition.interimResults=true;
+    recognition.continuous=false;
+    recognition.maxAlternatives=1;
+    micActive=true;
 
-  recognition.onresult=e=>{
-    const transcript=Array.from(e.results).map(r=>r[0].transcript).join('');
-    $('ai-inp').value=transcript;
-  };
-  recognition.onend=()=>{
-    stopMic();
-    const txt=$('ai-inp').value.trim();
-    if(txt) sendAI();
-  };
-  recognition.onerror=()=>stopMic();
-  recognition.start();
+    const btn=$('mic-btn'), st=$('mic-status');
+    btn.style.background='var(--red)';
+    btn.style.border='none';
+    btn.innerHTML='<svg width="20" height="20" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3" fill="white"/><path d="M19 10v2a7 7 0 01-14 0v-2" stroke="white"/><line x1="12" y1="19" x2="12" y2="23" stroke="white"/><line x1="8" y1="23" x2="16" y2="23" stroke="white"/></svg>';
+    st.style.display='block';
+    st.textContent='🔴 Gapiring... (to\'xtatish uchun qayta bosing)';
+
+    recognition.onresult=e=>{
+      let txt='';
+      for(let i=0;i<e.results.length;i++) txt+=e.results[i][0].transcript;
+      $('ai-inp').value=txt;
+      st.textContent='✅ Eshitildi: "'+txt+'"';
+    };
+
+    recognition.onend=()=>{
+      const txt=($('ai-inp').value||'').trim();
+      stopMic();
+      if(txt) sendAI();
+    };
+
+    recognition.onerror=ev=>{
+      stopMic();
+      if(ev.error==='not-allowed'){
+        alert('Mikrofon ruxsati berilmagan!\nSafari: Sozlamalar → Safari → Mikrofon → Ruxsat bering');
+      } else if(ev.error==='no-speech'){
+        $('ai-inp').value='';
+      }
+    };
+
+    recognition.start();
+  }catch(e){
+    micActive=false;
+    alert('Xatolik: '+e.message);
+  }
 }
 
 function stopMic(){
   micActive=false;
-  recognition?.stop();
-  const btn=$('mic-btn'), ico=$('mic-icon'), st=$('mic-status');
-  btn.style.background='#fff'; btn.style.border='1.5px solid var(--border)';
-  ico.style.stroke='var(--muted)';
+  try{ recognition?.stop(); }catch(e){}
+  const btn=$('mic-btn'), st=$('mic-status');
+  btn.style.background='#fff';
+  btn.style.border='1.5px solid var(--border)';
+  btn.innerHTML='<svg id="mic-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
   st.style.display='none';
 }
 
