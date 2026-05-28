@@ -1335,25 +1335,50 @@ function toggleMic(){
 function startMic(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   recognition=new SR();
-  recognition.lang='ru-RU'; // Safari uz-UZ ni tanimaydi
+  // Tilni aniqlash - uz-UZ ishlamasa ru-RU
+  recognition.lang='uz-UZ';
   recognition.interimResults=true;
   recognition.continuous=false;
-  recognition.maxAlternatives=3;
+  recognition.maxAlternatives=5;
   micActive=true;
   const btn=$('mic-btn'),st=$('mic-status');
   btn.style.background='var(--red)';btn.style.border='none';
   $('mic-icon').setAttribute('stroke','#fff');
-  if(st)st.style.display='block';
+  if(st){st.style.display='block';st.textContent='🔴 Gapiring...';}
   recognition.onresult=e=>{
     let txt='';for(let i=0;i<e.results.length;i++)txt+=e.results[i][0].transcript;
     if($('ai-inp'))$('ai-inp').value=txt;
+    if($('mic-status'))$('mic-status').textContent='🎤 '+txt;
   };
   recognition.onend=()=>{
     const txt=($('ai-inp')?.value||'').trim();
     stopMic();
     if(txt)sendAI();
   };
-  recognition.onerror=()=>stopMic();
+  recognition.onerror=(ev)=>{
+    if(ev.error==='language-not-supported'||ev.error==='no-speech'){
+      // uz-UZ ishlamadi, ru-RU ga o'tish
+      stopMic();
+      recognition=new SR();
+      recognition.lang='ru-RU';
+      recognition.interimResults=true;
+      recognition.continuous=false;
+      recognition.onresult=e=>{
+        let txt='';for(let i=0;i<e.results.length;i++)txt+=e.results[i][0].transcript;
+        if($('ai-inp'))$('ai-inp').value=txt;
+        if($('mic-status'))$('mic-status').textContent='✅ Eshitildi: "'+txt+'"';
+      };
+      recognition.onend=()=>{const txt=($('ai-inp')?.value||'').trim();stopMic();if(txt)sendAI();};
+      recognition.onerror=()=>stopMic();
+      micActive=true;
+      const btn=$('mic-btn'),st=$('mic-status');
+      if(btn){btn.style.background='var(--red)';btn.style.border='none';}
+      if(st){st.style.display='block';st.textContent='🔴 Gapiring (RU)...';}
+      recognition.start();
+    } else {
+      stopMic();
+    }
+  };
   recognition.start();
 }
 
