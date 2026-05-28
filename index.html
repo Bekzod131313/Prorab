@@ -621,6 +621,27 @@ svg{display:block;flex-shrink:0}
   <div class="sht" style="padding-bottom:48px"><div class="s-hdl"></div><div id="ish-det-body"></div></div>
 </div>
 
+<!-- EDIT MUDDAT SHEET -->
+<div id="edit-muddat-bg" class="sbg" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="sht">
+    <div class="s-hdl"></div>
+    <div class="s-ttl">Muddat tahrirlash</div>
+    <div style="font-size:13px;color:var(--muted);text-align:center;margin:-14px 0 16px;font-weight:600" id="edit-muddat-nm"></div>
+    <div class="frow">
+      <label class="flbl">Boshlanish sanasi</label>
+      <input type="date" class="finp" id="edit-start">
+    </div>
+    <div class="frow">
+      <label class="flbl">Muddat (kun)</label>
+      <input type="number" class="finp" id="edit-days" placeholder="masalan: 60" inputmode="numeric" style="font-size:24px;font-weight:800;text-align:center">
+    </div>
+    <div class="sbtns">
+      <button onclick="saveEditMuddat()" class="sbtn-ok">💾 Saqlash</button>
+      <button onclick="document.getElementById('edit-muddat-bg').classList.remove('open')" class="sbtn-cn">Bekor</button>
+    </div>
+  </div>
+</div>
+
 <!-- ISHCHI PANEL -->
 <div id="ishchi-app" style="display:none;min-height:100vh;background:var(--bg)">
   <div style="background:linear-gradient(160deg,#1e293b,#0f172a);padding:48px 24px 32px">
@@ -723,9 +744,27 @@ async function doLogin(){
   if(!email||!pass){err.textContent='Email va parol kiriting!';return;}
   const btn=document.querySelector('#login-form .auth-btn');
   btn.textContent='Kirmoqda...';btn.disabled=true;
-  const {error}=await sb.auth.signInWithPassword({email,password:pass});
+  const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
   btn.textContent='Kirish →';btn.disabled=false;
-  if(error)err.textContent=error.message==='Invalid login credentials'?'Email yoki parol xato!':error.message;
+  if(error){
+    err.textContent=error.message==='Invalid login credentials'?'Email yoki parol xato!':error.message;
+    return;
+  }
+  // Muvaffaqiyatli kirish
+  curUser=data.user;
+  $('auth-screen').style.display='none';
+  $('loading').style.display='flex';
+  await loadAll();
+  const role=curProfile?.role||curUser.user_metadata?.role||'prorab';
+  if(role==='ishchi'){
+    setupIshchiPanel();
+    $('loading').style.display='none';
+    return;
+  }
+  setupUI();
+  $('loading').style.display='none';
+  $('app').style.display='block';
+  renderHome();
 }
 
 async function doRegister(){
@@ -1000,9 +1039,71 @@ function openObDetail(obId){
       <button class="ob-act" style="background:var(--red-bg);color:var(--red)" onclick="openObChiqim('${ob.id}')">↑ Pul berdi</button>
       <button class="ob-act" style="background:var(--bg);color:var(--muted)" onclick="toggleObStatus('${ob.id}')">${ob.holat==='faol'?'✓ Yakunla':'↺ Qayta'}</button>
     </div>
+    <div style="display:flex;gap:10px;padding:0 16px 14px">
+      <button class="ob-act" style="background:var(--blue-bg);color:var(--blue);flex:1" onclick="trigCam('${ob.id}')">📷 Rasm</button>
+      <button class="ob-act" style="background:#fffbeb;color:#f59e0b;flex:1" onclick="openEditMuddat('${ob.id}')">📅 Muddat</button>
+    </div>
+    <input type="file" id="ob-cam-inp" accept="image/*" style="display:none" onchange="uploadObImg(this)">
     <div style="font-size:14px;font-weight:800;padding:4px 16px 10px">Operatsiyalar</div>
     <div class="op-list" style="margin:0 16px 12px">${obOps.length?obOps.map(op=>opRowHtml(op)).join(''):'<div class="empty" style="padding:24px">Operatsiya yo\'q</div>'}</div>
     <div style="padding:0 16px 16px"><button onclick="deleteObConfirm('${ob.id}')" id="del-ob-${ob.id}" style="width:100%;padding:14px;border-radius:16px;border:1.5px solid var(--red);background:#fff;color:var(--red);font-size:14px;font-weight:800;font-family:'Manrope',sans-serif">🗑 Obyektni o'chirish</button></div>`;
+}
+
+function trigCam(obId){
+  curObId=obId;
+  const f=document.getElementById('ob-cam-inp');
+  if(f) f.click();
+}
+
+async function uploadObImg(inp){
+  if(!inp.files||!inp.files[0]||!curObId) return;
+  const file=inp.files[0];
+  const ext=file.name.split('.').pop();
+  const path=curUser.id+'/'+curObId+'.'+ext;
+  
+  // Supabase Storage ga yuklash
+  const{error:upErr}=await sb.storage.from('obyekt-rasmlar').upload(path,file,{upsert:true});
+  if(upErr){
+    // Storage yo'q bo'lsa, base64 sifatida saqlash
+    const reader=new FileReader();
+    reader.onload=async e=>{
+      const{error}=await sb.from('obyektlar').update({rasm_url:e.target.result}).eq('id',curObId);
+      if(!error){
+        const ob=OBS.find(o=>o.id===curObId);
+        if(ob) ob.rasm_url=e.target.result;
+        openObDetail(curObId);
+      }
+    };
+    reader.readAsDataURL(file);
+    return;
+  }
+  const{data}=sb.storage.from('obyekt-rasmlar').getPublicUrl(path);
+  const url=data.publicUrl;
+  await sb.from('obyektlar').update({rasm_url:url}).eq('id',curObId);
+  const ob=OBS.find(o=>o.id===curObId);
+  if(ob) ob.rasm_url=url;
+  openObDetail(curObId);
+}
+
+function openEditMuddat(obId){
+  const ob=OBS.find(o=>o.id===obId);if(!ob)return;
+  curObId=obId;
+  document.getElementById('edit-muddat-bg').classList.add('open');
+  document.getElementById('edit-start').value=ob.boshlanish_sana||today();
+  document.getElementById('edit-days').value=ob.muddat_kun||'';
+  document.getElementById('edit-muddat-nm').textContent=ob.nomi;
+}
+
+async function saveEditMuddat(){
+  const start=document.getElementById('edit-start').value;
+  const days=parseInt(document.getElementById('edit-days').value)||null;
+  const{error}=await sb.from('obyektlar').update({boshlanish_sana:start,muddat_kun:days}).eq('id',curObId);
+  if(!error){
+    const ob=OBS.find(o=>o.id===curObId);
+    if(ob){ob.boshlanish_sana=start;ob.muddat_kun=days;}
+    document.getElementById('edit-muddat-bg').classList.remove('open');
+    openObDetail(curObId);
+  }
 }
 
 async function toggleObStatus(obId){
