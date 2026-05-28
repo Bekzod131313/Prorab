@@ -1686,7 +1686,7 @@ async function askAI(q){
       method:'POST',
       headers:{'Content-Type':'application/json','X-API-Key':API_KEY},
       body:JSON.stringify({
-        model:'claude-haiku-4-5-20251001',
+        model:'gemini-2.0-flash',
         max_tokens:512,
         system:buildContext(),
         messages:[{role:'user',content:q}]
@@ -1720,7 +1720,7 @@ function showApiKeyModal(){
     <div style="width:40px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto 20px"></div>
     <div style="font-size:20px;font-weight:900;margin-bottom:8px;text-align:center">🔑 API Kalit</div>
     <div style="font-size:13px;color:#94a3b8;text-align:center;margin-bottom:20px;font-weight:500">console.anthropic.com dan oling</div>
-    <input id="api-key-inp" type="password" placeholder="sk-ant-api03-..." style="width:100%;padding:14px 16px;border-radius:14px;border:1.5px solid #e2e8f0;font-size:14px;font-family:Manrope,sans-serif;outline:none;margin-bottom:12px">
+    <input id="api-key-inp" type="password" placeholder="AIza..." style="width:100%;padding:14px 16px;border-radius:14px;border:1.5px solid #e2e8f0;font-size:14px;font-family:Manrope,sans-serif;outline:none;margin-bottom:12px">
     <button onclick="saveApiKey()" style="width:100%;padding:16px;border-radius:16px;border:none;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;font-size:16px;font-weight:800;font-family:Manrope,sans-serif">Saqlash ✅</button>
     <button onclick="document.getElementById('api-key-modal').remove()" style="width:100%;padding:14px;border-radius:16px;border:1.5px solid #e2e8f0;background:#fff;color:#94a3b8;font-size:14px;font-weight:700;font-family:Manrope,sans-serif;margin-top:8px">Bekor</button>
   </div>`;
@@ -1730,8 +1730,8 @@ function showApiKeyModal(){
 
 function saveApiKey(){
   const k=(document.getElementById('api-key-inp')?.value||'').trim();
-  if(!k.startsWith('sk-ant-')){
-    alert('Kalit "sk-ant-" bilan boshlanishi kerak!');
+  if(!k.startsWith('AIza') && !k.startsWith('sk-ant-')){
+    alert('Kalit 'AIza...' formatida bo'lishi kerak!');
     return;
   }
   API_KEY=k;
