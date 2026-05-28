@@ -480,15 +480,15 @@ a{text-decoration:none}
   </div>
   <div class="ai-input-wrap">
     <div class="ai-input-row">
-      <button id="mic-btn" onclick="toggleMic()" style="width:44px;height:44px;border-radius:14px;border:1.5px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s">
-        <svg id="mic-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      <button id="mic-btn" onclick="toggleMic()" style="width:52px;height:52px;min-width:52px;border-radius:14px;border:2px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;-webkit-appearance:none;cursor:pointer;touch-action:manipulation">
+        <svg id="mic-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
       </button>
-      <input class="ai-inp" id="ai-inp" type="text" placeholder="Savol yozing yoki 🎤 bosing..." onkeydown="if(event.key==='Enter')sendAI()">
-      <button class="ai-send" onclick="sendAI()">
+      <input class="ai-inp" id="ai-inp" type="text" placeholder="Savol yozing..." onkeydown="if(event.key==='Enter')sendAI()">
+      <button class="ai-send" onclick="sendAI()" style="touch-action:manipulation;-webkit-appearance:none">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
       </button>
     </div>
-    <div id="mic-status" style="text-align:center;font-size:12px;font-weight:700;color:var(--red);padding-top:6px;display:none">🔴 Tinglayapman... (qayta bosing — to'xtatish)</div>
+    <div id="mic-status" style="text-align:center;font-size:12px;font-weight:700;color:var(--red);padding-top:6px;display:none">🔴 Gapiring... (qayta bosing — toxtatish)</div>
   </div>
 </div>
 
@@ -512,6 +512,12 @@ a{text-decoration:none}
     <div class="soz-item">
       <div class="soz-ico" style="background:var(--blue-bg)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div>
       <div class="soz-lbl">Parolni o'zgartirish</div>
+    </div>
+    <div class="soz-item" onclick="showApiKeyModal()">
+      <div class="soz-ico" style="background:#fdf4ff"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg></div>
+      <div class="soz-lbl">AI API Kalit 🔑</div>
+      <div class="soz-val" id="api-key-status">Kiritilmagan</div>
+      <span class="soz-arr">›</span>
       <span class="soz-arr">›</span>
     </div>
   </div>
@@ -837,6 +843,8 @@ function gp(pg, el) {
   const showFab = ['home','ops','ob-detail','obyekt'].includes(pg);
   $('fab').style.display = showFab?'flex':'none';
   if(pg==='home') renderHome();
+// API key status
+
   if(pg==='obyekt') renderObs();
   if(pg==='ops') renderOps();
   if(pg==='hisobot') renderChart();
@@ -1432,6 +1440,8 @@ function saveIsh(){
 
 // ── AI (OFFLINE SMART ENGINE) ─────────────────────────────────────────────────
 let aiThinking=false;
+const WORKER_URL='https://patient-shape-678e.bekzodramazonov99.workers.dev';
+let API_KEY='embedded';
 
 function getStats(){
   const mainOps=OPS.filter(o=>o.kategoriya!=='ish_haqqi');
@@ -1442,6 +1452,63 @@ function getStats(){
   return {tI,tO,bal:tI-tO,cats};
 }
 
+// Raqamni matndan topish: "ikki ming", "2000", "2k" va h.k.
+function extractSum(q){
+  const words={'bir':1,'ikki':2,'uch':3,'tort':4,'besh':5,'olti':6,'yetti':7,'sakkiz':8,'togʻiz':9,'toʻqqiz':9,'on':10,'yigirma':20,'otuz':30,'qirq':40,'ellik':50,'oltmish':60,'yetmish':70,'sakson':80,'toʻqson':90,'yuz':100,'ming':1000,'million':1000000};
+  let q2=q.replace(/[,\.]/g,'').toLowerCase();
+  // "2 ming", "ikki ming 500" pattern
+  let total=0, cur=0;
+  q2.split(/\s+/).forEach(w=>{
+    const n=parseInt(w);
+    if(!isNaN(n)){cur+=n;}
+    else if(words[w]!==undefined){
+      if(words[w]>=1000){total=(total+cur||1)*words[w];cur=0;}
+      else if(words[w]===100){cur=(cur||1)*100;}
+      else cur+=words[w];
+    }
+  });
+  total+=cur;
+  if(total>0) return total;
+  // to'g'ridan raqam
+  const m=q.match(/\b(\d[\d\s]*)\b/);
+  if(m) return parseInt(m[1].replace(/\s/g,''));
+  return null;
+}
+
+// Ishchi ismini gapdan topish
+function findWorker(q){
+  const ql=q.toLowerCase();
+  return ISHCHILAR.find(w=>ql.includes(w.name.toLowerCase().split(' ')[0].toLowerCase()));
+}
+
+// Obyektni gapdan topish
+function findObyekt(q){
+  const ql=q.toLowerCase();
+  return OBS.find(ob=>ql.includes(ob.nomi.toLowerCase()));
+}
+
+// Kategoriyani gapdan topish
+function detectKat(q){
+  const ql=q.toLowerCase();
+  if(ql.includes('bozor')||ql.includes('material')||ql.includes('temir')||ql.includes('sement')||ql.includes('qum')) return 'bozor';
+  if(ql.includes('dostavka')||ql.includes('mashina')||ql.includes('yetkazib')||ql.includes('yoqilg')) return 'dostavka';
+  if(ql.includes('ovqat')||ql.includes('tushlik')||ql.includes('non')||ql.includes('choy')) return 'ovqat';
+  if(ql.includes('do\'kon')||ql.includes('dokon')||ql.includes('magazin')) return 'dokon';
+  if(ql.includes('usta')||ql.includes('ishchi')||ql.includes('avans')||ql.includes('ber')) return 'usta';
+  if(ql.includes('mijoz')||ql.includes('oldi')||ql.includes('tolov')||ql.includes('to\'lov')) return 'mijoz';
+  return 'dop';
+}
+
+// Operatsiya turini aniqlash
+function detectTur(q){
+  const ql=q.toLowerCase();
+  // Kirim belgilari
+  if(ql.includes('oldi')||ql.includes('berdi mijoz')||ql.includes('tolov keldi')||ql.includes('pul keldi')||ql.includes('mijoz berdi')) return 'kirim';
+  // Chiqim belgilari
+  if(ql.includes('berdim')||ql.includes('xarajat')||ql.includes('sotib')||ql.includes('rasxod')||ql.includes('chiqim')||ql.includes('to\'ladim')||ql.includes('toladim')) return 'chiqim';
+  return 'chiqim'; // default
+}
+
 function smartAnswer(q){
   const qu=q.toLowerCase();
   const {tI,tO,bal,cats}=getStats();
@@ -1449,65 +1516,109 @@ function smartAnswer(q){
   const topCat=catSorted[0];
   const mainOps=OPS.filter(o=>o.kategoriya!=='ish_haqqi');
 
-  // Xarajat / rasxod
-  if(qu.includes('rasxod')||qu.includes('xarajat')||qu.includes('chiqim')||qu.includes('ko\'p qayerda')||qu.includes('qayerda')){
-    if(!catSorted.length) return '📊 Hali chiqim operatsiyalari yo\'q.';
+  // ── OPERATSIYA YARATISH (ovozli buyruq) ──────────────────────────────────
+  const summa=extractSum(q);
+  const worker=findWorker(q);
+  const ob=findObyekt(q);
+  const tur=detectTur(q);
+  const kat=detectKat(q);
+
+  // Ishchiga pul berish: "Akmalga 2000 berdim"
+  if(summa && worker && (qu.includes('berd')||qu.includes('avans')||qu.includes('toladim')||qu.includes('to\'ladim'))){
+    const obForOp = ob || OBS.find(o=>o.holat==='faol');
+    if(!obForOp) return `⚠️ Avval obyekt qo'shing, keyin "${worker.name}ga ${summa}$ berdim" deb ayting.`;
+    const newOp={id:'op'+Date.now(),tur:'chiqim',summa,sana:today(),kategoriya:'usta',izoh:worker.name+' — avans',obyekt_id:obForOp.id,ishchi_id:worker.id};
+    OPS.unshift(newOp);
+    if(curPage==='home')renderHome();
+    if(curPage==='ops')renderOps();
+    if(curPage==='ishchilar')renderIshchilar();
+    const avans=OPS.filter(o=>o.ishchi_id===worker.id&&o.tur==='chiqim').reduce((s,o)=>s+o.summa,0);
+    const qoldiq=(worker.ish_haqqi||0)-avans;
+    return `✅ <b>Operatsiya saqlandi!</b><br><br>👷 Ishchi: <b>${worker.name}</b><br>💸 Avans: <b>$${summa}</b><br>🏗 Obyekt: <b>${obForOp.nomi}</b><br><br>📊 Ushbu ishchining qoldig'i: <b style="color:${qoldiq>=0?'#16a34a':'#ef4444'}">${qoldiq>=0?'+':''}$${qoldiq}</b>`;
+  }
+
+  // Mijozdan pul olish: "Mijozdan 5000 oldim"
+  if(summa && (qu.includes('mijoz')||qu.includes('buyurtmachi')||qu.includes('oldim')||qu.includes('olindi'))){
+    const obForOp = ob || OBS.find(o=>o.holat==='faol');
+    if(!obForOp) return `⚠️ Avval obyekt qo'shing.`;
+    const newOp={id:'op'+Date.now(),tur:'kirim',summa,sana:today(),kategoriya:'mijoz',izoh:'Mijoz to\'lovi',obyekt_id:obForOp.id,ishchi_id:null};
+    OPS.unshift(newOp);
+    if(curPage==='home')renderHome();
+    if(curPage==='ops')renderOps();
+    return `✅ <b>Kirim saqlandi!</b><br><br>💰 Summa: <b>$${summa}</b><br>🏗 Obyekt: <b>${obForOp.nomi}</b><br>📈 Yangi balans: <b style="color:#16a34a">+$${getStats().bal}</b>`;
+  }
+
+  // Bozor/material xarajat: "Bozordan 300 ga material oldim"
+  if(summa && (qu.includes('bozor')||qu.includes('material')||qu.includes('sotib')||qu.includes('dostavka')||qu.includes('ovqat')||qu.includes('do\'kon'))){
+    const obForOp = ob || OBS.find(o=>o.holat==='faol');
+    if(!obForOp) return `⚠️ Avval obyekt qo'shing.`;
+    const newOp={id:'op'+Date.now(),tur:'chiqim',summa,sana:today(),kategoriya:kat,izoh:q,obyekt_id:obForOp.id,ishchi_id:null};
+    OPS.unshift(newOp);
+    if(curPage==='home')renderHome();
+    if(curPage==='ops')renderOps();
+    return `✅ <b>Xarajat saqlandi!</b><br><br>💸 Kategoriya: <b>${CAT_NMS[kat]}</b><br>💵 Summa: <b>$${summa}</b><br>🏗 Obyekt: <b>${obForOp.nomi}</b>`;
+  }
+
+  // Faqat summa aytilgan: "500 berdim"
+  if(summa && (qu.includes('berd')||qu.includes('toladim')||qu.includes('xarajat'))){
+    const obForOp = ob || OBS.find(o=>o.holat==='faol');
+    if(!obForOp) return `⚠️ Avval obyekt qo'shing.`;
+    const newOp={id:'op'+Date.now(),tur:'chiqim',summa,sana:today(),kategoriya:kat,izoh:q,obyekt_id:obForOp.id,ishchi_id:worker?.id||null};
+    OPS.unshift(newOp);
+    if(curPage==='home')renderHome();
+    if(curPage==='ops')renderOps();
+    return `✅ <b>Chiqim saqlandi!</b><br><br>💸 Summa: <b>$${summa}</b><br>🏗 Obyekt: <b>${obForOp.nomi}</b><br><br>Noaniq bo'lsa Operatsiyalar bo'limida o'zgartiring.`;
+  }
+
+  // ── TAHLIL SAVOLLARI ─────────────────────────────────────────────────────
+  if(qu.includes('rasxod')||qu.includes('xarajat')||qu.includes('chiqim')||qu.includes('qayerda')||qu.includes('ko\'p')){
+    if(!catSorted.length) return '📊 Hali chiqim yo\'q.';
     const list=catSorted.map(([k,v],i)=>`${i+1}. ${CAT_NMS[k]||k}: <b>$${v}</b> (${Math.round(v/tO*100)}%)`).join('<br>');
-    return `💸 <b>Xarajatlar taqsimoti:</b><br><br>${list}<br><br>Eng ko'p: <b>${CAT_NMS[topCat[0]]||topCat[0]}</b> — $${topCat[1]}<br>Jami chiqim: <b>$${tO}</b>`;
+    return `💸 <b>Xarajatlar:</b><br><br>${list}<br><br>Eng ko'p: <b>${CAT_NMS[topCat[0]]||topCat[0]}</b> — $${topCat[1]}`;
   }
 
-  // Balans / foyda
-  if(qu.includes('balans')||qu.includes('foyda')||qu.includes('daromad')||qu.includes('dinamika')){
-    const emoji=bal>=0?'📈':'📉';
-    const holat=bal>=0?'✅ Ijobiy':'⚠️ Salbiy';
-    const eng=OBS.map(ob=>{
-      const ops=mainOps.filter(o=>o.obyekt_id===ob.id);
-      return {ob,b:ops.reduce((s,o)=>o.tur==='kirim'?s+o.summa:s-o.summa,0)};
-    }).sort((a,b)=>b.b-a.b);
-    return `${emoji} <b>Moliyaviy holat: ${holat}</b><br><br>💰 Kirim: <b>$${tI}</b><br>💸 Chiqim: <b>$${tO}</b><br>📊 Balans: <b style="color:${bal>=0?'#16a34a':'#ef4444'}">${bal>=0?'+':''}$${bal}</b><br><br>🏆 Eng foydali: <b>${eng[0]?.ob.nomi}</b> (+$${Math.max(0,eng[0]?.b||0)})`;
+  if(qu.includes('balans')||qu.includes('foyda')||qu.includes('daromad')||qu.includes('dinamika')||qu.includes('holat')||qu.includes('qanday')){
+    const faol=OBS.filter(o=>o.holat==='faol').length;
+    return `📊 <b>Moliyaviy holat:</b><br><br>💰 Kirim: <b>$${tI}</b><br>💸 Chiqim: <b>$${tO}</b><br>📈 Balans: <b style="color:${bal>=0?'#16a34a':'#ef4444'}">${bal>=0?'+':''}$${bal}</b><br>🏗 Faol obyektlar: <b>${faol} ta</b><br><br>${bal>=0?'✅ Holat yaxshi!':'⚠️ Balans manfiy, ehtiyot bo\'ling!'}`;
   }
 
-  // Obyekt foydasi
-  if(qu.includes('obyekt')||qu.includes('foyda')||qu.includes('qaysi')){
+  if(qu.includes('ishchi')||qu.includes('hisob')||qu.includes('avans')){
+    const list=ISHCHILAR.map(w=>{
+      const av=OPS.filter(o=>o.ishchi_id===w.id&&o.tur==='chiqim').reduce((s,o)=>s+o.summa,0);
+      const q2=(w.ish_haqqi||0)-av;
+      return `👷 <b>${w.name}</b>: qoldiq <b style="color:${q2>=0?'#16a34a':'#ef4444'}">${q2>=0?'+':''}$${q2}</b>`;
+    }).join('<br>');
+    return `👷 <b>Ishchilar:</b><br><br>${list||'Hali ishchi yo\'q.'}`;
+  }
+
+  if(qu.includes('obyekt')||qu.includes('qaysi')){
     const list=OBS.map(ob=>{
       const ops=mainOps.filter(o=>o.obyekt_id===ob.id);
       const b=ops.reduce((s,o)=>o.tur==='kirim'?s+o.summa:s-o.summa,0);
-      return `🏗 <b>${ob.nomi}</b>: ${b>=0?'+':''}$${b} (${ops.length} ta op.)`;
+      return `🏗 <b>${ob.nomi}</b>: ${b>=0?'+':''}$${b}`;
     }).join('<br>');
-    const best=OBS.map(ob=>{const ops=mainOps.filter(o=>o.obyekt_id===ob.id);return{ob,b:ops.reduce((s,o)=>o.tur==='kirim'?s+o.summa:s-o.summa,0)};}).sort((a,b)=>b.b-a.b)[0];
-    return `🏗 <b>Obyektlar bo'yicha balans:</b><br><br>${list}<br><br>🏆 Eng yaxshi: <b>${best?.ob.nomi}</b>`;
+    return `🏗 <b>Obyektlar:</b><br><br>${list}`;
   }
 
-  // Ishchilar
-  if(qu.includes('ishchi')||qu.includes('hisob')||qu.includes('avans')||qu.includes('ish haqq')){
-    const list=ISHCHILAR.map(w=>{
-      const avans=OPS.filter(o=>o.ishchi_id===w.id&&o.tur==='chiqim').reduce((s,o)=>s+o.summa,0);
-      const q2=(w.ish_haqqi||0)-avans;
-      return `👷 <b>${w.name}</b><br>   Haqqi: $${w.ish_haqqi||0} | Avans: $${avans} | Qoldiq: <b style="color:${q2>=0?'#16a34a':'#ef4444'}">${q2>=0?'+':''}$${q2}</b>`;
-    }).join('<br><br>');
-    return `👷 <b>Ishchilar hisobi:</b><br><br>${list||'Hali ishchi yo\'q.'}`;
-  }
-
-  // Maslahat / kamaytirish
-  if(qu.includes('maslahat')||qu.includes('kamayti')||qu.includes('tejash')||qu.includes('yaxshi')){
-    const tips=[];
-    if(topCat) tips.push(`💡 Eng katta xarajat — <b>${CAT_NMS[topCat[0]]||topCat[0]}</b> ($${topCat[1]}). Shu kategoriyani optimallashtiring.`);
-    if(bal<0) tips.push(`⚠️ Balans manfiy ($${bal}). Yangi mijozdan to'lov olishni tezlashtiring.`);
-    const faolOb=OBS.filter(o=>o.holat==='faol').length;
-    if(faolOb>2) tips.push(`📋 ${faolOb} ta faol obyekt bor. Har birini alohida nazorat qiling.`);
-    tips.push(`📅 Har hafta xarajatlarni tekshirib boring.`);
-    tips.push(`💰 Mijozdan avans olishni unutmang — bu oqim uchun muhim.`);
-    return `💡 <b>Amaliy maslahatlar:</b><br><br>${tips.join('<br><br>')}`;
-  }
-
-  // Umumiy holat / salom
-  if(qu.includes('holat')||qu.includes('xulosa')||qu.includes('umumiy')||qu.includes('salom')||qu.includes('nima')){
+  // Salom
+  if(qu.includes('salom')||qu.includes('xayr')||qu.includes('assalom')||qu.includes('hello')||qu.includes('привет')){
+    const st=getStats();
     const faol=OBS.filter(o=>o.holat==='faol').length;
-    return `📊 <b>Umumiy holat:</b><br><br>🏗 Faol obyektlar: <b>${faol} ta</b><br>👷 Ishchilar: <b>${ISHCHILAR.length} ta</b><br>📋 Operatsiyalar: <b>${OPS.length} ta</b><br><br>💰 Kirim: <b>$${tI}</b><br>💸 Chiqim: <b>$${tO}</b><br>📈 Balans: <b style="color:${bal>=0?'#16a34a':'#ef4444'}">${bal>=0?'+':''}$${bal}</b><br><br>${bal>=0?'✅ Moliyaviy holat yaxshi!':'⚠️ Ehtiyot bo\'ling — balans manfiy.'}`;
+    return `👋 <b>Salom!</b> Men Prorab AI yordamchisiman.<br><br>📊 Hozirgi holat:<br>💰 Kirim: <b>$${st.tI}</b> | Chiqim: <b>$${st.tO}</b><br>📈 Balans: <b style="color:${st.bal>=0?'#16a34a':'#ef4444'}">${st.bal>=0?'+':''}$${st.bal}</b><br>🏗 Faol: <b>${faol} ta obyekt</b><br><br>🎤 Shunday ayting:<br>• <i>"Akmalga 2000 berdim"</i><br>• <i>"Mijozdan 5000 oldim"</i><br>• <i>"Balans qanday?"</i>`;
+  }
+
+  // Maslahat
+  if(qu.includes('maslahat')||qu.includes('kamayti')||qu.includes('tejash')){
+    const tips=[];
+    if(topCat) tips.push(`💡 Eng katta xarajat — <b>${CAT_NMS[topCat[0]]||topCat[0]}</b> ($${topCat[1]}). Optimallashtiring.`);
+    if(bal<0) tips.push(`⚠️ Balans manfiy. Mijozdan to'lovni tezlashtiring.`);
+    tips.push(`📅 Har kuni xarajatlarni kiring.`);
+    tips.push(`💰 Avans olishni unutmang.`);
+    return `💡 <b>Maslahatlar:</b><br><br>${tips.join('<br><br>')}`;
   }
 
   // Default
-  return `🤖 Tushundim! Quyidagi mavzularda yordam bera olaman:<br><br>📊 <b>Xarajatlar tahlili</b> — "Eng ko'p xarajat qayerda?"<br>📈 <b>Balans / foyda</b> — "Balans qanday?"<br>🏗 <b>Obyektlar</b> — "Qaysi obyekt foydali?"<br>👷 <b>Ishchilar</b> — "Ishchilar hisobi qanday?"<br>💡 <b>Maslahat</b> — "Xarajatni qanday kamaytirish?"`;
+  return `🤖 Tushunmadim. Shunday yozib ko'ring:<br><br>👷 <i>"Akmalga ikki ming berdim"</i><br>💰 <i>"Mijozdan besh ming oldim"</i><br>🛒 <i>"Bozordan uch yuz sarf qildim"</i><br>📊 <i>"Balans qanday?"</i><br>👥 <i>"Ishchilar hisobi"</i><br><br>Yoki <b>Salom</b> deb boshlang!`;
 }
 
 function sendAI(){
@@ -1520,35 +1631,124 @@ function sendAI(){
   askAI(msg);
 }
 
-function askAI(q){
+function buildContext(){
+  const {tI,tO,bal}=getStats();
+  const faol=OBS.filter(o=>o.holat==='faol').length;
+  const obsStr=OBS.map(ob=>{
+    const ops=OPS.filter(o=>o.obyekt_id===ob.id&&o.kategoriya!=='ish_haqqi');
+    const b=ops.reduce((s,o)=>o.tur==='kirim'?s+o.summa:s-o.summa,0);
+    return ob.nomi+'('+ob.holat+', balans:$'+b+', '+ops.length+' ta op)';
+  }).join('; ');
+  const ishStr=ISHCHILAR.map(w=>{
+    const av=OPS.filter(o=>o.ishchi_id===w.id&&o.tur==='chiqim').reduce((s,o)=>s+o.summa,0);
+    return w.name+'(haqqi:$'+(w.ish_haqqi||0)+', avans:$'+av+', qoldiq:$'+((w.ish_haqqi||0)-av)+')';
+  }).join('; ');
+  const cats={};
+  OPS.filter(o=>o.tur==='chiqim'&&o.kategoriya!=='ish_haqqi').forEach(o=>{cats[o.kategoriya]=(cats[o.kategoriya]||0)+o.summa;});
+  const catStr=Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([k,v])=>CAT_NMS[k]+':$'+v).join(', ');
+  return `Siz Prorab — qurilish boshqaruv ilovasining AI yordamchisisiz. Foydalanuvchi O'zbek tilida gapiradi, siz ham O'ZBEK tilida javob bering.
+
+MA'LUMOTLAR:
+- Jami kirim: $${tI}, chiqim: $${tO}, balans: $${bal}
+- Faol obyektlar: ${faol} ta
+- Obyektlar: ${obsStr}
+- Ishchilar: ${ishStr||'yo\'q'}
+- Xarajat kategoriyalari: ${catStr||'yo\'q'}
+- Jami operatsiyalar: ${OPS.length} ta
+
+QOIDALAR:
+1. Faqat O'zbek tilida javob ber
+2. Qisqa va aniq javob ber (2-4 jumla)
+3. Raqamlarni dollar bilan ko'rsat
+4. Emoji ishlat
+5. Agar "Akmalga 2000 berdim" kabi operatsiya aytsa — uni qayd et va tasdiqlashni so'ra
+6. Foydali moliyaviy maslahat ber`;
+}
+
+async function askAI(q){
   if(aiThinking)return;
   if(q!==($('ai-inp')?.value||'')) addMsg(q,'user');
+
   aiThinking=true;
   const thinkId='think'+Date.now();
   addThinking(thinkId);
   const msgs=$('ai-messages');
   if(msgs) msgs.scrollTop=msgs.scrollHeight;
-  // Simulate thinking delay
-  setTimeout(()=>{
+
+  try{
+    const res=await fetch(WORKER_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'gemini-2.0-flash',
+        max_tokens:512,
+        system:buildContext(),
+        messages:[{role:'user',content:q}]
+      })
+    });
+    const data=await res.json();
+    if(data.error){
+      removeThinking(thinkId);
+      addMsg('❌ Xato: '+JSON.stringify(data.error),'bot');
+    } else {
+      const text=data.content?.map(i=>i.text||'').join('')||'Javob kelmadi';
+      removeThinking(thinkId);
+      addMsg(text,'bot');
+    }
+  }catch(e){
     removeThinking(thinkId);
-    const ans=smartAnswer(q);
-    addMsg(ans,'bot');
-    aiThinking=false;
-    const m=$('ai-messages');
-    if(m) setTimeout(()=>m.scrollTop=m.scrollHeight,100);
-  }, 800+Math.random()*600);
+    addMsg('❌ Ulanishda xato: '+e.message,'bot');
+  }
+  aiThinking=false;
+  const m=$('ai-messages');
+  if(m) setTimeout(()=>m.scrollTop=m.scrollHeight,100);
+}
+
+function showApiKeyModal(){
+  const existing=$('api-key-modal');
+  if(existing) existing.remove();
+  const modal=document.createElement('div');
+  modal.id='api-key-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(15,23,42,.8);z-index:1000;display:flex;align-items:flex-end;backdrop-filter:blur(8px)';
+  modal.innerHTML=`<div style="background:#fff;border-radius:28px 28px 0 0;padding:24px 20px 48px;width:100%">
+    <div style="width:40px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto 20px"></div>
+    <div style="font-size:20px;font-weight:900;margin-bottom:8px;text-align:center">🔑 API Kalit</div>
+    <div style="font-size:13px;color:#94a3b8;text-align:center;margin-bottom:20px;font-weight:500">console.anthropic.com dan oling</div>
+    <input id="api-key-inp" type="password" placeholder="AIza..." style="width:100%;padding:14px 16px;border-radius:14px;border:1.5px solid #e2e8f0;font-size:14px;font-family:Manrope,sans-serif;outline:none;margin-bottom:12px">
+    <button onclick="saveApiKey()" style="width:100%;padding:16px;border-radius:16px;border:none;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;font-size:16px;font-weight:800;font-family:Manrope,sans-serif">Saqlash ✅</button>
+    <button onclick="document.getElementById('api-key-modal').remove()" style="width:100%;padding:14px;border-radius:16px;border:1.5px solid #e2e8f0;background:#fff;color:#94a3b8;font-size:14px;font-weight:700;font-family:Manrope,sans-serif;margin-top:8px">Bekor</button>
+  </div>`;
+  document.body.appendChild(modal);
+  setTimeout(()=>document.getElementById('api-key-inp')?.focus(),300);
+}
+
+function saveApiKey(){
+  const k=(document.getElementById('api-key-inp')?.value||'').trim();
+  if(!k.startsWith('AIza') && !k.startsWith('sk-ant-')){
+    alert('Kalit AIza... formatida bolishi kerak!');
+    return;
+  }
+  API_KEY=k;
+  
+  document.getElementById('api-key-modal')?.remove();
+  addMsg('✅ API kalit saqlandi! Endi savol bering.','bot');
 }
 
 // ── VOICE / MIC ───────────────────────────────────────────────────────────────
 let recognition=null, micActive=false;
 
 function toggleMic(){
-  if(!('webkitSpeechRecognition' in window||'SpeechRecognition' in window)){
-    alert('Brauzeringiz ovozni qo\'llab-quvvatlamaydi.\nSafari yoki Chrome ishlatib ko\'ring.');
-    return;
-  }
-  if(micActive){ stopMic(); return; }
-  startMic();
+  console.log("mic tapped");
+  $("mic-status").style.display="block";
+  $("mic-status").textContent="⏳ Tekshirilmoqda...";
+  setTimeout(()=>{
+    if(!("webkitSpeechRecognition" in window||"SpeechRecognition" in window)){
+      $("mic-status").textContent="❌ Brauzer qollab-quvvatlamaydi";
+      return;
+    }
+    if(micActive){ stopMic(); return; }
+    startMic();
+  },100);
 }
 
 function startMic(){
@@ -1556,7 +1756,7 @@ function startMic(){
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     recognition=new SR();
     // Safari uchun eng mos til
-    recognition.lang='ru-RU';
+    recognition.lang='uz-UZ';
     recognition.interimResults=true;
     recognition.continuous=false;
     recognition.maxAlternatives=1;
