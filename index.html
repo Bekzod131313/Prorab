@@ -469,8 +469,8 @@ a{text-decoration:none}
     <button class="ai-sug" onclick="askAI('Bu oyda eng ko\'p qaysi kategoriyaga pul ketdi?')">📊 Oylik tahlil</button>
     <button class="ai-sug" onclick="askAI('Qaysi obyektda eng ko\'p foyda bor?')">🏗 Obiekt foydasi</button>
     <button class="ai-sug" onclick="askAI('Ishchilar bo\'yicha hisob-kitob qanday?')">👷 Ishchilar hisobi</button>
-    <button class="ai-sug" onclick="askAI('Xarajatlarni qanday kamaytirish mumkin?')">💡 Maslahat</button>
-    <button class="ai-sug" onclick="askAI('Balans dinamikasi qanday?')">📈 Balans</button>
+    <button class="ai-sug" onclick="if(!aiThinking){askAI('Xarajatlarni qanday kamaytirish mumkin?')}">💡 Maslahat</button>
+    <button class="ai-sug" onclick="if(!aiThinking){askAI('Balans dinamikasi qanday?')}">📈 Balans</button>
   </div>
   <div class="ai-wrap" id="ai-messages">
     <div class="ai-bubble bot">
@@ -1627,6 +1627,7 @@ function sendAI(){
   const msg=inp.value.trim();
   if(!msg)return;
   inp.value='';
+  inp.blur();
   addMsg(msg,'user');
   askAI(msg);
 }
