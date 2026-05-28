@@ -799,7 +799,7 @@ function refreshCur(){
 
 async function loadAll(){
   const uid=curUser.id;
-  // Profile yo'q bo'lsa yaratamiz
+  // Profile yoq bolsa yaratamiz
   const [profRes,obsRes,opsRes,ishRes]=await Promise.all([
     sb.from('profiles').select('*').eq('id',uid).single(),
     sb.from('obyektlar').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
@@ -807,7 +807,7 @@ async function loadAll(){
     sb.from('ishchilar').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
   ]);
   if(!profRes.data){
-    // Profile yo'q - yaratamiz
+    // Profile yoq - yaratamiz
     const meta=curUser.user_metadata||{};
     await sb.from('profiles').insert({
       id:uid,
@@ -1327,22 +1327,22 @@ async function saveIshHaqqi(){
 
 // ── ISHCHI PANEL ─────────────────────────────────────────────────────────────
 async function setupIshchiPanel(){
-  // Ishchini topish - email yoki phone bo'yicha
+  // Ishchini topish
   const email = curUser.email;
   const name = curProfile?.full_name || email?.split('@')[0] || 'Ishchi';
   
-  // Barcha prorablarning ishchilaridan o'zimizni topamiz
+  // Barcha prorablardan qidiramiz
   const {data: allIshchilar} = await sb
     .from('ishchilar')
     .select('*')
-    .or(`phone.eq.${curProfile?.phone||''},name.ilike.%${name}%`);
+    .ilike('name', '%'+name+'%');
   
   $('loading').style.display='none';
   $('ishchi-app').style.display='block';
   $('ish-panel-name').textContent=name;
   
   if(!allIshchilar||!allIshchilar.length){
-    $('ip-ops').innerHTML='<div class="empty">Siz hali hech qaysi prorab tomonidan qo'shilmagansiz</div>';
+    $("ip-ops").innerHTML='<div class="empty">Siz hali hech qaysi prorab tomonidan qoshilmagansiz</div>';
     return;
   }
   
@@ -1369,7 +1369,7 @@ async function setupIshchiPanel(){
   // Operatsiyalar
   allOps.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
   if(!allOps.length){
-    $('ip-ops').innerHTML='<div class="empty">Hali operatsiya yo'q</div>';
+    $(`ip-ops`).innerHTML='<div class="empty">Hali operatsiya yoq</div>';
     return;
   }
   
@@ -1405,9 +1405,9 @@ function getAIContext(){
   }).join('; ');
   const cats={};
   OPS.filter(o=>o.tur==='chiqim'&&o.kategoriya!=='ish_haqqi').forEach(o=>{cats[o.kategoriya]=(cats[o.kategoriya]||0)+Number(o.summa);});
-  return `Siz Prorab ilovasining AI yordamchisisiz. Faqat O'ZBEK tilida javob bering. Qisqa, aniq va emoji bilan.
+  return `Siz Prorab ilovasining AI yordamchisisiz. Faqat OZBEK tilida javob bering. Qisqa, aniq va emoji bilan.
 
-MA'LUMOTLAR:
+MALUMOTLAR:
 - Kirim: $${tI}, Chiqim: $${tO}, Balans: $${bal}
 - Faol obyektlar: ${faol} ta
 - Obyektlar: ${obsStr||'yo\'q'}
