@@ -440,7 +440,7 @@ svg{display:block;flex-shrink:0}
   </div>
   <div style="position:fixed;bottom:72px;left:0;right:0;padding:10px 16px;background:rgba(255,255,255,.95);backdrop-filter:blur(16px);border-top:1px solid var(--border)">
     <div style="display:flex;gap:8px;align-items:center">
-      <button id="mic-btn" onclick="toggleMic()" style="width:44px;height:44px;border-radius:14px;border:1.5px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer">
+      <button id="mic-btn" ontouchstart="event.preventDefault();event.stopPropagation();toggleMic()" onclick="toggleMic()" style="width:44px;height:44px;border-radius:14px;border:1.5px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation">
         <svg id="mic-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
       </button>
       <input id="ai-inp" type="text" placeholder="Savol yozing..." onkeydown="if(event.key==='Enter')sendAI()" style="flex:1;padding:12px 16px;border-radius:16px;border:1.5px solid var(--border);background:var(--bg);font-size:14px;font-family:'Manrope',sans-serif;outline:none;font-weight:500">
