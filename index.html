@@ -264,6 +264,12 @@ svg{display:block;flex-shrink:0}
       <input class="auth-inp" id="reg-email" type="email" placeholder="email@gmail.com">
       <label class="auth-lbl">Parol</label>
       <input class="auth-inp" id="reg-pass" type="password" placeholder="min 6 ta belgi">
+      <label class="auth-lbl">Rol</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+        <button type="button" id="role-prorab" onclick="selectRole('prorab')" style="padding:12px;border-radius:12px;border:2px solid var(--acc);background:#fff7ed;color:var(--acc);font-size:14px;font-weight:800;font-family:'Manrope',sans-serif;cursor:pointer">👷 Prorab</button>
+        <button type="button" id="role-ishchi" onclick="selectRole('ishchi')" style="padding:12px;border-radius:12px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:14px;font-weight:800;font-family:'Manrope',sans-serif;cursor:pointer">🔨 Ishchi</button>
+      </div>
+      <input type="hidden" id="reg-role" value="prorab">
       <div class="auth-err" id="reg-err"></div>
       <button class="auth-btn" onclick="doRegister()">Ro'yxatdan o'tish →</button>
     </div>
@@ -615,6 +621,46 @@ svg{display:block;flex-shrink:0}
   <div class="sht" style="padding-bottom:48px"><div class="s-hdl"></div><div id="ish-det-body"></div></div>
 </div>
 
+<!-- ISHCHI PANEL -->
+<div id="ishchi-app" style="display:none;min-height:100vh;background:var(--bg)">
+  <div style="background:linear-gradient(160deg,#1e293b,#0f172a);padding:48px 24px 32px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div>
+        <div style="font-size:12px;color:rgba(255,255,255,.45);font-weight:600;margin-bottom:4px">Xush kelibsiz</div>
+        <div style="font-size:22px;font-weight:900;color:#fff" id="ish-panel-name">...</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.45);font-weight:600;margin-top:2px" id="ish-panel-kasb">Ishchi</div>
+      </div>
+      <button onclick="doLogout()" style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:12px;padding:10px 16px;color:var(--red);font-size:13px;font-weight:700;font-family:'Manrope',sans-serif;cursor:pointer">Chiqish</button>
+    </div>
+    <!-- Balans karta -->
+    <div style="background:rgba(255,255,255,.08);border-radius:20px;padding:20px;border:1px solid rgba(255,255,255,.12)">
+      <div style="font-size:11px;color:rgba(255,255,255,.45);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Mening hisobim</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+        <div style="text-align:center">
+          <div style="font-size:10px;color:rgba(255,255,255,.45);font-weight:700;margin-bottom:6px">ISH HAQQI</div>
+          <div style="font-size:20px;font-weight:900;color:#4ade80" id="ip-haqqi">$0</div>
+        </div>
+        <div style="text-align:center;border-left:1px solid rgba(255,255,255,.1);border-right:1px solid rgba(255,255,255,.1)">
+          <div style="font-size:10px;color:rgba(255,255,255,.45);font-weight:700;margin-bottom:6px">AVANS</div>
+          <div style="font-size:20px;font-weight:900;color:#f87171" id="ip-avans">$0</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:10px;color:rgba(255,255,255,.45);font-weight:700;margin-bottom:6px">QOLDIQ</div>
+          <div style="font-size:20px;font-weight:900" id="ip-qoldiq">$0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Operatsiyalar -->
+  <div style="padding:20px 16px 0">
+    <div style="font-size:16px;font-weight:800;margin-bottom:12px">Operatsiyalar tarixi</div>
+    <div id="ip-ops" style="display:flex;flex-direction:column;gap:8px">
+      <div class="spin"></div>
+    </div>
+  </div>
+</div>
+
 </div><!-- /app -->
 
 <script>
@@ -649,6 +695,19 @@ const fmtD=iso=>{if(!iso)return '';const[y,m,d]=iso.split('T')[0].split('-');ret
 const today=()=>new Date().toISOString().split('T')[0];
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
+function selectRole(role){
+  document.getElementById('reg-role').value=role;
+  const prorabBtn=document.getElementById('role-prorab');
+  const ishchiBtn=document.getElementById('role-ishchi');
+  if(role==='prorab'){
+    prorabBtn.style.cssText='padding:12px;border-radius:12px;border:2px solid var(--acc);background:#fff7ed;color:var(--acc);font-size:14px;font-weight:800;font-family:Manrope,sans-serif;cursor:pointer';
+    ishchiBtn.style.cssText='padding:12px;border-radius:12px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:14px;font-weight:800;font-family:Manrope,sans-serif;cursor:pointer';
+  } else {
+    ishchiBtn.style.cssText='padding:12px;border-radius:12px;border:2px solid var(--blue);background:var(--blue-bg);color:var(--blue);font-size:14px;font-weight:800;font-family:Manrope,sans-serif;cursor:pointer';
+    prorabBtn.style.cssText='padding:12px;border-radius:12px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:14px;font-weight:800;font-family:Manrope,sans-serif;cursor:pointer';
+  }
+}
+
 function switchTab(tab,el){
   document.querySelectorAll('.auth-tab').forEach(b=>b.classList.remove('on'));
   el.classList.add('on');
@@ -702,6 +761,15 @@ async function init(){
   }
   curUser=session.user;
   await loadAll();
+  
+  // Role tekshirish
+  const role=curProfile?.role||curUser.user_metadata?.role||'prorab';
+  if(role==='ishchi'){
+    setupIshchiPanel();
+    $('loading').style.display='none';
+    return;
+  }
+  
   setupUI();
   $('loading').style.display='none';
   $('app').style.display='block';
@@ -731,13 +799,34 @@ function refreshCur(){
 
 async function loadAll(){
   const uid=curUser.id;
+  // Profile yo'q bo'lsa yaratamiz
   const [profRes,obsRes,opsRes,ishRes]=await Promise.all([
     sb.from('profiles').select('*').eq('id',uid).single(),
     sb.from('obyektlar').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
     sb.from('operatsiyalar').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
     sb.from('ishchilar').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
   ]);
-  curProfile=profRes.data;
+  if(!profRes.data){
+    // Profile yo'q - yaratamiz
+    const meta=curUser.user_metadata||{};
+    await sb.from('profiles').insert({
+      id:uid,
+      full_name:meta.full_name||curUser.email?.split('@')[0],
+      phone:meta.phone||'',
+      role:meta.role||'prorab'
+    });
+    const{data:newProf}=await sb.from('profiles').select('*').eq('id',uid).single();
+    curProfile=newProf;
+  } else {
+    curProfile=profRes.data;
+    // Role yo'q bo'lsa, update
+    if(!curProfile.role){
+      const meta=curUser.user_metadata||{};
+      const newRole=meta.role||'prorab';
+      await sb.from('profiles').update({role:newRole}).eq('id',uid);
+      curProfile.role=newRole;
+    }
+  }
   OBS=obsRes.data||[];
   OPS=opsRes.data||[];
   ISHCHILAR=ishRes.data||[];
@@ -1235,6 +1324,68 @@ async function saveIshHaqqi(){
   renderIshchilar();renderHome();
 }
 
+
+// ── ISHCHI PANEL ─────────────────────────────────────────────────────────────
+async function setupIshchiPanel(){
+  // Ishchini topish - email yoki phone bo'yicha
+  const email = curUser.email;
+  const name = curProfile?.full_name || email?.split('@')[0] || 'Ishchi';
+  
+  // Barcha prorablarning ishchilaridan o'zimizni topamiz
+  const {data: allIshchilar} = await sb
+    .from('ishchilar')
+    .select('*')
+    .or(`phone.eq.${curProfile?.phone||''},name.ilike.%${name}%`);
+  
+  $('loading').style.display='none';
+  $('ishchi-app').style.display='block';
+  $('ish-panel-name').textContent=name;
+  
+  if(!allIshchilar||!allIshchilar.length){
+    $('ip-ops').innerHTML='<div class="empty">Siz hali hech qaysi prorab tomonidan qo'shilmagansiz</div>';
+    return;
+  }
+  
+  // Jami hisob-kitob
+  let totalHaqqi=0, totalAvans=0;
+  let allOps=[];
+  
+  for(const w of allIshchilar){
+    totalHaqqi+=Number(w.ish_haqqi)||0;
+    const {data:ops}=await sb.from('operatsiyalar').select('*').eq('ishchi_id',w.id).order('created_at',{ascending:false});
+    if(ops){
+      totalAvans+=ops.filter(o=>o.tur==='chiqim').reduce((s,o)=>s+Number(o.summa),0);
+      allOps=[...allOps,...ops];
+    }
+    $('ish-panel-kasb').textContent=w.kasb||'Ishchi';
+  }
+  
+  const qoldiq=totalHaqqi-totalAvans;
+  $('ip-haqqi').textContent='$'+totalHaqqi.toLocaleString();
+  $('ip-avans').textContent='-$'+totalAvans.toLocaleString();
+  $('ip-qoldiq').textContent=(qoldiq>=0?'+':'')+' $'+Math.abs(qoldiq).toLocaleString();
+  $('ip-qoldiq').style.color=qoldiq>=0?'#4ade80':'#f87171';
+  
+  // Operatsiyalar
+  allOps.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  if(!allOps.length){
+    $('ip-ops').innerHTML='<div class="empty">Hali operatsiya yo'q</div>';
+    return;
+  }
+  
+  $('ip-ops').innerHTML=allOps.map(op=>{
+    const isK=op.tur==='kirim';
+    const ic=CAT_ICONS[op.kategoriya]||CAT_ICONS.usta;
+    return`<div style="background:#fff;border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:12px;border:1px solid var(--border)">
+      <div style="width:40px;height:40px;border-radius:13px;background:${ic.bg};display:flex;align-items:center;justify-content:center;color:${ic.c};flex-shrink:0">${ic.svg}</div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:700">${op.izoh||CAT_NMS[op.kategoriya]||op.kategoriya}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">${fmtD(op.sana||op.created_at)}</div>
+      </div>
+      <div style="font-size:15px;font-weight:800;color:${isK?'var(--green)':'var(--red)'}">${isK?'+':'-'}$${Math.abs(Number(op.summa)).toLocaleString()}</div>
+    </div>`;
+  }).join('');
+}
 
 // ── AI ────────────────────────────────────────────────────────────────────────
 const WORKER_URL='https://patient-shape-678e.bekzodramazonov99.workers.dev';
