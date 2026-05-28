@@ -753,6 +753,7 @@ async function doLogout(){
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 async function init(){
+  try{
   const {data:{session}}=await sb.auth.getSession();
   if(!session){
     $('loading').style.display='none';
@@ -786,6 +787,11 @@ async function init(){
   sb.auth.onAuthStateChange((event,session)=>{
     if(event==='SIGNED_OUT') location.reload();
   });
+  }catch(err){
+    console.error('Init error:',err);
+    $('loading').style.display='none';
+    $('auth-screen').style.display='flex';
+  }
 }
 
 function refreshCur(){
