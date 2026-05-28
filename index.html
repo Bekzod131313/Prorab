@@ -336,9 +336,9 @@ svg{display:block;flex-shrink:0}
   <div style="padding:14px 16px 6px">
     <div class="qa-grid">
       <button class="qa-btn" onclick="gp('obyekt')"><div class="qa-ico" style="background:#fff7ed"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg></div><div class="qa-nm">Obyektlar</div></button>
-      <button class="qa-btn" onclick="openChoiceSheet()"><div class="qa-ico" style="background:var(--red-bg)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div><div class="qa-nm">Chiqim</div></button>
       <button class="qa-btn" onclick="gp('ishchilar')"><div class="qa-ico" style="background:var(--blue-bg)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div class="qa-nm">Ishchilar</div></button>
       <button class="qa-btn" onclick="gp('hisobot')"><div class="qa-ico" style="background:var(--green-bg)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div><div class="qa-nm">Hisobot</div></button>
+      <button class="qa-btn" onclick="gp('ai')"><div class="qa-ico" style="background:var(--purple-bg)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div><div class="qa-nm">AI ✨</div></button>
     </div>
   </div>
   <div class="sec-hdr"><span class="sec-ttl">Faol obyektlar</span><span class="sec-lnk" onclick="gp('obyekt')">Barchasi ›</span></div>
@@ -469,9 +469,7 @@ svg{display:block;flex-shrink:0}
   <button class="nb" onclick="gp('ishchilar',this)" data-pg="ishchilar">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Ishchilar<div class="nb-dot"></div>
   </button>
-  <button class="nb" onclick="gp('ai',this)" data-pg="ai">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>AI ✨<div class="nb-dot"></div>
-  </button>
+
 </div>
 
 <!-- FAB -->
@@ -1337,9 +1335,10 @@ function toggleMic(){
 function startMic(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   recognition=new SR();
-  recognition.lang='uz-UZ';
+  recognition.lang='ru-RU'; // Safari uz-UZ ni tanimaydi
   recognition.interimResults=true;
   recognition.continuous=false;
+  recognition.maxAlternatives=3;
   micActive=true;
   const btn=$('mic-btn'),st=$('mic-status');
   btn.style.background='var(--red)';btn.style.border='none';
