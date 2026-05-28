@@ -469,8 +469,8 @@ a{text-decoration:none}
     <button class="ai-sug" onclick="askAI('Bu oyda eng ko\'p qaysi kategoriyaga pul ketdi?')">📊 Oylik tahlil</button>
     <button class="ai-sug" onclick="askAI('Qaysi obyektda eng ko\'p foyda bor?')">🏗 Obiekt foydasi</button>
     <button class="ai-sug" onclick="askAI('Ishchilar bo\'yicha hisob-kitob qanday?')">👷 Ishchilar hisobi</button>
-    <button class="ai-sug" onclick="if(!aiThinking){askAI('Xarajatlarni qanday kamaytirish mumkin?')}">💡 Maslahat</button>
-    <button class="ai-sug" onclick="if(!aiThinking){askAI('Balans dinamikasi qanday?')}">📈 Balans</button>
+    <button class="ai-sug" onclick="sendSug('Xarajatlarni qanday kamaytirish mumkin?')">💡 Maslahat</button>
+    <button class="ai-sug" onclick="sendSug('Balans dinamikasi qanday?')">📈 Balans</button>
   </div>
   <div class="ai-wrap" id="ai-messages">
     <div class="ai-bubble bot">
@@ -1621,16 +1621,20 @@ function smartAnswer(q){
   return `🤖 Tushunmadim. Shunday yozib ko'ring:<br><br>👷 <i>"Akmalga ikki ming berdim"</i><br>💰 <i>"Mijozdan besh ming oldim"</i><br>🛒 <i>"Bozordan uch yuz sarf qildim"</i><br>📊 <i>"Balans qanday?"</i><br>👥 <i>"Ishchilar hisobi"</i><br><br>Yoki <b>Salom</b> deb boshlang!`;
 }
 
+let lastSent='';
 function sendAI(){
   if(aiThinking)return;
   const inp=$('ai-inp');
   const msg=inp.value.trim();
   if(!msg)return;
+  if(msg===lastSent&&Date.now()-lastSentTime<2000)return; // prevent double
+  lastSent=msg; lastSentTime=Date.now();
   inp.value='';
   inp.blur();
   addMsg(msg,'user');
   askAI(msg);
 }
+let lastSentTime=0;
 
 function buildContext(){
   const {tI,tO,bal}=getStats();
@@ -1666,9 +1670,14 @@ QOIDALAR:
 6. Foydali moliyaviy maslahat ber`;
 }
 
+function sendSug(q){
+  if(aiThinking)return;
+  addMsg(q,'user');
+  askAI(q);
+}
+
 async function askAI(q){
   if(aiThinking)return;
-  if(q!==($('ai-inp')?.value||'')) addMsg(q,'user');
 
   aiThinking=true;
   const thinkId='think'+Date.now();
