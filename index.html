@@ -42,6 +42,7 @@ svg{display:block;flex-shrink:0}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 @keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 .fade-up{animation:fadeUp .35s ease both}
 
@@ -176,6 +177,7 @@ svg{display:block;flex-shrink:0}
 .qa-ico{width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center}
 .qa-nm{font-size:11px;font-weight:700;color:var(--text)}
 
+.ai-sug{white-space:nowrap;padding:9px 16px;border-radius:20px;border:1.5px solid var(--border);background:#fff;font-size:13px;font-weight:700;color:var(--acc);font-family:'Manrope',sans-serif;cursor:pointer;flex-shrink:0}
 /* OB DETAIL */
 .ob-hero{height:220px;position:relative;overflow:hidden}
 .ob-hero img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
@@ -413,6 +415,43 @@ svg{display:block;flex-shrink:0}
   </div>
 </div>
 
+<!-- AI PAGE -->
+<div class="page" id="pg-ai">
+  <div style="background:linear-gradient(160deg,#1e293b,#0f172a);padding:20px 16px 24px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:48px;height:48px;border-radius:15px;background:linear-gradient(135deg,#a855f7,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:24px">🤖</div>
+      <div>
+        <div style="font-size:18px;font-weight:900;color:#fff">AI Yordamchi</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.45);font-weight:600">Prorab uchun aqlli tahlil</div>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;padding:10px 16px 8px;overflow-x:auto;scrollbar-width:none">
+    <button class="ai-sug" onclick="sendSug('Balans qanday?')">📊 Balans</button>
+    <button class="ai-sug" onclick="sendSug('Eng ko\'p xarajat qayerda?')">💸 Xarajat</button>
+    <button class="ai-sug" onclick="sendSug('Ishchilar hisobi qanday?')">👷 Ishchilar</button>
+    <button class="ai-sug" onclick="sendSug('Maslahat bering')">💡 Maslahat</button>
+  </div>
+  <div id="ai-messages" style="padding:12px 16px 120px;display:flex;flex-direction:column;gap:10px;min-height:50vh">
+    <div style="display:flex;align-items:flex-end;gap:8px">
+      <div style="width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,#1e293b,#0f172a);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🤖</div>
+      <div style="max-width:82%;padding:13px 16px;border-radius:20px;border-bottom-left-radius:6px;background:#fff;border:1px solid var(--border);font-size:14px;font-weight:500;line-height:1.5;color:var(--text)">Salom! Men sizning qurilish loyihalaringizni tahlil qilishga yordam beraman. Savollaringizni bering! 👆</div>
+    </div>
+  </div>
+  <div style="position:fixed;bottom:72px;left:0;right:0;padding:10px 16px;background:rgba(255,255,255,.95);backdrop-filter:blur(16px);border-top:1px solid var(--border)">
+    <div style="display:flex;gap:8px;align-items:center">
+      <button id="mic-btn" onclick="toggleMic()" style="width:44px;height:44px;border-radius:14px;border:1.5px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer">
+        <svg id="mic-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      </button>
+      <input id="ai-inp" type="text" placeholder="Savol yozing..." onkeydown="if(event.key==='Enter')sendAI()" style="flex:1;padding:12px 16px;border-radius:16px;border:1.5px solid var(--border);background:var(--bg);font-size:14px;font-family:'Manrope',sans-serif;outline:none;font-weight:500">
+      <button onclick="sendAI()" style="width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,var(--acc),var(--acc2));border:none;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+    <div id="mic-status" style="text-align:center;font-size:12px;font-weight:700;color:var(--red);padding-top:6px;display:none">🔴 Gapiring...</div>
+  </div>
+</div>
+
 <!-- BOTTOM NAV -->
 <div id="bnav">
   <button class="nb active" onclick="gp('home',this)" data-pg="home">
@@ -429,6 +468,9 @@ svg{display:block;flex-shrink:0}
   </button>
   <button class="nb" onclick="gp('ishchilar',this)" data-pg="ishchilar">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Ishchilar<div class="nb-dot"></div>
+  </button>
+  <button class="nb" onclick="gp('ai',this)" data-pg="ai">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>AI ✨<div class="nb-dot"></div>
   </button>
 </div>
 
@@ -716,7 +758,7 @@ function setupUI(){
 }
 
 // ── PAGES ─────────────────────────────────────────────────────────────────────
-const pgTitles={home:'Asosiy',obyekt:'Obyektlar',ops:'Operatsiyalar',hisobot:'Hisobotlar',ishchilar:'Ishchilar',sozlamalar:'Sozlamalar','ob-detail':''};
+const pgTitles={home:'Asosiy',obyekt:'Obyektlar',ops:'Operatsiyalar',hisobot:'Hisobotlar',ishchilar:'Ishchilar',sozlamalar:'Sozlamalar','ob-detail':'','ai':'AI Yordamchi ✨'};
 
 function gp(pg,el){
   closeSidebar();
@@ -736,6 +778,7 @@ function gp(pg,el){
   if(pg==='ops')renderOps();
   if(pg==='hisobot')renderChart();
   if(pg==='ishchilar')renderIshchilar();
+  if(pg==='ai'){$('ai-inp')&&setTimeout(()=>$('ai-inp').focus&&null,100);}
 }
 
 // ── SIDEBAR ───────────────────────────────────────────────────────────────────
@@ -1192,6 +1235,136 @@ async function saveIshHaqqi(){
   if(w)w.ish_haqqi=newHaqqi;
   $('ish-haqqi-bg').classList.remove('open');
   renderIshchilar();renderHome();
+}
+
+
+// ── AI ────────────────────────────────────────────────────────────────────────
+const WORKER_URL='https://patient-shape-678e.bekzodramazonov99.workers.dev';
+let aiThinking=false, recognition=null, micActive=false;
+
+function getAIContext(){
+  const{tI,tO,bal}=getStats();
+  const faol=OBS.filter(o=>o.holat==='faol').length;
+  const obsStr=OBS.map(ob=>{
+    const ops=OPS.filter(o=>o.obyekt_id===ob.id&&o.kategoriya!=='ish_haqqi');
+    const b=ops.reduce((s,o)=>o.tur==='kirim'?s+Number(o.summa):s-Number(o.summa),0);
+    return ob.nomi+'('+ob.holat+',balans:$'+b+','+ops.length+' ta op)';
+  }).join('; ');
+  const ishStr=ISHCHILAR.map(w=>{
+    const av=OPS.filter(o=>o.ishchi_id===w.id&&o.tur==='chiqim').reduce((s,o)=>s+Number(o.summa),0);
+    return w.name+'(haqqi:$'+(w.ish_haqqi||0)+',avans:$'+av+',qoldiq:$'+((w.ish_haqqi||0)-av)+')';
+  }).join('; ');
+  const cats={};
+  OPS.filter(o=>o.tur==='chiqim'&&o.kategoriya!=='ish_haqqi').forEach(o=>{cats[o.kategoriya]=(cats[o.kategoriya]||0)+Number(o.summa);});
+  return `Siz Prorab ilovasining AI yordamchisisiz. Faqat O'ZBEK tilida javob bering. Qisqa, aniq va emoji bilan.
+
+MA'LUMOTLAR:
+- Kirim: $${tI}, Chiqim: $${tO}, Balans: $${bal}
+- Faol obyektlar: ${faol} ta
+- Obyektlar: ${obsStr||'yo\'q'}
+- Ishchilar: ${ishStr||'yo\'q'}
+- Jami operatsiyalar: ${OPS.length} ta
+- Xarajatlar: ${Object.entries(cats).map(([k,v])=>CAT_NMS[k]+':$'+v).join(', ')||'yo\'q'}`;
+}
+
+function addAIMsg(text,who){
+  const el=$('ai-messages');if(!el)return;
+  const div=document.createElement('div');
+  div.style.cssText='display:flex;align-items:flex-end;gap:8px;'+(who==='user'?'justify-content:flex-end':'');
+  if(who==='bot'){
+    div.innerHTML=`<div style="width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,#1e293b,#0f172a);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🤖</div><div style="max-width:82%;padding:13px 16px;border-radius:20px;border-bottom-left-radius:6px;background:#fff;border:1px solid var(--border);font-size:14px;font-weight:500;line-height:1.5;color:var(--text)">${text}</div>`;
+  } else {
+    div.innerHTML=`<div style="max-width:82%;padding:13px 16px;border-radius:20px;border-bottom-right-radius:6px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:14px;font-weight:500;line-height:1.5">${text}</div>`;
+  }
+  el.appendChild(div);
+  setTimeout(()=>el.scrollTop=el.scrollHeight,50);
+}
+
+function addThinking(id){
+  const el=$('ai-messages');if(!el)return;
+  const div=document.createElement('div');
+  div.id=id;div.style.cssText='display:flex;align-items:flex-end;gap:8px';
+  div.innerHTML=`<div style="width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,#1e293b,#0f172a);display:flex;align-items:center;justify-content:center;font-size:16px">🤖</div><div style="padding:14px 16px;border-radius:20px;border-bottom-left-radius:6px;background:#fff;border:1px solid var(--border);display:flex;gap:5px"><div style="width:7px;height:7px;border-radius:50%;background:#94a3b8;animation:pulse 1.2s infinite"></div><div style="width:7px;height:7px;border-radius:50%;background:#94a3b8;animation:pulse 1.2s .2s infinite"></div><div style="width:7px;height:7px;border-radius:50%;background:#94a3b8;animation:pulse 1.2s .4s infinite"></div></div>`;
+  el.appendChild(div);
+  setTimeout(()=>el.scrollTop=el.scrollHeight,50);
+}
+
+function sendSug(q){if(aiThinking)return;addAIMsg(q,'user');askAI(q);}
+
+function sendAI(){
+  if(aiThinking)return;
+  const inp=$('ai-inp');
+  const msg=(inp?.value||'').trim();
+  if(!msg)return;
+  inp.value='';
+  addAIMsg(msg,'user');
+  askAI(msg);
+}
+
+async function askAI(q){
+  if(aiThinking)return;
+  aiThinking=true;
+  const thinkId='think'+Date.now();
+  addThinking(thinkId);
+  try{
+    const res=await fetch(WORKER_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        system:getAIContext(),
+        messages:[{role:'user',content:q}]
+      })
+    });
+    const data=await res.json();
+    document.getElementById(thinkId)?.remove();
+    const text=data.content?.[0]?.text||data.error||'Javob kelmadi';
+    addAIMsg(text,'bot');
+  }catch(e){
+    document.getElementById(thinkId)?.remove();
+    addAIMsg('❌ Ulanishda xato. Internet tekshiring.','bot');
+  }
+  aiThinking=false;
+}
+
+function toggleMic(){
+  if(!('webkitSpeechRecognition' in window||'SpeechRecognition' in window)){
+    alert('Mikrofon bu brauzerda ishlamaydi. Safari ishlatib ko\'ring.');return;
+  }
+  if(micActive){stopMic();return;}
+  startMic();
+}
+
+function startMic(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  recognition=new SR();
+  recognition.lang='uz-UZ';
+  recognition.interimResults=true;
+  recognition.continuous=false;
+  micActive=true;
+  const btn=$('mic-btn'),st=$('mic-status');
+  btn.style.background='var(--red)';btn.style.border='none';
+  $('mic-icon').setAttribute('stroke','#fff');
+  if(st)st.style.display='block';
+  recognition.onresult=e=>{
+    let txt='';for(let i=0;i<e.results.length;i++)txt+=e.results[i][0].transcript;
+    if($('ai-inp'))$('ai-inp').value=txt;
+  };
+  recognition.onend=()=>{
+    const txt=($('ai-inp')?.value||'').trim();
+    stopMic();
+    if(txt)sendAI();
+  };
+  recognition.onerror=()=>stopMic();
+  recognition.start();
+}
+
+function stopMic(){
+  micActive=false;
+  try{recognition?.stop();}catch(e){}
+  const btn=$('mic-btn'),st=$('mic-status');
+  if(btn){btn.style.background='#fff';btn.style.border='1.5px solid var(--border)';}
+  if($('mic-icon'))$('mic-icon').setAttribute('stroke','#94a3b8');
+  if(st)st.style.display='none';
 }
 
 // ── START ─────────────────────────────────────────────────────────────────────
