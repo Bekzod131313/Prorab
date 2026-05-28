@@ -844,8 +844,7 @@ function gp(pg, el) {
   $('fab').style.display = showFab?'flex':'none';
   if(pg==='home') renderHome();
 // API key status
-const k=localStorage.getItem('prorab_api_key');
-if(k){API_KEY=k;const el=document.getElementById('api-key-status');if(el)el.textContent='Ulangan ✅';}
+
   if(pg==='obyekt') renderObs();
   if(pg==='ops') renderOps();
   if(pg==='hisobot') renderChart();
@@ -1442,7 +1441,7 @@ function saveIsh(){
 // ── AI (OFFLINE SMART ENGINE) ─────────────────────────────────────────────────
 let aiThinking=false;
 const WORKER_URL='https://patient-shape-678e.bekzodramazonov99.workers.dev';
-let API_KEY=localStorage.getItem('prorab_api_key')||'';
+let API_KEY='embedded';
 
 function getStats(){
   const mainOps=OPS.filter(o=>o.kategoriya!=='ish_haqqi');
@@ -1670,11 +1669,6 @@ async function askAI(q){
   if(aiThinking)return;
   if(q!==($('ai-inp')?.value||'')) addMsg(q,'user');
 
-  if(!API_KEY){
-    showApiKeyModal();
-    return;
-  }
-
   aiThinking=true;
   const thinkId='think'+Date.now();
   addThinking(thinkId);
@@ -1684,7 +1678,7 @@ async function askAI(q){
   try{
     const res=await fetch(WORKER_URL,{
       method:'POST',
-      headers:{'Content-Type':'application/json','X-API-Key':API_KEY},
+      headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         model:'gemini-2.0-flash',
         max_tokens:512,
@@ -1731,11 +1725,11 @@ function showApiKeyModal(){
 function saveApiKey(){
   const k=(document.getElementById('api-key-inp')?.value||'').trim();
   if(!k.startsWith('AIza') && !k.startsWith('sk-ant-')){
-    alert('Kalit 'AIza...' formatida bo'lishi kerak!');
+    alert('Kalit AIza... formatida bolishi kerak!');
     return;
   }
   API_KEY=k;
-  localStorage.setItem('prorab_api_key',k);
+  
   document.getElementById('api-key-modal')?.remove();
   addMsg('✅ API kalit saqlandi! Endi savol bering.','bot');
 }
