@@ -605,9 +605,7 @@ let selectedCat = 'bozor';
 // ═══════════════════════════════════════════
 const usd = n => {
   const v = Math.abs(n||0);
-  if(v>=1000000) return '$'+(v/1000000).toFixed(1)+'M';
-  if(v>=1000) return '$'+(v/1000).toFixed(0)+'K';
-  return '$'+v.toLocaleString();
+  return '$'+v.toLocaleString('en-US');
 };
 const usdFull = n => (n||0).toLocaleString() ;
 
