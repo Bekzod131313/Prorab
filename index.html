@@ -2,9 +2,10 @@
 <html lang="uz">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Prorab Pro</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -14,780 +15,1638 @@
   --red:#ef4444;--red-bg:#fef2f2;
   --blue:#3b82f6;--blue-bg:#eff6ff;
   --purple:#a855f7;--purple-bg:#fdf4ff;
-  --text:#0f172a;--muted:#94a3b8;
+  --yellow:#f59e0b;--yellow-bg:#fffbeb;
+  --text:#0f172a;--text2:#334155;--muted:#94a3b8;
   --border:#e2e8f0;--bg:#f1f5f9;--card:#fff;
   --dark:#0f172a;--dark2:#1e293b;
 }
-body{background:var(--bg);font-family:'Manrope',sans-serif;min-height:100vh;color:var(--text)}
-button{font-family:'Manrope',sans-serif;cursor:pointer;transition:opacity .2s}
-button:active{opacity:.8}
+body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+button{font-family:'Manrope',sans-serif;cursor:pointer}
+button:active{opacity:.85;transform:scale(.98)}
 svg{display:block;flex-shrink:0}
+a{text-decoration:none;color:inherit}
+input,textarea{font-family:'Manrope',sans-serif;outline:none}
 
-/* AUTH */
-#auth-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:linear-gradient(160deg,var(--dark2),var(--dark))}
-.auth-logo{width:80px;height:80px;border-radius:24px;background:linear-gradient(135deg,var(--acc),var(--acc2));display:flex;align-items:center;justify-content:center;font-size:40px;margin-bottom:20px;box-shadow:0 12px 40px rgba(249,115,22,.4)}
-.auth-title{font-size:28px;font-weight:900;color:#fff;margin-bottom:8px;letter-spacing:-.5px}
-.auth-sub{font-size:14px;color:rgba(255,255,255,.45);margin-bottom:40px;font-weight:500}
-.auth-card{background:#fff;border-radius:24px;padding:28px;width:100%;max-width:400px}
-.auth-tabs{display:flex;gap:0;margin-bottom:24px;background:var(--bg);border-radius:14px;padding:4px}
-.auth-tab{flex:1;padding:10px;border-radius:10px;border:none;background:transparent;font-size:14px;font-weight:700;color:var(--muted);font-family:'Manrope',sans-serif;cursor:pointer}
-.auth-tab.on{background:#fff;color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.08)}
-.auth-inp{width:100%;padding:14px 16px;border-radius:14px;border:1.5px solid var(--border);font-size:15px;font-family:'Manrope',sans-serif;outline:none;color:var(--text);margin-bottom:12px;font-weight:500}
-.auth-inp:focus{border-color:var(--acc)}
-.auth-btn{width:100%;padding:16px;border-radius:16px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:16px;font-weight:800;font-family:'Manrope',sans-serif;margin-top:4px}
-.auth-err{color:var(--red);font-size:13px;margin-bottom:10px;font-weight:600;min-height:20px}
-.auth-lbl{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px;display:block}
-
-/* ANIMATIONS */
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+/* ── ANIMATIONS ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes spin{to{transform:rotate(360deg)}}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 .fade-up{animation:fadeUp .35s ease both}
+.fade-in{animation:fadeIn .25s ease both}
 
-/* LOADING */
-#loading{position:fixed;inset:0;background:var(--dark);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999}
-.load-logo{width:80px;height:80px;border-radius:24px;background:linear-gradient(135deg,var(--acc),var(--acc2));display:flex;align-items:center;justify-content:center;font-size:40px;margin-bottom:20px}
-.load-spin{width:32px;height:32px;border:3px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;margin-top:16px}
-.load-txt{color:rgba(255,255,255,.5);font-size:13px;font-weight:600;margin-top:12px}
+/* ── PAGES ── */
+.page{display:none;min-height:100vh;padding-bottom:70px}
+.page.active{display:block}
 
-/* TOPBAR */
-#topbar{background:rgba(255,255,255,.92);backdrop-filter:blur(16px);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(226,232,240,.7);position:sticky;top:0;z-index:100}
-.tb-menu{width:40px;height:40px;border-radius:12px;background:var(--bg);border:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4.5px}
-.tb-line{width:18px;height:2px;background:var(--text);border-radius:2px}
-.tb-title{font-size:17px;font-weight:800;letter-spacing:-.3px}
-.tb-av{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--acc),var(--acc2));border:none;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;font-weight:800}
+/* ── BOTTOM NAV ── */
+.bnav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+.bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0;cursor:pointer;color:var(--muted);font-size:10px;font-weight:700;transition:color .2s}
+.bnav-item.active{color:var(--acc)}
+.bnav-item svg{width:22px;height:22px}
 
-/* SIDEBAR */
-#sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:800;backdrop-filter:blur(4px)}
-#sb-overlay.open{display:block}
-#sidebar{position:fixed;top:0;left:-300px;width:300px;height:100%;background:var(--dark);z-index:900;transition:left .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow-y:auto}
-#sidebar.open{left:0}
-.sb-profile{padding:48px 24px 24px;background:linear-gradient(160deg,#1e293b,#0f172a)}
-.sb-av{width:60px;height:60px;border-radius:20px;background:linear-gradient(135deg,var(--acc),var(--acc2));display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:14px}
-.sb-name{font-size:18px;font-weight:800;color:#fff}
-.sb-role{font-size:12px;color:rgba(255,255,255,.4);margin-top:4px;font-weight:500}
-.sb-menu{flex:1;padding:8px 0}
-.sb-item{display:flex;align-items:center;gap:14px;padding:14px 24px;color:rgba(255,255,255,.55);font-size:14px;font-weight:600;cursor:pointer;border-left:3px solid transparent;transition:all .2s}
-.sb-item.active{background:rgba(249,115,22,.1);color:#fff;border-left-color:var(--acc)}
-.sb-section{padding:14px 24px 6px;font-size:10px;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:1.5px;font-weight:700}
-.sb-bottom{padding:20px 24px;border-top:1px solid rgba(255,255,255,.08)}
-.sb-logout{display:flex;align-items:center;gap:12px;color:var(--red);font-size:14px;font-weight:700;padding:14px 16px;border-radius:14px;background:rgba(239,68,68,.1);cursor:pointer}
+/* ── TOPBAR ── */
+.topbar{position:sticky;top:0;background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;z-index:50}
+.topbar-title{font-size:17px;font-weight:800;color:var(--text)}
 
-/* PAGES */
-.page{display:none;padding-bottom:90px;min-height:100vh}
-.page.active{display:block;animation:fadeIn .3s ease}
+/* ── CARDS ── */
+.card{background:var(--card);border-radius:16px;padding:16px;margin-bottom:12px}
+.card-sm{background:var(--card);border-radius:12px;padding:12px}
 
-/* BALANCE CARD */
-.bal-wrap{padding:16px 16px 8px}
-.balans-card{background:linear-gradient(135deg,var(--dark2),var(--dark));border-radius:24px;padding:22px;color:#fff;position:relative;overflow:hidden;box-shadow:0 12px 40px rgba(15,23,42,.25)}
-.bal-glow{position:absolute;top:-30px;right:-30px;width:150px;height:150px;border-radius:75px;background:radial-gradient(circle,rgba(249,115,22,.25),transparent 70%)}
-.bc-lbl{font-size:11px;opacity:.5;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;font-weight:700}
-.bc-sum{font-size:38px;font-weight:900;letter-spacing:-1.5px;margin-bottom:20px}
-.bc-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.bc-item{background:rgba(255,255,255,.08);border-radius:16px;padding:14px;border:1px solid rgba(255,255,255,.1)}
-.bc-ilbl{font-size:10px;opacity:.5;margin-bottom:5px;font-weight:600;text-transform:uppercase}
-.bc-ival{font-size:18px;font-weight:800}
+/* ── BUTTONS ── */
+.btn{padding:14px;border-radius:14px;border:none;font-size:15px;font-weight:800;font-family:'Manrope',sans-serif;width:100%;cursor:pointer;transition:opacity .2s}
+.btn-acc{background:var(--acc);color:#fff}
+.btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--text2)}
+.btn-red{background:transparent;border:1.5px solid var(--red);color:var(--red)}
+.btn-green{background:var(--green);color:#fff}
+.btn-sm{padding:8px 14px;border-radius:10px;font-size:13px;font-weight:700;border:none;cursor:pointer}
 
-/* SECTION */
-.sec-hdr{display:flex;justify-content:space-between;align-items:center;padding:16px 16px 10px}
-.sec-ttl{font-size:16px;font-weight:800;letter-spacing:-.2px}
-.sec-lnk{font-size:13px;color:var(--acc);font-weight:700;cursor:pointer}
+/* ── INPUTS ── */
+.inp-wrap{margin-bottom:14px}
+.inp-lbl{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:block}
+.inp{width:100%;padding:13px 14px;border:1.5px solid var(--border);border-radius:12px;font-size:15px;font-family:'Manrope',sans-serif;color:var(--text);background:var(--card);transition:border-color .2s}
+.inp:focus{border-color:var(--acc)}
+.inp-phone{font-size:18px;font-weight:700;letter-spacing:2px}
 
-/* OB CARD */
-.ob-card{background:#fff;border-radius:20px;margin:0 16px 10px;border:1px solid var(--border);cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.04);overflow:hidden}
-.ob-card:active{opacity:.9}
-.ob-card-body{display:flex;align-items:center;gap:12px;padding:14px}
-.ob-img{width:70px;height:70px;border-radius:16px;overflow:hidden;flex-shrink:0;object-fit:cover}
+/* ── MODAL (BOTTOM SHEET) ── */
+.sbg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;flex-direction:column;justify-content:flex-end;opacity:0;pointer-events:none;transition:opacity .25s}
+.sbg.open{opacity:1;pointer-events:all}
+.sheet{background:var(--card);border-radius:20px 20px 0 0;max-height:92vh;overflow-y:auto;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1)}
+.sbg.open .sheet{transform:translateY(0)}
+.sheet-bar{width:36px;height:4px;background:var(--border);border-radius:4px;margin:10px auto 4px}
+.sheet-head{padding:4px 16px 16px;font-size:17px;font-weight:800}
+.sheet-body{padding:0 16px 24px}
+
+/* ── AUTH ── */
+#pg-auth{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:var(--dark);padding-bottom:env(safe-area-inset-bottom)}
+.auth-logo{width:72px;height:72px;background:var(--acc);border-radius:20px;display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+.auth-title{font-size:26px;font-weight:900;color:#fff;margin-bottom:6px;text-align:center}
+.auth-sub{font-size:14px;color:rgba(255,255,255,.5);text-align:center;margin-bottom:36px}
+.auth-box{background:var(--dark2);border-radius:20px;padding:24px;width:100%;max-width:380px}
+.auth-inp{width:100%;padding:14px 16px;border:1.5px solid rgba(255,255,255,.1);border-radius:12px;font-size:18px;font-weight:700;font-family:'Manrope',sans-serif;color:#fff;background:rgba(255,255,255,.05);letter-spacing:2px;text-align:center}
+.auth-inp:focus{border-color:var(--acc);outline:none}
+.auth-btn{width:100%;padding:15px;border-radius:14px;border:none;background:var(--acc);color:#fff;font-size:16px;font-weight:800;font-family:'Manrope',sans-serif;cursor:pointer;margin-top:12px}
+.otp-boxes{display:flex;gap:10px;justify-content:center;margin:8px 0}
+.otp-box{width:46px;height:56px;border:1.5px solid rgba(255,255,255,.15);border-radius:12px;background:rgba(255,255,255,.05);color:#fff;font-size:22px;font-weight:800;text-align:center;font-family:'Manrope',sans-serif}
+.otp-box:focus{border-color:var(--acc);outline:none}
+
+/* ── HOME ── */
+.balance-card{background:linear-gradient(135deg,var(--dark) 0%,var(--dark2) 100%);border-radius:20px;padding:20px;margin:12px 16px;color:#fff}
+.balance-label{font-size:12px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.balance-amount{font-size:36px;font-weight:900;margin-bottom:16px}
+.balance-row{display:flex;gap:10px}
+.balance-sub{flex:1;background:rgba(255,255,255,.07);border-radius:12px;padding:10px}
+.balance-sub-lbl{font-size:10px;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase;margin-bottom:2px}
+.balance-sub-val{font-size:15px;font-weight:800}
+
+/* ── SECTION ── */
+.section{padding:0 16px;margin-bottom:4px}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-top:8px}
+.section-title{font-size:14px;font-weight:800;color:var(--text2)}
+.section-more{font-size:13px;font-weight:700;color:var(--acc)}
+
+/* ── OB CARD ── */
+.ob-card{background:var(--card);border-radius:16px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:transform .15s}
+.ob-card:active{transform:scale(.98)}
+.ob-ico{width:46px;height:46px;border-radius:14px;background:var(--acc);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .ob-info{flex:1;min-width:0}
-.ob-name{font-size:15px;font-weight:800;margin-bottom:4px;letter-spacing:-.2px}
-.ob-row{display:flex;gap:12px;margin-bottom:5px}
-.ob-stat-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;font-weight:700}
-.ob-stat-val{font-size:14px;font-weight:800}
-.ob-prog{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:4px}
-.ob-prog-fill{height:100%;border-radius:2px}
-.s-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800}
-.s-badge.faol{background:#dcfce7;color:#15803d}
-.s-badge.yak{background:var(--bg);color:var(--muted)}
+.ob-name{font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ob-meta{font-size:12px;color:var(--muted);margin-top:2px}
+.ob-bal{text-align:right;flex-shrink:0}
+.ob-bal-val{font-size:15px;font-weight:800}
+.ob-bal-lbl{font-size:11px;color:var(--muted);margin-top:1px}
+.ob-role-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:800;text-transform:uppercase}
+.role-owner{background:#fff7ed;color:var(--acc)}
+.role-member{background:#eff6ff;color:var(--blue)}
+.role-worker{background:#f0fdf4;color:var(--green)}
 
-/* OP ROW */
-.op-list{background:#fff;border-radius:20px;margin:0 16px 10px;border:1px solid var(--border);overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.04)}
-.op-row{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--border)}
-.op-row:last-child{border-bottom:none}
-.op-ico{width:40px;height:40px;border-radius:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.op-info{flex:1;min-width:0}
-.op-name{font-size:14px;font-weight:700}
-.op-meta{font-size:11px;color:var(--muted);margin-top:2px;font-weight:500}
-.op-sum{font-size:15px;font-weight:800;text-align:right}
-.op-cat{font-size:10px;color:var(--muted);text-align:right;margin-top:2px;font-weight:600;text-transform:uppercase}
+/* ── OB DETAIL ── */
+.ob-detail-header{background:linear-gradient(135deg,var(--dark),var(--dark2));padding:20px 16px 24px;color:#fff;position:relative}
+.ob-detail-name{font-size:22px;font-weight:900;margin-bottom:4px}
+.ob-detail-meta{font-size:13px;color:rgba(255,255,255,.5)}
+.ob-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:0 16px;margin-top:-16px;margin-bottom:4px}
+.ob-stat{background:var(--card);border-radius:14px;padding:12px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.ob-stat-val{font-size:16px;font-weight:900}
+.ob-stat-lbl{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-top:2px}
 
-/* BOTTOM NAV */
-#bnav{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.95);backdrop-filter:blur(20px);border-top:1px solid rgba(226,232,240,.7);display:flex;z-index:200;padding-bottom:env(safe-area-inset-bottom)}
-.nb{flex:1;padding:10px 0 8px;display:flex;flex-direction:column;align-items:center;gap:3px;border:none;background:transparent;color:var(--muted);font-size:10px;font-weight:700}
-.nb.active{color:var(--acc)}
-.nb-dot{width:4px;height:4px;border-radius:2px;background:var(--acc);margin-top:1px;opacity:0}
-.nb.active .nb-dot{opacity:1}
+/* ── ACTION BTNS ── */
+.act-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 16px;margin-bottom:12px}
+.act-btn{border:none;border-radius:14px;padding:13px;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:800;font-family:'Manrope',sans-serif;cursor:pointer}
+.act-btn-in{background:var(--green-bg);color:var(--green)}
+.act-btn-out{background:var(--red-bg);color:var(--red)}
+.act-btn-send{background:var(--blue-bg);color:var(--blue)}
+.act-btn-full{grid-column:1/-1;background:var(--bg);color:var(--text2)}
 
-/* FAB */
-#fab{position:fixed;bottom:80px;right:16px;width:56px;height:56px;border-radius:18px;background:linear-gradient(135deg,var(--acc),var(--acc2));border:none;color:#fff;z-index:150;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(249,115,22,.45)}
+/* ── MEMBER CARD ── */
+.member-card{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card);border-radius:14px;margin-bottom:8px}
+.member-avatar{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;color:#fff;flex-shrink:0}
+.member-info{flex:1;min-width:0}
+.member-name{font-size:14px;font-weight:800}
+.member-phone{font-size:12px;color:var(--muted)}
+.member-bal{text-align:right}
+.member-bal-val{font-size:14px;font-weight:800}
 
-/* SHEETS */
-.sbg{display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:500;align-items:flex-end;backdrop-filter:blur(6px)}
-.sbg.open{display:flex}
-.sht{background:#fff;border-radius:28px 28px 0 0;padding:20px 20px 40px;width:100%;max-height:92vh;overflow-y:auto;animation:slideUp .3s cubic-bezier(.4,0,.2,1)}
-.s-hdl{width:40px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto 18px}
-.s-ttl{font-size:18px;font-weight:800;margin-bottom:20px;text-align:center}
-.frow{margin-bottom:14px}
-.flbl{display:block;font-size:11px;color:var(--muted);font-weight:700;margin-bottom:7px;text-transform:uppercase;letter-spacing:.8px}
-.finp{width:100%;padding:14px 16px;border-radius:14px;border:1.5px solid var(--border);font-size:15px;font-family:'Manrope',sans-serif;outline:none;color:var(--text);font-weight:500;transition:border-color .2s}
-.finp:focus{border-color:var(--acc)}
-.sbtns{display:flex;gap:10px;margin-top:20px}
-.sbtn-ok{flex:1;padding:16px;border-radius:16px;border:none;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-weight:800;font-size:16px;font-family:'Manrope',sans-serif}
-.sbtn-cn{flex:1;padding:16px;border-radius:16px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:16px;font-family:'Manrope',sans-serif;font-weight:700}
+/* ── TX ROW ── */
+.tx-row{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card);border-radius:14px;margin-bottom:8px;cursor:pointer}
+.tx-ico{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tx-info{flex:1;min-width:0}
+.tx-title{font-size:14px;font-weight:700}
+.tx-meta{font-size:12px;color:var(--muted);margin-top:1px}
+.tx-amount{font-size:15px;font-weight:800;white-space:nowrap}
 
-/* CAT GRID */
-.cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.cat-btn{padding:16px 6px;border-radius:18px;border:1.5px solid var(--border);background:#fff;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;font-family:'Manrope',sans-serif}
-.cat-ico{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center}
-.cat-nm{font-size:12px;font-weight:700}
+/* ── SPINNER ── */
+.spinner{width:22px;height:22px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+.spinner-acc{border:3px solid rgba(249,115,22,.2);border-top-color:var(--acc)}
 
-/* ISHCHI */
-.ish-card{background:#fff;border-radius:20px;margin:0 16px 10px;border:1px solid var(--border);overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.04)}
-.ish-top{display:flex;align-items:center;gap:12px;padding:14px 16px}
-.ish-av{width:48px;height:48px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
-.ish-nm{font-size:15px;font-weight:800}
-.ish-mt{font-size:11px;color:var(--muted);margin-top:2px;font-weight:600}
-.ish-stats{display:flex;border-top:1px solid var(--border)}
-.ist{flex:1;padding:11px 8px;text-align:center;border-right:1px solid var(--border)}
-.ist:last-child{border-right:none}
-.ist-v{font-size:13px;font-weight:800}
-.ist-l{font-size:9px;color:var(--muted);text-transform:uppercase;margin-top:2px;font-weight:700}
+/* ── TOAST ── */
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:10px 20px;border-radius:12px;font-size:14px;font-weight:700;z-index:500;white-space:nowrap;animation:fadeUp .3s ease}
 
-/* EMPTY / SPIN */
-.empty{text-align:center;padding:50px 20px;color:var(--muted);font-size:14px;font-weight:500}
-.spin{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--acc);border-radius:50%;animation:spin .8s linear infinite;margin:50px auto}
+/* ── TABS ── */
+.tabs{display:flex;background:var(--bg);border-radius:12px;padding:4px;margin:0 16px 12px;gap:4px}
+.tab{flex:1;padding:8px;border-radius:9px;border:none;background:transparent;font-size:13px;font-weight:700;color:var(--muted);font-family:'Manrope',sans-serif;cursor:pointer;transition:all .2s}
+.tab.active{background:var(--card);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.08)}
 
-/* TOTAL BAR */
-.total-bar{padding:14px 16px;background:rgba(241,245,249,.8);display:flex;justify-content:space-between;align-items:center;border-top:2px solid var(--border)}
+/* ── AVATAR COLORS ── */
+.av-orange{background:var(--acc)}
+.av-blue{background:var(--blue)}
+.av-green{background:var(--green)}
+.av-purple{background:var(--purple)}
+.av-red{background:var(--red)}
 
-/* QUICK ACTIONS */
-.qa-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:0 16px 8px}
-.qa-btn{padding:14px 4px;border-radius:16px;border:1.5px solid var(--border);background:#fff;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;font-family:'Manrope',sans-serif}
-.qa-ico{width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center}
-.qa-nm{font-size:11px;font-weight:700;color:var(--text)}
+/* ── EMPTY STATE ── */
+.empty{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-icon{font-size:48px;margin-bottom:12px}
+.empty-text{font-size:15px;font-weight:700;margin-bottom:4px;color:var(--text2)}
+.empty-sub{font-size:13px}
 
-.ai-sug{white-space:nowrap;padding:9px 16px;border-radius:20px;border:1.5px solid var(--border);background:#fff;font-size:13px;font-weight:700;color:var(--acc);font-family:'Manrope',sans-serif;cursor:pointer;flex-shrink:0}
-/* OB DETAIL */
-.ob-hero{height:220px;position:relative;overflow:hidden}
-.ob-hero img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
-.ob-ov{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(15,23,42,.15),rgba(15,23,42,.75))}
-.ob-back{position:absolute;top:14px;left:14px;width:40px;height:40px;border-radius:13px;background:rgba(255,255,255,.9);backdrop-filter:blur(8px);border:none;display:flex;align-items:center;justify-content:center;z-index:2}
-.ob-htitle{position:absolute;bottom:16px;left:16px;right:16px;z-index:2}
-.ob-hname{font-size:24px;font-weight:900;color:#fff}
-.ob-hsub{font-size:12px;color:rgba(255,255,255,.7);margin-top:3px;font-weight:600}
-.ob-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:16px}
-.ob-stat{background:#fff;border-radius:16px;padding:14px 10px;text-align:center;border:1px solid var(--border)}
-.ob-sv{font-size:17px;font-weight:900;margin-bottom:4px}
-.ob-sl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;font-weight:700}
-.ob-acts{display:flex;gap:10px;padding:0 16px 14px}
-.ob-act{flex:1;padding:14px;border-radius:16px;font-size:13px;font-weight:800;border:none;display:flex;align-items:center;justify-content:center;gap:6px;font-family:'Manrope',sans-serif}
+/* ── FAB ── */
+.fab{position:fixed;bottom:82px;right:16px;width:52px;height:52px;border-radius:16px;background:var(--acc);border:none;color:#fff;font-size:26px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(249,115,22,.4);cursor:pointer;z-index:90;transition:transform .15s}
+.fab:active{transform:scale(.93)}
 
-/* HISOBOT */
-.sum-card{background:#fff;border-radius:16px;border:1px solid var(--border);padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
-.sum-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:5px}
-.sum-val{font-size:22px;font-weight:900;letter-spacing:-.5px}
-.chart-card{background:#fff;border-radius:20px;margin:0 16px 12px;border:1px solid var(--border);padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
-.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:12px}
-.bar-lbl{font-size:11px;color:var(--muted);width:54px;text-align:right;font-weight:600}
-.bar-wrap{flex:1;height:10px;background:var(--bg);border-radius:5px;overflow:hidden}
-.bar-fill{height:100%;border-radius:5px}
+/* ── CHIP ── */
+.chip{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:8px;font-size:12px;font-weight:700;background:var(--bg);color:var(--text2)}
 
-/* SOZLAMALAR */
-.soz-profile{background:linear-gradient(160deg,var(--dark2),var(--dark));padding:32px 20px 24px;display:flex;align-items:center;gap:16px}
-.soz-av{width:72px;height:72px;border-radius:20px;background:linear-gradient(135deg,var(--acc),var(--acc2));display:flex;align-items:center;justify-content:center;font-size:34px}
-.soz-name{font-size:20px;font-weight:900;color:#fff}
-.soz-info{font-size:12px;color:rgba(255,255,255,.45);margin-top:4px;font-weight:600}
-.soz-section{background:#fff;border-radius:20px;margin:16px 16px 10px;border:1px solid var(--border);overflow:hidden}
-.soz-item{display:flex;align-items:center;gap:14px;padding:16px;border-bottom:1px solid var(--border);cursor:pointer}
-.soz-item:last-child{border-bottom:none}
-.soz-ico{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center}
-.soz-lbl{flex:1;font-size:14px;font-weight:700}
-.soz-val{font-size:13px;color:var(--muted);font-weight:600}
+/* ── PROFILE ── */
+.profile-header{background:linear-gradient(135deg,var(--dark),var(--dark2));padding:32px 16px 24px;text-align:center;color:#fff}
+.profile-avatar{width:72px;height:72px;border-radius:20px;background:var(--acc);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;color:#fff;margin:0 auto 12px}
+.profile-name{font-size:20px;font-weight:900;margin-bottom:4px}
+.profile-phone{font-size:14px;color:rgba(255,255,255,.5)}
+.soz-item{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--card);border-radius:14px;margin-bottom:8px;cursor:pointer}
+.soz-ico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.soz-lbl{flex:1;font-size:15px;font-weight:700}
+.soz-arr{color:var(--muted);font-size:18px}
 
-/* FILTER */
-.filt-bar{display:flex;gap:8px;padding:12px 16px;background:rgba(255,255,255,.9);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
-.filt-bar::-webkit-scrollbar{display:none}
-.srch-inp{flex:1;min-width:100px;padding:10px 14px;border-radius:12px;border:1.5px solid var(--border);background:var(--bg);font-size:13px;font-family:'Manrope',sans-serif;outline:none;font-weight:500}
-.fbtn{padding:10px 16px;border-radius:12px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:12px;font-family:'Manrope',sans-serif;cursor:pointer;white-space:nowrap;font-weight:700}
-.fbtn.on{background:#fff7ed;border-color:var(--acc);color:var(--acc)}
-.ptab{flex:1;padding:12px;border-radius:14px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:13px;font-family:'Manrope',sans-serif;cursor:pointer;font-weight:700;text-align:center}
-.ptab.on{border-color:var(--acc);background:#fff7ed;color:var(--acc)}
+/* ── HISOBOT ── */
+.chart-card{background:var(--card);border-radius:16px;padding:16px;margin:0 16px 12px}
+.chart-title{font-size:14px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:6px}
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.bar-lbl{font-size:11px;color:var(--muted);width:38px;flex-shrink:0;text-align:right}
+.bar-wraps{flex:1;display:flex;flex-direction:column;gap:3px}
+.bar-wrap{background:var(--border);border-radius:5px;overflow:hidden;height:9px}
+.bar-fill{height:9px;border-radius:5px;min-width:2px;transition:width .5s ease}
+.bar-in{background:var(--green)}
+.bar-out{background:var(--red)}
+.bar-vals{font-size:10px;text-align:right;min-width:60px}
 
-  .bar-wrap{background:var(--border);border-radius:6px;overflow:hidden;height:10px;width:100%;display:block}
-  .bar-fill{height:10px;border-radius:6px;display:block;min-width:2px}
-  .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-  .chart-card{background:var(--card);border-radius:16px;padding:16px;margin:0 16px 12px}
+/* ── NOTIFICATION DOT ── */
+.notif-dot{width:8px;height:8px;background:var(--red);border-radius:50%;position:absolute;top:6px;right:calc(50% - 14px)}
+
+/* ── SEARCH ── */
+.search-box{margin:8px 16px;position:relative}
+.search-inp{width:100%;padding:10px 14px 10px 38px;border:1.5px solid var(--border);border-radius:12px;font-size:14px;font-family:'Manrope',sans-serif;background:var(--card);color:var(--text)}
+.search-ico{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted)}
 </style>
 </head>
 <body>
 
-<!-- LOADING -->
-<div id="loading">
-  <div class="load-logo">👷</div>
-  <div style="font-size:24px;font-weight:900;color:#fff;letter-spacing:-.5px">Prorab Pro</div>
-  <div class="load-spin"></div>
-  <div class="load-txt">Yuklanmoqda...</div>
-</div>
-
-<!-- AUTH -->
-<div id="auth-screen" style="display:none">
-  <div class="auth-logo">👷</div>
+<!-- ══════════════ AUTH ══════════════ -->
+<div id="pg-auth">
+  <div class="auth-logo">
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><rect x="2" y="7" width="20" height="14" rx="3"/><path d="M16 7V5a2 2 0 00-4 0v2"/><line x1="12" y1="12" x2="12" y2="16"/></svg>
+  </div>
   <div class="auth-title">Prorab Pro</div>
   <div class="auth-sub">Qurilish moliya boshqaruvi</div>
-  <div class="auth-card">
-    <div class="auth-tabs">
-      <button class="auth-tab on" onclick="switchTab('login',this)">Kirish</button>
-      <button class="auth-tab" onclick="switchTab('register',this)">Ro'yxat</button>
+
+  <div class="auth-box" id="auth-phone-box">
+    <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:10px;font-weight:600">Telefon raqamingiz</div>
+    <input class="auth-inp" id="phone-inp" type="tel" placeholder="+998 90 000 00 00" maxlength="17" oninput="formatPhone(this)">
+    <button class="auth-btn" onclick="sendOtp()" id="send-otp-btn">Davom etish →</button>
+    <div id="phone-err" style="color:#f87171;font-size:13px;margin-top:8px;text-align:center;display:none"></div>
+  </div>
+
+  <div class="auth-box" id="auth-otp-box" style="display:none">
+    <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:6px;font-weight:600">SMS kod yuborildi</div>
+    <div id="otp-phone-show" style="color:#fff;font-size:15px;font-weight:800;margin-bottom:16px"></div>
+    <div class="otp-boxes">
+      <input class="otp-box" id="otp0" maxlength="1" type="text" inputmode="numeric" oninput="otpInput(this,0)" onkeydown="otpKey(this,0,event)">
+      <input class="otp-box" id="otp1" maxlength="1" type="text" inputmode="numeric" oninput="otpInput(this,1)" onkeydown="otpKey(this,1,event)">
+      <input class="otp-box" id="otp2" maxlength="1" type="text" inputmode="numeric" oninput="otpInput(this,2)" onkeydown="otpKey(this,2,event)">
+      <input class="otp-box" id="otp3" maxlength="1" type="text" inputmode="numeric" oninput="otpInput(this,3)" onkeydown="otpKey(this,3,event)">
+      <input class="otp-box" id="otp4" maxlength="1" type="text" inputmode="numeric" oninput="otpInput(this,4)" onkeydown="otpKey(this,4,event)">
+      <input class="otp-box" id="otp5" maxlength="1" type="text" inputmode="numeric" oninput="otpInput(this,5)" onkeydown="otpKey(this,5,event)">
     </div>
-    <!-- LOGIN -->
-    <div id="login-form">
-      <label class="auth-lbl">Email</label>
-      <input class="auth-inp" id="login-email" type="email" placeholder="email@gmail.com">
-      <label class="auth-lbl">Parol</label>
-      <input class="auth-inp" id="login-pass" type="password" placeholder="••••••••">
-      <div class="auth-err" id="login-err"></div>
-      <button class="auth-btn" onclick="doLogin()">Kirish →</button>
+    <button class="auth-btn" onclick="verifyOtp()" id="verify-otp-btn">Tasdiqlash</button>
+    <div style="text-align:center;margin-top:12px">
+      <span style="color:rgba(255,255,255,.4);font-size:13px">Kod kelmadimi? </span>
+      <span onclick="resendOtp()" style="color:var(--acc);font-size:13px;font-weight:700;cursor:pointer">Qayta yuborish</span>
     </div>
-    <!-- REGISTER -->
-    <div id="reg-form" style="display:none">
-      <label class="auth-lbl">Ism Familiya</label>
-      <input class="auth-inp" id="reg-name" type="text" placeholder="Alisher Toshmatov">
-      <label class="auth-lbl">Telefon</label>
-      <input class="auth-inp" id="reg-phone" type="tel" placeholder="+998901234567">
-      <label class="auth-lbl">Email</label>
-      <input class="auth-inp" id="reg-email" type="email" placeholder="email@gmail.com">
-      <label class="auth-lbl">Parol</label>
-      <input class="auth-inp" id="reg-pass" type="password" placeholder="min 6 ta belgi">
-      <label class="auth-lbl">Rol</label>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-        <button type="button" id="role-prorab" onclick="selectRole('prorab')" style="padding:12px;border-radius:12px;border:2px solid var(--acc);background:#fff7ed;color:var(--acc);font-size:14px;font-weight:800;font-family:'Manrope',sans-serif;cursor:pointer">👷 Prorab</button>
-        <button type="button" id="role-ishchi" onclick="selectRole('ishchi')" style="padding:12px;border-radius:12px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:14px;font-weight:800;font-family:'Manrope',sans-serif;cursor:pointer">🔨 Ishchi</button>
-      </div>
-      <input type="hidden" id="reg-role" value="prorab">
-      <div class="auth-err" id="reg-err"></div>
-      <button class="auth-btn" onclick="doRegister()">Ro'yxatdan o'tish →</button>
-    </div>
+    <div id="otp-err" style="color:#f87171;font-size:13px;margin-top:8px;text-align:center;display:none"></div>
+  </div>
+
+  <!-- Name setup (first time) -->
+  <div class="auth-box" id="auth-name-box" style="display:none">
+    <div style="font-size:15px;color:#fff;font-weight:800;margin-bottom:6px">Ismingizni kiriting</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:16px">Bu bir marta so'raladi</div>
+    <input class="auth-inp" id="name-inp" type="text" placeholder="Ism Familiya" style="font-size:16px;letter-spacing:0">
+    <button class="auth-btn" onclick="saveName()">Boshlash →</button>
   </div>
 </div>
 
-<!-- MAIN APP -->
+<!-- ══════════════ MAIN APP ══════════════ -->
 <div id="app" style="display:none">
 
-<!-- SIDEBAR -->
-<div id="sb-overlay" onclick="closeSidebar()"></div>
-<div id="sidebar">
-  <div class="sb-profile">
-    <div class="sb-av">👷</div>
-    <div class="sb-name" id="sb-name">...</div>
-    <div class="sb-role" id="sb-email">...</div>
-  </div>
-  <div class="sb-menu">
-    <div class="sb-section">Asosiy</div>
-    <div class="sb-item active" onclick="gp('home',this)">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>Asosiy
-    </div>
-    <div class="sb-item" onclick="gp('obyekt',this)">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>Obyektlar
-    </div>
-    <div class="sb-item" onclick="gp('ops',this)">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>Operatsiyalar
-    </div>
-    <div class="sb-item" onclick="gp('hisobot',this)">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Hisobotlar
-    </div>
-    <div class="sb-section">Xodimlar</div>
-    <div class="sb-item" onclick="gp('ishchilar',this)">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>Ishchilar
-    </div>
-    <div class="sb-section">Boshqa</div>
-    <div class="sb-item" onclick="gp('sozlamalar',this)">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Sozlamalar
-    </div>
-  </div>
-  <div class="sb-bottom">
-    <div class="sb-logout" onclick="doLogout()">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Chiqish
-    </div>
-  </div>
-</div>
-
-<!-- TOPBAR -->
-<div id="topbar">
-  <button class="tb-menu" onclick="openSidebar()">
-    <div class="tb-line"></div><div class="tb-line"></div><div class="tb-line"></div>
-  </button>
-  <div class="tb-title" id="page-title">Asosiy</div>
-  <button class="tb-av" id="tb-av-txt" onclick="gp('sozlamalar')">A</button>
-</div>
-
-<!-- HOME -->
-<div class="page active" id="pg-home">
-  <div class="bal-wrap">
-    <div class="balans-card">
-      <div class="bal-glow"></div>
-      <div class="bc-lbl">Umumiy balans</div>
-      <div class="bc-sum" id="bc-bal">+$0</div>
-      <div class="bc-row">
-        <div class="bc-item"><div class="bc-ilbl">↓ Kirim</div><div class="bc-ival" id="bc-in">$0</div></div>
-        <div class="bc-item"><div class="bc-ilbl">↑ Chiqim</div><div class="bc-ival" id="bc-out">$0</div></div>
-      </div>
-    </div>
-  </div>
-  <div style="padding:14px 16px 6px">
-    <div class="qa-grid">
-      <button class="qa-btn" onclick="gp('obyekt')"><div class="qa-ico" style="background:#fff7ed"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg></div><div class="qa-nm">Obyektlar</div></button>
-      <button class="qa-btn" onclick="gp('ishchilar')"><div class="qa-ico" style="background:var(--blue-bg)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div class="qa-nm">Ishchilar</div></button>
-      <button class="qa-btn" onclick="gp('hisobot')"><div class="qa-ico" style="background:var(--green-bg)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div><div class="qa-nm">Hisobot</div></button>
-      <button class="qa-btn" onclick="gp('ai')"><div class="qa-ico" style="background:var(--purple-bg)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div><div class="qa-nm">AI ✨</div></button>
-    </div>
-  </div>
-  <div class="sec-hdr"><span class="sec-ttl">Faol obyektlar</span><span class="sec-lnk" onclick="gp('obyekt')">Barchasi ›</span></div>
-  <div id="home-obs"><div class="spin"></div></div>
-  <div class="sec-hdr"><span class="sec-ttl">So'nggi operatsiyalar</span><span class="sec-lnk" onclick="gp('ops')">Barchasi ›</span></div>
-  <div id="home-ops"><div class="spin"></div></div>
-</div>
-
-<!-- OBYEKTLAR -->
-<div class="page" id="pg-obyekt">
-  <div style="padding:12px 16px 8px;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none">
-    <button class="ob-filt-btn fbtn on" onclick="setObFilt('all',this)">Barchasi</button>
-    <button class="ob-filt-btn fbtn" onclick="setObFilt('faol',this)" style="border-color:var(--green);color:var(--green)">Faol</button>
-    <button class="ob-filt-btn fbtn" onclick="setObFilt('yakunlangan',this)">Yakunlangan</button>
-  </div>
-  <div style="padding:0 16px 10px"><div style="display:flex;align-items:center;gap:10px;background:#fff;border-radius:14px;padding:12px 16px;border:1.5px solid var(--border)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input id="ob-srch" type="text" placeholder="Qidirish..." oninput="renderObs()" style="flex:1;border:none;background:transparent;font-size:14px;font-family:'Manrope',sans-serif;outline:none;font-weight:500"></div></div>
-  <div id="ob-list"><div class="spin"></div></div>
-</div>
-
-<!-- OB DETAIL -->
-<div class="page" id="pg-ob-detail"><div id="ob-detail-body"></div></div>
-
-<!-- OPERATSIYALAR -->
-<div class="page" id="pg-ops">
-  <div class="filt-bar">
-    <input class="srch-inp" type="text" placeholder="🔍 Qidirish..." oninput="renderOps()">
-    <button class="fbtn on" onclick="setFilt('all',this)">Hammasi</button>
-    <button class="fbtn" onclick="setFilt('kirim',this)">↓ Kirim</button>
-    <button class="fbtn" onclick="setFilt('chiqim',this)">↑ Chiqim</button>
-  </div>
-  <div id="op-section"><div class="spin"></div></div>
-</div>
-
-<!-- HISOBOT -->
-<div class="page" id="pg-hisobot">
-  <div style="display:flex;gap:8px;padding:14px 16px 10px">
-    <button class="ptab on" onclick="setPer('month',this)">Bu oy</button>
-    <button class="ptab" onclick="setPer('year',this)">Bu yil</button>
-    <button class="ptab" onclick="setPer('all',this)">Hammasi</button>
-  </div>
-  <div id="chart-body"></div>
-</div>
-
-<!-- ISHCHILAR -->
-<div class="page" id="pg-ishchilar">
-  <div class="sec-hdr"><span class="sec-ttl">Ishchilar</span><span class="sec-lnk" onclick="openAddIsh()">＋ Qo'shish</span></div>
-  <div id="ish-list"><div class="spin"></div></div>
-</div>
-
-<!-- SOZLAMALAR -->
-<div class="page" id="pg-sozlamalar">
-  <div class="soz-profile">
-    <div class="soz-av">👷</div>
-    <div>
-      <div class="soz-name" id="soz-name">...</div>
-      <div class="soz-info" id="soz-email">...</div>
-      <div class="soz-info" id="soz-phone">...</div>
-    </div>
-  </div>
-  <div class="soz-section">
-    <div class="soz-item">
-      <div class="soz-ico" style="background:#fff7ed"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
-      <div class="soz-lbl">Profil</div><span style="color:var(--muted)">›</span>
-    </div>
-  </div>
-  <div class="soz-section">
-    <div class="soz-item">
-      <div class="soz-ico" style="background:var(--bg)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
-      <div class="soz-lbl">Ilova haqida</div><div class="soz-val">v4.0</div><span style="color:var(--muted)">›</span>
-    </div>
-  </div>
-  <div style="margin:16px">
-    <button onclick="doLogout()" style="width:100%;padding:16px;border-radius:16px;border:none;background:var(--red-bg);color:var(--red);font-size:15px;font-weight:800;font-family:'Manrope',sans-serif">Chiqish</button>
-  </div>
-</div>
-
-<!-- AI PAGE -->
-<div class="page" id="pg-ai">
-  <div style="background:linear-gradient(160deg,#1e293b,#0f172a);padding:20px 16px 24px">
-    <div style="display:flex;align-items:center;gap:12px">
-      <div style="width:48px;height:48px;border-radius:15px;background:linear-gradient(135deg,#a855f7,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:24px">🤖</div>
-      <div>
-        <div style="font-size:18px;font-weight:900;color:#fff">AI Yordamchi</div>
-        <div style="font-size:12px;color:rgba(255,255,255,.45);font-weight:600">Prorab uchun aqlli tahlil</div>
-      </div>
-    </div>
-  </div>
-  <div style="display:flex;gap:8px;padding:10px 16px 8px;overflow-x:auto;scrollbar-width:none">
-    <button class="ai-sug" onclick="sendSug('Balans qanday?')">📊 Balans</button>
-    <button class="ai-sug" onclick="sendSug('Eng ko\'p xarajat qayerda?')">💸 Xarajat</button>
-    <button class="ai-sug" onclick="sendSug('Ishchilar hisobi qanday?')">👷 Ishchilar</button>
-    <button class="ai-sug" onclick="sendSug('Maslahat bering')">💡 Maslahat</button>
-  </div>
-  <div id="ai-messages" style="padding:12px 16px 120px;display:flex;flex-direction:column;gap:10px;min-height:50vh">
-    <div style="display:flex;align-items:flex-end;gap:8px">
-      <div style="width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,#1e293b,#0f172a);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🤖</div>
-      <div style="max-width:82%;padding:13px 16px;border-radius:20px;border-bottom-left-radius:6px;background:#fff;border:1px solid var(--border);font-size:14px;font-weight:500;line-height:1.5;color:var(--text)">Salom! Men sizning qurilish loyihalaringizni tahlil qilishga yordam beraman. Savollaringizni bering! ð</div>
-    </div>
-  </div>
-  <div style="position:fixed;bottom:72px;left:0;right:0;padding:10px 16px;background:rgba(255,255,255,.95);backdrop-filter:blur(16px);border-top:1px solid var(--border)">
-    <div style="display:flex;gap:8px;align-items:center">
-      <button id="mic-btn" ontouchstart="event.preventDefault();event.stopPropagation();toggleMic()" onclick="toggleMic()" style="width:44px;height:44px;border-radius:14px;border:1.5px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation">
-        <svg id="mic-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-      </button>
-      <input id="ai-inp" type="text" placeholder="Savol yozing..." onkeydown="if(event.key==='Enter')sendAI()" style="flex:1;padding:12px 16px;border-radius:16px;border:1.5px solid var(--border);background:var(--bg);font-size:14px;font-family:'Manrope',sans-serif;outline:none;font-weight:500">
-      <button onclick="sendAI()" style="width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,var(--acc),var(--acc2));border:none;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-      </button>
-    </div>
-    <div id="mic-status" style="text-align:center;font-size:12px;font-weight:700;color:var(--red);padding-top:6px;display:none">🔴 Gapiring...</div>
-  </div>
-</div>
-
-<!-- BOTTOM NAV -->
-<div id="bnav">
-  <button class="nb active" onclick="gp('home',this)" data-pg="home">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>Asosiy<div class="nb-dot"></div>
-  </button>
-  <button class="nb" onclick="gp('obyekt',this)" data-pg="obyekt">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>Obyektlar<div class="nb-dot"></div>
-  </button>
-  <button class="nb" onclick="gp('ops',this)" data-pg="ops">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>Operatsiya<div class="nb-dot"></div>
-  </button>
-  <button class="nb" onclick="gp('hisobot',this)" data-pg="hisobot">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Hisobot<div class="nb-dot"></div>
-  </button>
-  <button class="nb" onclick="gp('ishchilar',this)" data-pg="ishchilar">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Ishchilar<div class="nb-dot"></div>
-  </button>
-
-</div>
-
-<!-- FAB -->
-<button id="fab" onclick="curPage==='obyekt'?openAddOb():openChoiceSheet()">
-  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-</button>
-
-<!-- CHOICE SHEET -->
-<div id="choice-bg" class="sbg" onclick="if(event.target===this)closeChoiceSheet()">
-  <div class="sht">
-    <div class="s-hdl"></div>
-    <div class="s-ttl">Kategoriya tanlang</div>
-    <div class="cat-grid">
-      <button class="cat-btn" onclick="pickCat('usta')"><div class="cat-ico" style="background:#fff7ed"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linecap="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg></div><div class="cat-nm">Usta</div></button>
-      <button class="cat-btn" onclick="pickCat('bozor')"><div class="cat-ico" style="background:var(--green-bg)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></div><div class="cat-nm">Bozor</div></button>
-      <button class="cat-btn" onclick="pickCat('dostavka')"><div class="cat-ico" style="background:var(--blue-bg)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div><div class="cat-nm">Dostavka</div></button>
-      <button class="cat-btn" onclick="pickCat('dokon')"><div class="cat-ico" style="background:var(--purple-bg)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg></div><div class="cat-nm">Do'kon</div></button>
-      <button class="cat-btn" onclick="pickCat('dop')"><div class="cat-ico" style="background:var(--red-bg)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div><div class="cat-nm">Qo'shimcha</div></button>
-      <button class="cat-btn" onclick="pickCat('ovqat')"><div class="cat-ico" style="background:#fffbeb"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></div><div class="cat-nm">Ovqat</div></button>
-    </div>
-  </div>
-</div>
-
-<!-- OP SHEET -->
-<div id="op-bg" class="sbg" onclick="if(event.target===this)closeOp()">
-  <div class="sht">
-    <div class="s-hdl"></div>
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;background:var(--bg);padding:12px 14px;border-radius:16px">
-      <div id="op-cat-ico" style="width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center"></div>
-      <div style="flex:1"><div id="op-cat-nm" style="font-size:15px;font-weight:800"></div><div id="op-cat-tp" style="font-size:11px;color:var(--muted);font-weight:600"></div></div>
-      <button onclick="closeOp();openChoiceSheet()" style="font-size:12px;color:var(--acc);font-weight:800;background:none;border:none;font-family:'Manrope',sans-serif">O'zgartirish</button>
-    </div>
-    <div class="frow"><label class="flbl">Summa ($)</label><input type="number" class="finp" id="op-sum" placeholder="0.00" inputmode="decimal" style="font-size:28px;font-weight:900;text-align:center"></div>
-    <div class="frow"><label class="flbl">Sana</label><input type="date" class="finp" id="op-date"></div>
-    <div class="frow"><label class="flbl">Obyekt</label>
-      <div onclick="openObPicker()" style="width:100%;padding:14px 16px;border-radius:14px;border:1.5px solid var(--border);background:#fff;font-size:15px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
-        <span id="op-ob-txt" style="color:var(--muted);font-weight:500">Tanlang</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-      </div>
-      <input type="hidden" id="op-ob-id">
-    </div>
-    <div class="frow" id="wkr-row" style="display:none"><label class="flbl">Ishchi</label><select class="finp" id="op-wkr" style="font-weight:600"><option value="">— Tanlang —</option></select></div>
-    <div class="frow"><label class="flbl">Izoh</label><input type="text" class="finp" id="op-izoh" placeholder="Qo'shimcha ma'lumot"></div>
-    <div style="color:var(--red);font-size:12px;margin-bottom:8px;font-weight:600;min-height:16px" id="op-err"></div>
-    <div class="sbtns"><button onclick="saveOp()" class="sbtn-ok">💾 Saqlash</button><button onclick="closeOp()" class="sbtn-cn">Bekor</button></div>
-  </div>
-</div>
-
-<!-- OB PICKER -->
-<div id="obpick-bg" class="sbg" style="z-index:600" onclick="if(event.target===this)closeObPicker()">
-  <div class="sht"><div class="s-hdl"></div><div class="s-ttl">Obyekt tanlang</div>
-    <div id="ob-pick-list" style="display:flex;flex-direction:column;gap:8px"></div>
-    <button onclick="closeObPicker()" class="sbtn-cn" style="width:100%;margin-top:14px">Bekor</button>
-  </div>
-</div>
-
-<!-- ADD OB -->
-<div id="addob-bg" class="sbg" onclick="if(event.target===this)closeAddOb()">
-  <div class="sht"><div class="s-hdl"></div><div class="s-ttl">Yangi obyekt</div>
-    <div class="frow"><label class="flbl">Nomi</label><input type="text" id="ob-nm" class="finp" placeholder="masalan: Yunusobod uy"></div>
-    <div class="frow"><label class="flbl">Boshlanish sanasi</label><input type="date" id="ob-start" class="finp"></div>
-    <div class="frow"><label class="flbl">Muddat (kun)</label><input type="number" id="ob-days" class="finp" placeholder="masalan: 40" inputmode="numeric"></div>
-    <div style="color:var(--red);font-size:12px;margin-bottom:8px;font-weight:600;min-height:16px" id="ob-err"></div>
-    <div class="sbtns"><button onclick="saveOb()" class="sbtn-ok">Saqlash</button><button onclick="closeAddOb()" class="sbtn-cn">Bekor</button></div>
-  </div>
-</div>
-
-<!-- ADD ISHCHI -->
-<div id="addish-bg" class="sbg" onclick="if(event.target===this)closeAddIsh()">
-  <div class="sht"><div class="s-hdl"></div><div class="s-ttl">Yangi ishchi</div>
-    <div class="frow"><label class="flbl">Ism</label><input type="text" id="ish-nm" class="finp" placeholder="Ishchi ismi"></div>
-    <div class="frow"><label class="flbl">Telefon</label><input type="tel" id="ish-ph" class="finp" placeholder="+998901234567"></div>
-    <div class="frow"><label class="flbl">Kasb</label><input type="text" id="ish-kasb" class="finp" placeholder="Usta, Elektrik..."></div>
-    <div style="color:var(--red);font-size:12px;margin-bottom:8px;font-weight:600;min-height:16px" id="ish-err"></div>
-    <div class="sbtns"><button onclick="saveIsh()" class="sbtn-ok">Saqlash</button><button onclick="closeAddIsh()" class="sbtn-cn">Bekor</button></div>
-  </div>
-</div>
-
-<!-- OB KIRIM -->
-<div id="obkirim-bg" class="sbg" onclick="if(event.target===this)this.classList.remove('open')">
-  <div class="sht"><div class="s-hdl"></div>
-    <div style="text-align:center;font-size:13px;color:var(--muted);margin-bottom:4px;font-weight:600">Pul olindi —</div>
-    <div class="s-ttl" id="obkirim-nm"></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <button onclick="pickKirim('mijoz')" style="padding:20px 10px;border-radius:20px;border:2px solid var(--green);background:var(--green-bg);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:10px;font-family:'Manrope',sans-serif">
-        <div style="width:54px;height:54px;border-radius:17px;background:var(--green);display:flex;align-items:center;justify-content:center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
-        <div style="font-size:14px;font-weight:800;color:var(--green)">Mijozdan</div>
-      </button>
-      <button onclick="pickKirim('dokon')" style="padding:20px 10px;border-radius:20px;border:2px solid var(--purple);background:var(--purple-bg);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:10px;font-family:'Manrope',sans-serif">
-        <div style="width:54px;height:54px;border-radius:17px;background:var(--purple);display:flex;align-items:center;justify-content:center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg></div>
-        <div style="font-size:14px;font-weight:800;color:var(--purple)">Do'kondan</div>
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- AVANS SHEET -->
-<div id="ish-avans-bg" class="sbg" onclick="if(event.target===this)this.classList.remove('open')">
-  <div class="sht"><div class="s-hdl"></div><div class="s-ttl">Avans berish</div>
-    <div style="font-size:13px;color:var(--muted);text-align:center;margin:-14px 0 16px;font-weight:600" id="ish-avans-nm"></div>
-    <div class="frow"><label class="flbl">Summa ($)</label><input type="number" class="finp" id="ish-avans-sum" placeholder="0" inputmode="decimal" style="font-size:28px;font-weight:900;text-align:center"></div>
-    <div class="frow"><label class="flbl">Sana</label><input type="date" class="finp" id="ish-avans-date"></div>
-    <div class="frow"><label class="flbl">Obyekt</label>
-      <div onclick="openAvansObPicker()" style="width:100%;padding:14px 16px;border-radius:14px;border:1.5px solid var(--border);background:#fff;font-size:15px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
-        <span id="ish-avans-ob-txt" style="color:var(--muted);font-weight:500">Tanlang</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-      </div>
-      <input type="hidden" id="ish-avans-ob-id">
-    </div>
-    <div class="frow"><label class="flbl">Izoh</label><input type="text" class="finp" id="ish-avans-izoh" placeholder="Izoh"></div>
-    <div style="color:var(--red);font-size:12px;margin-bottom:8px;font-weight:600;min-height:16px" id="ish-avans-err"></div>
-    <div class="sbtns">
-      <button onclick="saveIshAvans()" class="sbtn-ok" style="background:linear-gradient(135deg,var(--red),#dc2626)">− Avans</button>
-      <button onclick="document.getElementById('ish-avans-bg').classList.remove('open')" class="sbtn-cn">Bekor</button>
-    </div>
-  </div>
-</div>
-
-<!-- ISH HAQQI SHEET -->
-<div id="ish-haqqi-bg" class="sbg" onclick="if(event.target===this)this.classList.remove('open')">
-  <div class="sht"><div class="s-hdl"></div><div class="s-ttl">Ish haqqi</div>
-    <div style="font-size:13px;color:var(--muted);text-align:center;margin:-14px 0 16px;font-weight:600" id="ish-haqqi-nm"></div>
-    <div class="frow"><label class="flbl">Summa ($)</label><input type="number" class="finp" id="ish-haqqi-sum" placeholder="0" inputmode="decimal" style="font-size:28px;font-weight:900;text-align:center"></div>
-    <div class="frow"><label class="flbl">Sana</label><input type="date" class="finp" id="ish-haqqi-date"></div>
-    <div class="frow"><label class="flbl">Obyekt</label>
-      <div onclick="openHaqqiObPicker()" style="width:100%;padding:14px 16px;border-radius:14px;border:1.5px solid var(--border);background:#fff;font-size:15px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
-        <span id="ish-haqqi-ob-txt" style="color:var(--muted);font-weight:500">Tanlang</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-      </div>
-      <input type="hidden" id="ish-haqqi-ob-id">
-    </div>
-    <div class="frow"><label class="flbl">Izoh</label><input type="text" class="finp" id="ish-haqqi-izoh" placeholder="Izoh"></div>
-    <div style="color:var(--red);font-size:12px;margin-bottom:8px;font-weight:600;min-height:16px" id="ish-haqqi-err"></div>
-    <div class="sbtns">
-      <button onclick="saveIshHaqqi()" class="sbtn-ok" style="background:linear-gradient(135deg,var(--green),#15803d)">+ Ish haqqi</button>
-      <button onclick="document.getElementById('ish-haqqi-bg').classList.remove('open')" class="sbtn-cn">Bekor</button>
-    </div>
-  </div>
-</div>
-
-<!-- ISHCHI DETAIL -->
-<div id="ish-det-bg" class="sbg" onclick="if(event.target===this)this.classList.remove('open')">
-  <div class="sht" style="padding-bottom:48px"><div class="s-hdl"></div><div id="ish-det-body"></div></div>
-</div>
-
-<!-- EDIT MUDDAT SHEET -->
-<div id="edit-muddat-bg" class="sbg" onclick="if(event.target===this)this.classList.remove('open')">
-  <div class="sht">
-    <div class="s-hdl"></div>
-    <div class="s-ttl">Muddat tahrirlash</div>
-    <div style="font-size:13px;color:var(--muted);text-align:center;margin:-14px 0 16px;font-weight:600" id="edit-muddat-nm"></div>
-    <div class="frow">
-      <label class="flbl">Boshlanish sanasi</label>
-      <input type="date" class="finp" id="edit-start">
-    </div>
-    <div class="frow">
-      <label class="flbl">Muddat (kun)</label>
-      <input type="number" class="finp" id="edit-days" placeholder="masalan: 60" inputmode="numeric" style="font-size:24px;font-weight:800;text-align:center">
-    </div>
-    <div class="sbtns">
-      <button onclick="saveEditMuddat()" class="sbtn-ok">💾 Saqlash</button>
-      <button onclick="document.getElementById('edit-muddat-bg').classList.remove('open')" class="sbtn-cn">Bekor</button>
-    </div>
-  </div>
-</div>
-
-<!-- ISHCHI PANEL -->
-<div id="ishchi-app" style="display:none;min-height:100vh;background:var(--bg)">
-  <div style="background:linear-gradient(160deg,#1e293b,#0f172a);padding:48px 24px 32px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-      <div>
-        <div style="font-size:12px;color:rgba(255,255,255,.45);font-weight:600;margin-bottom:4px">Xush kelibsiz</div>
-        <div style="font-size:22px;font-weight:900;color:#fff" id="ish-panel-name">...</div>
-        <div style="font-size:12px;color:rgba(255,255,255,.45);font-weight:600;margin-top:2px" id="ish-panel-kasb">Ishchi</div>
-      </div>
-      <button onclick="doLogout()" style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:12px;padding:10px 16px;color:var(--red);font-size:13px;font-weight:700;font-family:'Manrope',sans-serif;cursor:pointer">Chiqish</button>
-    </div>
-    <!-- Balans karta -->
-    <div style="background:rgba(255,255,255,.08);border-radius:20px;padding:20px;border:1px solid rgba(255,255,255,.12)">
-      <div style="font-size:11px;color:rgba(255,255,255,.45);font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Mening hisobim</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-        <div style="text-align:center">
-          <div style="font-size:10px;color:rgba(255,255,255,.45);font-weight:700;margin-bottom:6px">ISH HAQQI</div>
-          <div style="font-size:20px;font-weight:900;color:#4ade80" id="ip-haqqi">$0</div>
+  <!-- HOME -->
+  <div class="page active" id="pg-home">
+    <div class="balance-card fade-up">
+      <div class="balance-label">Umumiy balans</div>
+      <div class="balance-amount" id="home-total-bal">$0</div>
+      <div class="balance-row">
+        <div class="balance-sub">
+          <div class="balance-sub-lbl">Kirim</div>
+          <div class="balance-sub-val" id="home-total-in" style="color:#4ade80">$0</div>
         </div>
-        <div style="text-align:center;border-left:1px solid rgba(255,255,255,.1);border-right:1px solid rgba(255,255,255,.1)">
-          <div style="font-size:10px;color:rgba(255,255,255,.45);font-weight:700;margin-bottom:6px">AVANS</div>
-          <div style="font-size:20px;font-weight:900;color:#f87171" id="ip-avans">$0</div>
+        <div class="balance-sub">
+          <div class="balance-sub-lbl">Chiqim</div>
+          <div class="balance-sub-val" id="home-total-out" style="color:#f87171">$0</div>
         </div>
-        <div style="text-align:center">
-          <div style="font-size:10px;color:rgba(255,255,255,.45);font-weight:700;margin-bottom:6px">QOLDIQ</div>
-          <div style="font-size:20px;font-weight:900" id="ip-qoldiq">$0</div>
+        <div class="balance-sub">
+          <div class="balance-sub-lbl">Qo'lda</div>
+          <div class="balance-sub-val" id="home-in-hand" style="color:#fbbf24">$0</div>
         </div>
       </div>
     </div>
+
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">Mening loyihalarim</div>
+        <div class="section-more" onclick="gp('projects')">Barchasi ›</div>
+      </div>
+      <div id="home-obs-list"></div>
+    </div>
   </div>
-  
-  <!-- Operatsiyalar -->
-  <div style="padding:20px 16px 0">
-    <div style="font-size:16px;font-weight:800;margin-bottom:12px">Operatsiyalar tarixi</div>
-    <div id="ip-ops" style="display:flex;flex-direction:column;gap:8px">
-      <div class="spin"></div>
+
+  <!-- PROJECTS -->
+  <div class="page" id="pg-projects">
+    <div class="topbar">
+      <div class="topbar-title">Loyihalar</div>
+      <div style="display:flex;gap:8px">
+        <div class="tabs" style="margin:0;background:transparent">
+          <button class="tab active" id="tab-my" onclick="switchObTab('my')">Mening</button>
+          <button class="tab" id="tab-shared" onclick="switchObTab('shared')">Ulashilgan</button>
+        </div>
+      </div>
+    </div>
+    <div class="search-box">
+      <span class="search-ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></span>
+      <input class="search-inp" placeholder="Qidirish..." oninput="filterObs(this.value)">
+    </div>
+    <div id="obs-list" style="padding:0 16px"></div>
+  </div>
+
+  <!-- OB DETAIL -->
+  <div class="page" id="pg-ob-detail">
+    <div class="ob-detail-header">
+      <button onclick="gp('projects')" style="background:rgba(255,255,255,.1);border:none;color:#fff;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;margin-bottom:12px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      </button>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between">
+        <div>
+          <div class="ob-detail-name" id="ob-detail-name">Loyiha</div>
+          <div class="ob-detail-meta" id="ob-detail-meta"></div>
+        </div>
+        <div id="ob-detail-role-badge"></div>
+      </div>
+    </div>
+    <div class="ob-stats">
+      <div class="ob-stat">
+        <div class="ob-stat-val" id="ob-stat-in" style="color:var(--green)">$0</div>
+        <div class="ob-stat-lbl">Kirim</div>
+      </div>
+      <div class="ob-stat">
+        <div class="ob-stat-val" id="ob-stat-out" style="color:var(--red)">$0</div>
+        <div class="ob-stat-lbl">Chiqim</div>
+      </div>
+      <div class="ob-stat">
+        <div class="ob-stat-val" id="ob-stat-bal">$0</div>
+        <div class="ob-stat-lbl">Balans</div>
+      </div>
+    </div>
+
+    <div class="act-btns" id="ob-act-btns"></div>
+
+    <div style="padding:0 16px">
+      <div class="tabs" style="margin:0 0 12px">
+        <button class="tab active" onclick="obTab('txs',this)">Operatsiyalar</button>
+        <button class="tab" onclick="obTab('members',this)">A'zolar</button>
+        <button class="tab" onclick="obTab('my-bal',this)">Mening pulim</button>
+      </div>
+      <div id="ob-tab-content"></div>
+    </div>
+  </div>
+
+  <!-- SEND MONEY -->
+  <div class="page" id="pg-send">
+    <div class="topbar">
+      <button onclick="history.back()" style="background:var(--bg);border:none;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      </button>
+      <div class="topbar-title" id="send-title">Pul yuborish</div>
+      <div></div>
+    </div>
+    <div style="padding:16px" id="send-content"></div>
+  </div>
+
+  <!-- HISOBOT -->
+  <div class="page" id="pg-hisobot">
+    <div class="topbar"><div class="topbar-title">Hisobot</div></div>
+    <div id="hisobot-content" style="padding-bottom:16px"></div>
+  </div>
+
+  <!-- PROFIL -->
+  <div class="page" id="pg-profil">
+    <div class="profile-header">
+      <div class="profile-avatar" id="profil-av">R</div>
+      <div class="profile-name" id="profil-name-disp">-</div>
+      <div class="profile-phone" id="profil-phone-disp">-</div>
+    </div>
+    <div style="padding:16px">
+      <div class="soz-item" onclick="openEditName()">
+        <div class="soz-ico" style="background:#fff7ed">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+        </div>
+        <div class="soz-lbl">Ismni o'zgartirish</div>
+        <span class="soz-arr">›</span>
+      </div>
+      <div class="soz-item" onclick="doLogout()" style="margin-top:8px">
+        <div class="soz-ico" style="background:#fef2f2">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </div>
+        <div class="soz-lbl" style="color:var(--red)">Chiqish</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bnav">
+    <div class="bnav-item active" onclick="gp('home')" id="nav-home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Asosiy
+    </div>
+    <div class="bnav-item" onclick="gp('projects')" id="nav-projects">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/></svg>
+      Loyihalar
+    </div>
+    <div class="bnav-item" onclick="gp('hisobot')" id="nav-hisobot">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Hisobot
+    </div>
+    <div class="bnav-item" onclick="gp('profil')" id="nav-profil">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Profil
+    </div>
+  </nav>
+
+  <!-- FAB -->
+  <button class="fab" id="main-fab" onclick="openMainFab()">+</button>
+</div>
+
+<!-- ══════════════ MODALS ══════════════ -->
+
+<!-- New Ob -->
+<div class="sbg" id="new-ob-bg" onclick="if(event.target===this)closeSbg('new-ob-bg')">
+  <div class="sheet">
+    <div class="sheet-bar"></div>
+    <div class="sheet-head">🏗 Yangi loyiha</div>
+    <div class="sheet-body">
+      <div class="inp-wrap">
+        <label class="inp-lbl">Loyiha nomi</label>
+        <input class="inp" id="new-ob-name" placeholder="Masalan: Yunusobod kvartira">
+      </div>
+      <div class="inp-wrap">
+        <label class="inp-lbl">Boshlash sanasi</label>
+        <input class="inp" id="new-ob-date" type="date">
+      </div>
+      <div class="inp-wrap">
+        <label class="inp-lbl">Muddat (kun)</label>
+        <input class="inp" id="new-ob-days" type="number" placeholder="30" min="1">
+      </div>
+      <button class="btn btn-acc" onclick="createOb()">Yaratish</button>
     </div>
   </div>
 </div>
 
-</div><!-- /app -->
+<!-- Add Member -->
+<div class="sbg" id="add-member-bg" onclick="if(event.target===this)closeSbg('add-member-bg')">
+  <div class="sheet">
+    <div class="sheet-bar"></div>
+    <div class="sheet-head">👤 A'zo qo'shish</div>
+    <div class="sheet-body">
+      <div class="inp-wrap">
+        <label class="inp-lbl">Telefon raqami</label>
+        <input class="inp inp-phone" id="member-phone" type="tel" placeholder="+998 90 000 00 00" oninput="formatPhone(this)">
+      </div>
+      <div class="inp-wrap">
+        <label class="inp-lbl">Rol</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" id="role-selector">
+          <div class="role-opt active" data-role="member" onclick="selectRole('member',this)">
+            <div style="font-size:13px;font-weight:800;color:var(--blue)">👷 Ishchi boshi</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">Pul sarflaydi</div>
+          </div>
+          <div class="role-opt" data-role="worker" onclick="selectRole('worker',this)">
+            <div style="font-size:13px;font-weight:800;color:var(--green)">🔨 Ishchi</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">Pul oladi/sarflaydi</div>
+          </div>
+        </div>
+      </div>
+      <div id="member-search-result" style="margin-bottom:14px"></div>
+      <button class="btn btn-acc" onclick="addMember()">Qo'shish</button>
+    </div>
+  </div>
+</div>
 
+<!-- Send Money -->
+<div class="sbg" id="send-money-bg" onclick="if(event.target===this)closeSbg('send-money-bg')">
+  <div class="sheet">
+    <div class="sheet-bar"></div>
+    <div class="sheet-head" id="send-money-title">💸 Pul yuborish</div>
+    <div class="sheet-body">
+      <div id="send-to-info" style="background:var(--bg);border-radius:12px;padding:12px;margin-bottom:14px;display:none"></div>
+      <div class="inp-wrap">
+        <label class="inp-lbl">Kimga</label>
+        <select class="inp" id="send-to-select" onchange="onSendToChange()">
+          <option value="">Tanlang...</option>
+        </select>
+      </div>
+      <div class="inp-wrap">
+        <label class="inp-lbl">Summa (so'm)</label>
+        <input class="inp" id="send-amount" type="number" placeholder="0" style="font-size:20px;font-weight:800" min="0">
+      </div>
+      <div class="inp-wrap">
+        <label class="inp-lbl">Izoh (ixtiyoriy)</label>
+        <input class="inp" id="send-note" placeholder="Masalan: avans, ish haqi...">
+      </div>
+      <div id="send-bal-info" style="font-size:13px;color:var(--muted);margin-bottom:14px;padding:10px;background:var(--bg);border-radius:10px;display:none"></div>
+      <button class="btn btn-acc" onclick="doSendMoney()">Yuborish</button>
+    </div>
+  </div>
+</div>
+
+<!-- Spend Money -->
+<div class="sbg" id="spend-money-bg" onclick="if(event.target===this)closeSbg('spend-money-bg')">
+  <div class="sheet">
+    <div class="sheet-bar"></div>
+    <div class="sheet-head">💳 Pul sarflash</div>
+    <div class="sheet-body">
+      <div id="my-balance-info" style="background:var(--green-bg);border-radius:12px;padding:12px;margin-bottom:14px;text-align:center">
+        <div style="font-size:12px;color:var(--green);font-weight:700;margin-bottom:2px">Qo'limdagi pul</div>
+        <div style="font-size:24px;font-weight:900;color:var(--green)" id="spend-my-bal">$0</div>
+      </div>
+      <div class="inp-wrap">
+        <label class="inp-lbl">Kategoriya</label>
+        <div id="spend-cats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px"></div>
+      </div>
+      <div class="inp-wrap">
+        <label class="inp-lbl">Summa</label>
+        <input class="inp" id="spend-amount" type="number" placeholder="0" style="font-size:20px;font-weight:800" min="0">
+      </div>
+      <div class="inp-wrap">
+        <label class="inp-lbl">Izoh</label>
+        <input class="inp" id="spend-note" placeholder="Nima uchun...">
+      </div>
+      <button class="btn btn-acc" onclick="doSpendMoney()">Sarflash</button>
+    </div>
+  </div>
+</div>
+
+<!-- Receive from Owner (Owner sends money into project) -->
+<div class="sbg" id="add-income-bg" onclick="if(event.target===this)closeSbg('add-income-bg')">
+  <div class="sheet">
+    <div class="sheet-bar"></div>
+    <div class="sheet-head">📥 Pul kirimi</div>
+    <div class="sheet-body">
+      <div class="inp-wrap">
+        <label class="inp-lbl">Manba</label>
+        <select class="inp" id="income-source">
+          <option value="mijoz">Mijozdan</option>
+          <option value="kredit">Kredit</option>
+          <option value="boshqa">Boshqa</option>
+        </select>
+      </div>
+      <div class="inp-wrap">
+        <label class="inp-lbl">Summa</label>
+        <input class="inp" id="income-amount" type="number" placeholder="0" style="font-size:20px;font-weight:800" min="0">
+      </div>
+      <div class="inp-wrap">
+        <label class="inp-lbl">Izoh</label>
+        <input class="inp" id="income-note" placeholder="Masalan: birinchi to'lov...">
+      </div>
+      <button class="btn btn-acc" onclick="doAddIncome()">Saqlash</button>
+    </div>
+  </div>
+</div>
+
+<!-- Tx Detail -->
+<div class="sbg" id="tx-detail-bg" onclick="if(event.target===this)closeSbg('tx-detail-bg')">
+  <div class="sheet">
+    <div class="sheet-bar"></div>
+    <div id="tx-detail-content" class="sheet-body" style="padding-top:8px"></div>
+  </div>
+</div>
+
+<!-- Edit Name -->
+<div class="sbg" id="edit-name-bg" onclick="if(event.target===this)closeSbg('edit-name-bg')">
+  <div class="sheet">
+    <div class="sheet-bar"></div>
+    <div class="sheet-head">✏️ Ismni o'zgartirish</div>
+    <div class="sheet-body">
+      <div class="inp-wrap">
+        <input class="inp" id="edit-name-inp" placeholder="Ism Familiya" style="font-size:16px">
+      </div>
+      <button class="btn btn-acc" onclick="saveEditName()">Saqlash</button>
+    </div>
+  </div>
+</div>
+
+<!-- Member Detail -->
+<div class="sbg" id="member-detail-bg" onclick="if(event.target===this)closeSbg('member-detail-bg')">
+  <div class="sheet">
+    <div class="sheet-bar"></div>
+    <div id="member-detail-content" class="sheet-body" style="padding-top:8px"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// ââ SUPABASE ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-const SURL = 'https://djreovvpojsiccndlgzu.supabase.co';
-const SKEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqcmVvdnZwb2pzaWNjbmRsZ3p1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NzMzOTksImV4cCI6MjA5NTA0OTM5OX0.fgaat8STrBIj6WC_p98zYN3Tfp6kScDKYXuHk1lLDKk';
-const sb = supabase.createClient(SURL, SKEY);
+// ═══════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════
+const SB_URL = 'https://djreovvpojsiccndlgzu.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqcmVvdnZwb2pzaWNjbmRsZ3p1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NzMzOTksImV4cCI6MjA5NTA0OTM5OX0.fgaat8STrBIj6WC_p98zYWxOoGKO3DmwT7mJaT1LKTI';
+const sb = supabase.createClient(SB_URL, SB_KEY);
 
-// ââ STATE âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-let OBS=[], OPS=[], ISHCHILAR=[];
-let curUser=null, curProfile=null;
-let curPage='home', curCat='usta', curType='chiqim', curObId=null, opFilt='all', perPer='month', obFilt='all';
-let curIshAvansId=null, curIshHaqqiId=null;
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let curUser = null;
+let curProfile = null;
+let curPage = 'home';
+let curObId = null;
+let curOb = null;
+let curObRole = null;
+let allObs = []; // {ob, role, myBalance}
+let obTxs = [];
+let obMembers = [];
+let sendSelectedRole = 'member';
 
-const COLORS=['#f97316','#16a34a','#3b82f6','#7c3aed','#ef4444','#0891b2'];
-const CAT_ICONS={
-  usta:{svg:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>',bg:'#fff7ed',c:'var(--acc)'},
-  bozor:{svg:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>',bg:'var(--green-bg)',c:'var(--green)'},
-  dostavka:{svg:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>',bg:'var(--blue-bg)',c:'var(--blue)'},
-  dokon:{svg:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>',bg:'var(--purple-bg)',c:'var(--purple)'},
-  dop:{svg:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>',bg:'var(--red-bg)',c:'var(--red)'},
-  ovqat:{svg:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>',bg:'#fffbeb',c:'#f59e0b'},
-  mijoz:{svg:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>',bg:'var(--green-bg)',c:'var(--green)'},
-  ish_haqqi:{svg:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',bg:'var(--green-bg)',c:'var(--green)'},
+// Categories
+const CATS = [
+  {id:'usta',   label:'Usta',      emoji:'🔧', bg:'#fff7ed', c:'#ea580c'},
+  {id:'bozor',  label:'Bozor',     emoji:'🛒', bg:'#f0fdf4', c:'#16a34a'},
+  {id:'dostavka',label:'Yetkazish',emoji:'🚚', bg:'#eff6ff', c:'#3b82f6'},
+  {id:'dokon',  label:"Do'kon",    emoji:'🏪', bg:'#fdf4ff', c:'#a855f7'},
+  {id:'ovqat',  label:'Ovqat',     emoji:'🍱', bg:'#fffbeb', c:'#f59e0b'},
+  {id:'qoshimcha',label:'Boshqa',  emoji:'➕', bg:'#f1f5f9', c:'#64748b'},
+];
+let selectedCat = 'bozor';
+
+// ═══════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════
+const usd = n => {
+  const v = Math.abs(n||0);
+  if(v>=1000000) return (v/1000000).toFixed(1)+'M';
+  if(v>=1000) return (v/1000).toFixed(0)+'K';
+  return v.toLocaleString();
 };
-const CAT_NMS={usta:'Usta',bozor:'Bozor',dostavka:'Dostavka',dokon:"Do'kon",dop:"Qo'shimcha",ovqat:'Ovqat',mijoz:'Mijoz',ish_haqqi:'Ish haqqi'};
+const usdFull = n => (n||0).toLocaleString() + ' so\'m';
 
-// ââ HELPERS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-const $=id=>document.getElementById(id);
-const usd=v=>'$'+Math.abs(v).toLocaleString('en-US',{maximumFractionDigits:0});
-const fmtD=iso=>{if(!iso)return '';const[y,m,d]=iso.split('T')[0].split('-');return d+'.'+m+'.'+String(y).slice(2);};
-const today=()=>new Date().toISOString().split('T')[0];
+function toast(msg, color='#0f172a'){
+  const t=document.createElement('div');
+  t.className='toast';t.textContent=msg;
+  t.style.background=color;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),2500);
+}
 
-// ââ AUTH ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-function selectRole(role){
-  document.getElementById('reg-role').value=role;
-  const prorabBtn=document.getElementById('role-prorab');
-  const ishchiBtn=document.getElementById('role-ishchi');
-  if(role==='prorab'){
-    prorabBtn.style.cssText='padding:12px;border-radius:12px;border:2px solid var(--acc);background:#fff7ed;color:var(--acc);font-size:14px;font-weight:800;font-family:Manrope,sans-serif;cursor:pointer';
-    ishchiBtn.style.cssText='padding:12px;border-radius:12px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:14px;font-weight:800;font-family:Manrope,sans-serif;cursor:pointer';
-  } else {
-    ishchiBtn.style.cssText='padding:12px;border-radius:12px;border:2px solid var(--blue);background:var(--blue-bg);color:var(--blue);font-size:14px;font-weight:800;font-family:Manrope,sans-serif;cursor:pointer';
-    prorabBtn.style.cssText='padding:12px;border-radius:12px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:14px;font-weight:800;font-family:Manrope,sans-serif;cursor:pointer';
+function closeSbg(id){document.getElementById(id).classList.remove('open');}
+function openSbg(id){document.getElementById(id).classList.add('open');}
+
+function avColor(name){
+  const colors=['av-orange','av-blue','av-green','av-purple','av-red'];
+  let h=0;for(let i=0;i<(name||'').length;i++)h+=name.charCodeAt(i);
+  return colors[h%colors.length];
+}
+function avLetter(name){return (name||'?').charAt(0).toUpperCase();}
+
+function fmtDate(d){
+  if(!d)return '';
+  return new Date(d).toLocaleDateString('uz-UZ',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+
+function formatPhone(inp){
+  let v=inp.value.replace(/\D/g,'');
+  if(v.startsWith('998'))v='+'+v;
+  else if(v.startsWith('9')&&v.length<=12)v='+998'+v.substring(v.startsWith('998')?3:0);
+  inp.value=v.substring(0,13);
+}
+
+function gp(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.bnav-item').forEach(b=>b.classList.remove('active'));
+  curPage=page;
+  const pg=document.getElementById('pg-'+page);
+  if(pg){pg.classList.add('active');pg.scrollTop=0;}
+  const nav=document.getElementById('nav-'+page);
+  if(nav)nav.classList.add('active');
+  const fab=document.getElementById('main-fab');
+  if(fab)fab.style.display=['home','projects','ob-detail'].includes(page)?'flex':'none';
+
+  if(page==='home')renderHome();
+  if(page==='projects')renderObs();
+  if(page==='hisobot')renderHisobot();
+  if(page==='profil')renderProfil();
+}
+
+// Escape
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')document.querySelectorAll('.sbg.open').forEach(el=>el.classList.remove('open'));
+});
+
+// ═══════════════════════════════════════════
+// AUTH — PHONE OTP
+// ═══════════════════════════════════════════
+async function sendOtp(){
+  const phone=document.getElementById('phone-inp').value.trim();
+  if(phone.length<10){showErr('phone-err','To\'g\'ri telefon kiriting');return;}
+  const btn=document.getElementById('send-otp-btn');
+  btn.innerHTML='<span class="spinner"></span>';
+  btn.disabled=true;
+  try{
+    const {error}=await sb.auth.signInWithOtp({phone});
+    if(error)throw error;
+    document.getElementById('auth-phone-box').style.display='none';
+    document.getElementById('auth-otp-box').style.display='block';
+    document.getElementById('otp-phone-show').textContent=phone;
+    document.getElementById('otp0').focus();
+  }catch(e){
+    showErr('phone-err',e.message||'Xato yuz berdi');
+    btn.textContent='Davom etish →';btn.disabled=false;
   }
 }
 
-function switchTab(tab,el){
-  document.querySelectorAll('.auth-tab').forEach(b=>b.classList.remove('on'));
-  el.classList.add('on');
-  $('login-form').style.display=tab==='login'?'block':'none';
-  $('reg-form').style.display=tab==='register'?'block':'none';
+async function resendOtp(){
+  document.getElementById('auth-otp-box').style.display='none';
+  document.getElementById('auth-phone-box').style.display='block';
+  document.getElementById('send-otp-btn').textContent='Davom etish →';
+  document.getElementById('send-otp-btn').disabled=false;
 }
 
-async function doLogin(){
-  const email=$('login-email').value.trim();
-  const pass=$('login-pass').value;
-  const err=$('login-err');
-  err.textContent='';
-  if(!email||!pass){err.textContent='Email va parol kiriting!';return;}
-  const btn=document.querySelector('#login-form .auth-btn');
-  btn.textContent='Kirmoqda...';btn.disabled=true;
-  const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
-  btn.textContent='Kirish →';btn.disabled=false;
-  if(error){
-    err.textContent=error.message==='Invalid login credentials'?'Email yoki parol xato!':error.message;
+function otpInput(el,idx){
+  el.value=el.value.replace(/\D/g,'');
+  if(el.value&&idx<5)document.getElementById('otp'+(idx+1)).focus();
+  if(getOtpVal().length===6)verifyOtp();
+}
+
+function otpKey(el,idx,e){
+  if(e.key==='Backspace'&&!el.value&&idx>0)document.getElementById('otp'+(idx-1)).focus();
+}
+
+function getOtpVal(){
+  let v='';
+  for(let i=0;i<6;i++)v+=document.getElementById('otp'+i).value;
+  return v;
+}
+
+async function verifyOtp(){
+  const phone=document.getElementById('phone-inp').value.trim();
+  const token=getOtpVal();
+  if(token.length!==6){showErr('otp-err','6 xonali kod kiriting');return;}
+  const btn=document.getElementById('verify-otp-btn');
+  btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
+  try{
+    const {data,error}=await sb.auth.verifyOtp({phone,token,type:'sms'});
+    if(error)throw error;
+    curUser=data.user;
+    await loadOrCreateProfile();
+  }catch(e){
+    showErr('otp-err',e.message||'Kod xato');
+    btn.textContent='Tasdiqlash';btn.disabled=false;
+  }
+}
+
+async function loadOrCreateProfile(){
+  const {data}=await sb.from('profiles').select('*').eq('id',curUser.id).single();
+  if(data){
+    curProfile=data;
+    if(!data.full_name){
+      document.getElementById('auth-otp-box').style.display='none';
+      document.getElementById('auth-name-box').style.display='block';
+    }else{
+      startApp();
+    }
+  }else{
+    // Create profile
+    await sb.from('profiles').insert({id:curUser.id,phone:curUser.phone});
+    document.getElementById('auth-otp-box').style.display='none';
+    document.getElementById('auth-name-box').style.display='block';
+  }
+}
+
+async function saveName(){
+  const name=document.getElementById('name-inp').value.trim();
+  if(!name){return;}
+  await sb.from('profiles').upsert({id:curUser.id,phone:curUser.phone,full_name:name});
+  curProfile={...curProfile,full_name:name,phone:curUser.phone};
+  startApp();
+}
+
+function showErr(id,msg){
+  const el=document.getElementById(id);
+  if(el){el.textContent=msg;el.style.display='block';}
+}
+
+// ═══════════════════════════════════════════
+// APP START
+// ═══════════════════════════════════════════
+async function startApp(){
+  document.getElementById('pg-auth').style.display='none';
+  document.getElementById('app').style.display='block';
+  await loadAllData();
+  gp('home');
+}
+
+async function loadAllData(){
+  // Load all projects where user is member
+  const {data:memberRows}=await sb.from('ob_members')
+    .select('ob_id,role,balance')
+    .eq('user_id',curUser.id);
+
+  if(!memberRows||memberRows.length===0){allObs=[];return;}
+
+  const obIds=memberRows.map(r=>r.ob_id);
+  const {data:obs}=await sb.from('obyektlar').select('*').in('id',obIds);
+
+  allObs=(obs||[]).map(ob=>{
+    const m=memberRows.find(r=>r.ob_id===ob.id);
+    return{ob,role:m?.role||'member',myBalance:m?.balance||0};
+  }).sort((a,b)=>new Date(b.ob.created_at)-new Date(a.ob.created_at));
+}
+
+// ═══════════════════════════════════════════
+// HOME
+// ═══════════════════════════════════════════
+async function renderHome(){
+  await loadAllData();
+  let totalIn=0,totalOut=0,totalHand=0;
+  allObs.forEach(({ob,role,myBalance})=>{
+    if(role==='owner'){totalIn+=ob.kirim||0;totalOut+=ob.chiqim||0;}
+    totalHand+=myBalance;
+  });
+  document.getElementById('home-total-bal').textContent=usd(totalIn-totalOut)+' so\'m';
+  document.getElementById('home-total-in').textContent=usd(totalIn)+' so\'m';
+  document.getElementById('home-total-out').textContent=usd(totalOut)+' so\'m';
+  document.getElementById('home-in-hand').textContent=usd(totalHand)+' so\'m';
+
+  const list=document.getElementById('home-obs-list');
+  const recent=allObs.slice(0,3);
+  if(recent.length===0){
+    list.innerHTML=`<div class="empty"><div class="empty-icon">🏗</div><div class="empty-text">Loyihalar yo'q</div><div class="empty-sub">Yangi loyiha yarating</div></div>`;
     return;
   }
-  // Muvaffaqiyatli kirish
-  curUser=data.user;
-  $('auth-screen').style.display='none';
-  $('loading').style.display='flex';
-  await loadAll();
-  const role=curProfile?.role||curUser.user_metadata?.role||'prorab';
-  if(role==='ishchi'){
-    setupIshchiPanel();
-    $('loading').style.display='none';
-    return;
-  }
-  setupUI();
-  $('loading').style.display='none';
-  $('app').style.display='block';
-  renderHome();
+  list.innerHTML=recent.map(({ob,role,myBalance})=>obCardHtml(ob,role,myBalance)).join('');
 }
 
-async function doRegister(){
-  const name=$('reg-name').value.trim();
-  const phone=$('reg-phone').value.trim();
-  const email=$('reg-email').value.trim();
-  const pass=$('reg-pass').value;
-  const err=$('reg-err');
-  err.textContent='';
-  if(!name||!email||!pass){err.textContent='Barcha maydonlarni to\'ldiring!';return;}
-  if(pass.length<6){err.textContent='Parol kamida 6 ta belgi bo\'lishi kerak!';return;}
-  const btn=document.querySelector('#reg-form .auth-btn');
-  btn.textContent='Ro\'yxatdan o\'tilmoqda...';btn.disabled=true;
-  const {error}=await sb.auth.signUp({email,password:pass,options:{data:{full_name:name,phone}}});
-  btn.textContent='Ro\'yxatdan o\'tish →';btn.disabled=false;
-  if(error){err.textContent=error.message;return;}
-  err.style.color='var(--green)';
-  err.textContent='✅ Muvaffaqiyatli! Emailni tasdiqlang yoki kiring.';
+function obCardHtml(ob,role,myBalance){
+  const roleLabel={owner:"Egasi",member:"Ishchi boshi",worker:"Ishchi"}[role]||role;
+  const roleClass={owner:'role-owner',member:'role-member',worker:'role-worker'}[role]||'role-member';
+  const bal=role==='owner'?(ob.kirim||0)-(ob.chiqim||0):myBalance;
+  const balColor=bal>=0?'var(--green)':'var(--red)';
+  return`<div class="ob-card fade-up" onclick="openOb('${ob.id}')">
+    <div class="ob-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-4 0v2"/></svg></div>
+    <div class="ob-info">
+      <div class="ob-name">${ob.nomi}</div>
+      <div class="ob-meta"><span class="ob-role-badge ${roleClass}">${roleLabel}</span></div>
+    </div>
+    <div class="ob-bal">
+      <div class="ob-bal-val" style="color:${balColor}">${usd(bal)}</div>
+      <div class="ob-bal-lbl">${role==='owner'?'balans':'qo\'limda'}</div>
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════
+// PROJECTS
+// ═══════════════════════════════════════════
+let obsTabCur='my';
+function switchObTab(tab){
+  obsTabCur=tab;
+  document.getElementById('tab-my').classList.toggle('active',tab==='my');
+  document.getElementById('tab-shared').classList.toggle('active',tab==='shared');
+  renderObs();
+}
+
+async function renderObs(){
+  await loadAllData();
+  filterObs('');
+}
+
+function filterObs(q){
+  const filtered=allObs.filter(({ob,role})=>{
+    const matchTab=obsTabCur==='my'?role==='owner':role!=='owner';
+    const matchQ=!q||ob.nomi.toLowerCase().includes(q.toLowerCase());
+    return matchTab&&matchQ;
+  });
+  const list=document.getElementById('obs-list');
+  if(filtered.length===0){
+    list.innerHTML=`<div class="empty"><div class="empty-icon">${obsTabCur==='my'?'🏗':'👥'}</div><div class="empty-text">${obsTabCur==='my'?'Loyihalar yo\'q':'Ulashilgan loyihalar yo\'q'}</div><div class="empty-sub">${obsTabCur==='my'?'Yangi loyiha yarating':''}</div></div>`;
+    return;
+  }
+  list.innerHTML=filtered.map(({ob,role,myBalance})=>obCardHtml(ob,role,myBalance)).join('');
+}
+
+// ═══════════════════════════════════════════
+// OB DETAIL
+// ═══════════════════════════════════════════
+async function openOb(obId){
+  curObId=obId;
+  const found=allObs.find(o=>o.ob.id===obId);
+  if(!found)return;
+  curOb=found.ob;
+  curObRole=found.role;
+
+  document.getElementById('ob-detail-name').textContent=curOb.nomi;
+  document.getElementById('ob-detail-meta').textContent=fmtDate(curOb.created_at)+' • '+(curOb.muddat||0)+' kun';
+
+  const rLabel={owner:"Egasi",member:"Ishchi boshi",worker:"Ishchi"}[curObRole];
+  const rClass={owner:'role-owner',member:'role-member',worker:'role-worker'}[curObRole];
+  document.getElementById('ob-detail-role-badge').innerHTML=`<span class="ob-role-badge ${rClass}">${rLabel}</span>`;
+
+  // Stats
+  const {data:txs}=await sb.from('transactions').select('*').eq('ob_id',obId);
+  obTxs=txs||[];
+
+  let totalIn=0,totalOut=0;
+  obTxs.forEach(t=>{
+    if(t.tur==='income')totalIn+=t.summa||0;
+    if(t.tur==='spend'||t.tur==='send')totalOut+=t.summa||0;
+  });
+
+  if(curObRole==='owner'){
+    document.getElementById('ob-stat-in').textContent=usd(curOb.kirim||0);
+    document.getElementById('ob-stat-out').textContent=usd(curOb.chiqim||0);
+    const bal=(curOb.kirim||0)-(curOb.chiqim||0);
+    document.getElementById('ob-stat-bal').textContent=usd(bal);
+    document.getElementById('ob-stat-bal').style.color=bal>=0?'var(--green)':'var(--red)';
+  }else{
+    const myBal=found.myBalance;
+    // My received
+    const myRcv=obTxs.filter(t=>t.to_user===curUser.id&&t.tur==='send').reduce((s,t)=>s+t.summa,0);
+    const mySpent=obTxs.filter(t=>t.from_user===curUser.id&&t.tur==='spend').reduce((s,t)=>s+t.summa,0);
+    document.getElementById('ob-stat-in').textContent=usd(myRcv);
+    document.getElementById('ob-stat-out').textContent=usd(mySpent);
+    document.getElementById('ob-stat-bal').textContent=usd(myBal);
+    document.getElementById('ob-stat-bal').style.color=myBal>=0?'var(--green)':'var(--red)';
+  }
+
+  // Action buttons
+  renderActBtns();
+
+  // Members
+  const {data:members}=await sb.from('ob_members')
+    .select('*,profiles(*)')
+    .eq('ob_id',obId);
+  obMembers=members||[];
+
+  gp('ob-detail');
+  obTab('txs',document.querySelector('#pg-ob-detail .tabs .tab'));
+}
+
+function renderActBtns(){
+  const btns=document.getElementById('ob-act-btns');
+  let html='';
+  if(curObRole==='owner'){
+    html+=`<button class="act-btn act-btn-in" onclick="openSbg('add-income-bg')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12l7-7 7 7"/></svg>Pul kirdi</button>`;
+    html+=`<button class="act-btn act-btn-send" onclick="openSendMoney()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>Pul ber</button>`;
+    html+=`<button class="act-btn act-full-btn" onclick="openSbg('add-member-bg')" style="grid-column:1/-1;background:var(--bg);color:var(--text2)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>A'zo qo'shish</button>`;
+  }else{
+    const myBal=allObs.find(o=>o.ob.id===curObId)?.myBalance||0;
+    html+=`<button class="act-btn act-btn-send" onclick="openSendMoney()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>Pul ber</button>`;
+    html+=`<button class="act-btn act-btn-out" onclick="openSpendMoney()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7 7 7-7"/></svg>Sarflash</button>`;
+  }
+  btns.innerHTML=html;
+}
+
+function obTab(tab,el){
+  document.querySelectorAll('#pg-ob-detail .tabs .tab').forEach(t=>t.classList.remove('active'));
+  if(el)el.classList.add('active');
+  const content=document.getElementById('ob-tab-content');
+  if(tab==='txs')renderObTxs(content);
+  if(tab==='members')renderObMembers(content);
+  if(tab==='my-bal')renderMyBal(content);
+}
+
+function renderObTxs(container){
+  if(obTxs.length===0){
+    container.innerHTML=`<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Operatsiyalar yo'q</div></div>`;
+    return;
+  }
+  // Sort by date desc
+  const sorted=[...obTxs].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  container.innerHTML=sorted.map(tx=>txRowHtml(tx)).join('');
+}
+
+function txRowHtml(tx){
+  const cat=CATS.find(c=>c.id===tx.kategoriya)||CATS[5];
+  const isIn=tx.tur==='income'||(tx.tur==='send'&&tx.to_user===curUser.id);
+  const isOut=tx.tur==='spend'||(tx.tur==='send'&&tx.from_user===curUser.id);
+  const amtColor=isIn?'var(--green)':isOut?'var(--red)':'var(--text)';
+  const amtSign=isIn?'+':isOut?'-':'';
+  let title=cat.label;
+  if(tx.tur==='send'){
+    const toM=obMembers.find(m=>m.user_id===tx.to_user);
+    const fromM=obMembers.find(m=>m.user_id===tx.from_user);
+    title=tx.to_user===curUser.id?`${fromM?.profiles?.full_name||'Kimdir'}dan`:`${toM?.profiles?.full_name||'Kimdir'}ga`;
+  }
+  if(tx.tur==='income')title=tx.izoh||'Pul kirdi';
+  return`<div class="tx-row" onclick="openTxDetail('${tx.id}')">
+    <div class="tx-ico" style="background:${cat.bg}">${cat.emoji}</div>
+    <div class="tx-info">
+      <div class="tx-title">${title}</div>
+      <div class="tx-meta">${tx.izoh||''} • ${fmtDate(tx.created_at)}</div>
+    </div>
+    <div class="tx-amount" style="color:${amtColor}">${amtSign}${usd(tx.summa)}</div>
+  </div>`;
+}
+
+function renderObMembers(container){
+  if(obMembers.length<=1){
+    container.innerHTML=`<div class="empty"><div class="empty-icon">👥</div><div class="empty-text">A'zolar yo'q</div><div class="empty-sub">A'zo qo'shish tugmasini bosing</div></div>`;
+    return;
+  }
+  const others=obMembers.filter(m=>m.user_id!==curUser.id||m.role==='owner');
+  container.innerHTML=others.map(m=>memberCardHtml(m)).join('');
+}
+
+function memberCardHtml(m){
+  const name=m.profiles?.full_name||m.profiles?.phone||'Noma\'lum';
+  const phone=m.profiles?.phone||'';
+  const colors=['#f97316','#3b82f6','#16a34a','#a855f7','#ef4444'];
+  let h=0;name.split('').forEach(c=>h+=c.charCodeAt(0));
+  const bg=colors[h%colors.length];
+  const roleLabel={owner:"Egasi",member:"Ishchi boshi",worker:"Ishchi"}[m.role];
+  const roleClass={owner:'role-owner',member:'role-member',worker:'role-worker'}[m.role];
+  const canSend=curObRole==='owner'||(curObRole==='member'&&m.role==='worker');
+  return`<div class="member-card" onclick="openMemberDetail('${m.user_id}')">
+    <div class="member-avatar" style="background:${bg}">${name.charAt(0).toUpperCase()}</div>
+    <div class="member-info">
+      <div class="member-name">${name}</div>
+      <div class="member-phone"><span class="ob-role-badge ${roleClass}">${roleLabel}</span></div>
+    </div>
+    <div class="member-bal">
+      <div class="member-bal-val" style="color:${m.balance>0?'var(--green)':'var(--muted)'}">${usd(m.balance||0)}</div>
+      <div style="font-size:10px;color:var(--muted)">qo'lida</div>
+    </div>
+  </div>`;
+}
+
+function renderMyBal(container){
+  const found=allObs.find(o=>o.ob.id===curObId);
+  const myBal=found?.myBalance||0;
+  const myTxs=obTxs.filter(t=>t.from_user===curUser.id||t.to_user===curUser.id);
+  container.innerHTML=`
+    <div style="background:var(--green-bg);border-radius:16px;padding:20px;text-align:center;margin-bottom:16px">
+      <div style="font-size:12px;color:var(--green);font-weight:700;text-transform:uppercase;margin-bottom:4px">Qo'limdagi pul</div>
+      <div style="font-size:32px;font-weight:900;color:var(--green)">${usd(myBal)} so'm</div>
+    </div>
+    <div style="font-size:13px;font-weight:800;color:var(--text2);margin-bottom:10px">Mening operatsiyalarim</div>
+    ${myTxs.length===0?`<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Operatsiyalar yo'q</div></div>`:myTxs.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).map(tx=>txRowHtml(tx)).join('')}
+  `;
+}
+
+// ═══════════════════════════════════════════
+// SEND MONEY
+// ═══════════════════════════════════════════
+function openSendMoney(){
+  // Build recipient list based on role
+  const sel=document.getElementById('send-to-select');
+  sel.innerHTML='<option value="">Tanlang...</option>';
+
+  let recipients=[];
+  if(curObRole==='owner'){
+    // Owner can send to all members
+    recipients=obMembers.filter(m=>m.user_id!==curUser.id);
+  }else if(curObRole==='member'){
+    // Member can only send to workers
+    recipients=obMembers.filter(m=>m.role==='worker');
+  }
+
+  if(recipients.length===0){
+    toast('Pul yuborish uchun avval a\'zo qo\'shing','#ef4444');
+    return;
+  }
+
+  recipients.forEach(m=>{
+    const name=m.profiles?.full_name||m.profiles?.phone||'Noma\'lum';
+    const opt=document.createElement('option');
+    opt.value=m.user_id;opt.textContent=name;
+    sel.appendChild(opt);
+  });
+
+  document.getElementById('send-amount').value='';
+  document.getElementById('send-note').value='';
+  document.getElementById('send-bal-info').style.display='none';
+
+  // Show my balance info for non-owners
+  if(curObRole!=='owner'){
+    const myBal=allObs.find(o=>o.ob.id===curObId)?.myBalance||0;
+    const info=document.getElementById('send-bal-info');
+    info.textContent=`Sizning qo'lingizdagi pul: ${usd(myBal)} so'm`;
+    info.style.display='block';
+  }
+
+  openSbg('send-money-bg');
+}
+
+function onSendToChange(){
+  const uid=document.getElementById('send-to-select').value;
+  if(!uid)return;
+  const m=obMembers.find(m=>m.user_id===uid);
+  if(m){
+    const name=m.profiles?.full_name||'';
+    document.getElementById('send-money-title').textContent=`💸 ${name}ga yuborish`;
+  }
+}
+
+async function doSendMoney(){
+  const toUid=document.getElementById('send-to-select').value;
+  const amount=parseFloat(document.getElementById('send-amount').value);
+  const note=document.getElementById('send-note').value.trim();
+
+  if(!toUid){toast('Kimga yuborishni tanlang','#ef4444');return;}
+  if(!amount||amount<=0){toast('Summani kiriting','#ef4444');return;}
+
+  // Check balance for non-owners
+  if(curObRole!=='owner'){
+    const myBal=allObs.find(o=>o.ob.id===curObId)?.myBalance||0;
+    if(amount>myBal){toast('Yetarli pul yo\'q!','#ef4444');return;}
+  }
+
+  const btn=document.querySelector('#send-money-bg .btn');
+  btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
+
+  try{
+    // Create transaction
+    const {error:txErr}=await sb.from('transactions').insert({
+      ob_id:curObId,
+      from_user:curUser.id,
+      to_user:toUid,
+      summa:amount,
+      tur:'send',
+      kategoriya:'send',
+      izoh:note||null,
+    });
+    if(txErr)throw txErr;
+
+    // Update balances
+    // Sender loses balance (if not owner)
+    if(curObRole!=='owner'){
+      const myMember=obMembers.find(m=>m.user_id===curUser.id);
+      const newMyBal=(myMember?.balance||0)-amount;
+      await sb.from('ob_members').update({balance:newMyBal}).eq('ob_id',curObId).eq('user_id',curUser.id);
+    }else{
+      // Owner sends: deduct from ob.chiqim
+      await sb.from('obyektlar').update({chiqim:(curOb.chiqim||0)+amount}).eq('id',curObId);
+      curOb.chiqim=(curOb.chiqim||0)+amount;
+    }
+
+    // Receiver gains balance
+    const toMember=obMembers.find(m=>m.user_id===toUid);
+    const newToBal=(toMember?.balance||0)+amount;
+    await sb.from('ob_members').update({balance:newToBal}).eq('ob_id',curObId).eq('user_id',toUid);
+
+    closeSbg('send-money-bg');
+    toast('✅ Pul yuborildi!','#16a34a');
+    await openOb(curObId);
+  }catch(e){
+    toast('Xato: '+e.message,'#ef4444');
+  }finally{
+    btn.textContent='Yuborish';btn.disabled=false;
+  }
+}
+
+// ═══════════════════════════════════════════
+// SPEND MONEY
+// ═══════════════════════════════════════════
+function openSpendMoney(){
+  const myBal=allObs.find(o=>o.ob.id===curObId)?.myBalance||0;
+  document.getElementById('spend-my-bal').textContent=usd(myBal)+' so\'m';
+  document.getElementById('spend-amount').value='';
+  document.getElementById('spend-note').value='';
+
+  // Render categories
+  const catsEl=document.getElementById('spend-cats');
+  catsEl.innerHTML=CATS.map(c=>`
+    <div onclick="selectSpendCat('${c.id}',this)" style="background:${c.id===selectedCat?c.bg:'var(--bg)'};border:1.5px solid ${c.id===selectedCat?c.c:'var(--border)'};border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;transition:all .2s" data-cat="${c.id}">
+      <div style="font-size:20px">${c.emoji}</div>
+      <div style="font-size:10px;font-weight:700;color:${c.id===selectedCat?c.c:'var(--muted)');margin-top:2px">${c.label}</div>
+    </div>
+  `).join('');
+  openSbg('spend-money-bg');
+}
+
+function selectSpendCat(id,el){
+  selectedCat=id;
+  const cat=CATS.find(c=>c.id===id);
+  document.querySelectorAll('#spend-cats > div').forEach(d=>{
+    const c=CATS.find(c=>c.id===d.dataset.cat);
+    d.style.background=d.dataset.cat===id?c.bg:'var(--bg)';
+    d.style.borderColor=d.dataset.cat===id?c.c:'var(--border)';
+    d.querySelector('div:last-child').style.color=d.dataset.cat===id?c.c:'var(--muted)';
+  });
+}
+
+async function doSpendMoney(){
+  const amount=parseFloat(document.getElementById('spend-amount').value);
+  const note=document.getElementById('spend-note').value.trim();
+  const myBal=allObs.find(o=>o.ob.id===curObId)?.myBalance||0;
+
+  if(!amount||amount<=0){toast('Summani kiriting','#ef4444');return;}
+  if(amount>myBal){toast('Yetarli pul yo\'q!','#ef4444');return;}
+
+  const btn=document.querySelector('#spend-money-bg .btn');
+  btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
+
+  try{
+    const {error}=await sb.from('transactions').insert({
+      ob_id:curObId,
+      from_user:curUser.id,
+      to_user:null,
+      summa:amount,
+      tur:'spend',
+      kategoriya:selectedCat,
+      izoh:note||null,
+    });
+    if(error)throw error;
+
+    // Deduct from my balance
+    const newBal=myBal-amount;
+    await sb.from('ob_members').update({balance:newBal}).eq('ob_id',curObId).eq('user_id',curUser.id);
+
+    // Update ob totals if owner
+    if(curObRole==='owner'){
+      await sb.from('obyektlar').update({chiqim:(curOb.chiqim||0)+amount}).eq('id',curObId);
+      curOb.chiqim=(curOb.chiqim||0)+amount;
+    }
+
+    closeSbg('spend-money-bg');
+    toast('✅ Sarflandi!','#16a34a');
+    await openOb(curObId);
+  }catch(e){
+    toast('Xato: '+e.message,'#ef4444');
+  }finally{
+    btn.textContent='Sarflash';btn.disabled=false;
+  }
+}
+
+// ═══════════════════════════════════════════
+// ADD INCOME (Owner)
+// ═══════════════════════════════════════════
+async function doAddIncome(){
+  const amount=parseFloat(document.getElementById('income-amount').value);
+  const note=document.getElementById('income-note').value.trim();
+  const source=document.getElementById('income-source').value;
+  if(!amount||amount<=0){toast('Summani kiriting','#ef4444');return;}
+
+  const btn=document.querySelector('#add-income-bg .btn');
+  btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
+
+  try{
+    const {error}=await sb.from('transactions').insert({
+      ob_id:curObId,
+      from_user:null,
+      to_user:curUser.id,
+      summa:amount,
+      tur:'income',
+      kategoriya:source,
+      izoh:note||null,
+    });
+    if(error)throw error;
+
+    // Update ob kirim
+    const newKirim=(curOb.kirim||0)+amount;
+    await sb.from('obyektlar').update({kirim:newKirim}).eq('id',curObId);
+    curOb.kirim=newKirim;
+
+    // Owner balance also increases (in their ob_members row)
+    const ownerMem=obMembers.find(m=>m.user_id===curUser.id);
+    const newOwnerBal=(ownerMem?.balance||0)+amount;
+    await sb.from('ob_members').update({balance:newOwnerBal}).eq('ob_id',curObId).eq('user_id',curUser.id);
+
+    closeSbg('add-income-bg');
+    toast('✅ Kirim qo\'shildi!','#16a34a');
+    await openOb(curObId);
+  }catch(e){
+    toast('Xato: '+e.message,'#ef4444');
+  }finally{
+    btn.textContent='Saqlash';btn.disabled=false;
+  }
+}
+
+// ═══════════════════════════════════════════
+// CREATE OB
+// ═══════════════════════════════════════════
+async function createOb(){
+  const name=document.getElementById('new-ob-name').value.trim();
+  const date=document.getElementById('new-ob-date').value;
+  const days=parseInt(document.getElementById('new-ob-days').value)||30;
+  if(!name){toast('Loyiha nomini kiriting','#ef4444');return;}
+
+  const btn=document.querySelector('#new-ob-bg .btn');
+  btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
+
+  try{
+    const {data:ob,error}=await sb.from('obyektlar').insert({
+      nomi:name,
+      owner_id:curUser.id,
+      boshlanish:date||new Date().toISOString().slice(0,10),
+      muddat:days,
+      kirim:0,chiqim:0,
+    }).select().single();
+    if(error)throw error;
+
+    // Add owner as member
+    await sb.from('ob_members').insert({
+      ob_id:ob.id,
+      user_id:curUser.id,
+      role:'owner',
+      balance:0,
+    });
+
+    closeSbg('new-ob-bg');
+    document.getElementById('new-ob-name').value='';
+    toast('✅ Loyiha yaratildi!','#16a34a');
+    await loadAllData();
+    renderObs();
+    openOb(ob.id);
+  }catch(e){
+    toast('Xato: '+e.message,'#ef4444');
+  }finally{
+    btn.textContent='Yaratish';btn.disabled=false;
+  }
+}
+
+// ═══════════════════════════════════════════
+// ADD MEMBER
+// ═══════════════════════════════════════════
+function selectRole(role,el){
+  sendSelectedRole=role;
+  document.querySelectorAll('.role-opt').forEach(r=>{
+    r.classList.remove('active');
+    r.style.background='var(--bg)';
+    r.style.border='1.5px solid var(--border)';
+  });
+  el.classList.add('active');
+  el.style.background=role==='member'?'#eff6ff':'#f0fdf4';
+  el.style.border=role==='member'?'1.5px solid #3b82f6':'1.5px solid #16a34a';
+}
+
+// Init role opts style
+document.addEventListener('DOMContentLoaded',()=>{
+  document.querySelectorAll('.role-opt').forEach(el=>{
+    el.style.cssText='padding:12px;border-radius:12px;cursor:pointer;border:1.5px solid var(--border);background:var(--bg);transition:all .2s';
+  });
+  document.querySelector('.role-opt.active').style.cssText='padding:12px;border-radius:12px;cursor:pointer;border:1.5px solid #3b82f6;background:#eff6ff;transition:all .2s';
+});
+
+async function addMember(){
+  const phone=document.getElementById('member-phone').value.trim();
+  if(phone.length<10){toast('Telefon raqam kiriting','#ef4444');return;}
+
+  const btn=document.querySelector('#add-member-bg .btn');
+  btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
+
+  try{
+    // Find user by phone
+    const {data:profile}=await sb.from('profiles').select('*').eq('phone',phone).single();
+    if(!profile){
+      toast(`${phone} raqamli foydalanuvchi topilmadi. Avval u ilovaga kirishi kerak!`,'#ef4444');
+      btn.textContent='Qo\'shish';btn.disabled=false;
+      return;
+    }
+
+    // Check if already member
+    const already=obMembers.find(m=>m.user_id===profile.id);
+    if(already){toast('Bu foydalanuvchi allaqachon a\'zo','#f59e0b');btn.textContent='Qo\'shish';btn.disabled=false;return;}
+
+    await sb.from('ob_members').insert({
+      ob_id:curObId,
+      user_id:profile.id,
+      role:sendSelectedRole,
+      balance:0,
+    });
+
+    closeSbg('add-member-bg');
+    document.getElementById('member-phone').value='';
+    toast(`✅ ${profile.full_name||phone} qo'shildi!`,'#16a34a');
+    await openOb(curObId);
+  }catch(e){
+    toast('Xato: '+e.message,'#ef4444');
+  }finally{
+    btn.textContent='Qo\'shish';btn.disabled=false;
+  }
+}
+
+// ═══════════════════════════════════════════
+// TX DETAIL
+// ═══════════════════════════════════════════
+function openTxDetail(txId){
+  const tx=obTxs.find(t=>t.id===txId);
+  if(!tx)return;
+  const cat=CATS.find(c=>c.id===tx.kategoriya)||CATS[5];
+  const isIn=tx.tur==='income'||(tx.tur==='send'&&tx.to_user===curUser.id);
+  const fromM=obMembers.find(m=>m.user_id===tx.from_user);
+  const toM=obMembers.find(m=>m.user_id===tx.to_user);
+
+  document.getElementById('tx-detail-content').innerHTML=`
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+      <div style="width:52px;height:52px;border-radius:14px;background:${cat.bg};font-size:24px;display:flex;align-items:center;justify-content:center">${cat.emoji}</div>
+      <div>
+        <div style="font-size:17px;font-weight:800">${cat.label}</div>
+        <div style="font-size:13px;color:var(--muted)">${fmtDate(tx.created_at)}</div>
+      </div>
+    </div>
+    <div style="background:${isIn?'var(--green-bg)':'var(--red-bg)'};border-radius:16px;padding:16px;text-align:center;margin-bottom:16px">
+      <div style="font-size:32px;font-weight:900;color:${isIn?'var(--green)':'var(--red)'}">${isIn?'+':'-'}${usd(tx.summa)} so'm</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${tx.tur==='send'?`
+        <div style="display:flex;justify-content:space-between;padding:12px;background:var(--bg);border-radius:12px">
+          <span style="color:var(--muted);font-size:13px">Kimdan</span>
+          <span style="font-weight:700;font-size:13px">${fromM?.profiles?.full_name||'Tizim'}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:12px;background:var(--bg);border-radius:12px">
+          <span style="color:var(--muted);font-size:13px">Kimga</span>
+          <span style="font-weight:700;font-size:13px">${toM?.profiles?.full_name||'Tizim'}</span>
+        </div>
+      `:''}
+      ${tx.izoh?`<div style="display:flex;justify-content:space-between;padding:12px;background:var(--bg);border-radius:12px"><span style="color:var(--muted);font-size:13px">Izoh</span><span style="font-weight:700;font-size:13px">${tx.izoh}</span></div>`:''}
+    </div>
+    ${(tx.from_user===curUser.id||(curObRole==='owner'&&tx.tur!=='income'))?`<button onclick="deleteTx('${tx.id}')" id="del-tx-btn" style="width:100%;padding:13px;border-radius:14px;border:1.5px solid var(--red);background:transparent;color:var(--red);font-size:14px;font-weight:800;font-family:Manrope,sans-serif;margin-top:16px;cursor:pointer">🗑 O'chirish</button>`:''}
+  `;
+  openSbg('tx-detail-bg');
+}
+
+async function deleteTx(txId){
+  const btn=document.getElementById('del-tx-btn');
+  if(btn.dataset.confirm!=='1'){
+    btn.dataset.confirm='1';btn.textContent='⚠️ Tasdiqlaysizmi?';
+    btn.style.background='#fef3c7';btn.style.borderColor='#d97706';btn.style.color='#d97706';
+    setTimeout(()=>{if(btn.dataset.confirm==='1'){btn.dataset.confirm='';btn.textContent="🗑 O'chirish";btn.style.background='transparent';btn.style.borderColor='var(--red)';btn.style.color='var(--red)';}},3000);
+    return;
+  }
+  // Delete tx and reverse balances
+  const tx=obTxs.find(t=>t.id===txId);
+  if(!tx)return;
+
+  const {error}=await sb.from('transactions').delete().eq('id',txId);
+  if(!error){
+    // Reverse balance changes
+    if(tx.tur==='send'){
+      if(tx.from_user){
+        const fromM=obMembers.find(m=>m.user_id===tx.from_user);
+        await sb.from('ob_members').update({balance:(fromM?.balance||0)+tx.summa}).eq('ob_id',curObId).eq('user_id',tx.from_user);
+      }else{
+        await sb.from('obyektlar').update({chiqim:Math.max(0,(curOb.chiqim||0)-tx.summa)}).eq('id',curObId);
+      }
+      if(tx.to_user){
+        const toM=obMembers.find(m=>m.user_id===tx.to_user);
+        await sb.from('ob_members').update({balance:Math.max(0,(toM?.balance||0)-tx.summa)}).eq('ob_id',curObId).eq('user_id',tx.to_user);
+      }
+    }else if(tx.tur==='income'){
+      await sb.from('obyektlar').update({kirim:Math.max(0,(curOb.kirim||0)-tx.summa)}).eq('id',curObId);
+    }else if(tx.tur==='spend'){
+      if(tx.from_user){
+        const fromM=obMembers.find(m=>m.user_id===tx.from_user);
+        await sb.from('ob_members').update({balance:(fromM?.balance||0)+tx.summa}).eq('ob_id',curObId).eq('user_id',tx.from_user);
+      }
+    }
+    closeSbg('tx-detail-bg');
+    toast('O\'chirildi','#64748b');
+    await openOb(curObId);
+  }
+}
+
+// ═══════════════════════════════════════════
+// MEMBER DETAIL
+// ═══════════════════════════════════════════
+function openMemberDetail(uid){
+  const m=obMembers.find(m=>m.user_id===uid);
+  if(!m)return;
+  const name=m.profiles?.full_name||m.profiles?.phone||'Noma\'lum';
+  const phone=m.profiles?.phone||'';
+  const colors=['#f97316','#3b82f6','#16a34a','#a855f7','#ef4444'];
+  let h=0;name.split('').forEach(c=>h+=c.charCodeAt(0));
+  const bg=colors[h%colors.length];
+  const roleLabel={owner:"Egasi",member:"Ishchi boshi",worker:"Ishchi"}[m.role];
+  const myTxs=obTxs.filter(t=>t.from_user===uid||t.to_user===uid);
+  const canSend=(curObRole==='owner'&&m.role!=='owner')||(curObRole==='member'&&m.role==='worker');
+
+  document.getElementById('member-detail-content').innerHTML=`
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+      <div style="width:56px;height:56px;border-radius:16px;background:${bg};display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#fff">${name.charAt(0).toUpperCase()}</div>
+      <div>
+        <div style="font-size:18px;font-weight:800">${name}</div>
+        <div style="font-size:13px;color:var(--muted)">${phone}</div>
+        <div style="margin-top:4px"><span class="ob-role-badge ${{owner:'role-owner',member:'role-member',worker:'role-worker'}[m.role]}">${roleLabel}</span></div>
+      </div>
+    </div>
+    <div style="background:var(--green-bg);border-radius:14px;padding:14px;text-align:center;margin-bottom:16px">
+      <div style="font-size:12px;color:var(--green);font-weight:700;margin-bottom:2px">Qo'lidagi pul</div>
+      <div style="font-size:26px;font-weight:900;color:var(--green)">${usd(m.balance||0)} so'm</div>
+    </div>
+    ${canSend?`<button onclick="closeSbg('member-detail-bg');openSendMoneyTo('${uid}')" style="width:100%;padding:13px;border-radius:14px;border:none;background:var(--blue-bg);color:var(--blue);font-size:14px;font-weight:800;font-family:Manrope,sans-serif;margin-bottom:12px;cursor:pointer">💸 Pul yuborish</button>`:''}
+    ${curObRole==='owner'&&m.role!=='owner'?`<button onclick="removeMemberConfirm('${uid}')" id="remove-member-btn" style="width:100%;padding:13px;border-radius:14px;border:1.5px solid var(--red);background:transparent;color:var(--red);font-size:14px;font-weight:800;font-family:Manrope,sans-serif;cursor:pointer">A'zolikdan chiqarish</button>`:''}
+    <div style="font-size:13px;font-weight:800;color:var(--text2);margin:16px 0 10px">Operatsiyalar</div>
+    ${myTxs.length===0?`<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Operatsiyalar yo'q</div></div>`:myTxs.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).map(tx=>txRowHtml(tx)).join('')}
+  `;
+  openSbg('member-detail-bg');
+}
+
+function openSendMoneyTo(uid){
+  const sel=document.getElementById('send-to-select');
+  sel.innerHTML='';
+  const m=obMembers.find(m=>m.user_id===uid);
+  const name=m?.profiles?.full_name||'';
+  const opt=document.createElement('option');
+  opt.value=uid;opt.textContent=name;
+  sel.appendChild(opt);
+  document.getElementById('send-amount').value='';
+  document.getElementById('send-note').value='';
+  document.getElementById('send-money-title').textContent=`💸 ${name}ga yuborish`;
+  if(curObRole!=='owner'){
+    const myBal=allObs.find(o=>o.ob.id===curObId)?.myBalance||0;
+    const info=document.getElementById('send-bal-info');
+    info.textContent=`Sizning qo'lingizdagi pul: ${usd(myBal)} so'm`;
+    info.style.display='block';
+  }else{
+    document.getElementById('send-bal-info').style.display='none';
+  }
+  openSbg('send-money-bg');
+}
+
+async function removeMemberConfirm(uid){
+  const btn=document.getElementById('remove-member-btn');
+  if(btn.dataset.confirm!=='1'){
+    btn.dataset.confirm='1';btn.textContent='⚠️ Tasdiqlaysizmi?';
+    btn.style.background='#fef3c7';btn.style.borderColor='#d97706';btn.style.color='#d97706';
+    setTimeout(()=>{if(btn.dataset.confirm==='1'){btn.dataset.confirm='';btn.textContent="A'zolikdan chiqarish";btn.style.background='transparent';btn.style.borderColor='var(--red)';btn.style.color='var(--red)';}},3000);
+    return;
+  }
+  const {error}=await sb.from('ob_members').delete().eq('ob_id',curObId).eq('user_id',uid);
+  if(!error){
+    closeSbg('member-detail-bg');
+    toast('A\'zo chiqarildi','#64748b');
+    await openOb(curObId);
+  }
+}
+
+// ═══════════════════════════════════════════
+// FAB
+// ═══════════════════════════════════════════
+function openMainFab(){
+  if(curPage==='home'||curPage==='projects'){
+    openSbg('new-ob-bg');
+    document.getElementById('new-ob-date').value=new Date().toISOString().slice(0,10);
+  }else if(curPage==='ob-detail'){
+    if(curObRole==='owner'){
+      openSbg('add-income-bg');
+      document.getElementById('income-amount').value='';
+      document.getElementById('income-note').value='';
+    }else{
+      openSpendMoney();
+    }
+  }
+}
+
+// ═══════════════════════════════════════════
+// HISOBOT
+// ═══════════════════════════════════════════
+async function renderHisobot(){
+  if(allObs.length===0){
+    document.getElementById('hisobot-content').innerHTML=`<div class="empty" style="padding-top:60px"><div class="empty-icon">📊</div><div class="empty-text">Hali ma'lumot yo'q</div><div class="empty-sub">Loyihalar qo'shgach hisobot ko'rasiz</div></div>`;
+    return;
+  }
+
+  let totalIn=0,totalOut=0,totalHand=0;
+  let byMonth={};
+  const now=new Date();
+
+  // Load all transactions for all obs
+  const obIds=allObs.map(o=>o.ob.id);
+  const {data:allTxs}=await sb.from('transactions').select('*').in('ob_id',obIds);
+
+  (allTxs||[]).forEach(tx=>{
+    if(tx.tur==='income')totalIn+=tx.summa||0;
+    if(tx.tur==='spend')totalOut+=tx.summa||0;
+    // By month
+    const d=new Date(tx.created_at);
+    const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    if(!byMonth[key])byMonth[key]={in:0,out:0};
+    if(tx.tur==='income')byMonth[key].in+=tx.summa||0;
+    if(tx.tur==='spend')byMonth[key].out+=tx.summa||0;
+  });
+
+  allObs.forEach(({myBalance})=>totalHand+=myBalance);
+
+  const months=Object.keys(byMonth).sort().slice(-4);
+  const maxVal=Math.max(...months.map(m=>Math.max(byMonth[m].in,byMonth[m].out)),1);
+
+  document.getElementById('hisobot-content').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:12px 16px">
+      <div class="card" style="text-align:center;margin:0">
+        <div style="font-size:20px;font-weight:900;color:var(--green)">${usd(totalIn)}</div>
+        <div style="font-size:11px;color:var(--muted);font-weight:700;margin-top:2px">KIRIM</div>
+      </div>
+      <div class="card" style="text-align:center;margin:0">
+        <div style="font-size:20px;font-weight:900;color:var(--red)">${usd(totalOut)}</div>
+        <div style="font-size:11px;color:var(--muted);font-weight:700;margin-top:2px">CHIQIM</div>
+      </div>
+      <div class="card" style="text-align:center;margin:0">
+        <div style="font-size:20px;font-weight:900;color:var(--yellow)">${usd(totalHand)}</div>
+        <div style="font-size:11px;color:var(--muted);font-weight:700;margin-top:2px">QO'LDA</div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">📊 Dinamika</div>
+      ${months.length===0?'<div style="color:var(--muted);text-align:center;font-size:13px;padding:20px">Ma\'lumot yo\'q</div>':months.map(m=>{
+        const mv=byMonth[m];
+        const inW=Math.round((mv.in/maxVal)*100);
+        const outW=Math.round((mv.out/maxVal)*100);
+        const mn=m.split('-');
+        const lbl=mn[1]+'/'+mn[0].slice(2);
+        return`<div class="bar-row">
+          <div class="bar-lbl">${lbl}</div>
+          <div class="bar-wraps" style="flex:1">
+            <div class="bar-wrap"><div class="bar-fill bar-in" style="width:${inW}%"></div></div>
+            <div class="bar-wrap" style="margin-top:3px"><div class="bar-fill bar-out" style="width:${outW}%"></div></div>
+          </div>
+          <div class="bar-vals">
+            <div style="font-size:10px;color:var(--green);font-weight:700">+${usd(mv.in)}</div>
+            <div style="font-size:10px;color:var(--red);font-weight:700">-${usd(mv.out)}</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <div style="padding:0 16px">
+      <div style="font-size:14px;font-weight:800;margin-bottom:10px">Loyihalar bo'yicha</div>
+      ${allObs.map(({ob,role,myBalance})=>{
+        const bal=role==='owner'?(ob.kirim||0)-(ob.chiqim||0):myBalance;
+        return`<div class="ob-card" onclick="openOb('${ob.id}')">
+          <div class="ob-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-4 0v2"/></svg></div>
+          <div class="ob-info"><div class="ob-name">${ob.nomi}</div><div class="ob-meta">Kirim: ${usd(ob.kirim||0)} | Chiqim: ${usd(ob.chiqim||0)}</div></div>
+          <div class="ob-bal"><div class="ob-bal-val" style="color:${bal>=0?'var(--green)':'var(--red)'}">${usd(bal)}</div></div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════
+// PROFIL
+// ═══════════════════════════════════════════
+function renderProfil(){
+  const name=curProfile?.full_name||'?';
+  const phone=curProfile?.phone||curUser?.phone||'';
+  document.getElementById('profil-av').textContent=name.charAt(0).toUpperCase();
+  document.getElementById('profil-name-disp').textContent=name;
+  document.getElementById('profil-phone-disp').textContent=phone;
+}
+
+function openEditName(){
+  document.getElementById('edit-name-inp').value=curProfile?.full_name||'';
+  openSbg('edit-name-bg');
+}
+
+async function saveEditName(){
+  const name=document.getElementById('edit-name-inp').value.trim();
+  if(!name)return;
+  await sb.from('profiles').update({full_name:name}).eq('id',curUser.id);
+  curProfile={...curProfile,full_name:name};
+  closeSbg('edit-name-bg');
+  toast('✅ Saqlandi!','#16a34a');
+  renderProfil();
 }
 
 async function doLogout(){
@@ -795,871 +1654,24 @@ async function doLogout(){
   location.reload();
 }
 
-// ââ INIT ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-async function init(){
-  try{
+// ═══════════════════════════════════════════
+// INIT — Check session
+// ═══════════════════════════════════════════
+(async()=>{
   const {data:{session}}=await sb.auth.getSession();
-  if(!session){
-    $('loading').style.display='none';
-    $('auth-screen').style.display='flex';
-    return;
-  }
-  curUser=session.user;
-  await loadAll();
-  
-  // Role tekshirish
-  const role=curProfile?.role||curUser.user_metadata?.role||'prorab';
-  if(role==='ishchi'){
-    setupIshchiPanel();
-    $('loading').style.display='none';
-    return;
-  }
-  
-  setupUI();
-  $('loading').style.display='none';
-  $('app').style.display='block';
-  renderHome();
-
-  // Real-time subscription
-  sb.channel('changes')
-    .on('postgres_changes',{event:'*',schema:'public',table:'operatsiyalar',filter:`user_id=eq.${curUser.id}`},()=>loadAll().then(refreshCur))
-    .on('postgres_changes',{event:'*',schema:'public',table:'obyektlar',filter:`user_id=eq.${curUser.id}`},()=>loadAll().then(refreshCur))
-    .on('postgres_changes',{event:'*',schema:'public',table:'ishchilar',filter:`user_id=eq.${curUser.id}`},()=>loadAll().then(refreshCur))
-    .subscribe();
-
-  // Auth changes
-  sb.auth.onAuthStateChange((event,session)=>{
-    if(event==='SIGNED_OUT') location.reload();
-  });
-  }catch(err){
-    console.error('Init error:',err);
-    $('loading').style.display='none';
-    $('auth-screen').style.display='flex';
-  }
-}
-
-function refreshCur(){
-  if(curPage==='home')renderHome();
-  if(curPage==='ops')renderOps();
-  if(curPage==='obyekt')renderObs();
-  if(curPage==='ishchilar')renderIshchilar();
-  if(curPage==='hisobot')renderChart();
-  if(curPage==='ob-detail'&&curObId)openObDetail(curObId);
-}
-
-async function loadAll(){
-  const uid=curUser.id;
-  // Profile yoq bolsa yaratamiz
-  const [profRes,obsRes,opsRes,ishRes]=await Promise.all([
-    sb.from('profiles').select('*').eq('id',uid).single(),
-    sb.from('obyektlar').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
-    sb.from('operatsiyalar').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
-    sb.from('ishchilar').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
-  ]);
-  if(!profRes.data){
-    // Profile yoq - yaratamiz
-    const meta=curUser.user_metadata||{};
-    await sb.from('profiles').insert({
-      id:uid,
-      full_name:meta.full_name||curUser.email?.split('@')[0],
-      phone:meta.phone||'',
-      role:meta.role||'prorab'
-    });
-    const{data:newProf}=await sb.from('profiles').select('*').eq('id',uid).single();
-    curProfile=newProf;
-  } else {
-    curProfile=profRes.data;
-    // Role yo'q bo'lsa, update
-    if(!curProfile.role){
-      const meta=curUser.user_metadata||{};
-      const newRole=meta.role||'prorab';
-      await sb.from('profiles').update({role:newRole}).eq('id',uid);
-      curProfile.role=newRole;
+  if(session){
+    curUser=session.user;
+    const {data:prof}=await sb.from('profiles').select('*').eq('id',curUser.id).single();
+    if(prof&&prof.full_name){
+      curProfile=prof;
+      await startApp();
+    }else{
+      curProfile=prof;
+      document.getElementById('auth-name-box').style.display='block';
+      document.getElementById('auth-phone-box').style.display='none';
     }
   }
-  OBS=obsRes.data||[];
-  OPS=opsRes.data||[];
-  ISHCHILAR=ishRes.data||[];
-}
-
-function setupUI(){
-  const name=curProfile?.full_name||curUser.email?.split('@')[0]||'Foydalanuvchi';
-  const email=curUser.email||'';
-  const phone=curProfile?.phone||'';
-  $('sb-name').textContent=name;
-  $('sb-email').textContent=email;
-  $('soz-name').textContent=name;
-  $('soz-email').textContent=email;
-  $('soz-phone').textContent=phone;
-  $('tb-av-txt').textContent=name[0]?.toUpperCase()||'A';
-}
-
-// ââ PAGES âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-const pgTitles={home:'Asosiy',obyekt:'Obyektlar',ops:'Operatsiyalar',hisobot:'Hisobotlar',ishchilar:'Ishchilar',sozlamalar:'Sozlamalar','ob-detail':'','ai':'AI Yordamchi ✨'};
-
-function gp(pg,el){
-  closeSidebar();
-  curPage=pg;
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  const pgEl=$('pg-'+pg);
-  if(pgEl)pgEl.classList.add('active');
-  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
-  const nb=document.querySelector('[data-pg='+pg+']');
-  if(nb)nb.classList.add('active');
-  document.querySelectorAll('.sb-item').forEach(b=>b.classList.remove('active'));
-  if(el&&el.classList?.contains('sb-item'))el.classList.add('active');
-  $('page-title').textContent=pgTitles[pg]||'';
-  $('fab').style.display=['home','ops','ob-detail','obyekt'].includes(pg)?'flex':'none';
-  if(pg==='home')renderHome();
-  if(pg==='obyekt')renderObs();
-  if(pg==='ops')renderOps();
-  if(pg==='hisobot')renderChart();
-  if(pg==='ishchilar')renderIshchilar();
-  if(pg==='ai'){$('ai-inp')&&setTimeout(()=>$('ai-inp').focus&&null,100);}
-}
-
-// ââ SIDEBAR âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-function openSidebar(){$('sidebar').classList.add('open');$('sb-overlay').classList.add('open');}
-function closeSidebar(){$('sidebar').classList.remove('open');$('sb-overlay').classList.remove('open');}
-
-// ââ HOME ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-function getStats(){
-  const main=OPS.filter(o=>o.kategoriya!=='ish_haqqi');
-  const tI=main.filter(o=>o.tur==='kirim').reduce((s,o)=>s+Number(o.summa),0);
-  const tO=main.filter(o=>o.tur==='chiqim').reduce((s,o)=>s+Number(o.summa),0);
-  return{tI,tO,bal:tI-tO};
-}
-
-function renderHome(){
-  const{tI,tO,bal}=getStats();
-  $('bc-bal').textContent=(bal>=0?'+':'')+usd(bal);
-  $('bc-bal').style.color=bal<0?'#fca5a5':'#fff';
-  $('bc-in').textContent=usd(tI);
-  $('bc-out').textContent=usd(tO);
-  const faol=OBS.filter(o=>o.holat!=='yakunlangan').slice(0,4);
-  $('home-obs').innerHTML=faol.length?faol.map((ob,i)=>obCardHtml(ob,i)).join(''):'<div class="empty">Hali obyekt yo\'q<br><small>＋ tugmasini bosing</small></div>';
-  $('home-ops').innerHTML=OPS.length?'<div class="op-list">'+OPS.slice(0,5).map(op=>opRowHtml(op)).join('')+'</div>':'<div class="empty">Hali operatsiya yo\'q</div>';
-}
-
-function getMuddat(ob){
-  if(!ob.boshlanish_sana||!ob.muddat_kun)return null;
-  const end=new Date(ob.boshlanish_sana);
-  end.setDate(end.getDate()+parseInt(ob.muddat_kun));
-  const left=Math.ceil((end-new Date())/(86400000));
-  const pct=Math.min(Math.max(100-Math.round(left/ob.muddat_kun*100),0),100);
-  const color=left>ob.muddat_kun*.5?'var(--green)':left>5?'#f59e0b':'var(--red)';
-  return{left,pct,color};
-}
-
-function obCardHtml(ob,i){
-  const c=COLORS[i%COLORS.length];
-  const obOps=OPS.filter(o=>o.obyekt_id===ob.id&&o.kategoriya!=='ish_haqqi');
-  const tI=obOps.filter(o=>o.tur==='kirim').reduce((s,o)=>s+Number(o.summa),0);
-  const tO=obOps.filter(o=>o.tur==='chiqim').reduce((s,o)=>s+Number(o.summa),0);
-  const bal=tI-tO;
-  const m=getMuddat(ob);
-  const isYak=ob.holat==='yakunlangan';
-  return`<div class="ob-card fade-up" onclick="openObDetail('${ob.id}')">
-    <div class="ob-card-body">
-      <div style="width:70px;height:70px;border-radius:16px;overflow:hidden;flex-shrink:0;background:${c};display:flex;align-items:center;justify-content:center;position:relative">
-        ${ob.rasm_url?`<img src="${ob.rasm_url}" style="width:100%;height:100%;object-fit:cover">`:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>`}
-        <div style="position:absolute;top:5px;left:5px"><span class="s-badge ${isYak?'yak':'faol'}">${isYak?'✓':'●'}</span></div>
-      </div>
-      <div class="ob-info">
-        <div class="ob-name">${ob.nomi}</div>
-        <div class="ob-row">
-          <div><div class="ob-stat-lbl">Qoldiq</div><div class="ob-stat-val" style="color:${bal>=0?'var(--green)':'var(--red)'}">${(bal>=0?'+':'')+usd(bal)}</div></div>
-          <div><div class="ob-stat-lbl">Operatsiya</div><div class="ob-stat-val">${obOps.length} ta</div></div>
-        </div>
-        ${m?`<div style="font-size:11px;color:${m.color};font-weight:700;margin-bottom:4px">${m.left>0?m.left+' kun qoldi':'⚠️ Muddat tugagan!'}</div><div class="ob-prog"><div class="ob-prog-fill" style="width:${m.pct}%;background:${m.color}"></div></div>`:`<div style="font-size:11px;color:var(--muted);font-weight:600">${obOps.length} ta tranzaksiya</div>`}
-      </div>
-    </div>
-  </div>`;
-}
-
-function opRowHtml(op){
-  const isK=op.tur==='kirim';
-  const ic=CAT_ICONS[op.kategoriya]||CAT_ICONS.usta;
-  const ob=OBS.find(o=>o.id===op.obyekt_id);
-  const w=ISHCHILAR.find(w=>w.id===op.ishchi_id);
-  const meta=[fmtD(op.sana||op.created_at),ob?.nomi,w?.name].filter(Boolean).join(' · ');
-  return`<div class="op-row" onclick="openOpDetail('${op.id}')" style="cursor:pointer">
-    <div class="op-ico" style="background:${ic.bg};color:${ic.c}">${ic.svg}</div>
-    <div class="op-info"><div class="op-name">${op.izoh||CAT_NMS[op.kategoriya]||op.kategoriya}</div><div class="op-meta">${meta}</div></div>
-    <div><div class="op-sum" style="color:${isK?'var(--green)':'var(--red)'}">${isK?'+':'-'}${usd(op.summa)}</div><div class="op-cat">${CAT_NMS[op.kategoriya]||op.kategoriya}</div></div>
-  </div>`;
-}
-
-// ââ OBYEKTLAR âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-function setObFilt(f,btn){
-  obFilt=f;
-  document.querySelectorAll('.ob-filt-btn').forEach(b=>{b.classList.remove('on');b.style.borderColor='var(--border)';b.style.color='var(--muted)';});
-  btn.classList.add('on');
-  if(f==='all'){btn.style.background='linear-gradient(135deg,var(--acc),var(--acc2))';btn.style.color='#fff';btn.style.border='none';}
-  else if(f==='faol'){btn.style.color='var(--green)';btn.style.borderColor='var(--green)';}
-  renderObs();
-}
-
-function renderObs(){
-  const q=($('ob-srch')||{value:''}).value?.toLowerCase()||'';
-  const obs=OBS.filter(ob=>{
-    const mQ=ob.nomi.toLowerCase().includes(q);
-    const mF=obFilt==='all'||ob.holat===obFilt;
-    return mQ&&mF;
-  });
-  $('ob-list').innerHTML=obs.length?obs.map((ob,i)=>obCardHtml(ob,OBS.indexOf(ob))).join(''):'<div class="empty">Hech narsa topilmadi</div>';
-}
-
-// ââ OB DETAIL âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-function openObDetail(obId){
-  curObId=obId;
-  const ob=OBS.find(o=>o.id===obId);if(!ob)return;
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  $('pg-ob-detail').classList.add('active');
-  $('page-title').textContent=ob.nomi;
-  curPage='ob-detail';
-  $('fab').style.display='flex';
-  const obOps=OPS.filter(o=>o.obyekt_id===ob.id&&o.kategoriya!=='ish_haqqi');
-  const tI=obOps.filter(o=>o.tur==='kirim').reduce((s,o)=>s+Number(o.summa),0);
-  const tO=obOps.filter(o=>o.tur==='chiqim').reduce((s,o)=>s+Number(o.summa),0);
-  const bal=tI-tO;
-  const idx=OBS.indexOf(ob);
-  const c=COLORS[idx%COLORS.length];
-  const m=getMuddat(ob);
-  $('ob-detail-body').innerHTML=`
-    <div class="ob-hero" style="background:${c}">
-      ${ob.rasm_url?`<img src="${ob.rasm_url}">`:''}
-      <div class="ob-ov"></div>
-      <button class="ob-back" onclick="gp('obyekt')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text)" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
-      <div class="ob-htitle"><div class="ob-hname">${ob.nomi}</div><div class="ob-hsub">${obOps.length} ta operatsiya · ${ob.holat==='faol'?'Faol':'Yakunlangan'}</div></div>
-    </div>
-    ${m?`<div style="padding:12px 16px 0;display:flex;align-items:center;gap:10px"><div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden"><div style="height:100%;width:${m.pct}%;background:${m.color};border-radius:3px"></div></div><div style="font-size:12px;font-weight:800;color:${m.color}">${m.left>0?m.left+' kun':'Tugagan!'}</div></div>`:''}
-    <div class="ob-stats">
-      <div class="ob-stat"><div class="ob-sv" style="color:var(--green)">${usd(tI)}</div><div class="ob-sl">Kirim</div></div>
-      <div class="ob-stat"><div class="ob-sv" style="color:var(--red)">${usd(tO)}</div><div class="ob-sl">Chiqim</div></div>
-      <div class="ob-stat"><div class="ob-sv" style="color:${bal>=0?'var(--green)':'var(--red)'}">${(bal>=0?'+':'')+usd(bal)}</div><div class="ob-sl">Qoldiq</div></div>
-    </div>
-    <div class="ob-acts">
-      <button class="ob-act" style="background:var(--green-bg);color:var(--green)" onclick="openObKirim('${ob.id}')">↓ Pul oldi</button>
-      <button class="ob-act" style="background:var(--red-bg);color:var(--red)" onclick="openObChiqim('${ob.id}')">↑ Pul berdi</button>
-      <button class="ob-act" style="background:var(--bg);color:var(--muted)" onclick="toggleObStatus('${ob.id}')">${ob.holat==='faol'?'✓ Yakunla':'↺ Qayta'}</button>
-    </div>
-    <div style="display:flex;gap:10px;padding:0 16px 14px">
-      <button class="ob-act" style="background:var(--blue-bg);color:var(--blue);flex:1" onclick="trigCam('${ob.id}')">📷 Rasm</button>
-      <button class="ob-act" style="background:#fffbeb;color:#f59e0b;flex:1" onclick="openEditMuddat('${ob.id}')">📅 Muddat</button>
-    </div>
-    <input type="file" id="ob-cam-inp" accept="image/*" style="display:none" onchange="uploadObImg(this)">
-    <div style="font-size:14px;font-weight:800;padding:4px 16px 10px">Operatsiyalar</div>
-    <div class="op-list" style="margin:0 16px 12px">${obOps.length?obOps.map(op=>opRowHtml(op)).join(''):'<div class="empty" style="padding:24px">Operatsiya yo\'q</div>'}</div>
-    <div style="padding:0 16px 16px"><button onclick="deleteObConfirm('${ob.id}')" id="del-ob-${ob.id}" style="width:100%;padding:14px;border-radius:16px;border:1.5px solid var(--red);background:#fff;color:var(--red);font-size:14px;font-weight:800;font-family:'Manrope',sans-serif">🗑 Obyektni o'chirish</button></div>`;
-}
-
-function trigCam(obId){
-  curObId=obId;
-  const f=document.getElementById('ob-cam-inp');
-  if(f) f.click();
-}
-
-async function uploadObImg(inp){
-  if(!inp.files||!inp.files[0]||!curObId) return;
-  const file=inp.files[0];
-  const ext=file.name.split('.').pop();
-  const path=curUser.id+'/'+curObId+'.'+ext;
-  
-  // Supabase Storage ga yuklash
-  const{error:upErr}=await sb.storage.from('obyekt-rasmlar').upload(path,file,{upsert:true});
-  if(upErr){
-    // Storage yo'q bo'lsa, base64 sifatida saqlash
-    const reader=new FileReader();
-    reader.onload=async e=>{
-      const{error}=await sb.from('obyektlar').update({rasm_url:e.target.result}).eq('id',curObId);
-      if(!error){
-        const ob=OBS.find(o=>o.id===curObId);
-        if(ob) ob.rasm_url=e.target.result;
-        openObDetail(curObId);
-      }
-    };
-    reader.readAsDataURL(file);
-    return;
-  }
-  const{data}=sb.storage.from('obyekt-rasmlar').getPublicUrl(path);
-  const url=data.publicUrl;
-  await sb.from('obyektlar').update({rasm_url:url}).eq('id',curObId);
-  const ob=OBS.find(o=>o.id===curObId);
-  if(ob) ob.rasm_url=url;
-  openObDetail(curObId);
-}
-
-function openEditMuddat(obId){
-  const ob=OBS.find(o=>o.id===obId);if(!ob)return;
-  curObId=obId;
-  document.getElementById('edit-muddat-bg').classList.add('open');
-  document.getElementById('edit-start').value=ob.boshlanish_sana||today();
-  document.getElementById('edit-days').value=ob.muddat_kun||'';
-  document.getElementById('edit-muddat-nm').textContent=ob.nomi;
-}
-
-async function saveEditMuddat(){
-  const start=document.getElementById('edit-start').value;
-  const days=parseInt(document.getElementById('edit-days').value)||null;
-  const{error}=await sb.from('obyektlar').update({boshlanish_sana:start,muddat_kun:days}).eq('id',curObId);
-  if(!error){
-    const ob=OBS.find(o=>o.id===curObId);
-    if(ob){ob.boshlanish_sana=start;ob.muddat_kun=days;}
-    document.getElementById('edit-muddat-bg').classList.remove('open');
-    openObDetail(curObId);
-  }
-}
-
-async function toggleObStatus(obId){
-  const ob=OBS.find(o=>o.id===obId);if(!ob)return;
-  const newHolat=ob.holat==='faol'?'yakunlangan':'faol';
-  await sb.from('obyektlar').update({holat:newHolat}).eq('id',obId);
-  ob.holat=newHolat;
-  openObDetail(obId);
-}
-
-function openObKirim(obId){
-  curObId=obId;
-  const ob=OBS.find(o=>o.id===obId);
-  $('obkirim-nm').textContent=ob?.nomi||'';
-  $('obkirim-bg').classList.add('open');
-}
-
-function openObChiqim(obId){curObId=obId;openChoiceSheet();}
-
-function pickKirim(cat){
-  $('obkirim-bg').classList.remove('open');
-  curCat=cat;curType='kirim';
-  openOpForm(curObId);
-}
-
-async function deleteObConfirm(obId){
-  const btn=$('del-ob-'+obId);if(!btn)return;
-  if(btn.dataset.c!=='1'){
-    btn.textContent='⚠️ Tasdiqlaysizmi? Yana bosing!';btn.style.background='var(--red)';btn.style.color='#fff';btn.dataset.c='1';
-    setTimeout(()=>{if(btn){btn.textContent="🗑 Obyektni o'chirish";btn.style.background='#fff';btn.style.color='var(--red)';btn.dataset.c='0';}},3000);
-    return;
-  }
-  await sb.from('operatsiyalar').delete().eq('obyekt_id',obId);
-  await sb.from('obyektlar').delete().eq('id',obId);
-  OBS=OBS.filter(o=>o.id!==obId);
-  OPS=OPS.filter(o=>o.obyekt_id!==obId);
-  gp('obyekt');
-}
-
-// ââ OPERATSIYALAR âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-function setFilt(f,btn){opFilt=f;document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderOps();}
-
-function renderOps(){
-  const srchEl=document.querySelector('#pg-ops .srch-inp');
-  const q=(srchEl?.value||'').toLowerCase();
-  let ops=OPS.filter(o=>{
-    const ob=OBS.find(ob=>ob.id===o.obyekt_id);
-    const m=(o.izoh||'').toLowerCase().includes(q)||(o.kategoriya||'').toLowerCase().includes(q)||(ob?.nomi||'').toLowerCase().includes(q);
-    if(opFilt==='kirim')return o.tur==='kirim'&&m;
-    if(opFilt==='chiqim')return o.tur==='chiqim'&&m;
-    return m;
-  });
-  const el=$('op-section');if(!el)return;
-  if(!ops.length){el.innerHTML='<div class="empty">Hech narsa topilmadi</div>';return;}
-  const tI=ops.filter(o=>o.tur==='kirim').reduce((s,o)=>s+Number(o.summa),0);
-  const tO=ops.filter(o=>o.tur==='chiqim').reduce((s,o)=>s+Number(o.summa),0);
-  el.innerHTML='<div class="op-list">'+ops.map(op=>opRowHtml(op)).join('')+'</div>'
-    +`<div class="total-bar"><span style="font-size:13px;font-weight:800">Jami (${ops.length} ta)</span><div style="display:flex;gap:12px;font-size:13px;font-weight:800"><span style="color:var(--green)">+${usd(tI)}</span><span style="color:var(--red)">-${usd(tO)}</span></div></div>`;
-}
-
-// ââ HISOBOT âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-function setPer(p,btn){perPer=p;document.querySelectorAll('.ptab').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderChart();}
-
-function renderChart(){
-  const el=$('chart-body');if(!el)return;
-  const now=new Date();
-  const fOps=OPS.filter(o=>{
-    if(perPer==='all')return true;
-    const d=new Date(o.sana||o.created_at);
-    return perPer==='month'?d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth():d.getFullYear()===now.getFullYear();
-  });
-  const main=fOps.filter(o=>o.kategoriya!=='ish_haqqi');
-  const tI=main.filter(o=>o.tur==='kirim').reduce((s,o)=>s+Number(o.summa),0);
-  const tO=main.filter(o=>o.tur==='chiqim').reduce((s,o)=>s+Number(o.summa),0);
-  const bal=tI-tO;
-  const cats={};
-  main.filter(o=>o.tur==='chiqim').forEach(o=>{cats[o.kategoriya]=(cats[o.kategoriya]||0)+Number(o.summa);});
-  const catMax=Math.max(...Object.values(cats),1);
-  const bars=[[1,7],[8,14],[15,21],[22,31]].map(([s,e])=>{
-    const mo=main.filter(o=>{const d=new Date(o.sana||o.created_at);return d.getMonth()===now.getMonth()&&d.getDate()>=s&&d.getDate()<=e;});
-    return{lbl:s+'-'+e,in:mo.filter(o=>o.tur==='kirim').reduce((s,o)=>s+Number(o.summa),0),out:mo.filter(o=>o.tur==='chiqim').reduce((s,o)=>s+Number(o.summa),0)};
-  });
-  const mx=Math.max(...bars.map(b=>Math.max(b.in,b.out)),1);
-  el.innerHTML=`
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:0 16px 10px">
-      <div class="sum-card"><div class="sum-lbl">Kirim</div><div class="sum-val" style="color:var(--green)">+${usd(tI)}</div></div>
-      <div class="sum-card"><div class="sum-lbl">Chiqim</div><div class="sum-val" style="color:var(--red)">-${usd(tO)}</div></div>
-      <div class="sum-card"><div class="sum-lbl">Foyda</div><div class="sum-val" style="color:${bal>=0?'var(--green)':'var(--red)'}">${(bal>=0?'+':'')+usd(bal)}</div></div>
-    </div>
-    <div class="chart-card">
-      <div style="font-size:14px;font-weight:800;margin-bottom:16px">📊 Dinamika</div>
-      ${bars.map(b=>`<div class="bar-row">
-        <div class="bar-lbl">${b.lbl}</div>
-        <div style="flex:1;display:flex;flex-direction:column;gap:4px">
-          <div class="bar-wrap"><div class="bar-fill" style="width:${b.in?Math.round(b.in/mx*100):2}%;background:var(--green)"></div></div>
-          <div class="bar-wrap"><div class="bar-fill" style="width:${b.out?Math.round(b.out/mx*100):2}%;background:var(--red)"></div></div>
-        </div>
-        <div style="font-size:10px;font-weight:700;width:52px;text-align:right"><div style="color:var(--green)">+${usd(b.in)}</div><div style="color:var(--red)">-${usd(b.out)}</div></div>
-      </div>`).join('')}
-    </div>
-    <div class="chart-card">
-      <div style="font-size:14px;font-weight:800;margin-bottom:14px">💸 Xarajatlar</div>
-      ${Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([k,v])=>{
-        const ic=CAT_ICONS[k]||CAT_ICONS.usta;
-        return`<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-          <div style="width:32px;height:32px;border-radius:10px;background:${ic.bg};display:flex;align-items:center;justify-content:center;color:${ic.c}">${ic.svg}</div>
-          <div style="flex:1"><div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="font-size:13px;font-weight:700">${CAT_NMS[k]||k}</span><span style="font-size:13px;font-weight:800;color:var(--red)">-${usd(v)}</span></div>
-          <div class="bar-wrap"><div class="bar-fill" style="height:6px;width:${Math.round(v/catMax*100)}%;background:${ic.c}"></div></div></div>
-        </div>`;
-      }).join('')||'<div class="empty" style="padding:16px">Bu davrda chiqim yo\'q</div>'}
-    </div>
-    <div class="chart-card">
-      <div style="font-size:14px;font-weight:800;margin-bottom:14px">🏗 Obyektlar</div>
-      ${OBS.map((ob,i)=>{
-        const obOps=main.filter(o=>o.obyekt_id===ob.id);
-        const b=obOps.reduce((s,o)=>o.tur==='kirim'?s+Number(o.summa):s-Number(o.summa),0);
-        if(!obOps.length)return'';
-        return`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)"><div style="width:8px;height:8px;border-radius:50%;background:${COLORS[i%COLORS.length]}"></div><div style="font-size:13px;font-weight:700;flex:1">${ob.nomi}</div><div style="font-size:13px;font-weight:800;color:${b>=0?'var(--green)':'var(--red)'}">${(b>=0?'+':'')+usd(b)}</div></div>`;
-      }).join('')}
-    </div>`;
-}
-
-// ââ ISHCHILAR âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-function renderIshchilar(){
-  $('ish-list').innerHTML=ISHCHILAR.length?ISHCHILAR.map((w,i)=>{
-    const wOps=OPS.filter(o=>o.ishchi_id===w.id);
-    const avans=wOps.filter(o=>o.tur==='chiqim').reduce((s,o)=>s+Number(o.summa),0);
-    const haqqi=Number(w.ish_haqqi)||0;
-    const qoldiq=haqqi-avans;
-    const c=COLORS[i%COLORS.length];
-    return`<div class="ish-card">
-      <div class="ish-top">
-        <div class="ish-av" style="background:${c}22;font-size:24px">👷</div>
-        <div style="flex:1"><div class="ish-nm">${w.name}</div><div class="ish-mt">${w.kasb||'Ishchi'} · ${w.phone||''}</div></div>
-        <div style="text-align:right"><div style="font-size:10px;color:var(--muted);font-weight:700;margin-bottom:2px">QOLDIQ</div><div style="font-size:18px;font-weight:900;color:${qoldiq>=0?'var(--green)':'var(--red)'}">${qoldiq>=0?'+':''}${usd(qoldiq)}</div></div>
-      </div>
-      <div class="ish-stats">
-        <div class="ist"><div class="ist-v" style="color:var(--green)">${usd(haqqi)}</div><div class="ist-l">Ish haqqi</div></div>
-        <div class="ist"><div class="ist-v" style="color:var(--red)">-${usd(avans)}</div><div class="ist-l">Avans</div></div>
-        <div class="ist"><div class="ist-v" style="color:${qoldiq>=0?'var(--green)':'var(--red)'}">${qoldiq>=0?'+':''}${usd(qoldiq)}</div><div class="ist-l">Hisob-kitob</div></div>
-      </div>
-      <div style="padding:10px 14px;background:var(--bg);display:flex;gap:8px">
-        <button onclick="openIshAvans('${w.id}')" style="flex:1;padding:10px;border-radius:12px;border:none;background:var(--red-bg);color:var(--red);font-size:13px;font-weight:800;font-family:'Manrope',sans-serif;cursor:pointer">− Avans</button>
-        <button onclick="openIshHaqqi('${w.id}')" style="flex:1;padding:10px;border-radius:12px;border:none;background:var(--green-bg);color:var(--green);font-size:13px;font-weight:800;font-family:'Manrope',sans-serif;cursor:pointer">+ Ish haqqi</button>
-      </div>
-    </div>`;
-  }).join(''):'<div class="empty">Hali ishchi yo\'q<br><small>Qo\'shish tugmasini bosing</small></div>';
-}
-
-// ââ OP SHEET ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-function openChoiceSheet(){$('choice-bg').classList.add('open');}
-function closeChoiceSheet(){$('choice-bg').classList.remove('open');}
-
-function pickCat(cat){
-  closeChoiceSheet();
-  curCat=cat;curType='chiqim';
-  openOpForm(curObId||null);
-}
-
-function openOpForm(obId){
-  const ic=CAT_ICONS[curCat]||CAT_ICONS.usta;
-  $('op-cat-ico').style.cssText=`width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:${ic.bg};color:${ic.c}`;
-  $('op-cat-ico').innerHTML=ic.svg;
-  $('op-cat-nm').textContent=CAT_NMS[curCat]||curCat;
-  $('op-cat-tp').textContent=curType==='chiqim'?'Chiqim':'Kirim';
-  $('op-sum').value='';$('op-date').value=today();$('op-izoh').value='';$('op-err').textContent='';
-  $('op-ob-id').value=obId||'';
-  const ob=OBS.find(o=>o.id===obId);
-  $('op-ob-txt').textContent=ob?'🏗 '+ob.nomi:'Tanlang';
-  $('op-ob-txt').style.color=ob?'var(--text)':'var(--muted)';
-  $('wkr-row').style.display=curCat==='usta'?'block':'none';
-  $('op-wkr').innerHTML='<option value="">— Ishchi tanlang —</option>'+ISHCHILAR.map(w=>`<option value="${w.id}">${w.name}</option>`).join('');
-  $('op-bg').classList.add('open');
-  setTimeout(()=>$('op-sum').focus(),350);
-}
-
-function closeOp(){$('op-bg').classList.remove('open');}
-
-function openObPicker(){
-  $('ob-pick-list').innerHTML=OBS.map(ob=>`<div onclick="pickOb('${ob.id}','${ob.nomi}')" style="background:var(--bg);border:1.5px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg><div style="font-size:15px;font-weight:700">${ob.nomi}</div></div>`).join('');
-  $('obpick-bg').classList.add('open');
-}
-function closeObPicker(){$('obpick-bg').classList.remove('open');}
-function pickOb(id,nm){closeObPicker();$('op-ob-id').value=id;$('op-ob-txt').textContent='🏗 '+nm;$('op-ob-txt').style.color='var(--text)';}
-
-async function saveOp(){
-  const summa=parseFloat($('op-sum').value)||0;
-  const sana=$('op-date').value;
-  const izoh=$('op-izoh').value.trim();
-  const obId=$('op-ob-id').value;
-  const ishchiId=$('op-wkr').value||null;
-  const err=$('op-err');
-  if(!summa||summa<=0){err.textContent='Summani kiriting!';return;}
-  if(!sana){err.textContent='Sanani kiriting!';return;}
-  if(!obId){err.textContent='Obyektni tanlang!';return;}
-  const btn=document.querySelector('#op-bg .sbtn-ok');
-  btn.textContent='Saqlanmoqda...';btn.disabled=true;
-  const{error}=await sb.from('operatsiyalar').insert({
-    user_id:curUser.id,tur:curType,summa,sana,kategoriya:curCat,
-    izoh:izoh||null,obyekt_id:obId,ishchi_id:ishchiId||null
-  });
-  btn.textContent='💾 Saqlash';btn.disabled=false;
-  if(error){err.textContent=error.message;return;}
-  const{data}=await sb.from('operatsiyalar').select('*').eq('user_id',curUser.id).order('created_at',{ascending:false}).limit(1);
-  if(data?.[0])OPS.unshift(data[0]);
-  closeOp();
-  refreshCur();
-}
-
-// ââ OB CRUD âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-function openAddOb(){$('ob-start').value=today();$('ob-nm').value='';$('ob-days').value='';$('ob-err').textContent='';$('addob-bg').classList.add('open');}
-function closeAddOb(){$('addob-bg').classList.remove('open');}
-
-async function saveOb(){
-  const nm=$('ob-nm').value.trim();
-  if(!nm){$('ob-err').textContent='Nom kiriting!';return;}
-  const btn=document.querySelector('#addob-bg .sbtn-ok');
-  btn.textContent='Saqlanmoqda...';btn.disabled=true;
-  const{error,data}=await sb.from('obyektlar').insert({
-    user_id:curUser.id,nomi:nm,boshlanish_sana:$('ob-start').value||today(),
-    muddat_kun:parseInt($('ob-days').value)||null,holat:'faol'
-  }).select().single();
-  btn.textContent='Saqlash';btn.disabled=false;
-  if(error){$('ob-err').textContent=error.message;return;}
-  if(data)OBS.unshift(data);
-  closeAddOb();renderObs();renderHome();
-}
-
-// ââ ISHCHI CRUD âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-function openAddIsh(){$('ish-nm').value='';$('ish-ph').value='';$('ish-kasb').value='';$('ish-err').textContent='';$('addish-bg').classList.add('open');}
-function closeAddIsh(){$('addish-bg').classList.remove('open');}
-
-async function saveIsh(){
-  const nm=$('ish-nm').value.trim();
-  const ph=$('ish-ph').value.trim();
-  const kasb=$('ish-kasb').value.trim();
-  if(!nm){$('ish-err').textContent='Ism kiriting!';return;}
-  const btn=document.querySelector('#addish-bg .sbtn-ok');
-  btn.textContent='Saqlanmoqda...';btn.disabled=true;
-  const{error,data}=await sb.from('ishchilar').insert({
-    user_id:curUser.id,name:nm,phone:ph,kasb:kasb||'Ishchi',ish_haqqi:0
-  }).select().single();
-  btn.textContent='Saqlash';btn.disabled=false;
-  if(error){$('ish-err').textContent=error.message;return;}
-  if(data)ISHCHILAR.push(data);
-  closeAddIsh();renderIshchilar();
-}
-
-// ââ AVANS / HAQQI âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-function openIshAvans(wId){
-  const w=ISHCHILAR.find(x=>x.id===wId);if(!w)return;
-  curIshAvansId=wId;
-  $('ish-avans-nm').textContent=w.name;
-  $('ish-avans-sum').value='';$('ish-avans-izoh').value='';$('ish-avans-err').textContent='';
-  $('ish-avans-ob-id').value='';$('ish-avans-ob-txt').textContent='Tanlang';$('ish-avans-ob-txt').style.color='var(--muted)';
-  $('ish-avans-date').value=today();
-  $('ish-avans-bg').classList.add('open');
-  setTimeout(()=>$('ish-avans-sum').focus(),350);
-}
-
-function openAvansObPicker(){
-  $('ish-avans-bg').classList.remove('open');
-  $('ob-pick-list').innerHTML=OBS.map(ob=>`<div onclick="pickAvansOb('${ob.id}','${ob.nomi}')" style="background:var(--bg);border:1.5px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg><div style="font-size:15px;font-weight:700">${ob.nomi}</div></div>`).join('');
-  $('obpick-bg').classList.add('open');
-}
-function pickAvansOb(id,nm){closeObPicker();$('ish-avans-ob-id').value=id;$('ish-avans-ob-txt').textContent='🏗 '+nm;$('ish-avans-ob-txt').style.color='var(--text)';$('ish-avans-bg').classList.add('open');}
-
-async function saveIshAvans(){
-  const summa=parseFloat($('ish-avans-sum').value)||0;
-  const sana=$('ish-avans-date').value;
-  const obId=$('ish-avans-ob-id').value;
-  const izoh=$('ish-avans-izoh').value.trim();
-  const w=ISHCHILAR.find(x=>x.id===curIshAvansId);
-  if(!summa||summa<=0){$('ish-avans-err').textContent='Summani kiriting!';return;}
-  if(!obId){$('ish-avans-err').textContent='Obyektni tanlang!';return;}
-  const{error,data}=await sb.from('operatsiyalar').insert({
-    user_id:curUser.id,tur:'chiqim',summa,sana,kategoriya:'usta',
-    izoh:izoh||(w?.name+' — avans'),obyekt_id:obId,ishchi_id:curIshAvansId
-  }).select().single();
-  if(error){$('ish-avans-err').textContent=error.message;return;}
-  if(data)OPS.unshift(data);
-  $('ish-avans-bg').classList.remove('open');
-  renderIshchilar();renderHome();
-}
-
-function openIshHaqqi(wId){
-  const w=ISHCHILAR.find(x=>x.id===wId);if(!w)return;
-  curIshHaqqiId=wId;
-  $('ish-haqqi-nm').textContent=w.name;
-  $('ish-haqqi-sum').value='';$('ish-haqqi-izoh').value='';$('ish-haqqi-err').textContent='';
-  $('ish-haqqi-ob-id').value='';$('ish-haqqi-ob-txt').textContent='Tanlang';$('ish-haqqi-ob-txt').style.color='var(--muted)';
-  $('ish-haqqi-date').value=today();
-  $('ish-haqqi-bg').classList.add('open');
-  setTimeout(()=>$('ish-haqqi-sum').focus(),350);
-}
-
-function openHaqqiObPicker(){
-  $('ish-haqqi-bg').classList.remove('open');
-  $('ob-pick-list').innerHTML=OBS.map(ob=>`<div onclick="pickHaqqiOb('${ob.id}','${ob.nomi}')" style="background:var(--bg);border:1.5px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg><div style="font-size:15px;font-weight:700">${ob.nomi}</div></div>`).join('');
-  $('obpick-bg').classList.add('open');
-}
-function pickHaqqiOb(id,nm){closeObPicker();$('ish-haqqi-ob-id').value=id;$('ish-haqqi-ob-txt').textContent='🏗 '+nm;$('ish-haqqi-ob-txt').style.color='var(--text)';$('ish-haqqi-bg').classList.add('open');}
-
-async function saveIshHaqqi(){
-  const summa=parseFloat($('ish-haqqi-sum').value)||0;
-  const sana=$('ish-haqqi-date').value;
-  const obId=$('ish-haqqi-ob-id').value;
-  const izoh=$('ish-haqqi-izoh').value.trim();
-  const w=ISHCHILAR.find(x=>x.id===curIshHaqqiId);
-  if(!summa||summa<=0){$('ish-haqqi-err').textContent='Summani kiriting!';return;}
-  if(!obId){$('ish-haqqi-err').textContent='Obyektni tanlang!';return;}
-  // Ish haqqini yangilash
-  const newHaqqi=(Number(w.ish_haqqi)||0)+summa;
-  const[opRes,wRes]=await Promise.all([
-    sb.from('operatsiyalar').insert({
-      user_id:curUser.id,tur:'kirim',summa,sana,kategoriya:'ish_haqqi',
-      izoh:izoh||(w?.name+' — ish haqqi'),obyekt_id:obId,ishchi_id:curIshHaqqiId
-    }).select().single(),
-    sb.from('ishchilar').update({ish_haqqi:newHaqqi}).eq('id',curIshHaqqiId)
-  ]);
-  if(opRes.error){$('ish-haqqi-err').textContent=opRes.error.message;return;}
-  if(opRes.data)OPS.unshift(opRes.data);
-  if(w)w.ish_haqqi=newHaqqi;
-  $('ish-haqqi-bg').classList.remove('open');
-  renderIshchilar();renderHome();
-}
-
-
-// ââ ISHCHI PANEL âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-async function setupIshchiPanel(){
-  // Ishchini topish
-  const email = curUser.email;
-  const name = curProfile?.full_name || email?.split('@')[0] || 'Ishchi';
-  
-  // Barcha prorablardan qidiramiz
-  const {data: allIshchilar} = await sb
-    .from('ishchilar')
-    .select('*')
-    .ilike('name', '%'+name+'%');
-  
-  $('loading').style.display='none';
-  $('ishchi-app').style.display='block';
-  $('ish-panel-name').textContent=name;
-  
-  if(!allIshchilar||!allIshchilar.length){
-    $("ip-ops").innerHTML='<div class="empty">Siz hali hech qaysi prorab tomonidan qoshilmagansiz</div>';
-    return;
-  }
-  
-  // Jami hisob-kitob
-  let totalHaqqi=0, totalAvans=0;
-  let allOps=[];
-  
-  for(const w of allIshchilar){
-    totalHaqqi+=Number(w.ish_haqqi)||0;
-    const {data:ops}=await sb.from('operatsiyalar').select('*').eq('ishchi_id',w.id).order('created_at',{ascending:false});
-    if(ops){
-      totalAvans+=ops.filter(o=>o.tur==='chiqim').reduce((s,o)=>s+Number(o.summa),0);
-      allOps=[...allOps,...ops];
-    }
-    $('ish-panel-kasb').textContent=w.kasb||'Ishchi';
-  }
-  
-  const qoldiq=totalHaqqi-totalAvans;
-  $('ip-haqqi').textContent='$'+totalHaqqi.toLocaleString();
-  $('ip-avans').textContent='-$'+totalAvans.toLocaleString();
-  $('ip-qoldiq').textContent=(qoldiq>=0?'+':'')+' $'+Math.abs(qoldiq).toLocaleString();
-  $('ip-qoldiq').style.color=qoldiq>=0?'#4ade80':'#f87171';
-  
-  // Operatsiyalar
-  allOps.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
-  if(!allOps.length){
-    $(`ip-ops`).innerHTML='<div class="empty">Hali operatsiya yoq</div>';
-    return;
-  }
-  
-  $('ip-ops').innerHTML=allOps.map(op=>{
-    const isK=op.tur==='kirim';
-    const ic=CAT_ICONS[op.kategoriya]||CAT_ICONS.usta;
-    return`<div style="background:#fff;border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:12px;border:1px solid var(--border)">
-      <div style="width:40px;height:40px;border-radius:13px;background:${ic.bg};display:flex;align-items:center;justify-content:center;color:${ic.c};flex-shrink:0">${ic.svg}</div>
-      <div style="flex:1">
-        <div style="font-size:14px;font-weight:700">${op.izoh||CAT_NMS[op.kategoriya]||op.kategoriya}</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px">${fmtD(op.sana||op.created_at)}</div>
-      </div>
-      <div style="font-size:15px;font-weight:800;color:${isK?'var(--green)':'var(--red)'}">${isK?'+':'-'}$${Math.abs(Number(op.summa)).toLocaleString()}</div>
-    </div>`;
-  }).join('');
-}
-
-// ââ AI ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-const WORKER_URL='https://patient-shape-678e.bekzodramazonov99.workers.dev';
-let aiThinking=false, recognition=null, micActive=false;
-
-function getAIContext(){
-  const{tI,tO,bal}=getStats();
-  const faol=OBS.filter(o=>o.holat==='faol').length;
-  const obsStr=OBS.map(ob=>{
-    const ops=OPS.filter(o=>o.obyekt_id===ob.id&&o.kategoriya!=='ish_haqqi');
-    const b=ops.reduce((s,o)=>o.tur==='kirim'?s+Number(o.summa):s-Number(o.summa),0);
-    return ob.nomi+'('+ob.holat+',balans:$'+b+','+ops.length+' ta op)';
-  }).join('; ');
-  const ishStr=ISHCHILAR.map(w=>{
-    const av=OPS.filter(o=>o.ishchi_id===w.id&&o.tur==='chiqim').reduce((s,o)=>s+Number(o.summa),0);
-    return w.name+'(haqqi:$'+(w.ish_haqqi||0)+',avans:$'+av+',qoldiq:$'+((w.ish_haqqi||0)-av)+')';
-  }).join('; ');
-  const cats={};
-  OPS.filter(o=>o.tur==='chiqim'&&o.kategoriya!=='ish_haqqi').forEach(o=>{cats[o.kategoriya]=(cats[o.kategoriya]||0)+Number(o.summa);});
-  return `Siz Prorab ilovasining AI yordamchisisiz. Faqat OZBEK tilida javob bering. Qisqa, aniq va emoji bilan.
-
-MALUMOTLAR:
-- Kirim: $${tI}, Chiqim: $${tO}, Balans: $${bal}
-- Faol obyektlar: ${faol} ta
-- Obyektlar: ${obsStr||'yo\'q'}
-- Ishchilar: ${ishStr||'yo\'q'}
-- Jami operatsiyalar: ${OPS.length} ta
-- Xarajatlar: ${Object.entries(cats).map(([k,v])=>CAT_NMS[k]+':$'+v).join(', ')||'yo\'q'}`;
-}
-
-function addAIMsg(text,who){
-  const el=$('ai-messages');if(!el)return;
-  const div=document.createElement('div');
-  div.style.cssText='display:flex;align-items:flex-end;gap:8px;'+(who==='user'?'justify-content:flex-end':'');
-  if(who==='bot'){
-    div.innerHTML=`<div style="width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,#1e293b,#0f172a);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🤖</div><div style="max-width:82%;padding:13px 16px;border-radius:20px;border-bottom-left-radius:6px;background:#fff;border:1px solid var(--border);font-size:14px;font-weight:500;line-height:1.5;color:var(--text)">${text}</div>`;
-  } else {
-    div.innerHTML=`<div style="max-width:82%;padding:13px 16px;border-radius:20px;border-bottom-right-radius:6px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:14px;font-weight:500;line-height:1.5">${text}</div>`;
-  }
-  el.appendChild(div);
-  setTimeout(()=>el.scrollTop=el.scrollHeight,50);
-}
-
-function addThinking(id){
-  const el=$('ai-messages');if(!el)return;
-  const div=document.createElement('div');
-  div.id=id;div.style.cssText='display:flex;align-items:flex-end;gap:8px';
-  div.innerHTML=`<div style="width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,#1e293b,#0f172a);display:flex;align-items:center;justify-content:center;font-size:16px">🤖</div><div style="padding:14px 16px;border-radius:20px;border-bottom-left-radius:6px;background:#fff;border:1px solid var(--border);display:flex;gap:5px"><div style="width:7px;height:7px;border-radius:50%;background:#94a3b8;animation:pulse 1.2s infinite"></div><div style="width:7px;height:7px;border-radius:50%;background:#94a3b8;animation:pulse 1.2s .2s infinite"></div><div style="width:7px;height:7px;border-radius:50%;background:#94a3b8;animation:pulse 1.2s .4s infinite"></div></div>`;
-  el.appendChild(div);
-  setTimeout(()=>el.scrollTop=el.scrollHeight,50);
-}
-
-function sendSug(q){if(aiThinking)return;addAIMsg(q,'user');askAI(q);}
-
-function sendAI(){
-  if(aiThinking)return;
-  const inp=$('ai-inp');
-  const msg=(inp?.value||'').trim();
-  if(!msg)return;
-  inp.value='';
-  addAIMsg(msg,'user');
-  askAI(msg);
-}
-
-async function askAI(q){
-  if(aiThinking)return;
-  aiThinking=true;
-  const thinkId='think'+Date.now();
-  addThinking(thinkId);
-  try{
-    const res=await fetch(WORKER_URL,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        system:getAIContext(),
-        messages:[{role:'user',content:q}]
-      })
-    });
-    const data=await res.json();
-    document.getElementById(thinkId)?.remove();
-    const text=data.content?.[0]?.text||data.error||'Javob kelmadi';
-    addAIMsg(text,'bot');
-  }catch(e){
-    document.getElementById(thinkId)?.remove();
-    addAIMsg('❌ Ulanishda xato. Internet tekshiring.','bot');
-  }
-  aiThinking=false;
-}
-
-function toggleMic(){
-  if(!('webkitSpeechRecognition' in window||'SpeechRecognition' in window)){
-    alert('Mikrofon bu brauzerda ishlamaydi. Safari ishlatib ko\'ring.');return;
-  }
-  if(micActive){stopMic();return;}
-  startMic();
-}
-
-function startMic(){
-  try{
-    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-    const langs=['uz-UZ','uz','ru-RU'];
-    let langIdx=0;
-
-    function tryStart(){
-      recognition=new SR();
-      recognition.lang=langs[langIdx];
-      recognition.interimResults=true;
-      recognition.continuous=false;
-      micActive=true;
-      const btn=$('mic-btn'),st=$('mic-status');
-      if(btn){btn.style.background='var(--red)';btn.style.border='none';}
-      if($('mic-icon'))$('mic-icon').setAttribute('stroke','#fff');
-      if(st){st.style.display='block';st.textContent='🔴 Gapiring...';}
-      recognition.onresult=e=>{
-        let txt='';
-        for(let i=0;i<e.results.length;i++) txt+=e.results[i][0].transcript;
-        if($('ai-inp'))$('ai-inp').value=txt;
-        if($('mic-status'))$('mic-status').textContent='🎤 '+txt;
-      };
-      recognition.onend=()=>{
-        const txt=($('ai-inp')?.value||'').trim();
-        stopMic();
-        if(txt) sendAI();
-      };
-      recognition.onerror=(ev)=>{
-        if((ev.error==='language-not-supported'||ev.error==='no-speech')&&langIdx<langs.length-1){
-          langIdx++;
-          tryStart();
-        } else {
-          stopMic();
-        }
-      };
-      try{ recognition.start(); }catch(e){ stopMic(); }
-    }
-    tryStart();
-  }catch(e){
-    micActive=false;
-  }
-}
-function stopMic(){
-  micActive=false;
-  try{recognition?.stop();}catch(e){}
-  const btn=$('mic-btn'),st=$('mic-status');
-  if(btn){btn.style.background='#fff';btn.style.border='1.5px solid var(--border)';}
-  if($('mic-icon'))$('mic-icon').setAttribute('stroke','#94a3b8');
-  if(st)st.style.display='none';
-}
-
-// ââ START âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-init();
-
-// Escape bilan modallarni yopish
-document.addEventListener('keydown',function(e){if(e.key==='Escape')document.querySelectorAll('.sbg.open').forEach(el=>el.classList.remove('open'));});
-</script>
-
-<div id="profil-edit-bg" class="sbg" onclick="if(event.target===this)this.classList.remove('open')"><div class="sheet" style="max-height:85vh;overflow-y:auto"><div class="sheet-bar"></div><div style="padding:0 16px 16px"><div style="font-size:17px;font-weight:800;margin-bottom:20px;padding-top:8px">👤 Profilni tahrirlash</div><div style="margin-bottom:14px"><label style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase">To'liq ism</label><input id="profil-name-inp" type="text" style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:12px;font-size:15px;font-family:'Manrope',sans-serif;margin-top:6px;box-sizing:border-box" placeholder="Ism familiya"></div><div style="margin-bottom:14px"><label style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase">Telefon</label><input id="profil-phone-inp" type="tel" style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:12px;font-size:15px;font-family:'Manrope',sans-serif;margin-top:6px;box-sizing:border-box" placeholder="+998..."></div><button onclick="saveProfilEdit()" style="width:100%;padding:14px;border-radius:14px;border:none;background:var(--acc);color:#fff;font-size:15px;font-weight:800;font-family:'Manrope',sans-serif;margin-top:8px">💾 Saqlash</button><button onclick="document.getElementById('profil-edit-bg').classList.remove('open')" style="width:100%;padding:12px;border-radius:14px;border:1.5px solid var(--border);background:transparent;color:var(--muted);font-size:14px;font-weight:700;font-family:'Manrope',sans-serif;margin-top:8px">Bekor qilish</button></div></div></div>
-<div id="op-detail-modal-bg" class="sbg" onclick="if(event.target===this)this.classList.remove('open')"><div class="sheet"><div class="sheet-bar"></div><div id="op-detail-content" style="padding:0 16px 24px"></div></div></div>
-<script>
-function openProfilEdit(){document.getElementById('profil-name-inp').value=curProfile?.full_name||'';document.getElementById('profil-phone-inp').value=curProfile?.phone||'';document.getElementById('profil-edit-bg').classList.add('open');}
-async function saveProfilEdit(){const name=document.getElementById('profil-name-inp').value.trim();const phone=document.getElementById('profil-phone-inp').value.trim();if(!name){alert('Ism kiritilmadi!');return;}const{error}=await sb.from('profiles').update({full_name:name,phone}).eq('id',curUser.id);if(!error){if(curProfile){curProfile.full_name=name;curProfile.phone=phone;}const sn=document.getElementById('soz-name');const sp=document.getElementById('soz-phone');if(sn)sn.textContent=name;if(sp)sp.textContent=phone;document.getElementById('profil-edit-bg').classList.remove('open');const t=document.createElement('div');t.textContent='✅ Profil saqlandi!';t.style.cssText='position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#16a34a;color:#fff;padding:10px 20px;border-radius:12px;font-weight:700;font-size:14px;z-index:9999;font-family:Manrope,sans-serif';document.body.appendChild(t);setTimeout(()=>t.remove(),2500);}else alert('Xato: '+error.message);}
-function openOpDetail(opId){const op=OPS.find(o=>o.id==opId);if(!op)return;const isK=op.tur==='kirim';const ic=CAT_ICONS[op.kategoriya]||CAT_ICONS.usta;const ob=OBS.find(o=>o.id===op.obyekt_id);const worker=ISHCHILAR.find(w=>w.id===op.ishchi_id);const NMS={usta:'Usta',bozor:'Bozor',dostavka:'Dostavka',dokon:"Do'kon",qoshimcha:"Qo'shimcha",ovqat:'Ovqat',mijoz:'Mijoz',ish_haqqi:'Ish haqi'};document.getElementById('op-detail-content').innerHTML=`<div style="display:flex;align-items:center;gap:14px;padding-top:12px;margin-bottom:20px"><div style="width:52px;height:52px;border-radius:14px;background:${ic.bg};color:${ic.c};display:flex;align-items:center;justify-content:center">${ic.svg}</div><div><div style="font-size:17px;font-weight:800">${op.izoh||NMS[op.kategoriya]||op.kategoriya}</div><div style="font-size:13px;color:var(--muted);margin-top:3px">${NMS[op.kategoriya]||op.kategoriya}</div></div></div><div style="background:${isK?'#f0fdf4':'#fef2f2'};border-radius:16px;padding:16px;text-align:center;margin-bottom:16px"><div style="font-size:28px;font-weight:900;color:${isK?'var(--green)':'var(--red)'}">${isK?'+':'-'}${usd(op.summa)}</div><div style="font-size:12px;color:var(--muted);margin-top:4px">${isK?'Kirim':'Chiqim'}</div></div><div style="display:flex;flex-direction:column;gap:10px">${ob?`<div style="display:flex;justify-content:space-between;padding:12px 14px;background:var(--bg);border-radius:12px"><span style="color:var(--muted);font-size:13px">Obyekt</span><span style="font-weight:700;font-size:13px">${ob.nomi}</span></div>`:''}${worker?`<div style="display:flex;justify-content:space-between;padding:12px 14px;background:var(--bg);border-radius:12px"><span style="color:var(--muted);font-size:13px">Ishchi</span><span style="font-weight:700;font-size:13px">${worker.name}</span></div>`:''}<div style="display:flex;justify-content:space-between;padding:12px 14px;background:var(--bg);border-radius:12px"><span style="color:var(--muted);font-size:13px">Sana</span><span style="font-weight:700;font-size:13px">${new Date(op.sana||op.created_at).toLocaleDateString('uz-UZ')}</span></div>${op.izoh?`<div style="display:flex;justify-content:space-between;padding:12px 14px;background:var(--bg);border-radius:12px"><span style="color:var(--muted);font-size:13px">Izoh</span><span style="font-weight:700;font-size:13px">${op.izoh}</span></div>`:''}</div><button onclick="deleteOpConfirm('${op.id}')" id="del-op-${op.id}" style="width:100%;padding:13px;border-radius:14px;border:1.5px solid var(--red);background:transparent;color:var(--red);font-size:14px;font-weight:800;font-family:Manrope,sans-serif;margin-top:16px">🗑 O'chirish</button>`;document.getElementById('op-detail-modal-bg').classList.add('open');}
-async function deleteOpConfirm(opId){const btn=document.getElementById('del-op-'+opId);if(!btn)return;if(btn.dataset.confirm!=='1'){btn.dataset.confirm='1';btn.textContent='⚠️ Tasdiqlaysizmi?';btn.style.background='#fef3c7';btn.style.borderColor='#d97706';btn.style.color='#d97706';setTimeout(()=>{if(btn.dataset.confirm==='1'){btn.dataset.confirm='';btn.textContent="🗑 O'chirish";btn.style.background='transparent';btn.style.borderColor='var(--red)';btn.style.color='var(--red)';}},3000);return;}const{error}=await sb.from('operatsiyalar').delete().eq('id',opId);if(!error){const idx=OPS.findIndex(o=>o.id==opId);if(idx>-1)OPS.splice(idx,1);document.getElementById('op-detail-modal-bg').classList.remove('open');refreshCur();}}
+})();
 </script>
 </body>
 </html>
