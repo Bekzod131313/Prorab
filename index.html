@@ -234,7 +234,7 @@ input,textarea{font-family:'Manrope',sans-serif;outline:none}
       <button id="tab-reg" onclick="switchAuthTab('reg')" style="flex:1;padding:9px;border-radius:9px;border:none;background:transparent;color:rgba(255,255,255,.5);font-size:14px;font-weight:800;font-family:Manrope,sans-serif;cursor:pointer;transition:all .2s">Ro'yxat</button>
     </div>
     <div style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Telefon raqam</div>
-    <input class="auth-inp" id="auth-phone" type="tel" placeholder="+998 90 000 00 00" maxlength="17" oninput="formatPhone(this)" style="margin-bottom:12px">
+    <input class="auth-inp" id="auth-phone" type="tel" value="+998" placeholder="90 000 00 00" value="+998" maxlength="17" oninput="formatPhone(this)" style="margin-bottom:12px">
     <div style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Parol</div>
     <input class="auth-inp" id="auth-pass" type="password" placeholder="••••••••" style="letter-spacing:4px;margin-bottom:4px">
     <!-- Register only fields -->
@@ -438,7 +438,7 @@ input,textarea{font-family:'Manrope',sans-serif;outline:none}
     <div class="sheet-body">
       <div class="inp-wrap">
         <label class="inp-lbl">Telefon raqami</label>
-        <input class="inp inp-phone" id="member-phone" type="tel" placeholder="+998 90 000 00 00" oninput="formatPhone(this)">
+        <input class="inp inp-phone" id="member-phone" type="tel" value="+998" placeholder="90 000 00 00" oninput="formatPhone(this)">
       </div>
       <div class="inp-wrap">
         <label class="inp-lbl">Rol</label>
@@ -576,7 +576,7 @@ input,textarea{font-family:'Manrope',sans-serif;outline:none}
 // CONFIG
 // ═══════════════════════════════════════════
 const SB_URL = 'https://djreovvpojsiccndlgzu.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqcmVvdnZwb2pzaWNjbmRsZ3p1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NzMzOTksImV4cCI6MjA5NTA0OTM5OX0.fgaat8STrBIj6WC_p98zYWxOoGKO3DmwT7mJaT1LKTI';
+const SB_KEY = 'sb_publishable_-tcry0NA9FiCG0O2iUN4pg_9x-NeL-y';
 const sb = supabase.createClient(SB_URL, SB_KEY);
 
 // ═══════════════════════════════════════════
@@ -640,9 +640,12 @@ function fmtDate(d){
 
 function formatPhone(inp){
   let v=inp.value.replace(/\D/g,'');
-  if(v.startsWith('998'))v='+'+v;
-  else if(v.startsWith('9')&&v.length<=12)v='+998'+v.substring(v.startsWith('998')?3:0);
-  inp.value=v.substring(0,13);
+  // Remove 998 prefix if typed
+  if(v.startsWith('998'))v=v.substring(3);
+  // Max 9 digits after +998
+  v=v.substring(0,9);
+  inp.value='+998'+v;
+  setTimeout(()=>{inp.selectionStart=inp.selectionEnd=inp.value.length;},0);
 }
 
 function gp(page){
