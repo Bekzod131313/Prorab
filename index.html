@@ -227,38 +227,23 @@ input,textarea{font-family:'Manrope',sans-serif;outline:none}
   <div class="auth-title">Prorab Pro</div>
   <div class="auth-sub">Qurilish moliya boshqaruvi</div>
 
-  <div class="auth-box" id="auth-phone-box">
-    <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:10px;font-weight:600">Telefon raqamingiz</div>
-    <input class="auth-inp" id="phone-inp" type="tel" placeholder="+998 90 000 00 00" maxlength="17" oninput="formatPhone(this)">
-    <button class="auth-btn" onclick="sendOtp()" id="send-otp-btn">Davom etish →</button>
-    <div id="phone-err" style="color:#f87171;font-size:13px;margin-top:8px;text-align:center;display:none"></div>
-  </div>
-
-  <div class="auth-box" id="auth-otp-box" style="display:none">
-    <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:6px;font-weight:600">SMS kod yuborildi</div>
-    <div id="otp-phone-show" style="color:#fff;font-size:15px;font-weight:800;margin-bottom:16px"></div>
-    <div class="otp-boxes">
-      <input class="otp-box" id="otp0" maxlength="1" type="text" inputmode="numeric" oninput="otpInput(this,0)" onkeydown="otpKey(this,0,event)">
-      <input class="otp-box" id="otp1" maxlength="1" type="text" inputmode="numeric" oninput="otpInput(this,1)" onkeydown="otpKey(this,1,event)">
-      <input class="otp-box" id="otp2" maxlength="1" type="text" inputmode="numeric" oninput="otpInput(this,2)" onkeydown="otpKey(this,2,event)">
-      <input class="otp-box" id="otp3" maxlength="1" type="text" inputmode="numeric" oninput="otpInput(this,3)" onkeydown="otpKey(this,3,event)">
-      <input class="otp-box" id="otp4" maxlength="1" type="text" inputmode="numeric" oninput="otpInput(this,4)" onkeydown="otpKey(this,4,event)">
-      <input class="otp-box" id="otp5" maxlength="1" type="text" inputmode="numeric" oninput="otpInput(this,5)" onkeydown="otpKey(this,5,event)">
+  <!-- Login tab -->
+  <div class="auth-box" id="auth-login-box">
+    <div style="display:flex;background:rgba(255,255,255,.08);border-radius:12px;padding:4px;margin-bottom:20px;gap:4px">
+      <button id="tab-login" onclick="switchAuthTab('login')" style="flex:1;padding:9px;border-radius:9px;border:none;background:#fff;color:#0f172a;font-size:14px;font-weight:800;font-family:Manrope,sans-serif;cursor:pointer;transition:all .2s">Kirish</button>
+      <button id="tab-reg" onclick="switchAuthTab('reg')" style="flex:1;padding:9px;border-radius:9px;border:none;background:transparent;color:rgba(255,255,255,.5);font-size:14px;font-weight:800;font-family:Manrope,sans-serif;cursor:pointer;transition:all .2s">Ro'yxat</button>
     </div>
-    <button class="auth-btn" onclick="verifyOtp()" id="verify-otp-btn">Tasdiqlash</button>
-    <div style="text-align:center;margin-top:12px">
-      <span style="color:rgba(255,255,255,.4);font-size:13px">Kod kelmadimi? </span>
-      <span onclick="resendOtp()" style="color:var(--acc);font-size:13px;font-weight:700;cursor:pointer">Qayta yuborish</span>
+    <div style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Telefon raqam</div>
+    <input class="auth-inp" id="auth-phone" type="tel" placeholder="+998 90 000 00 00" maxlength="17" oninput="formatPhone(this)" style="margin-bottom:12px">
+    <div style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Parol</div>
+    <input class="auth-inp" id="auth-pass" type="password" placeholder="••••••••" style="letter-spacing:4px;margin-bottom:4px">
+    <!-- Register only fields -->
+    <div id="reg-fields" style="display:none;margin-top:12px">
+      <div style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Ism Familiya</div>
+      <input class="auth-inp" id="auth-name" type="text" placeholder="Ism Familiya" style="font-size:16px;letter-spacing:0;margin-bottom:4px">
     </div>
-    <div id="otp-err" style="color:#f87171;font-size:13px;margin-top:8px;text-align:center;display:none"></div>
-  </div>
-
-  <!-- Name setup (first time) -->
-  <div class="auth-box" id="auth-name-box" style="display:none">
-    <div style="font-size:15px;color:#fff;font-weight:800;margin-bottom:6px">Ismingizni kiriting</div>
-    <div style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:16px">Bu bir marta so'raladi</div>
-    <input class="auth-inp" id="name-inp" type="text" placeholder="Ism Familiya" style="font-size:16px;letter-spacing:0">
-    <button class="auth-btn" onclick="saveName()">Boshlash →</button>
+    <button class="auth-btn" id="auth-submit-btn" onclick="doAuth()">Kirish →</button>
+    <div id="auth-err" style="color:#f87171;font-size:13px;margin-top:10px;text-align:center;display:none"></div>
   </div>
 </div>
 
@@ -685,89 +670,64 @@ document.addEventListener('keydown',e=>{
 // ═══════════════════════════════════════════
 // AUTH — PHONE OTP
 // ═══════════════════════════════════════════
-async function sendOtp(){
-  const phone=document.getElementById('phone-inp').value.trim();
-  if(phone.length<10){showErr('phone-err','To\'g\'ri telefon kiriting');return;}
-  const btn=document.getElementById('send-otp-btn');
-  btn.innerHTML='<span class="spinner"></span>';
-  btn.disabled=true;
-  try{
-    const {error}=await sb.auth.signInWithOtp({phone});
-    if(error)throw error;
-    document.getElementById('auth-phone-box').style.display='none';
-    document.getElementById('auth-otp-box').style.display='block';
-    document.getElementById('otp-phone-show').textContent=phone;
-    document.getElementById('otp0').focus();
-  }catch(e){
-    showErr('phone-err',e.message||'Xato yuz berdi');
-    btn.textContent='Davom etish →';btn.disabled=false;
-  }
+// Auth tab switcher
+let authMode='login';
+function switchAuthTab(mode){
+  authMode=mode;
+  const isLogin=mode==='login';
+  const s1='flex:1;padding:9px;border-radius:9px;border:none;font-size:14px;font-weight:800;font-family:Manrope,sans-serif;cursor:pointer;transition:all .2s;';
+  document.getElementById('tab-login').style.cssText=s1+'background:'+(isLogin?'#fff':'transparent')+';color:'+(isLogin?'#0f172a':'rgba(255,255,255,.5)');
+  document.getElementById('tab-reg').style.cssText=s1+'background:'+(isLogin?'transparent':'#fff')+';color:'+(isLogin?'rgba(255,255,255,.5)':'#0f172a');
+  document.getElementById('reg-fields').style.display=isLogin?'none':'block';
+  document.getElementById('auth-submit-btn').textContent=isLogin?'Kirish →':"Ro\'yxatdan o\'tish →";
+  document.getElementById('auth-err').style.display='none';
 }
 
-async function resendOtp(){
-  document.getElementById('auth-otp-box').style.display='none';
-  document.getElementById('auth-phone-box').style.display='block';
-  document.getElementById('send-otp-btn').textContent='Davom etish →';
-  document.getElementById('send-otp-btn').disabled=false;
-}
-
-function otpInput(el,idx){
-  el.value=el.value.replace(/\D/g,'');
-  if(el.value&&idx<5)document.getElementById('otp'+(idx+1)).focus();
-  if(getOtpVal().length===6)verifyOtp();
-}
-
-function otpKey(el,idx,e){
-  if(e.key==='Backspace'&&!el.value&&idx>0)document.getElementById('otp'+(idx-1)).focus();
-}
-
-function getOtpVal(){
-  let v='';
-  for(let i=0;i<6;i++)v+=document.getElementById('otp'+i).value;
-  return v;
-}
-
-async function verifyOtp(){
-  const phone=document.getElementById('phone-inp').value.trim();
-  const token=getOtpVal();
-  if(token.length!==6){showErr('otp-err','6 xonali kod kiriting');return;}
-  const btn=document.getElementById('verify-otp-btn');
+async function doAuth(){
+  const phone=document.getElementById('auth-phone').value.trim();
+  const pass=document.getElementById('auth-pass').value;
+  if(phone.length<10){showErr('auth-err',"To\'g\'ri telefon kiriting");return;}
+  if(pass.length<4){showErr('auth-err','Parol kamida 4 ta belgi');return;}
+  const email=phone.replace(/[^0-9]/g,'')+'@prorab.app';
+  const btn=document.getElementById('auth-submit-btn');
   btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
   try{
-    const {data,error}=await sb.auth.verifyOtp({phone,token,type:'sms'});
-    if(error)throw error;
-    curUser=data.user;
-    await loadOrCreateProfile();
+    if(authMode==='login'){
+      const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
+      if(error)throw error;
+      curUser=data.user;
+      await loadOrCreateProfile();
+    }else{
+      const name=document.getElementById('auth-name').value.trim();
+      if(!name){showErr('auth-err',"Ismingizni kiriting");btn.textContent="Ro\'yxatdan o\'tish →";btn.disabled=false;return;}
+      const {data,error}=await sb.auth.signUp({email,password:pass,options:{data:{phone,full_name:name}}});
+      if(error)throw error;
+      curUser=data.user;
+      await sb.from('profiles').upsert({id:curUser.id,phone,full_name:name});
+      curProfile={id:curUser.id,phone,full_name:name};
+      startApp();
+    }
   }catch(e){
-    showErr('otp-err',e.message||'Kod xato');
-    btn.textContent='Tasdiqlash';btn.disabled=false;
+    let msg=e.message||'Xato yuz berdi';
+    if(msg.includes('Invalid login'))msg="Telefon yoki parol noto\'g\'ri";
+    if(msg.includes('already registered'))msg="Bu raqam allaqachon ro\'yxatdan o\'tgan";
+    showErr('auth-err',msg);
+    btn.textContent=authMode==='login'?'Kirish →':"Ro\'yxatdan o\'tish →";
+    btn.disabled=false;
   }
 }
 
 async function loadOrCreateProfile(){
   const {data}=await sb.from('profiles').select('*').eq('id',curUser.id).single();
-  if(data){
-    curProfile=data;
-    if(!data.full_name){
-      document.getElementById('auth-otp-box').style.display='none';
-      document.getElementById('auth-name-box').style.display='block';
-    }else{
-      startApp();
-    }
-  }else{
-    // Create profile
-    await sb.from('profiles').insert({id:curUser.id,phone:curUser.phone});
-    document.getElementById('auth-otp-box').style.display='none';
-    document.getElementById('auth-name-box').style.display='block';
+  if(data&&data.full_name){curProfile=data;startApp();}
+  else{
+    const meta=curUser.user_metadata||{};
+    const phone=meta.phone||curUser.email?.replace('@prorab.app','');
+    const name=meta.full_name||phone;
+    await sb.from('profiles').upsert({id:curUser.id,phone,full_name:name});
+    curProfile={id:curUser.id,phone,full_name:name};
+    startApp();
   }
-}
-
-async function saveName(){
-  const name=document.getElementById('name-inp').value.trim();
-  if(!name){return;}
-  await sb.from('profiles').upsert({id:curUser.id,phone:curUser.phone,full_name:name});
-  curProfile={...curProfile,full_name:name,phone:curUser.phone};
-  startApp();
 }
 
 function showErr(id,msg){
@@ -1158,7 +1118,7 @@ function openSpendMoney(){
   catsEl.innerHTML=CATS.map(c=>`
     <div onclick="selectSpendCat('${c.id}',this)" style="background:${c.id===selectedCat?c.bg:'var(--bg)'};border:1.5px solid ${c.id===selectedCat?c.c:'var(--border)'};border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;transition:all .2s" data-cat="${c.id}">
       <div style="font-size:20px">${c.emoji}</div>
-      <div style="font-size:10px;font-weight:700;color:${c.id===selectedCat?c.c:'var(--muted)');margin-top:2px">${c.label}</div>
+      <div style="font-size:10px;font-weight:700;color:${c.id===selectedCat?c.c:'var(--muted)'};margin-top:2px">${c.label}</div>
     </div>
   `).join('');
   openSbg('spend-money-bg');
@@ -1661,15 +1621,7 @@ async function doLogout(){
   const {data:{session}}=await sb.auth.getSession();
   if(session){
     curUser=session.user;
-    const {data:prof}=await sb.from('profiles').select('*').eq('id',curUser.id).single();
-    if(prof&&prof.full_name){
-      curProfile=prof;
-      await startApp();
-    }else{
-      curProfile=prof;
-      document.getElementById('auth-name-box').style.display='block';
-      document.getElementById('auth-phone-box').style.display='none';
-    }
+    await loadOrCreateProfile();
   }
 })();
 </script>
