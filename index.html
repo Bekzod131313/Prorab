@@ -775,7 +775,9 @@ async function renderHome(){
     if(role==='owner'){totalIn+=ob.kirim||0;totalOut+=ob.chiqim||0;}
     totalHand+=myBalance;
   });
-  document.getElementById('home-total-bal').textContent=usd(totalIn-totalOut)+' so\'m';
+  // Agar owner bo'lsa kirim-chiqim, aks holda qo'lidagi pul
+  const totalBal = totalIn>0 ? totalIn-totalOut : totalHand;
+  document.getElementById('home-total-bal').textContent=usd(totalHand)+' so\'m';
   document.getElementById('home-total-in').textContent=usd(totalIn)+' so\'m';
   document.getElementById('home-total-out').textContent=usd(totalOut)+' so\'m';
   document.getElementById('home-in-hand').textContent=usd(totalHand)+' so\'m';
