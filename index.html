@@ -264,10 +264,6 @@ input,textarea{font-family:'Manrope',sans-serif;outline:none}
           <div class="balance-sub-lbl">Chiqim</div>
           <div class="balance-sub-val" id="home-total-out" style="color:#f87171">$0</div>
         </div>
-        <div class="balance-sub">
-          <div class="balance-sub-lbl">Qo'lda</div>
-          <div class="balance-sub-val" id="home-in-hand" style="color:#fbbf24">$0</div>
-        </div>
       </div>
     </div>
 
@@ -609,11 +605,11 @@ let selectedCat = 'bozor';
 // ═══════════════════════════════════════════
 const usd = n => {
   const v = Math.abs(n||0);
-  if(v>=1000000) return (v/1000000).toFixed(1)+'M';
-  if(v>=1000) return (v/1000).toFixed(0)+'K';
-  return v.toLocaleString();
+  if(v>=1000000) return '$'+(v/1000000).toFixed(1)+'M';
+  if(v>=1000) return '$'+(v/1000).toFixed(0)+'K';
+  return '$'+v.toLocaleString();
 };
-const usdFull = n => (n||0).toLocaleString() + ' so\'m';
+const usdFull = n => (n||0).toLocaleString() ;
 
 function toast(msg, color='#0f172a'){
   const t=document.createElement('div');
@@ -785,10 +781,10 @@ async function renderHome(){
   });
   // Agar owner bo'lsa kirim-chiqim, aks holda qo'lidagi pul
   const totalBal = totalIn>0 ? totalIn-totalOut : totalHand;
-  document.getElementById('home-total-bal').textContent=usd(totalHand)+' so\'m';
-  document.getElementById('home-total-in').textContent=usd(totalIn)+' so\'m';
-  document.getElementById('home-total-out').textContent=usd(totalOut)+' so\'m';
-  document.getElementById('home-in-hand').textContent=usd(totalHand)+' so\'m';
+  document.getElementById('home-total-bal').textContent=usd(totalHand);
+  document.getElementById('home-total-in').textContent=usd(totalIn);
+  document.getElementById('home-total-out').textContent=usd(totalOut);
+  // home-in-hand removed
 
   const list=document.getElementById('home-obs-list');
   const recent=allObs.slice(0,3);
@@ -1151,7 +1147,7 @@ async function doSendMoney(){
 // ═══════════════════════════════════════════
 function openSpendMoney(){
   const myBal=allObs.find(o=>o.ob.id===curObId)?.myBalance||0;
-  document.getElementById('spend-my-bal').textContent=usd(myBal)+' so\'m';
+  document.getElementById('spend-my-bal').textContent=usd(myBal);
   document.getElementById('spend-amount').value='';
   document.getElementById('spend-note').value='';
 
@@ -1204,11 +1200,9 @@ async function doSpendMoney(){
     const newBal=myBal-amount;
     await sb.from('ob_members').update({balance:newBal}).eq('ob_id',curObId).eq('user_id',curUser.id);
 
-    // Update ob totals if owner
-    if(curObRole==='owner'){
-      await sb.from('obyektlar').update({chiqim:(curOb.chiqim||0)+amount}).eq('id',curObId);
-      curOb.chiqim=(curOb.chiqim||0)+amount;
-    }
+    // Har doim ob.chiqim ni yangilaymiz
+    await sb.from('obyektlar').update({chiqim:(curOb.chiqim||0)+amount}).eq('id',curObId);
+    curOb.chiqim=(curOb.chiqim||0)+amount;
 
     closeSbg('spend-money-bg');
     toast('✅ Sarflandi!','#16a34a');
