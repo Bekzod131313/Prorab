@@ -752,7 +752,7 @@ async function loadAllData(){
   // Load all projects where user is member
   const {data:memberRows}=await sb.from('ob_members')
     .select('ob_id,role,balance')
-    .eq('user_id',curUser.id);
+    .eq('user_id',curUser?.id);
 
   if(!memberRows||memberRows.length===0){allObs=[];return;}
 
@@ -769,6 +769,14 @@ async function loadAllData(){
 // HOME
 // ═══════════════════════════════════════════
 async function renderHome(){
+  if(!curUser?.id){
+    document.getElementById('home-total-bal').textContent="0 so'm";
+    document.getElementById('home-total-in').textContent="0 so'm";
+    document.getElementById('home-total-out').textContent="0 so'm";
+    document.getElementById('home-in-hand').textContent="0 so'm";
+    document.getElementById('home-obs-list').innerHTML='<div class="empty"><div class="empty-icon">🔐</div><div class="empty-text">Kirish kerak</div></div>';
+    return;
+  }
   await loadAllData();
   let totalIn=0,totalOut=0,totalHand=0;
   allObs.forEach(({ob,role,myBalance})=>{
@@ -902,11 +910,14 @@ function renderActBtns(){
   if(curObRole==='owner'){
     html+=`<button class="act-btn act-btn-in" onclick="openSbg('add-income-bg')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12l7-7 7 7"/></svg>Pul kirdi</button>`;
     html+=`<button class="act-btn act-btn-send" onclick="openSendMoney()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>Pul ber</button>`;
-    html+=`<button class="act-btn act-full-btn" onclick="openSbg('add-member-bg')" style="grid-column:1/-1;background:var(--bg);color:var(--text2)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>A'zo qo'shish</button>`;
+    html+=`<button class="act-btn act-full-btn" onclick="openAddMember()" style="grid-column:1/-1;background:var(--bg);color:var(--text2)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>A'zo qo'shish</button>`;
   }else{
     const myBal=allObs.find(o=>o.ob.id===curObId)?.myBalance||0;
     html+=`<button class="act-btn act-btn-send" onclick="openSendMoney()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>Pul ber</button>`;
     html+=`<button class="act-btn act-btn-out" onclick="openSpendMoney()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7 7 7-7"/></svg>Sarflash</button>`;
+    if(curObRole==='member'){
+      html+=`<button class="act-btn" onclick="openAddWorker()" style="grid-column:1/-1;background:var(--bg);color:var(--text2)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>Ishchi qo'shish</button>`;
+    }
   }
   btns.innerHTML=html;
 }
@@ -954,12 +965,26 @@ function txRowHtml(tx){
 }
 
 function renderObMembers(container){
-  if(obMembers.length<=1){
-    container.innerHTML=`<div class="empty"><div class="empty-icon">👥</div><div class="empty-text">A'zolar yo'q</div><div class="empty-sub">A'zo qo'shish tugmasini bosing</div></div>`;
+  // Owner faqat member(usta)larni ko'radi, workerlarni ko'rmaydi
+  // Member(usta) faqat o'z workerlarini ko'radi
+  let visible=[];
+  if(curObRole==='owner'){
+    // Faqat owner va memberlarni ko'rsatamiz (workerlar ko'rinmaydi)
+    visible=obMembers.filter(m=>m.role!=='worker');
+  }else if(curObRole==='member'){
+    // O'zini va o'z workerlarini ko'rsatamiz
+    // Worker qo'shganda added_by field kerak - hozircha barchasini ko'rsatamiz
+    visible=obMembers.filter(m=>m.user_id!==curUser?.id);
+    // Faqat workerlarni ko'rsatamiz
+    visible=obMembers.filter(m=>m.role==='worker');
+  }else{
+    visible=[];
+  }
+  if(visible.length===0){
+    container.innerHTML='<div class="empty"><div class="empty-icon">👥</div><div class="empty-text">A\'zolar yo\'q</div>' + (curObRole!=='worker'?'<div class="empty-sub">A\'zo qo\'shish tugmasini bosing</div>':'') + '</div>';
     return;
   }
-  const others=obMembers.filter(m=>m.user_id!==curUser.id||m.role==='owner');
-  container.innerHTML=others.map(m=>memberCardHtml(m)).join('');
+  container.innerHTML=visible.map(m=>memberCardHtml(m)).join('');
 }
 
 function memberCardHtml(m){
@@ -1293,6 +1318,27 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.querySelector('.role-opt.active').style.cssText='padding:12px;border-radius:12px;cursor:pointer;border:1.5px solid #3b82f6;background:#eff6ff;transition:all .2s';
 });
 
+
+// Usta o'z ishchisini qo'shadi
+function openAddWorker(){
+  // Reset form
+  document.getElementById('member-phone').value='+998';
+  // Force worker role
+  sendSelectedRole='worker';
+  // Hide role selector - always worker
+  document.getElementById('role-selector').style.display='none';
+  document.querySelector('#add-member-bg .sheet-head').textContent="🔨 Ishchi qo'shish";
+  openSbg('add-member-bg');
+}
+
+// Prorab a'zo qo'shganda rol tanlash ko'rinadi
+function openAddMember(){
+  document.getElementById('member-phone').value='+998';
+  sendSelectedRole='member';
+  document.getElementById('role-selector').style.display='grid';
+  document.querySelector('#add-member-bg .sheet-head').textContent="👤 A'zo qo\'shish";
+  openSbg('add-member-bg');
+}
 async function addMember(){
   const phone=document.getElementById('member-phone').value.trim();
   if(phone.length<10){toast('Telefon raqam kiriting','#ef4444');return;}
@@ -1318,6 +1364,7 @@ async function addMember(){
       user_id:profile.id,
       role:sendSelectedRole,
       balance:0,
+      added_by:curUser?.id,
     });
 
     closeSbg('add-member-bg');
