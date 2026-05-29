@@ -102,7 +102,7 @@ a{text-decoration:none}
 .sec-ttl{font-size:16px;font-weight:800;color:var(--text);letter-spacing:-.2px}
 .sec-lnk{font-size:13px;color:var(--acc);font-weight:700;cursor:pointer;display:flex;align-items:center;gap:2px}
 
-/* OB CARD — yengilashtirilgan */
+/* OB CARD â yengilashtirilgan */
 .ob-card{background:#fff;border-radius:20px;margin:0 16px 10px;overflow:hidden;border:1px solid var(--border);cursor:pointer;transition:all .2s;box-shadow:0 2px 12px rgba(0,0,0,.05)}
 .ob-card:active{transform:scale(.98);box-shadow:0 1px 4px rgba(0,0,0,.08)}
 .ob-card-body{display:flex;align-items:center;gap:12px;padding:14px}
@@ -266,6 +266,11 @@ a{text-decoration:none}
 .sum-badge{background:#fff;border-radius:16px;border:1px solid var(--border);padding:16px;box-shadow:0 2px 12px rgba(0,0,0,.04)}
 .sum-badge-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:5px}
 .sum-badge-val{font-size:22px;font-weight:900;letter-spacing:-.5px}
+
+  .bar-wrap{background:var(--border);border-radius:6px;overflow:hidden;height:10px;width:100%;display:block}
+  .bar-fill{height:10px;border-radius:6px;display:block;min-width:2px}
+  .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .chart-card{background:var(--card);border-radius:16px;padding:16px;margin:0 16px 12px}
 </style>
 </head>
 <body>
@@ -276,9 +281,9 @@ a{text-decoration:none}
 <!-- SIDEBAR -->
 <div id="sidebar">
   <div class="sb-profile">
-    <div class="sb-av">👷</div>
+    <div class="sb-av">ð·</div>
     <div class="sb-name">ALISHER</div>
-    <div class="sb-role">Prorab · Zodpro</div>
+    <div class="sb-role">Prorab Â· Zodpro</div>
     <div class="sb-badge">
       <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
       Pro versiya
@@ -310,7 +315,7 @@ a{text-decoration:none}
     <div class="sb-section">Yangi</div>
     <div class="sb-item" onclick="gp('ai',this)">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-      AI Yordamchi ✨
+      AI Yordamchi â¨
     </div>
     <div class="sb-section">Boshqa</div>
     <div class="sb-item" onclick="gp('sozlamalar',this)">
@@ -339,7 +344,7 @@ a{text-decoration:none}
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
       <div class="tb-notif-dot"></div>
     </button>
-    <button class="tb-av" onclick="gp('sozlamalar')">👷</button>
+    <button class="tb-av" onclick="gp('sozlamalar')">ð·</button>
   </div>
 </div>
 
@@ -356,11 +361,11 @@ a{text-decoration:none}
       <div class="bc-sum" id="bc-bal">+$0</div>
       <div class="bc-row">
         <div class="bc-item">
-          <div class="bc-ilbl"><span class="bc-arrow">↓</span> Jami kirim</div>
+          <div class="bc-ilbl"><span class="bc-arrow">â</span> Jami kirim</div>
           <div class="bc-ival" id="bc-in">$0</div>
         </div>
         <div class="bc-item">
-          <div class="bc-ilbl"><span class="bc-arrow">↑</span> Jami chiqim</div>
+          <div class="bc-ilbl"><span class="bc-arrow">â</span> Jami chiqim</div>
           <div class="bc-ival" id="bc-out">$0</div>
         </div>
       </div>
@@ -385,7 +390,7 @@ a{text-decoration:none}
       </button>
       <button class="qa-btn" onclick="gp('ai')">
         <div class="qa-ico" style="background:var(--purple-bg)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
-        <div class="qa-nm">AI ✨</div>
+        <div class="qa-nm">AI â¨</div>
       </button>
     </div>
   </div>
@@ -427,10 +432,10 @@ a{text-decoration:none}
 <!-- OPERATSIYALAR -->
 <div class="page" id="pg-ops">
   <div class="filt-bar">
-    <input class="srch-inp" type="text" placeholder="🔍 Qidirish..." oninput="renderOps()">
+    <input class="srch-inp" type="text" placeholder="ð Qidirish..." oninput="renderOps()">
     <button class="fbtn on" onclick="setFilt('all',this)">Hammasi</button>
-    <button class="fbtn" onclick="setFilt('kirim',this)">↓ Kirim</button>
-    <button class="fbtn" onclick="setFilt('chiqim',this)">↑ Chiqim</button>
+    <button class="fbtn" onclick="setFilt('kirim',this)">â Kirim</button>
+    <button class="fbtn" onclick="setFilt('chiqim',this)">â Chiqim</button>
   </div>
   <div id="op-section"><div class="spin"></div></div>
 </div>
@@ -449,7 +454,7 @@ a{text-decoration:none}
 <div class="page" id="pg-ishchilar">
   <div class="sec-hdr">
     <span class="sec-ttl">Ishchilar</span>
-    <span class="sec-lnk" onclick="openAddIsh()">＋ Qo'shish</span>
+    <span class="sec-lnk" onclick="openAddIsh()">ï¼ Qo'shish</span>
   </div>
   <div id="ish-list"><div class="spin"></div></div>
 </div>
@@ -458,7 +463,7 @@ a{text-decoration:none}
 <div class="page" id="pg-ai">
   <div style="background:linear-gradient(160deg,var(--dark2),var(--dark));padding:20px 16px 24px;margin-bottom:2px">
     <div style="display:flex;align-items:center;gap:12px">
-      <div style="width:48px;height:48px;border-radius:15px;background:linear-gradient(135deg,var(--purple),#7c3aed);display:flex;align-items:center;justify-content:center;font-size:24px">🤖</div>
+      <div style="width:48px;height:48px;border-radius:15px;background:linear-gradient(135deg,var(--purple),#7c3aed);display:flex;align-items:center;justify-content:center;font-size:24px">ð¤</div>
       <div>
         <div style="font-size:18px;font-weight:900;color:#fff;letter-spacing:-.3px">AI Yordamchi</div>
         <div style="font-size:12px;color:rgba(255,255,255,.45);margin-top:2px;font-weight:600">Prorab uchun aqlli tahlil</div>
@@ -466,16 +471,16 @@ a{text-decoration:none}
     </div>
   </div>
   <div class="ai-suggestions" id="ai-sugs">
-    <button class="ai-sug" onclick="askAI('Bu oyda eng ko\'p qaysi kategoriyaga pul ketdi?')">📊 Oylik tahlil</button>
-    <button class="ai-sug" onclick="askAI('Qaysi obyektda eng ko\'p foyda bor?')">🏗 Obiekt foydasi</button>
-    <button class="ai-sug" onclick="askAI('Ishchilar bo\'yicha hisob-kitob qanday?')">👷 Ishchilar hisobi</button>
-    <button class="ai-sug" onclick="askAI('Xarajatlarni qanday kamaytirish mumkin?')">💡 Maslahat</button>
-    <button class="ai-sug" onclick="askAI('Balans dinamikasi qanday?')">📈 Balans</button>
+    <button class="ai-sug" onclick="askAI('Bu oyda eng ko\'p qaysi kategoriyaga pul ketdi?')">ð Oylik tahlil</button>
+    <button class="ai-sug" onclick="askAI('Qaysi obyektda eng ko\'p foyda bor?')">ð Obiekt foydasi</button>
+    <button class="ai-sug" onclick="askAI('Ishchilar bo\'yicha hisob-kitob qanday?')">ð· Ishchilar hisobi</button>
+    <button class="ai-sug" onclick="askAI('Xarajatlarni qanday kamaytirish mumkin?')">ð¡ Maslahat</button>
+    <button class="ai-sug" onclick="askAI('Balans dinamikasi qanday?')">ð Balans</button>
   </div>
   <div class="ai-wrap" id="ai-messages">
     <div class="ai-bubble bot">
-      <div class="ai-av">🤖</div>
-      <div class="ai-msg bot">Salom! Men sizning qurilish loyihalaringizni tahlil qilishga yordam beraman. Savollaringizni bering yoki yuqoridagi tugmalardan birini bosing 👆</div>
+      <div class="ai-av">ð¤</div>
+      <div class="ai-msg bot">Salom! Men sizning qurilish loyihalaringizni tahlil qilishga yordam beraman. Savollaringizni bering yoki yuqoridagi tugmalardan birini bosing ð</div>
     </div>
   </div>
   <div class="ai-input-wrap">
@@ -488,26 +493,26 @@ a{text-decoration:none}
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
       </button>
     </div>
-    <div id="mic-status" style="text-align:center;font-size:12px;font-weight:700;color:var(--red);padding-top:6px;display:none">🔴 Gapiring... (qayta bosing — toxtatish)</div>
+    <div id="mic-status" style="text-align:center;font-size:12px;font-weight:700;color:var(--red);padding-top:6px;display:none">ð´ Gapiring... (qayta bosing â toxtatish)</div>
   </div>
 </div>
 
 <!-- SOZLAMALAR -->
 <div class="page" id="pg-sozlamalar">
   <div class="soz-profile">
-    <div class="soz-av">👷</div>
+    <div class="soz-av">ð·</div>
     <div>
       <div class="soz-name">ALISHER</div>
       <div class="soz-info">+998 90 123 45 67</div>
       <div class="soz-info">Zodpro kompaniyasi</div>
-      <div class="soz-edit">✏️ Profilni tahrirlash</div>
+      <div class="soz-edit">âï¸ Profilni tahrirlash</div>
     </div>
   </div>
   <div class="soz-section">
-    <div class="soz-item">
+    <div class="soz-item" onclick="openProfilEdit()" style="cursor:pointer">
       <div class="soz-ico" style="background:#fff7ed"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
       <div class="soz-lbl">Profil ma'lumotlari</div>
-      <span class="soz-arr">›</span>
+      <span class="soz-arr">âº</span>
     </div>
     <div class="soz-item">
       <div class="soz-ico" style="background:var(--blue-bg)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div>
@@ -515,36 +520,36 @@ a{text-decoration:none}
     </div>
     <div class="soz-item" onclick="showApiKeyModal()">
       <div class="soz-ico" style="background:#fdf4ff"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg></div>
-      <div class="soz-lbl">AI API Kalit 🔑</div>
+      <div class="soz-lbl">AI API Kalit ð</div>
       <div class="soz-val" id="api-key-status">Kiritilmagan</div>
-      <span class="soz-arr">›</span>
-      <span class="soz-arr">›</span>
+      <span class="soz-arr">âº</span>
+      <span class="soz-arr">âº</span>
     </div>
   </div>
   <div class="soz-section">
     <div class="soz-item">
       <div class="soz-ico" style="background:var(--green-bg)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></div>
       <div class="soz-lbl">Bildirishnomalar</div>
-      <span class="soz-arr">›</span>
+      <span class="soz-arr">âº</span>
     </div>
     <div class="soz-item">
       <div class="soz-ico" style="background:var(--purple-bg)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg></div>
       <div class="soz-lbl">Til</div>
       <div class="soz-val">O'zbekcha</div>
-      <span class="soz-arr">›</span>
+      <span class="soz-arr">âº</span>
     </div>
   </div>
   <div class="soz-section">
     <div class="soz-item">
       <div class="soz-ico" style="background:var(--bg)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
       <div class="soz-lbl">Zaxira nusxa</div>
-      <span class="soz-arr">›</span>
+      <span class="soz-arr">âº</span>
     </div>
     <div class="soz-item">
       <div class="soz-ico" style="background:var(--bg)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
       <div class="soz-lbl">Ilova haqida</div>
       <div class="soz-val">v3.0 Pro</div>
-      <span class="soz-arr">›</span>
+      <span class="soz-arr">âº</span>
     </div>
   </div>
   <div style="margin:16px">
@@ -576,7 +581,7 @@ a{text-decoration:none}
   </button>
   <button class="nb" onclick="gp('ai',this)" data-pg="ai">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-    AI ✨
+    AI â¨
     <div class="nb-dot"></div>
   </button>
 </div>
@@ -647,12 +652,12 @@ a{text-decoration:none}
     </div>
     <div class="frow" id="wkr-row" style="display:none">
       <label class="flbl">Ishchi</label>
-      <select class="finp" id="op-wkr" style="font-weight:600"><option value="">— Tanlang —</option></select>
+      <select class="finp" id="op-wkr" style="font-weight:600"><option value="">â Tanlang â</option></select>
     </div>
     <div class="frow"><label class="flbl">Izoh</label><input type="text" class="finp" id="op-izoh" placeholder="Qo'shimcha ma'lumot"></div>
     <div style="color:var(--red);font-size:12px;margin-bottom:8px;min-height:16px;font-weight:600" id="op-err"></div>
     <div class="sbtns">
-      <button onclick="saveOp()" class="sbtn-ok">💾 Saqlash</button>
+      <button onclick="saveOp()" class="sbtn-ok">ð¾ Saqlash</button>
       <button onclick="closeOp()" class="sbtn-cn">Bekor</button>
     </div>
   </div>
@@ -703,7 +708,7 @@ a{text-decoration:none}
 <div id="obkirim-bg" class="sbg" onclick="if(event.target===this)document.getElementById('obkirim-bg').classList.remove('open')">
   <div class="sht">
     <div class="s-hdl"></div>
-    <div style="text-align:center;font-size:13px;color:var(--muted);margin-bottom:4px;font-weight:600">Pul olindi —</div>
+    <div style="text-align:center;font-size:13px;color:var(--muted);margin-bottom:4px;font-weight:600">Pul olindi â</div>
     <div class="s-ttl" id="obkirim-nm"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
       <button onclick="pickKirim('mijoz')" style="padding:20px 10px;border-radius:20px;border:2px solid var(--green);background:var(--green-bg);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:10px;font-family:'Manrope',sans-serif;transition:transform .2s" onmousedown="this.style.transform='scale(.95)'" onmouseup="this.style.transform='scale(1)'">
@@ -738,7 +743,7 @@ a{text-decoration:none}
     <div class="frow"><label class="flbl">Izoh</label><input type="text" class="finp" id="ish-avans-izoh" placeholder="Qo'shimcha ma'lumot"></div>
     <div style="color:var(--red);font-size:12px;margin-bottom:8px;min-height:16px;font-weight:600" id="ish-avans-err"></div>
     <div class="sbtns">
-      <button onclick="saveIshAvans()" class="sbtn-ok" style="background:linear-gradient(135deg,var(--red),#dc2626)">− Avans berish</button>
+      <button onclick="saveIshAvans()" class="sbtn-ok" style="background:linear-gradient(135deg,var(--red),#dc2626)">â Avans berish</button>
       <button onclick="document.getElementById('ish-avans-bg').classList.remove('open')" class="sbtn-cn">Bekor</button>
     </div>
   </div>
@@ -777,7 +782,7 @@ a{text-decoration:none}
 </div>
 
 <script>
-// ── DATA ──────────────────────────────────────────────────────────────────────
+// ââ DATA ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const OBS = [
   {id:'ob1', nomi:'Iyikota', rasm_url:'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=300&q=80', boshlanish_sana:'2026-04-01', muddat_kun:60, holat:'faol'},
   {id:'ob2', nomi:'Xuvaydo', rasm_url:'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=300&q=80', boshlanish_sana:'2026-03-15', muddat_kun:90, holat:'faol'},
@@ -800,7 +805,7 @@ const ISHCHILAR = [
   {id:'ish3', name:'Bayruz Xoliqov', phone:'+998903456789', kasb:'Elektrik', ish_haqqi:0},
 ];
 
-// ── HELPERS ───────────────────────────────────────────────────────────────────
+// ââ HELPERS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const $ = id => document.getElementById(id);
 const usd = v => '$' + Math.abs(v).toLocaleString('en-US', {maximumFractionDigits:0});
 const fmtD = iso => { if(!iso) return ''; const[y,m,d]=iso.split('-'); return d+'.'+m+'.'+String(y).slice(2); };
@@ -821,12 +826,12 @@ const CAT_NMS = {usta:'Usta',bozor:'Bozor',dostavka:'Dostavka',dokon:"Do'kon",do
 
 let curPage='home', curCat='usta', curType='chiqim', curObId=null, opFilt='all', perPer='month', obFilt='all';
 
-// ── SIDEBAR ───────────────────────────────────────────────────────────────────
+// ââ SIDEBAR âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function openSidebar(){ $('sidebar').classList.add('open'); $('sb-overlay').classList.add('open'); }
 function closeSidebar(){ $('sidebar').classList.remove('open'); $('sb-overlay').classList.remove('open'); }
 
-// ── PAGES ─────────────────────────────────────────────────────────────────────
-const pgTitles = {home:'Asosiy',obyekt:'Obyektlar',ops:'Operatsiyalar',hisobot:'Hisobotlar',ishchilar:'Ishchilar',ai:'AI Yordamchi ✨',sozlamalar:'Sozlamalar','ob-detail':''};
+// ââ PAGES âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+const pgTitles = {home:'Asosiy',obyekt:'Obyektlar',ops:'Operatsiyalar',hisobot:'Hisobotlar',ishchilar:'Ishchilar',ai:'AI Yordamchi â¨',sozlamalar:'Sozlamalar','ob-detail':''};
 
 function gp(pg, el) {
   closeSidebar();
@@ -851,7 +856,7 @@ function gp(pg, el) {
   if(pg==='ishchilar') renderIshchilar();
 }
 
-// ── HOME ──────────────────────────────────────────────────────────────────────
+// ââ HOME ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function renderHome(){
   const mainOps = OPS.filter(o=>o.kategoriya!=='ish_haqqi');
   const tIn = mainOps.filter(o=>o.tur==='kirim').reduce((s,o)=>s+o.summa,0);
@@ -897,7 +902,7 @@ function obCardHtml(ob, idx){
       <div class="ob-card-img" style="${ob.rasm_url?'':'background:'+c}">
         ${ob.rasm_url?`<img src="${ob.rasm_url}">`:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" style="margin:auto;display:block;margin-top:22px"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>`}
         <div style="position:absolute;top:6px;left:6px">
-          <span class="s-badge ${isYak?'yak':'faol'}">${isYak?'✓ Yak':'● Faol'}</span>
+          <span class="s-badge ${isYak?'yak':'faol'}">${isYak?'â Yak':'â Faol'}</span>
         </div>
       </div>
       <div class="ob-card-info">
@@ -912,7 +917,7 @@ function obCardHtml(ob, idx){
             <div class="ob-card-stat-val">${obOps.length} ta</div>
           </div>
         </div>
-        ${m?`<div style="font-size:11px;color:${m.color};font-weight:700;margin-bottom:5px">${m.left>0?m.left+' kun qoldi':'⚠️ Muddat tugagan!'}</div>
+        ${m?`<div style="font-size:11px;color:${m.color};font-weight:700;margin-bottom:5px">${m.left>0?m.left+' kun qoldi':'â ï¸ Muddat tugagan!'}</div>
         <div class="ob-prog-wrap"><div class="ob-prog" style="width:${m.pct}%;background:${m.color}"></div></div>`
         :`<div style="font-size:11px;color:var(--muted);font-weight:600">${obOps.length} ta tranzaksiya</div>`}
       </div>
@@ -925,7 +930,7 @@ function opRowHtml(op){
   const ic = CAT_ICONS[op.kategoriya]||CAT_ICONS.usta;
   const ob = OBS.find(o=>o.id===op.obyekt_id);
   const w = ISHCHILAR.find(w=>w.id===op.ishchi_id);
-  const meta = [fmtD(op.sana),ob?.nomi,w?.name].filter(Boolean).join(' · ');
+  const meta = [fmtD(op.sana),ob?.nomi,w?.name].filter(Boolean).join(' Â· ');
   return `<div class="op-row">
     <div class="op-ico" style="background:${ic.bg};color:${ic.c}">${ic.svg}</div>
     <div class="op-info">
@@ -939,7 +944,7 @@ function opRowHtml(op){
   </div>`;
 }
 
-// ── OBYEKTLAR ─────────────────────────────────────────────────────────────────
+// ââ OBYEKTLAR âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function setObFilt(f, btn){
   obFilt=f;
   document.querySelectorAll('.ob-filt-btn').forEach(b=>{
@@ -957,11 +962,11 @@ function renderObs(){
     const matchF = obFilt==='all'||ob.holat===obFilt;
     return matchQ&&matchF;
   });
-  if(!obs.length){$('ob-list').innerHTML='<div class="empty">🔍 Hech narsa topilmadi</div>';return;}
+  if(!obs.length){$('ob-list').innerHTML='<div class="empty">ð Hech narsa topilmadi</div>';return;}
   $('ob-list').innerHTML = obs.map(ob=>obCardHtml(ob, OBS.findIndex(o=>o.id===ob.id))).join('');
 }
 
-// ── OB DETAIL ─────────────────────────────────────────────────────────────────
+// ââ OB DETAIL âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function openObDetail(obId){
   curObId=obId;
   const ob=OBS.find(o=>o.id===obId); if(!ob) return;
@@ -982,11 +987,11 @@ function openObDetail(obId){
       ${ob.rasm_url?`<img src="${ob.rasm_url}">`:''}
       <div class="ob-ov"></div>
       <button class="ob-back-btn" onclick="gp('obyekt')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text)" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
-      <button class="ob-cam-btn" onclick="trigCam()">📷</button>
+      <button class="ob-cam-btn" onclick="trigCam()">ð·</button>
       <input type="file" id="ob-cam-inp" accept="image/*" style="display:none" onchange="uploadObImg(this)">
       <div class="ob-htitle">
         <div class="ob-hname">${ob.nomi}</div>
-        <div class="ob-hsub">${obOps.length} ta operatsiya${ob.holat==='faol'?' · Faol':'· Yakunlangan'}</div>
+        <div class="ob-hsub">${obOps.length} ta operatsiya${ob.holat==='faol'?' Â· Faol':'Â· Yakunlangan'}</div>
       </div>
     </div>
     ${m?`<div style="padding:12px 16px 0;display:flex;align-items:center;gap:10px">
@@ -1008,7 +1013,7 @@ function openObDetail(obId){
         Pul berdi
       </button>
       <button class="ob-act" style="background:var(--bg);color:var(--muted)" onclick="toggleObStatus('${ob.id}')">
-        ${ob.holat==='faol'?'✓ Yakunla':'↺ Qayta och'}
+        ${ob.holat==='faol'?'â Yakunla':'âº Qayta och'}
       </button>
     </div>
     <div style="font-size:14px;font-weight:800;padding:4px 16px 10px;color:var(--text)">Operatsiyalar</div>
@@ -1016,17 +1021,37 @@ function openObDetail(obId){
       ${obOps.length?obOps.map(op=>opRowHtml(op)).join(''):'<div class="empty" style="padding:24px">Bu obyektda operatsiya yo\'q</div>'}
     </div>
     <div style="padding:0 16px 16px">
-      <button onclick="deleteObConfirm('${ob.id}')" id="del-ob-${ob.id}" style="width:100%;padding:14px;border-radius:16px;border:1.5px solid var(--red);background:#fff;color:var(--red);font-size:14px;font-weight:800;font-family:'Manrope',sans-serif">🗑 Obyektni o'chirish</button>
+      <button onclick="deleteObConfirm('${ob.id}')" id="del-ob-${ob.id}" style="width:100%;padding:14px;border-radius:16px;border:1.5px solid var(--red);background:#fff;color:var(--red);font-size:14px;font-weight:800;font-family:'Manrope',sans-serif">ð Obyektni o'chirish</button>
     </div>`;
 }
 
-function toggleObStatus(obId){
+async function toggleObStatus(obId){
   const ob=OBS.find(o=>o.id===obId);if(!ob)return;
-  ob.holat=ob.holat==='faol'?'yakunlangan':'faol';
+  if(ob.holat==='faol'){
+    const btns=document.querySelectorAll('.ob-act');
+    let btn=null;
+    btns.forEach(b=>{if(b.textContent.includes('Yakunla'))btn=b;});
+    if(btn&&btn.dataset.confirm!=='1'){
+      btn.dataset.confirm='1';
+      btn.textContent='⚠️ Tasdiqlaysizmi?';
+      btn.style.background='#fef3c7';btn.style.color='#d97706';
+      setTimeout(()=>{if(btn.dataset.confirm==='1'){btn.dataset.confirm='';btn.textContent='✓ Yakunla';btn.style.background='';btn.style.color='';}},3000);
+      return;
+    }
+    if(btn)btn.dataset.confirm='';
+  }
+  const newHolat=ob.holat==='faol'?'yakunlangan':'faol';
+  await sb.from('obyektlar').update({holat:newHolat}).eq('id',obId);
+  ob.holat=newHolat;
   openObDetail(obId);
 }
 
-function trigCam(){ $('ob-cam-inp')?.click(); }
+function trigCam(obId){
+  if(obId)curObId=obId;
+  let f=document.getElementById('ob-cam-inp');
+  if(!f){f=document.createElement('input');f.type='file';f.id='ob-cam-inp';f.accept='image/*';f.style.display='none';f.onchange=function(){uploadObImg(this);};document.body.appendChild(f);}
+  f.value='';f.click();
+}
 function uploadObImg(inp){
   const ob=OBS.find(o=>o.id===curObId);if(!inp.files||!inp.files[0]||!ob)return;
   const r=new FileReader();
@@ -1053,10 +1078,10 @@ function deleteObConfirm(obId){
   const btn=$('del-ob-'+obId);
   if(!btn)return;
   if(btn.dataset.c!=='1'){
-    btn.textContent='⚠️ Tasdiqlaysizmi? Yana bosing!';
+    btn.textContent='â ï¸ Tasdiqlaysizmi? Yana bosing!';
     btn.style.background='var(--red)';btn.style.color='#fff';
     btn.dataset.c='1';
-    setTimeout(()=>{btn.textContent="🗑 Obyektni o'chirish";btn.style.background='#fff';btn.style.color='var(--red)';btn.dataset.c='0';},3000);
+    setTimeout(()=>{btn.textContent="ð Obyektni o'chirish";btn.style.background='#fff';btn.style.color='var(--red)';btn.dataset.c='0';},3000);
     return;
   }
   const idx=OBS.findIndex(o=>o.id===obId);
@@ -1065,7 +1090,7 @@ function deleteObConfirm(obId){
   gp('obyekt');
 }
 
-// ── OPERATSIYALAR ─────────────────────────────────────────────────────────────
+// ââ OPERATSIYALAR âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function setFilt(f,btn){
   opFilt=f;
   document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on'));
@@ -1091,7 +1116,7 @@ function renderOps(){
     +`<div class="total-bar" style="margin:0 0 10px"><span style="font-size:13px;font-weight:800">Jami (${ops.length} ta)</span><div style="display:flex;gap:12px;font-size:13px;font-weight:800"><span style="color:var(--green)">+${usd(tI)}</span><span style="color:var(--red)">-${usd(tO)}</span></div></div>`;
 }
 
-// ── HISOBOT ───────────────────────────────────────────────────────────────────
+// ââ HISOBOT âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function setPer(p,btn){
   perPer=p;
   document.querySelectorAll('.ptab').forEach(b=>b.classList.remove('on'));
@@ -1143,7 +1168,7 @@ function renderChart(){
     </div>
 
     <div class="chart-card">
-      <div style="font-size:14px;font-weight:800;margin-bottom:16px;letter-spacing:-.2px">📊 Dinamika</div>
+      <div style="font-size:14px;font-weight:800;margin-bottom:16px;letter-spacing:-.2px">ð Dinamika</div>
       <div style="display:flex;gap:16px;margin-bottom:16px;font-size:11px;font-weight:700">
         <div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;border-radius:3px;background:var(--green)"></div> Kirim</div>
         <div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;border-radius:3px;background:var(--red)"></div> Chiqim</div>
@@ -1159,7 +1184,7 @@ function renderChart(){
     </div>
 
     <div class="chart-card">
-      <div style="font-size:14px;font-weight:800;margin-bottom:14px;letter-spacing:-.2px">💸 Xarajatlar tarkibi</div>
+      <div style="font-size:14px;font-weight:800;margin-bottom:14px;letter-spacing:-.2px">ð¸ Xarajatlar tarkibi</div>
       ${Object.entries(catBreak).sort((a,b)=>b[1]-a[1]).map(([k,v])=>{
         const ic=CAT_ICONS[k]||CAT_ICONS.usta;
         return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
@@ -1178,7 +1203,7 @@ function renderChart(){
     </div>
 
     <div class="chart-card">
-      <div style="font-size:14px;font-weight:800;margin-bottom:14px;letter-spacing:-.2px">🏗 Obyektlar bo'yicha</div>
+      <div style="font-size:14px;font-weight:800;margin-bottom:14px;letter-spacing:-.2px">ð Obyektlar bo'yicha</div>
       ${OBS.map((ob,i)=>{
         const obOps=mainFOps.filter(o=>o.obyekt_id===ob.id);
         const b2=obOps.reduce((s,o)=>o.tur==='kirim'?s+o.summa:s-o.summa,0);
@@ -1192,7 +1217,7 @@ function renderChart(){
     </div>`;
 }
 
-// ── ISHCHILAR ─────────────────────────────────────────────────────────────────
+// ââ ISHCHILAR âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function renderIshchilar(){
   $('ish-list').innerHTML=ISHCHILAR.map((w,i)=>{
     const wOps=OPS.filter(o=>o.ishchi_id===w.id);
@@ -1202,10 +1227,10 @@ function renderIshchilar(){
     const c=COLORS[i%COLORS.length];
     return `<div class="ish-card" onclick="openIshDetail('${w.id}')">
       <div class="ish-top">
-        <div class="ish-av" style="background:${c}22;font-size:24px">👷</div>
+        <div class="ish-av" style="background:${c}22;font-size:24px">ð·</div>
         <div class="ish-info">
           <div class="ish-nm">${w.name}</div>
-          <div class="ish-mt">${w.kasb||'Ishchi'} · ${w.phone}</div>
+          <div class="ish-mt">${w.kasb||'Ishchi'} Â· ${w.phone}</div>
         </div>
         <div style="text-align:right">
           <div style="font-size:10px;color:var(--muted);font-weight:700;margin-bottom:2px;text-transform:uppercase">Qoldiq</div>
@@ -1218,7 +1243,7 @@ function renderIshchilar(){
         <div class="ist"><div class="ist-v" style="color:${qoldiq>=0?'var(--green)':'var(--red)'}">${qoldiq>=0?'+':''} ${usd(qoldiq)}</div><div class="ist-l">Hisob-kitob</div></div>
       </div>
       <div style="padding:10px 14px;background:var(--bg);display:flex;gap:8px">
-        <button onclick="event.stopPropagation();openIshAvans('${w.id}')" style="flex:1;padding:10px;border-radius:12px;border:none;background:var(--red-bg);color:var(--red);font-size:13px;font-weight:800;font-family:'Manrope',sans-serif;cursor:pointer">− Avans</button>
+        <button onclick="event.stopPropagation();openIshAvans('${w.id}')" style="flex:1;padding:10px;border-radius:12px;border:none;background:var(--red-bg);color:var(--red);font-size:13px;font-weight:800;font-family:'Manrope',sans-serif;cursor:pointer">â Avans</button>
         <button onclick="event.stopPropagation();openIshHaqqi('${w.id}')" style="flex:1;padding:10px;border-radius:12px;border:none;background:var(--green-bg);color:var(--green);font-size:13px;font-weight:800;font-family:'Manrope',sans-serif;cursor:pointer">+ Ish haqqi</button>
       </div>
     </div>`;
@@ -1239,16 +1264,16 @@ function openIshDetail(wId){
     const isK=op.tur==='kirim';
     return `<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)">
       <div style="width:38px;height:38px;border-radius:12px;background:${ic.bg};display:flex;align-items:center;justify-content:center;color:${ic.c};flex-shrink:0">${ic.svg}</div>
-      <div style="flex:1"><div style="font-size:13px;font-weight:700">${op.izoh||CAT_NMS[op.kategoriya]||''}</div><div style="font-size:11px;color:var(--muted);font-weight:600">${fmtD(op.sana)}${ob?' · '+ob.nomi:''}</div></div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:700">${op.izoh||CAT_NMS[op.kategoriya]||''}</div><div style="font-size:11px;color:var(--muted);font-weight:600">${fmtD(op.sana)}${ob?' Â· '+ob.nomi:''}</div></div>
       <div style="font-size:14px;font-weight:800;color:${isK?'var(--green)':'var(--red)'}">${isK?'+':'-'}${usd(op.summa)}</div>
     </div>`;
   }).join(''):'<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px;font-weight:500">Hali operatsiya yo\'q</div>';
   $('ish-det-body').innerHTML=`
     <div style="display:flex;flex-direction:column;align-items:center;padding:8px 0 20px;border-bottom:1px solid var(--border);margin-bottom:16px">
-      <div style="width:84px;height:84px;border-radius:24px;background:${c}22;display:flex;align-items:center;justify-content:center;font-size:42px;margin-bottom:12px">👷</div>
+      <div style="width:84px;height:84px;border-radius:24px;background:${c}22;display:flex;align-items:center;justify-content:center;font-size:42px;margin-bottom:12px">ð·</div>
       <div style="font-size:20px;font-weight:900;color:var(--text);margin-bottom:4px;letter-spacing:-.3px">${w.name}</div>
       <div style="font-size:14px;color:var(--acc);font-weight:700;margin-bottom:6px">${w.kasb||'Ishchi'}</div>
-      <a href="tel:${w.phone}" style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);font-weight:600">📞 ${w.phone}</a>
+      <a href="tel:${w.phone}" style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);font-weight:600">ð ${w.phone}</a>
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
       <div style="background:var(--green-bg);border-radius:14px;padding:14px;text-align:center"><div style="font-size:16px;font-weight:900;color:var(--green)">${usd(ishHaqqi)}</div><div style="font-size:9px;color:var(--muted);margin-top:3px;text-transform:uppercase;font-weight:700">Ish haqqi</div></div>
@@ -1256,7 +1281,7 @@ function openIshDetail(wId){
       <div style="background:${qoldiq>=0?'var(--green-bg)':'var(--red-bg)'};border-radius:14px;padding:14px;text-align:center"><div style="font-size:16px;font-weight:900;color:${qoldiq>=0?'var(--green)':'var(--red)'}">${qoldiq>=0?'+':''} ${usd(qoldiq)}</div><div style="font-size:9px;color:var(--muted);margin-top:3px;text-transform:uppercase;font-weight:700">Qoldiq</div></div>
     </div>
     <div style="display:flex;gap:8px;margin-bottom:20px">
-      <button onclick="document.getElementById('ish-det-bg').classList.remove('open');openIshAvans('${w.id}')" style="flex:1;padding:13px;border-radius:14px;border:none;background:var(--red-bg);color:var(--red);font-size:13px;font-weight:800;font-family:'Manrope',sans-serif;cursor:pointer">− Avans berish</button>
+      <button onclick="document.getElementById('ish-det-bg').classList.remove('open');openIshAvans('${w.id}')" style="flex:1;padding:13px;border-radius:14px;border:none;background:var(--red-bg);color:var(--red);font-size:13px;font-weight:800;font-family:'Manrope',sans-serif;cursor:pointer">â Avans berish</button>
       <button onclick="document.getElementById('ish-det-bg').classList.remove('open');openIshHaqqi('${w.id}')" style="flex:1;padding:13px;border-radius:14px;border:none;background:var(--green-bg);color:var(--green);font-size:13px;font-weight:800;font-family:'Manrope',sans-serif;cursor:pointer">+ Ish haqqi</button>
     </div>
     <div style="font-size:14px;font-weight:800;margin-bottom:10px;letter-spacing:-.2px">Operatsiyalar tarixi</div>
@@ -1289,7 +1314,7 @@ function openAvansObPicker(){
 function pickAvansOb(id,nm){
   $('obpick-bg').classList.remove('open');
   $('ish-avans-ob-id').value=id;
-  $('ish-avans-ob-txt').textContent='🏗 '+nm;
+  $('ish-avans-ob-txt').textContent='ð '+nm;
   $('ish-avans-ob-txt').style.color='var(--text)';
   $('ish-avans-bg').classList.add('open');
 }
@@ -1334,7 +1359,7 @@ function openHaqqiObPicker(){
 function pickHaqqiOb(id,nm){
   $('obpick-bg').classList.remove('open');
   $('ish-haqqi-ob-id').value=id;
-  $('ish-haqqi-ob-txt').textContent='🏗 '+nm;
+  $('ish-haqqi-ob-txt').textContent='ð '+nm;
   $('ish-haqqi-ob-txt').style.color='var(--text)';
   $('ish-haqqi-bg').classList.add('open');
 }
@@ -1356,7 +1381,7 @@ function saveIshHaqqi(){
   if(curPage==='ops')renderOps();
 }
 
-// ── CHOICE & OP SHEET ─────────────────────────────────────────────────────────
+// ââ CHOICE & OP SHEET âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function openChoiceSheet(){ $('choice-bg').classList.add('open'); }
 function closeChoiceSheet(){ $('choice-bg').classList.remove('open'); }
 
@@ -1372,17 +1397,17 @@ function openOpForm(obId){
   $('op-cat-ico').innerHTML=ic.svg;
   $('op-cat-ico').style.color=ic.c;
   $('op-cat-nm').textContent=CAT_NMS[curCat]||curCat;
-  $('op-cat-tp').textContent=curType==='chiqim'?'Chiqim — Pul berdi':'Kirim — Pul oldi';
+  $('op-cat-tp').textContent=curType==='chiqim'?'Chiqim â Pul berdi':'Kirim â Pul oldi';
   $('op-sum').value='';
   $('op-date').value=today();
   $('op-izoh').value='';
   $('op-err').textContent='';
   $('op-ob-id').value=obId||'';
   const ob=OBS.find(o=>o.id===obId);
-  $('op-ob-txt').textContent=ob?'🏗 '+ob.nomi:'Tanlang';
+  $('op-ob-txt').textContent=ob?'ð '+ob.nomi:'Tanlang';
   $('op-ob-txt').style.color=ob?'var(--text)':'var(--muted)';
   $('wkr-row').style.display=curCat==='usta'?'block':'none';
-  $('op-wkr').innerHTML='<option value="">— Ishchi tanlang —</option>'+ISHCHILAR.map(w=>`<option value="${w.id}">${w.name}</option>`).join('');
+  $('op-wkr').innerHTML='<option value="">â Ishchi tanlang â</option>'+ISHCHILAR.map(w=>`<option value="${w.id}">${w.name}</option>`).join('');
   $('op-bg').classList.add('open');
   setTimeout(()=>$('op-sum').focus(),350);
 }
@@ -1397,7 +1422,7 @@ function closeObPicker(){ $('obpick-bg').classList.remove('open'); }
 function pickOb(id,nm){
   closeObPicker();
   $('op-ob-id').value=id;
-  $('op-ob-txt').textContent='🏗 '+nm;
+  $('op-ob-txt').textContent='ð '+nm;
   $('op-ob-txt').style.color='var(--text)';
 }
 
@@ -1418,7 +1443,7 @@ function saveOp(){
   if(curPage==='ob-detail'&&curObId)openObDetail(curObId);
 }
 
-// ── OB CRUD ───────────────────────────────────────────────────────────────────
+// ââ OB CRUD âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function openAddOb(){ $('ob-start').value=today(); $('ob-nm').value=''; $('ob-days').value=''; $('ob-err').textContent=''; $('addob-bg').classList.add('open'); }
 function closeAddOb(){ $('addob-bg').classList.remove('open'); }
 function saveOb(){
@@ -1428,7 +1453,7 @@ function saveOb(){
   closeAddOb(); renderObs(); renderHome();
 }
 
-// ── ISHCHI CRUD ───────────────────────────────────────────────────────────────
+// ââ ISHCHI CRUD âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function openAddIsh(){ $('ish-nm').value=''; $('ish-ph').value=''; $('ish-err').textContent=''; $('addish-bg').classList.add('open'); }
 function closeAddIsh(){ $('addish-bg').classList.remove('open'); }
 function saveIsh(){
@@ -1438,7 +1463,7 @@ function saveIsh(){
   closeAddIsh(); renderIshchilar();
 }
 
-// ── AI (OFFLINE SMART ENGINE) ─────────────────────────────────────────────────
+// ââ AI (OFFLINE SMART ENGINE) âââââââââââââââââââââââââââââââââââââââââââââââââ
 let aiThinking=false;
 const WORKER_URL='https://patient-shape-678e.bekzodramazonov99.workers.dev';
 let API_KEY='embedded';
@@ -1454,7 +1479,7 @@ function getStats(){
 
 // Raqamni matndan topish: "ikki ming", "2000", "2k" va h.k.
 function extractSum(q){
-  const words={'bir':1,'ikki':2,'uch':3,'tort':4,'besh':5,'olti':6,'yetti':7,'sakkiz':8,'togʻiz':9,'toʻqqiz':9,'on':10,'yigirma':20,'otuz':30,'qirq':40,'ellik':50,'oltmish':60,'yetmish':70,'sakson':80,'toʻqson':90,'yuz':100,'ming':1000,'million':1000000};
+  const words={'bir':1,'ikki':2,'uch':3,'tort':4,'besh':5,'olti':6,'yetti':7,'sakkiz':8,'togÊ»iz':9,'toÊ»qqiz':9,'on':10,'yigirma':20,'otuz':30,'qirq':40,'ellik':50,'oltmish':60,'yetmish':70,'sakson':80,'toÊ»qson':90,'yuz':100,'ming':1000,'million':1000000};
   let q2=q.replace(/[,\.]/g,'').toLowerCase();
   // "2 ming", "ikki ming 500" pattern
   let total=0, cur=0;
@@ -1516,7 +1541,7 @@ function smartAnswer(q){
   const topCat=catSorted[0];
   const mainOps=OPS.filter(o=>o.kategoriya!=='ish_haqqi');
 
-  // ── OPERATSIYA YARATISH (ovozli buyruq) ──────────────────────────────────
+  // ââ OPERATSIYA YARATISH (ovozli buyruq) ââââââââââââââââââââââââââââââââââ
   const summa=extractSum(q);
   const worker=findWorker(q);
   const ob=findObyekt(q);
@@ -1526,99 +1551,99 @@ function smartAnswer(q){
   // Ishchiga pul berish: "Akmalga 2000 berdim"
   if(summa && worker && (qu.includes('berd')||qu.includes('avans')||qu.includes('toladim')||qu.includes('to\'ladim'))){
     const obForOp = ob || OBS.find(o=>o.holat==='faol');
-    if(!obForOp) return `⚠️ Avval obyekt qo'shing, keyin "${worker.name}ga ${summa}$ berdim" deb ayting.`;
-    const newOp={id:'op'+Date.now(),tur:'chiqim',summa,sana:today(),kategoriya:'usta',izoh:worker.name+' — avans',obyekt_id:obForOp.id,ishchi_id:worker.id};
+    if(!obForOp) return `â ï¸ Avval obyekt qo'shing, keyin "${worker.name}ga ${summa}$ berdim" deb ayting.`;
+    const newOp={id:'op'+Date.now(),tur:'chiqim',summa,sana:today(),kategoriya:'usta',izoh:worker.name+' â avans',obyekt_id:obForOp.id,ishchi_id:worker.id};
     OPS.unshift(newOp);
     if(curPage==='home')renderHome();
     if(curPage==='ops')renderOps();
     if(curPage==='ishchilar')renderIshchilar();
     const avans=OPS.filter(o=>o.ishchi_id===worker.id&&o.tur==='chiqim').reduce((s,o)=>s+o.summa,0);
     const qoldiq=(worker.ish_haqqi||0)-avans;
-    return `✅ <b>Operatsiya saqlandi!</b><br><br>👷 Ishchi: <b>${worker.name}</b><br>💸 Avans: <b>$${summa}</b><br>🏗 Obyekt: <b>${obForOp.nomi}</b><br><br>📊 Ushbu ishchining qoldig'i: <b style="color:${qoldiq>=0?'#16a34a':'#ef4444'}">${qoldiq>=0?'+':''}$${qoldiq}</b>`;
+    return `â <b>Operatsiya saqlandi!</b><br><br>ð· Ishchi: <b>${worker.name}</b><br>ð¸ Avans: <b>$${summa}</b><br>ð Obyekt: <b>${obForOp.nomi}</b><br><br>ð Ushbu ishchining qoldig'i: <b style="color:${qoldiq>=0?'#16a34a':'#ef4444'}">${qoldiq>=0?'+':''}$${qoldiq}</b>`;
   }
 
   // Mijozdan pul olish: "Mijozdan 5000 oldim"
   if(summa && (qu.includes('mijoz')||qu.includes('buyurtmachi')||qu.includes('oldim')||qu.includes('olindi'))){
     const obForOp = ob || OBS.find(o=>o.holat==='faol');
-    if(!obForOp) return `⚠️ Avval obyekt qo'shing.`;
+    if(!obForOp) return `â ï¸ Avval obyekt qo'shing.`;
     const newOp={id:'op'+Date.now(),tur:'kirim',summa,sana:today(),kategoriya:'mijoz',izoh:'Mijoz to\'lovi',obyekt_id:obForOp.id,ishchi_id:null};
     OPS.unshift(newOp);
     if(curPage==='home')renderHome();
     if(curPage==='ops')renderOps();
-    return `✅ <b>Kirim saqlandi!</b><br><br>💰 Summa: <b>$${summa}</b><br>🏗 Obyekt: <b>${obForOp.nomi}</b><br>📈 Yangi balans: <b style="color:#16a34a">+$${getStats().bal}</b>`;
+    return `â <b>Kirim saqlandi!</b><br><br>ð° Summa: <b>$${summa}</b><br>ð Obyekt: <b>${obForOp.nomi}</b><br>ð Yangi balans: <b style="color:#16a34a">+$${getStats().bal}</b>`;
   }
 
   // Bozor/material xarajat: "Bozordan 300 ga material oldim"
   if(summa && (qu.includes('bozor')||qu.includes('material')||qu.includes('sotib')||qu.includes('dostavka')||qu.includes('ovqat')||qu.includes('do\'kon'))){
     const obForOp = ob || OBS.find(o=>o.holat==='faol');
-    if(!obForOp) return `⚠️ Avval obyekt qo'shing.`;
+    if(!obForOp) return `â ï¸ Avval obyekt qo'shing.`;
     const newOp={id:'op'+Date.now(),tur:'chiqim',summa,sana:today(),kategoriya:kat,izoh:q,obyekt_id:obForOp.id,ishchi_id:null};
     OPS.unshift(newOp);
     if(curPage==='home')renderHome();
     if(curPage==='ops')renderOps();
-    return `✅ <b>Xarajat saqlandi!</b><br><br>💸 Kategoriya: <b>${CAT_NMS[kat]}</b><br>💵 Summa: <b>$${summa}</b><br>🏗 Obyekt: <b>${obForOp.nomi}</b>`;
+    return `â <b>Xarajat saqlandi!</b><br><br>ð¸ Kategoriya: <b>${CAT_NMS[kat]}</b><br>ðµ Summa: <b>$${summa}</b><br>ð Obyekt: <b>${obForOp.nomi}</b>`;
   }
 
   // Faqat summa aytilgan: "500 berdim"
   if(summa && (qu.includes('berd')||qu.includes('toladim')||qu.includes('xarajat'))){
     const obForOp = ob || OBS.find(o=>o.holat==='faol');
-    if(!obForOp) return `⚠️ Avval obyekt qo'shing.`;
+    if(!obForOp) return `â ï¸ Avval obyekt qo'shing.`;
     const newOp={id:'op'+Date.now(),tur:'chiqim',summa,sana:today(),kategoriya:kat,izoh:q,obyekt_id:obForOp.id,ishchi_id:worker?.id||null};
     OPS.unshift(newOp);
     if(curPage==='home')renderHome();
     if(curPage==='ops')renderOps();
-    return `✅ <b>Chiqim saqlandi!</b><br><br>💸 Summa: <b>$${summa}</b><br>🏗 Obyekt: <b>${obForOp.nomi}</b><br><br>Noaniq bo'lsa Operatsiyalar bo'limida o'zgartiring.`;
+    return `â <b>Chiqim saqlandi!</b><br><br>ð¸ Summa: <b>$${summa}</b><br>ð Obyekt: <b>${obForOp.nomi}</b><br><br>Noaniq bo'lsa Operatsiyalar bo'limida o'zgartiring.`;
   }
 
-  // ── TAHLIL SAVOLLARI ─────────────────────────────────────────────────────
+  // ââ TAHLIL SAVOLLARI âââââââââââââââââââââââââââââââââââââââââââââââââââââ
   if(qu.includes('rasxod')||qu.includes('xarajat')||qu.includes('chiqim')||qu.includes('qayerda')||qu.includes('ko\'p')){
-    if(!catSorted.length) return '📊 Hali chiqim yo\'q.';
+    if(!catSorted.length) return 'ð Hali chiqim yo\'q.';
     const list=catSorted.map(([k,v],i)=>`${i+1}. ${CAT_NMS[k]||k}: <b>$${v}</b> (${Math.round(v/tO*100)}%)`).join('<br>');
-    return `💸 <b>Xarajatlar:</b><br><br>${list}<br><br>Eng ko'p: <b>${CAT_NMS[topCat[0]]||topCat[0]}</b> — $${topCat[1]}`;
+    return `ð¸ <b>Xarajatlar:</b><br><br>${list}<br><br>Eng ko'p: <b>${CAT_NMS[topCat[0]]||topCat[0]}</b> â $${topCat[1]}`;
   }
 
   if(qu.includes('balans')||qu.includes('foyda')||qu.includes('daromad')||qu.includes('dinamika')||qu.includes('holat')||qu.includes('qanday')){
     const faol=OBS.filter(o=>o.holat==='faol').length;
-    return `📊 <b>Moliyaviy holat:</b><br><br>💰 Kirim: <b>$${tI}</b><br>💸 Chiqim: <b>$${tO}</b><br>📈 Balans: <b style="color:${bal>=0?'#16a34a':'#ef4444'}">${bal>=0?'+':''}$${bal}</b><br>🏗 Faol obyektlar: <b>${faol} ta</b><br><br>${bal>=0?'✅ Holat yaxshi!':'⚠️ Balans manfiy, ehtiyot bo\'ling!'}`;
+    return `ð <b>Moliyaviy holat:</b><br><br>ð° Kirim: <b>$${tI}</b><br>ð¸ Chiqim: <b>$${tO}</b><br>ð Balans: <b style="color:${bal>=0?'#16a34a':'#ef4444'}">${bal>=0?'+':''}$${bal}</b><br>ð Faol obyektlar: <b>${faol} ta</b><br><br>${bal>=0?'â Holat yaxshi!':'â ï¸ Balans manfiy, ehtiyot bo\'ling!'}`;
   }
 
   if(qu.includes('ishchi')||qu.includes('hisob')||qu.includes('avans')){
     const list=ISHCHILAR.map(w=>{
       const av=OPS.filter(o=>o.ishchi_id===w.id&&o.tur==='chiqim').reduce((s,o)=>s+o.summa,0);
       const q2=(w.ish_haqqi||0)-av;
-      return `👷 <b>${w.name}</b>: qoldiq <b style="color:${q2>=0?'#16a34a':'#ef4444'}">${q2>=0?'+':''}$${q2}</b>`;
+      return `ð· <b>${w.name}</b>: qoldiq <b style="color:${q2>=0?'#16a34a':'#ef4444'}">${q2>=0?'+':''}$${q2}</b>`;
     }).join('<br>');
-    return `👷 <b>Ishchilar:</b><br><br>${list||'Hali ishchi yo\'q.'}`;
+    return `ð· <b>Ishchilar:</b><br><br>${list||'Hali ishchi yo\'q.'}`;
   }
 
   if(qu.includes('obyekt')||qu.includes('qaysi')){
     const list=OBS.map(ob=>{
       const ops=mainOps.filter(o=>o.obyekt_id===ob.id);
       const b=ops.reduce((s,o)=>o.tur==='kirim'?s+o.summa:s-o.summa,0);
-      return `🏗 <b>${ob.nomi}</b>: ${b>=0?'+':''}$${b}`;
+      return `ð <b>${ob.nomi}</b>: ${b>=0?'+':''}$${b}`;
     }).join('<br>');
-    return `🏗 <b>Obyektlar:</b><br><br>${list}`;
+    return `ð <b>Obyektlar:</b><br><br>${list}`;
   }
 
   // Salom
-  if(qu.includes('salom')||qu.includes('xayr')||qu.includes('assalom')||qu.includes('hello')||qu.includes('привет')){
+  if(qu.includes('salom')||qu.includes('xayr')||qu.includes('assalom')||qu.includes('hello')||qu.includes('Ð¿ÑÐ¸Ð²ÐµÑ')){
     const st=getStats();
     const faol=OBS.filter(o=>o.holat==='faol').length;
-    return `👋 <b>Salom!</b> Men Prorab AI yordamchisiman.<br><br>📊 Hozirgi holat:<br>💰 Kirim: <b>$${st.tI}</b> | Chiqim: <b>$${st.tO}</b><br>📈 Balans: <b style="color:${st.bal>=0?'#16a34a':'#ef4444'}">${st.bal>=0?'+':''}$${st.bal}</b><br>🏗 Faol: <b>${faol} ta obyekt</b><br><br>🎤 Shunday ayting:<br>• <i>"Akmalga 2000 berdim"</i><br>• <i>"Mijozdan 5000 oldim"</i><br>• <i>"Balans qanday?"</i>`;
+    return `ð <b>Salom!</b> Men Prorab AI yordamchisiman.<br><br>ð Hozirgi holat:<br>ð° Kirim: <b>$${st.tI}</b> | Chiqim: <b>$${st.tO}</b><br>ð Balans: <b style="color:${st.bal>=0?'#16a34a':'#ef4444'}">${st.bal>=0?'+':''}$${st.bal}</b><br>ð Faol: <b>${faol} ta obyekt</b><br><br>ð¤ Shunday ayting:<br>â¢ <i>"Akmalga 2000 berdim"</i><br>â¢ <i>"Mijozdan 5000 oldim"</i><br>â¢ <i>"Balans qanday?"</i>`;
   }
 
   // Maslahat
   if(qu.includes('maslahat')||qu.includes('kamayti')||qu.includes('tejash')){
     const tips=[];
-    if(topCat) tips.push(`💡 Eng katta xarajat — <b>${CAT_NMS[topCat[0]]||topCat[0]}</b> ($${topCat[1]}). Optimallashtiring.`);
-    if(bal<0) tips.push(`⚠️ Balans manfiy. Mijozdan to'lovni tezlashtiring.`);
-    tips.push(`📅 Har kuni xarajatlarni kiring.`);
-    tips.push(`💰 Avans olishni unutmang.`);
-    return `💡 <b>Maslahatlar:</b><br><br>${tips.join('<br><br>')}`;
+    if(topCat) tips.push(`ð¡ Eng katta xarajat â <b>${CAT_NMS[topCat[0]]||topCat[0]}</b> ($${topCat[1]}). Optimallashtiring.`);
+    if(bal<0) tips.push(`â ï¸ Balans manfiy. Mijozdan to'lovni tezlashtiring.`);
+    tips.push(`ð Har kuni xarajatlarni kiring.`);
+    tips.push(`ð° Avans olishni unutmang.`);
+    return `ð¡ <b>Maslahatlar:</b><br><br>${tips.join('<br><br>')}`;
   }
 
   // Default
-  return `🤖 Tushunmadim. Shunday yozib ko'ring:<br><br>👷 <i>"Akmalga ikki ming berdim"</i><br>💰 <i>"Mijozdan besh ming oldim"</i><br>🛒 <i>"Bozordan uch yuz sarf qildim"</i><br>📊 <i>"Balans qanday?"</i><br>👥 <i>"Ishchilar hisobi"</i><br><br>Yoki <b>Salom</b> deb boshlang!`;
+  return `ð¤ Tushunmadim. Shunday yozib ko'ring:<br><br>ð· <i>"Akmalga ikki ming berdim"</i><br>ð° <i>"Mijozdan besh ming oldim"</i><br>ð <i>"Bozordan uch yuz sarf qildim"</i><br>ð <i>"Balans qanday?"</i><br>ð¥ <i>"Ishchilar hisobi"</i><br><br>Yoki <b>Salom</b> deb boshlang!`;
 }
 
 function sendAI(){
@@ -1646,7 +1671,7 @@ function buildContext(){
   const cats={};
   OPS.filter(o=>o.tur==='chiqim'&&o.kategoriya!=='ish_haqqi').forEach(o=>{cats[o.kategoriya]=(cats[o.kategoriya]||0)+o.summa;});
   const catStr=Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([k,v])=>CAT_NMS[k]+':$'+v).join(', ');
-  return `Siz Prorab — qurilish boshqaruv ilovasining AI yordamchisisiz. Foydalanuvchi O'zbek tilida gapiradi, siz ham O'ZBEK tilida javob bering.
+  return `Siz Prorab â qurilish boshqaruv ilovasining AI yordamchisisiz. Foydalanuvchi O'zbek tilida gapiradi, siz ham O'ZBEK tilida javob bering.
 
 MA'LUMOTLAR:
 - Jami kirim: $${tI}, chiqim: $${tO}, balans: $${bal}
@@ -1661,7 +1686,7 @@ QOIDALAR:
 2. Qisqa va aniq javob ber (2-4 jumla)
 3. Raqamlarni dollar bilan ko'rsat
 4. Emoji ishlat
-5. Agar "Akmalga 2000 berdim" kabi operatsiya aytsa — uni qayd et va tasdiqlashni so'ra
+5. Agar "Akmalga 2000 berdim" kabi operatsiya aytsa â uni qayd et va tasdiqlashni so'ra
 6. Foydali moliyaviy maslahat ber`;
 }
 
@@ -1689,7 +1714,7 @@ async function askAI(q){
     const data=await res.json();
     if(data.error){
       removeThinking(thinkId);
-      addMsg('❌ Xato: '+JSON.stringify(data.error),'bot');
+      addMsg('â Xato: '+JSON.stringify(data.error),'bot');
     } else {
       const text=data.content?.map(i=>i.text||'').join('')||'Javob kelmadi';
       removeThinking(thinkId);
@@ -1697,7 +1722,7 @@ async function askAI(q){
     }
   }catch(e){
     removeThinking(thinkId);
-    addMsg('❌ Ulanishda xato: '+e.message,'bot');
+    addMsg('â Ulanishda xato: '+e.message,'bot');
   }
   aiThinking=false;
   const m=$('ai-messages');
@@ -1712,10 +1737,10 @@ function showApiKeyModal(){
   modal.style.cssText='position:fixed;inset:0;background:rgba(15,23,42,.8);z-index:1000;display:flex;align-items:flex-end;backdrop-filter:blur(8px)';
   modal.innerHTML=`<div style="background:#fff;border-radius:28px 28px 0 0;padding:24px 20px 48px;width:100%">
     <div style="width:40px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto 20px"></div>
-    <div style="font-size:20px;font-weight:900;margin-bottom:8px;text-align:center">🔑 API Kalit</div>
+    <div style="font-size:20px;font-weight:900;margin-bottom:8px;text-align:center">ð API Kalit</div>
     <div style="font-size:13px;color:#94a3b8;text-align:center;margin-bottom:20px;font-weight:500">console.anthropic.com dan oling</div>
     <input id="api-key-inp" type="password" placeholder="AIza..." style="width:100%;padding:14px 16px;border-radius:14px;border:1.5px solid #e2e8f0;font-size:14px;font-family:Manrope,sans-serif;outline:none;margin-bottom:12px">
-    <button onclick="saveApiKey()" style="width:100%;padding:16px;border-radius:16px;border:none;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;font-size:16px;font-weight:800;font-family:Manrope,sans-serif">Saqlash ✅</button>
+    <button onclick="saveApiKey()" style="width:100%;padding:16px;border-radius:16px;border:none;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;font-size:16px;font-weight:800;font-family:Manrope,sans-serif">Saqlash â</button>
     <button onclick="document.getElementById('api-key-modal').remove()" style="width:100%;padding:14px;border-radius:16px;border:1.5px solid #e2e8f0;background:#fff;color:#94a3b8;font-size:14px;font-weight:700;font-family:Manrope,sans-serif;margin-top:8px">Bekor</button>
   </div>`;
   document.body.appendChild(modal);
@@ -1731,19 +1756,19 @@ function saveApiKey(){
   API_KEY=k;
   
   document.getElementById('api-key-modal')?.remove();
-  addMsg('✅ API kalit saqlandi! Endi savol bering.','bot');
+  addMsg('â API kalit saqlandi! Endi savol bering.','bot');
 }
 
-// ── VOICE / MIC ───────────────────────────────────────────────────────────────
+// ââ VOICE / MIC âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 let recognition=null, micActive=false;
 
 function toggleMic(){
   console.log("mic tapped");
   $("mic-status").style.display="block";
-  $("mic-status").textContent="⏳ Tekshirilmoqda...";
+  $("mic-status").textContent="â³ Tekshirilmoqda...";
   setTimeout(()=>{
     if(!("webkitSpeechRecognition" in window||"SpeechRecognition" in window)){
-      $("mic-status").textContent="❌ Brauzer qollab-quvvatlamaydi";
+      $("mic-status").textContent="â Brauzer qollab-quvvatlamaydi";
       return;
     }
     if(micActive){ stopMic(); return; }
@@ -1767,13 +1792,13 @@ function startMic(){
     btn.style.border='none';
     btn.innerHTML='<svg width="20" height="20" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3" fill="white"/><path d="M19 10v2a7 7 0 01-14 0v-2" stroke="white"/><line x1="12" y1="19" x2="12" y2="23" stroke="white"/><line x1="8" y1="23" x2="16" y2="23" stroke="white"/></svg>';
     st.style.display='block';
-    st.textContent='🔴 Gapiring... (to\'xtatish uchun qayta bosing)';
+    st.textContent='ð´ Gapiring... (to\'xtatish uchun qayta bosing)';
 
     recognition.onresult=e=>{
       let txt='';
       for(let i=0;i<e.results.length;i++) txt+=e.results[i][0].transcript;
       $('ai-inp').value=txt;
-      st.textContent='✅ Eshitildi: "'+txt+'"';
+      st.textContent='â Eshitildi: "'+txt+'"';
     };
 
     recognition.onend=()=>{
@@ -1785,7 +1810,7 @@ function startMic(){
     recognition.onerror=ev=>{
       stopMic();
       if(ev.error==='not-allowed'){
-        alert('Mikrofon ruxsati berilmagan!\nSafari: Sozlamalar → Safari → Mikrofon → Ruxsat bering');
+        alert('Mikrofon ruxsati berilmagan!\nSafari: Sozlamalar â Safari â Mikrofon â Ruxsat bering');
       } else if(ev.error==='no-speech'){
         $('ai-inp').value='';
       }
@@ -1813,7 +1838,7 @@ function addMsg(text,who){
   const div=document.createElement('div');
   div.className=`ai-bubble ${who}`;
   if(who==='bot'){
-    div.innerHTML=`<div class="ai-av">🤖</div><div class="ai-msg bot">${text.replace(/\n/g,'<br>')}</div>`;
+    div.innerHTML=`<div class="ai-av">ð¤</div><div class="ai-msg bot">${text.replace(/\n/g,'<br>')}</div>`;
   } else {
     div.innerHTML=`<div class="ai-msg user">${text}</div>`;
   }
@@ -1826,7 +1851,7 @@ function addThinking(id){
   const div=document.createElement('div');
   div.className='ai-bubble bot';
   div.id=id;
-  div.innerHTML=`<div class="ai-av">🤖</div><div class="ai-msg bot"><div class="ai-thinking"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div></div></div>`;
+  div.innerHTML=`<div class="ai-av">ð¤</div><div class="ai-msg bot"><div class="ai-thinking"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div></div></div>`;
   el.appendChild(div);
 }
 
@@ -1834,13 +1859,100 @@ function removeThinking(id){
   const el=$(id);if(el)el.remove();
 }
 
-// ── SHEETS CLOSE ──────────────────────────────────────────────────────────────
+// ââ SHEETS CLOSE ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 document.querySelectorAll('.sbg').forEach(el=>{
   el.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
 });
 
-// ── INIT ──────────────────────────────────────────────────────────────────────
+// ââ INIT ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 renderHome();
+
+// Escape bilan modallarni yopish
+document.addEventListener('keydown',function(e){if(e.key==='Escape')document.querySelectorAll('.sbg.open').forEach(el=>el.classList.remove('open'));});
+</script>
+
+<!-- PATCH: Profil edit modal -->
+<div id="profil-edit-bg" class="sbg" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="sheet" style="max-height:85vh;overflow-y:auto">
+    <div class="sheet-bar"></div>
+    <div style="padding:0 16px 16px">
+      <div style="font-size:17px;font-weight:800;margin-bottom:20px;padding-top:8px">👤 Profilni tahrirlash</div>
+      <div style="margin-bottom:14px"><label style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase">To'liq ism</label><input id="profil-name-inp" type="text" style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:12px;font-size:15px;font-family:'Manrope',sans-serif;margin-top:6px;box-sizing:border-box" placeholder="Ism familiya"></div>
+      <div style="margin-bottom:14px"><label style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase">Telefon</label><input id="profil-phone-inp" type="tel" style="width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:12px;font-size:15px;font-family:'Manrope',sans-serif;margin-top:6px;box-sizing:border-box" placeholder="+998..."></div>
+      <button onclick="saveProfilEdit()" style="width:100%;padding:14px;border-radius:14px;border:none;background:var(--acc);color:#fff;font-size:15px;font-weight:800;font-family:'Manrope',sans-serif;margin-top:8px">💾 Saqlash</button>
+      <button onclick="document.getElementById('profil-edit-bg').classList.remove('open')" style="width:100%;padding:12px;border-radius:14px;border:1.5px solid var(--border);background:transparent;color:var(--muted);font-size:14px;font-weight:700;font-family:'Manrope',sans-serif;margin-top:8px">Bekor qilish</button>
+    </div>
+  </div>
+</div>
+<!-- PATCH: Op detail modal -->
+<div id="op-detail-modal-bg" class="sbg" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="sheet"><div class="sheet-bar"></div><div id="op-detail-content" style="padding:0 16px 24px"></div></div>
+</div>
+<script>
+// PATCH: openProfilEdit
+function openProfilEdit(){
+  document.getElementById('profil-name-inp').value=curProfile?.full_name||'';
+  document.getElementById('profil-phone-inp').value=curProfile?.phone||'';
+  document.getElementById('profil-edit-bg').classList.add('open');
+}
+async function saveProfilEdit(){
+  const name=document.getElementById('profil-name-inp').value.trim();
+  const phone=document.getElementById('profil-phone-inp').value.trim();
+  if(!name){alert('Ism kiritilmadi!');return;}
+  const{error}=await sb.from('profiles').update({full_name:name,phone}).eq('id',curUser.id);
+  if(!error){
+    if(curProfile){curProfile.full_name=name;curProfile.phone=phone;}
+    const sn=document.getElementById('soz-name');const sp=document.getElementById('soz-phone');
+    if(sn)sn.textContent=name;if(sp)sp.textContent=phone;
+    document.getElementById('profil-edit-bg').classList.remove('open');
+    const t=document.createElement('div');t.textContent='✅ Profil saqlandi!';
+    t.style.cssText='position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#16a34a;color:#fff;padding:10px 20px;border-radius:12px;font-weight:700;font-size:14px;z-index:9999;font-family:Manrope,sans-serif';
+    document.body.appendChild(t);setTimeout(()=>t.remove(),2500);
+  }else alert('Xato: '+error.message);
+}
+// PATCH: openOpDetail
+function openOpDetail(opId){
+  const op=OPS.find(o=>o.id==opId);if(!op)return;
+  const isK=op.tur==='kirim';
+  const ic=CAT_ICONS[op.kategoriya]||CAT_ICONS.usta;
+  const ob=OBS.find(o=>o.id===op.obyekt_id);
+  const worker=ISHCHILAR.find(w=>w.id===op.ishchi_id);
+  const NMS={usta:'Usta',bozor:'Bozor',dostavka:'Dostavka',dokon:"Do'kon",qoshimcha:"Qo'shimcha",ovqat:'Ovqat',mijoz:'Mijoz',ish_haqqi:'Ish haqi'};
+  document.getElementById('op-detail-content').innerHTML=`
+    <div style="display:flex;align-items:center;gap:14px;padding-top:12px;margin-bottom:20px">
+      <div style="width:52px;height:52px;border-radius:14px;background:${ic.bg};color:${ic.c};display:flex;align-items:center;justify-content:center">${ic.svg}</div>
+      <div><div style="font-size:17px;font-weight:800">${op.izoh||NMS[op.kategoriya]||op.kategoriya}</div><div style="font-size:13px;color:var(--muted);margin-top:3px">${NMS[op.kategoriya]||op.kategoriya}</div></div>
+    </div>
+    <div style="background:${isK?'#f0fdf4':'#fef2f2'};border-radius:16px;padding:16px;text-align:center;margin-bottom:16px">
+      <div style="font-size:28px;font-weight:900;color:${isK?'var(--green)':'var(--red)'}">${isK?'+':'-'}${usd(op.summa)}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">${isK?'Kirim':'Chiqim'}</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${ob?`<div style="display:flex;justify-content:space-between;padding:12px 14px;background:var(--bg);border-radius:12px"><span style="color:var(--muted);font-size:13px">Obyekt</span><span style="font-weight:700;font-size:13px">${ob.nomi}</span></div>`:''}
+      ${worker?`<div style="display:flex;justify-content:space-between;padding:12px 14px;background:var(--bg);border-radius:12px"><span style="color:var(--muted);font-size:13px">Ishchi</span><span style="font-weight:700;font-size:13px">${worker.name}</span></div>`:''}
+      <div style="display:flex;justify-content:space-between;padding:12px 14px;background:var(--bg);border-radius:12px"><span style="color:var(--muted);font-size:13px">Sana</span><span style="font-weight:700;font-size:13px">${new Date(op.sana||op.created_at).toLocaleDateString('uz-UZ')}</span></div>
+      ${op.izoh?`<div style="display:flex;justify-content:space-between;padding:12px 14px;background:var(--bg);border-radius:12px"><span style="color:var(--muted);font-size:13px">Izoh</span><span style="font-weight:700;font-size:13px">${op.izoh}</span></div>`:''}
+    </div>
+    <button onclick="deleteOpConfirm('${op.id}')" id="del-op-${op.id}" style="width:100%;padding:13px;border-radius:14px;border:1.5px solid var(--red);background:transparent;color:var(--red);font-size:14px;font-weight:800;font-family:Manrope,sans-serif;margin-top:16px">🗑 O'chirish</button>
+  `;
+  document.getElementById('op-detail-modal-bg').classList.add('open');
+}
+async function deleteOpConfirm(opId){
+  const btn=document.getElementById('del-op-'+opId);
+  if(!btn)return;
+  if(btn.dataset.confirm!=='1'){
+    btn.dataset.confirm='1';btn.textContent='⚠️ Tasdiqlaysizmi? Yana bosing';
+    btn.style.background='#fef3c7';btn.style.borderColor='#d97706';btn.style.color='#d97706';
+    setTimeout(()=>{if(btn.dataset.confirm==='1'){btn.dataset.confirm='';btn.textContent="🗑 O'chirish";btn.style.background='transparent';btn.style.borderColor='var(--red)';btn.style.color='var(--red)';}},3000);
+    return;
+  }
+  const{error}=await sb.from('operatsiyalar').delete().eq('id',opId);
+  if(!error){
+    const idx=OPS.findIndex(o=>o.id==opId);if(idx>-1)OPS.splice(idx,1);
+    document.getElementById('op-detail-modal-bg').classList.remove('open');
+    refreshCur();
+  }
+}
 </script>
 </body>
 </html>
