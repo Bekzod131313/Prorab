@@ -773,13 +773,24 @@ async function renderHome(){
   }
   await loadAllData();
   let totalIn=0,totalOut=0,totalHand=0;
+  // Barcha loyihalar uchun tranzaksiyalardan hisoblash
+  const obIds = allObs.map(o=>o.ob.id);
+  let txData = [];
+  if(obIds.length>0){
+    const {data:txs} = await sb.from('transactions').select('*').in('ob_id',obIds);
+    txData = txs||[];
+  }
   allObs.forEach(({ob,role,myBalance})=>{
-    if(role==='owner'){totalIn+=ob.kirim||0;totalOut+=ob.chiqim||0;}
+    if(role==='owner'){
+      totalIn += ob.kirim||0;
+      // chiqim = ushbu loyihadagi barcha spend va send tranzaksiyalari
+      const obChiqim = txData.filter(t=>t.ob_id===ob.id&&(t.tur==='spend'||t.tur==='send')).reduce((s,t)=>s+t.summa,0);
+      totalOut += obChiqim;
+    }
     totalHand+=myBalance;
   });
-  // Agar owner bo'lsa kirim-chiqim, aks holda qo'lidagi pul
   const totalBal = totalIn>0 ? totalIn-totalOut : totalHand;
-  document.getElementById('home-total-bal').textContent=usd(totalHand);
+  document.getElementById('home-total-bal').textContent=usd(totalBal);
   document.getElementById('home-total-in').textContent=usd(totalIn);
   document.getElementById('home-total-out').textContent=usd(totalOut);
   // home-in-hand removed
