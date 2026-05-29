@@ -234,7 +234,7 @@ svg{display:block;flex-shrink:0}
 
 <!-- LOADING -->
 <div id="loading">
-  <div class="load-logo">ð·</div>
+  <div class="load-logo">👷</div>
   <div style="font-size:24px;font-weight:900;color:#fff;letter-spacing:-.5px">Prorab Pro</div>
   <div class="load-spin"></div>
   <div class="load-txt">Yuklanmoqda...</div>
@@ -242,7 +242,7 @@ svg{display:block;flex-shrink:0}
 
 <!-- AUTH -->
 <div id="auth-screen" style="display:none">
-  <div class="auth-logo">ð·</div>
+  <div class="auth-logo">👷</div>
   <div class="auth-title">Prorab Pro</div>
   <div class="auth-sub">Qurilish moliya boshqaruvi</div>
   <div class="auth-card">
@@ -255,9 +255,9 @@ svg{display:block;flex-shrink:0}
       <label class="auth-lbl">Email</label>
       <input class="auth-inp" id="login-email" type="email" placeholder="email@gmail.com">
       <label class="auth-lbl">Parol</label>
-      <input class="auth-inp" id="login-pass" type="password" placeholder="â¢â¢â¢â¢â¢â¢â¢â¢">
+      <input class="auth-inp" id="login-pass" type="password" placeholder="••••••••">
       <div class="auth-err" id="login-err"></div>
-      <button class="auth-btn" onclick="doLogin()">Kirish â</button>
+      <button class="auth-btn" onclick="doLogin()">Kirish →</button>
     </div>
     <!-- REGISTER -->
     <div id="reg-form" style="display:none">
@@ -271,12 +271,12 @@ svg{display:block;flex-shrink:0}
       <input class="auth-inp" id="reg-pass" type="password" placeholder="min 6 ta belgi">
       <label class="auth-lbl">Rol</label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-        <button type="button" id="role-prorab" onclick="selectRole('prorab')" style="padding:12px;border-radius:12px;border:2px solid var(--acc);background:#fff7ed;color:var(--acc);font-size:14px;font-weight:800;font-family:'Manrope',sans-serif;cursor:pointer">ð· Prorab</button>
-        <button type="button" id="role-ishchi" onclick="selectRole('ishchi')" style="padding:12px;border-radius:12px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:14px;font-weight:800;font-family:'Manrope',sans-serif;cursor:pointer">ð¨ Ishchi</button>
+        <button type="button" id="role-prorab" onclick="selectRole('prorab')" style="padding:12px;border-radius:12px;border:2px solid var(--acc);background:#fff7ed;color:var(--acc);font-size:14px;font-weight:800;font-family:'Manrope',sans-serif;cursor:pointer">👷 Prorab</button>
+        <button type="button" id="role-ishchi" onclick="selectRole('ishchi')" style="padding:12px;border-radius:12px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:14px;font-weight:800;font-family:'Manrope',sans-serif;cursor:pointer">🔨 Ishchi</button>
       </div>
       <input type="hidden" id="reg-role" value="prorab">
       <div class="auth-err" id="reg-err"></div>
-      <button class="auth-btn" onclick="doRegister()">Ro'yxatdan o'tish â</button>
+      <button class="auth-btn" onclick="doRegister()">Ro'yxatdan o'tish →</button>
     </div>
   </div>
 </div>
@@ -288,7 +288,7 @@ svg{display:block;flex-shrink:0}
 <div id="sb-overlay" onclick="closeSidebar()"></div>
 <div id="sidebar">
   <div class="sb-profile">
-    <div class="sb-av">ð·</div>
+    <div class="sb-av">👷</div>
     <div class="sb-name" id="sb-name">...</div>
     <div class="sb-role" id="sb-email">...</div>
   </div>
@@ -339,8 +339,8 @@ svg{display:block;flex-shrink:0}
       <div class="bc-lbl">Umumiy balans</div>
       <div class="bc-sum" id="bc-bal">+$0</div>
       <div class="bc-row">
-        <div class="bc-item"><div class="bc-ilbl">â Kirim</div><div class="bc-ival" id="bc-in">$0</div></div>
-        <div class="bc-item"><div class="bc-ilbl">â Chiqim</div><div class="bc-ival" id="bc-out">$0</div></div>
+        <div class="bc-item"><div class="bc-ilbl">↓ Kirim</div><div class="bc-ival" id="bc-in">$0</div></div>
+        <div class="bc-item"><div class="bc-ilbl">↑ Chiqim</div><div class="bc-ival" id="bc-out">$0</div></div>
       </div>
     </div>
   </div>
@@ -349,12 +349,12 @@ svg{display:block;flex-shrink:0}
       <button class="qa-btn" onclick="gp('obyekt')"><div class="qa-ico" style="background:#fff7ed"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg></div><div class="qa-nm">Obyektlar</div></button>
       <button class="qa-btn" onclick="gp('ishchilar')"><div class="qa-ico" style="background:var(--blue-bg)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div class="qa-nm">Ishchilar</div></button>
       <button class="qa-btn" onclick="gp('hisobot')"><div class="qa-ico" style="background:var(--green-bg)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div><div class="qa-nm">Hisobot</div></button>
-      <button class="qa-btn" onclick="gp('ai')"><div class="qa-ico" style="background:var(--purple-bg)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div><div class="qa-nm">AI â¨</div></button>
+      <button class="qa-btn" onclick="gp('ai')"><div class="qa-ico" style="background:var(--purple-bg)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div><div class="qa-nm">AI ✨</div></button>
     </div>
   </div>
-  <div class="sec-hdr"><span class="sec-ttl">Faol obyektlar</span><span class="sec-lnk" onclick="gp('obyekt')">Barchasi âº</span></div>
+  <div class="sec-hdr"><span class="sec-ttl">Faol obyektlar</span><span class="sec-lnk" onclick="gp('obyekt')">Barchasi ›</span></div>
   <div id="home-obs"><div class="spin"></div></div>
-  <div class="sec-hdr"><span class="sec-ttl">So'nggi operatsiyalar</span><span class="sec-lnk" onclick="gp('ops')">Barchasi âº</span></div>
+  <div class="sec-hdr"><span class="sec-ttl">So'nggi operatsiyalar</span><span class="sec-lnk" onclick="gp('ops')">Barchasi ›</span></div>
   <div id="home-ops"><div class="spin"></div></div>
 </div>
 
@@ -375,10 +375,10 @@ svg{display:block;flex-shrink:0}
 <!-- OPERATSIYALAR -->
 <div class="page" id="pg-ops">
   <div class="filt-bar">
-    <input class="srch-inp" type="text" placeholder="ð Qidirish..." oninput="renderOps()">
+    <input class="srch-inp" type="text" placeholder="🔍 Qidirish..." oninput="renderOps()">
     <button class="fbtn on" onclick="setFilt('all',this)">Hammasi</button>
-    <button class="fbtn" onclick="setFilt('kirim',this)">â Kirim</button>
-    <button class="fbtn" onclick="setFilt('chiqim',this)">â Chiqim</button>
+    <button class="fbtn" onclick="setFilt('kirim',this)">↓ Kirim</button>
+    <button class="fbtn" onclick="setFilt('chiqim',this)">↑ Chiqim</button>
   </div>
   <div id="op-section"><div class="spin"></div></div>
 </div>
@@ -395,14 +395,14 @@ svg{display:block;flex-shrink:0}
 
 <!-- ISHCHILAR -->
 <div class="page" id="pg-ishchilar">
-  <div class="sec-hdr"><span class="sec-ttl">Ishchilar</span><span class="sec-lnk" onclick="openAddIsh()">ï¼ Qo'shish</span></div>
+  <div class="sec-hdr"><span class="sec-ttl">Ishchilar</span><span class="sec-lnk" onclick="openAddIsh()">＋ Qo'shish</span></div>
   <div id="ish-list"><div class="spin"></div></div>
 </div>
 
 <!-- SOZLAMALAR -->
 <div class="page" id="pg-sozlamalar">
   <div class="soz-profile">
-    <div class="soz-av">ð·</div>
+    <div class="soz-av">👷</div>
     <div>
       <div class="soz-name" id="soz-name">...</div>
       <div class="soz-info" id="soz-email">...</div>
@@ -412,13 +412,13 @@ svg{display:block;flex-shrink:0}
   <div class="soz-section">
     <div class="soz-item">
       <div class="soz-ico" style="background:#fff7ed"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
-      <div class="soz-lbl">Profil</div><span style="color:var(--muted)">âº</span>
+      <div class="soz-lbl">Profil</div><span style="color:var(--muted)">›</span>
     </div>
   </div>
   <div class="soz-section">
     <div class="soz-item">
       <div class="soz-ico" style="background:var(--bg)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
-      <div class="soz-lbl">Ilova haqida</div><div class="soz-val">v4.0</div><span style="color:var(--muted)">âº</span>
+      <div class="soz-lbl">Ilova haqida</div><div class="soz-val">v4.0</div><span style="color:var(--muted)">›</span>
     </div>
   </div>
   <div style="margin:16px">
@@ -430,7 +430,7 @@ svg{display:block;flex-shrink:0}
 <div class="page" id="pg-ai">
   <div style="background:linear-gradient(160deg,#1e293b,#0f172a);padding:20px 16px 24px">
     <div style="display:flex;align-items:center;gap:12px">
-      <div style="width:48px;height:48px;border-radius:15px;background:linear-gradient(135deg,#a855f7,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:24px">ð¤</div>
+      <div style="width:48px;height:48px;border-radius:15px;background:linear-gradient(135deg,#a855f7,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:24px">🤖</div>
       <div>
         <div style="font-size:18px;font-weight:900;color:#fff">AI Yordamchi</div>
         <div style="font-size:12px;color:rgba(255,255,255,.45);font-weight:600">Prorab uchun aqlli tahlil</div>
@@ -438,14 +438,14 @@ svg{display:block;flex-shrink:0}
     </div>
   </div>
   <div style="display:flex;gap:8px;padding:10px 16px 8px;overflow-x:auto;scrollbar-width:none">
-    <button class="ai-sug" onclick="sendSug('Balans qanday?')">ð Balans</button>
-    <button class="ai-sug" onclick="sendSug('Eng ko\'p xarajat qayerda?')">ð¸ Xarajat</button>
-    <button class="ai-sug" onclick="sendSug('Ishchilar hisobi qanday?')">ð· Ishchilar</button>
-    <button class="ai-sug" onclick="sendSug('Maslahat bering')">ð¡ Maslahat</button>
+    <button class="ai-sug" onclick="sendSug('Balans qanday?')">📊 Balans</button>
+    <button class="ai-sug" onclick="sendSug('Eng ko\'p xarajat qayerda?')">💸 Xarajat</button>
+    <button class="ai-sug" onclick="sendSug('Ishchilar hisobi qanday?')">👷 Ishchilar</button>
+    <button class="ai-sug" onclick="sendSug('Maslahat bering')">💡 Maslahat</button>
   </div>
   <div id="ai-messages" style="padding:12px 16px 120px;display:flex;flex-direction:column;gap:10px;min-height:50vh">
     <div style="display:flex;align-items:flex-end;gap:8px">
-      <div style="width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,#1e293b,#0f172a);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">ð¤</div>
+      <div style="width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,#1e293b,#0f172a);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🤖</div>
       <div style="max-width:82%;padding:13px 16px;border-radius:20px;border-bottom-left-radius:6px;background:#fff;border:1px solid var(--border);font-size:14px;font-weight:500;line-height:1.5;color:var(--text)">Salom! Men sizning qurilish loyihalaringizni tahlil qilishga yordam beraman. Savollaringizni bering! ð</div>
     </div>
   </div>
@@ -459,7 +459,7 @@ svg{display:block;flex-shrink:0}
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
       </button>
     </div>
-    <div id="mic-status" style="text-align:center;font-size:12px;font-weight:700;color:var(--red);padding-top:6px;display:none">ð´ Gapiring...</div>
+    <div id="mic-status" style="text-align:center;font-size:12px;font-weight:700;color:var(--red);padding-top:6px;display:none">🔴 Gapiring...</div>
   </div>
 </div>
 
@@ -522,10 +522,10 @@ svg{display:block;flex-shrink:0}
       </div>
       <input type="hidden" id="op-ob-id">
     </div>
-    <div class="frow" id="wkr-row" style="display:none"><label class="flbl">Ishchi</label><select class="finp" id="op-wkr" style="font-weight:600"><option value="">â Tanlang â</option></select></div>
+    <div class="frow" id="wkr-row" style="display:none"><label class="flbl">Ishchi</label><select class="finp" id="op-wkr" style="font-weight:600"><option value="">— Tanlang —</option></select></div>
     <div class="frow"><label class="flbl">Izoh</label><input type="text" class="finp" id="op-izoh" placeholder="Qo'shimcha ma'lumot"></div>
     <div style="color:var(--red);font-size:12px;margin-bottom:8px;font-weight:600;min-height:16px" id="op-err"></div>
-    <div class="sbtns"><button onclick="saveOp()" class="sbtn-ok">ð¾ Saqlash</button><button onclick="closeOp()" class="sbtn-cn">Bekor</button></div>
+    <div class="sbtns"><button onclick="saveOp()" class="sbtn-ok">💾 Saqlash</button><button onclick="closeOp()" class="sbtn-cn">Bekor</button></div>
   </div>
 </div>
 
@@ -562,7 +562,7 @@ svg{display:block;flex-shrink:0}
 <!-- OB KIRIM -->
 <div id="obkirim-bg" class="sbg" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="sht"><div class="s-hdl"></div>
-    <div style="text-align:center;font-size:13px;color:var(--muted);margin-bottom:4px;font-weight:600">Pul olindi â</div>
+    <div style="text-align:center;font-size:13px;color:var(--muted);margin-bottom:4px;font-weight:600">Pul olindi —</div>
     <div class="s-ttl" id="obkirim-nm"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
       <button onclick="pickKirim('mijoz')" style="padding:20px 10px;border-radius:20px;border:2px solid var(--green);background:var(--green-bg);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:10px;font-family:'Manrope',sans-serif">
@@ -593,7 +593,7 @@ svg{display:block;flex-shrink:0}
     <div class="frow"><label class="flbl">Izoh</label><input type="text" class="finp" id="ish-avans-izoh" placeholder="Izoh"></div>
     <div style="color:var(--red);font-size:12px;margin-bottom:8px;font-weight:600;min-height:16px" id="ish-avans-err"></div>
     <div class="sbtns">
-      <button onclick="saveIshAvans()" class="sbtn-ok" style="background:linear-gradient(135deg,var(--red),#dc2626)">â Avans</button>
+      <button onclick="saveIshAvans()" class="sbtn-ok" style="background:linear-gradient(135deg,var(--red),#dc2626)">− Avans</button>
       <button onclick="document.getElementById('ish-avans-bg').classList.remove('open')" class="sbtn-cn">Bekor</button>
     </div>
   </div>
@@ -641,7 +641,7 @@ svg{display:block;flex-shrink:0}
       <input type="number" class="finp" id="edit-days" placeholder="masalan: 60" inputmode="numeric" style="font-size:24px;font-weight:800;text-align:center">
     </div>
     <div class="sbtns">
-      <button onclick="saveEditMuddat()" class="sbtn-ok">ð¾ Saqlash</button>
+      <button onclick="saveEditMuddat()" class="sbtn-ok">💾 Saqlash</button>
       <button onclick="document.getElementById('edit-muddat-bg').classList.remove('open')" class="sbtn-cn">Bekor</button>
     </div>
   </div>
@@ -750,7 +750,7 @@ async function doLogin(){
   const btn=document.querySelector('#login-form .auth-btn');
   btn.textContent='Kirmoqda...';btn.disabled=true;
   const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
-  btn.textContent='Kirish â';btn.disabled=false;
+  btn.textContent='Kirish →';btn.disabled=false;
   if(error){
     err.textContent=error.message==='Invalid login credentials'?'Email yoki parol xato!':error.message;
     return;
@@ -784,10 +784,10 @@ async function doRegister(){
   const btn=document.querySelector('#reg-form .auth-btn');
   btn.textContent='Ro\'yxatdan o\'tilmoqda...';btn.disabled=true;
   const {error}=await sb.auth.signUp({email,password:pass,options:{data:{full_name:name,phone}}});
-  btn.textContent='Ro\'yxatdan o\'tish â';btn.disabled=false;
+  btn.textContent='Ro\'yxatdan o\'tish →';btn.disabled=false;
   if(error){err.textContent=error.message;return;}
   err.style.color='var(--green)';
-  err.textContent='â Muvaffaqiyatli! Emailni tasdiqlang yoki kiring.';
+  err.textContent='✅ Muvaffaqiyatli! Emailni tasdiqlang yoki kiring.';
 }
 
 async function doLogout(){
@@ -895,7 +895,7 @@ function setupUI(){
 }
 
 // ââ PAGES âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-const pgTitles={home:'Asosiy',obyekt:'Obyektlar',ops:'Operatsiyalar',hisobot:'Hisobotlar',ishchilar:'Ishchilar',sozlamalar:'Sozlamalar','ob-detail':'','ai':'AI Yordamchi â¨'};
+const pgTitles={home:'Asosiy',obyekt:'Obyektlar',ops:'Operatsiyalar',hisobot:'Hisobotlar',ishchilar:'Ishchilar',sozlamalar:'Sozlamalar','ob-detail':'','ai':'AI Yordamchi ✨'};
 
 function gp(pg,el){
   closeSidebar();
@@ -937,7 +937,7 @@ function renderHome(){
   $('bc-in').textContent=usd(tI);
   $('bc-out').textContent=usd(tO);
   const faol=OBS.filter(o=>o.holat!=='yakunlangan').slice(0,4);
-  $('home-obs').innerHTML=faol.length?faol.map((ob,i)=>obCardHtml(ob,i)).join(''):'<div class="empty">Hali obyekt yo\'q<br><small>ï¼ tugmasini bosing</small></div>';
+  $('home-obs').innerHTML=faol.length?faol.map((ob,i)=>obCardHtml(ob,i)).join(''):'<div class="empty">Hali obyekt yo\'q<br><small>＋ tugmasini bosing</small></div>';
   $('home-ops').innerHTML=OPS.length?'<div class="op-list">'+OPS.slice(0,5).map(op=>opRowHtml(op)).join('')+'</div>':'<div class="empty">Hali operatsiya yo\'q</div>';
 }
 
@@ -963,7 +963,7 @@ function obCardHtml(ob,i){
     <div class="ob-card-body">
       <div style="width:70px;height:70px;border-radius:16px;overflow:hidden;flex-shrink:0;background:${c};display:flex;align-items:center;justify-content:center;position:relative">
         ${ob.rasm_url?`<img src="${ob.rasm_url}" style="width:100%;height:100%;object-fit:cover">`:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>`}
-        <div style="position:absolute;top:5px;left:5px"><span class="s-badge ${isYak?'yak':'faol'}">${isYak?'â':'â'}</span></div>
+        <div style="position:absolute;top:5px;left:5px"><span class="s-badge ${isYak?'yak':'faol'}">${isYak?'✓':'●'}</span></div>
       </div>
       <div class="ob-info">
         <div class="ob-name">${ob.nomi}</div>
@@ -971,7 +971,7 @@ function obCardHtml(ob,i){
           <div><div class="ob-stat-lbl">Qoldiq</div><div class="ob-stat-val" style="color:${bal>=0?'var(--green)':'var(--red)'}">${(bal>=0?'+':'')+usd(bal)}</div></div>
           <div><div class="ob-stat-lbl">Operatsiya</div><div class="ob-stat-val">${obOps.length} ta</div></div>
         </div>
-        ${m?`<div style="font-size:11px;color:${m.color};font-weight:700;margin-bottom:4px">${m.left>0?m.left+' kun qoldi':'â ï¸ Muddat tugagan!'}</div><div class="ob-prog"><div class="ob-prog-fill" style="width:${m.pct}%;background:${m.color}"></div></div>`:`<div style="font-size:11px;color:var(--muted);font-weight:600">${obOps.length} ta tranzaksiya</div>`}
+        ${m?`<div style="font-size:11px;color:${m.color};font-weight:700;margin-bottom:4px">${m.left>0?m.left+' kun qoldi':'⚠️ Muddat tugagan!'}</div><div class="ob-prog"><div class="ob-prog-fill" style="width:${m.pct}%;background:${m.color}"></div></div>`:`<div style="font-size:11px;color:var(--muted);font-weight:600">${obOps.length} ta tranzaksiya</div>`}
       </div>
     </div>
   </div>`;
@@ -982,7 +982,7 @@ function opRowHtml(op){
   const ic=CAT_ICONS[op.kategoriya]||CAT_ICONS.usta;
   const ob=OBS.find(o=>o.id===op.obyekt_id);
   const w=ISHCHILAR.find(w=>w.id===op.ishchi_id);
-  const meta=[fmtD(op.sana||op.created_at),ob?.nomi,w?.name].filter(Boolean).join(' Â· ');
+  const meta=[fmtD(op.sana||op.created_at),ob?.nomi,w?.name].filter(Boolean).join(' · ');
   return`<div class="op-row" onclick="openOpDetail('${op.id}')" style="cursor:pointer">
     <div class="op-ico" style="background:${ic.bg};color:${ic.c}">${ic.svg}</div>
     <div class="op-info"><div class="op-name">${op.izoh||CAT_NMS[op.kategoriya]||op.kategoriya}</div><div class="op-meta">${meta}</div></div>
@@ -1031,7 +1031,7 @@ function openObDetail(obId){
       ${ob.rasm_url?`<img src="${ob.rasm_url}">`:''}
       <div class="ob-ov"></div>
       <button class="ob-back" onclick="gp('obyekt')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text)" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg></button>
-      <div class="ob-htitle"><div class="ob-hname">${ob.nomi}</div><div class="ob-hsub">${obOps.length} ta operatsiya Â· ${ob.holat==='faol'?'Faol':'Yakunlangan'}</div></div>
+      <div class="ob-htitle"><div class="ob-hname">${ob.nomi}</div><div class="ob-hsub">${obOps.length} ta operatsiya · ${ob.holat==='faol'?'Faol':'Yakunlangan'}</div></div>
     </div>
     ${m?`<div style="padding:12px 16px 0;display:flex;align-items:center;gap:10px"><div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden"><div style="height:100%;width:${m.pct}%;background:${m.color};border-radius:3px"></div></div><div style="font-size:12px;font-weight:800;color:${m.color}">${m.left>0?m.left+' kun':'Tugagan!'}</div></div>`:''}
     <div class="ob-stats">
@@ -1040,18 +1040,18 @@ function openObDetail(obId){
       <div class="ob-stat"><div class="ob-sv" style="color:${bal>=0?'var(--green)':'var(--red)'}">${(bal>=0?'+':'')+usd(bal)}</div><div class="ob-sl">Qoldiq</div></div>
     </div>
     <div class="ob-acts">
-      <button class="ob-act" style="background:var(--green-bg);color:var(--green)" onclick="openObKirim('${ob.id}')">â Pul oldi</button>
-      <button class="ob-act" style="background:var(--red-bg);color:var(--red)" onclick="openObChiqim('${ob.id}')">â Pul berdi</button>
-      <button class="ob-act" style="background:var(--bg);color:var(--muted)" onclick="toggleObStatus('${ob.id}')">${ob.holat==='faol'?'â Yakunla':'âº Qayta'}</button>
+      <button class="ob-act" style="background:var(--green-bg);color:var(--green)" onclick="openObKirim('${ob.id}')">↓ Pul oldi</button>
+      <button class="ob-act" style="background:var(--red-bg);color:var(--red)" onclick="openObChiqim('${ob.id}')">↑ Pul berdi</button>
+      <button class="ob-act" style="background:var(--bg);color:var(--muted)" onclick="toggleObStatus('${ob.id}')">${ob.holat==='faol'?'✓ Yakunla':'↺ Qayta'}</button>
     </div>
     <div style="display:flex;gap:10px;padding:0 16px 14px">
-      <button class="ob-act" style="background:var(--blue-bg);color:var(--blue);flex:1" onclick="trigCam('${ob.id}')">ð· Rasm</button>
-      <button class="ob-act" style="background:#fffbeb;color:#f59e0b;flex:1" onclick="openEditMuddat('${ob.id}')">ð Muddat</button>
+      <button class="ob-act" style="background:var(--blue-bg);color:var(--blue);flex:1" onclick="trigCam('${ob.id}')">📷 Rasm</button>
+      <button class="ob-act" style="background:#fffbeb;color:#f59e0b;flex:1" onclick="openEditMuddat('${ob.id}')">📅 Muddat</button>
     </div>
     <input type="file" id="ob-cam-inp" accept="image/*" style="display:none" onchange="uploadObImg(this)">
     <div style="font-size:14px;font-weight:800;padding:4px 16px 10px">Operatsiyalar</div>
     <div class="op-list" style="margin:0 16px 12px">${obOps.length?obOps.map(op=>opRowHtml(op)).join(''):'<div class="empty" style="padding:24px">Operatsiya yo\'q</div>'}</div>
-    <div style="padding:0 16px 16px"><button onclick="deleteObConfirm('${ob.id}')" id="del-ob-${ob.id}" style="width:100%;padding:14px;border-radius:16px;border:1.5px solid var(--red);background:#fff;color:var(--red);font-size:14px;font-weight:800;font-family:'Manrope',sans-serif">ð Obyektni o'chirish</button></div>`;
+    <div style="padding:0 16px 16px"><button onclick="deleteObConfirm('${ob.id}')" id="del-ob-${ob.id}" style="width:100%;padding:14px;border-radius:16px;border:1.5px solid var(--red);background:#fff;color:var(--red);font-size:14px;font-weight:800;font-family:'Manrope',sans-serif">🗑 Obyektni o'chirish</button></div>`;
 }
 
 function trigCam(obId){
@@ -1137,8 +1137,8 @@ function pickKirim(cat){
 async function deleteObConfirm(obId){
   const btn=$('del-ob-'+obId);if(!btn)return;
   if(btn.dataset.c!=='1'){
-    btn.textContent='â ï¸ Tasdiqlaysizmi? Yana bosing!';btn.style.background='var(--red)';btn.style.color='#fff';btn.dataset.c='1';
-    setTimeout(()=>{if(btn){btn.textContent="ð Obyektni o'chirish";btn.style.background='#fff';btn.style.color='var(--red)';btn.dataset.c='0';}},3000);
+    btn.textContent='⚠️ Tasdiqlaysizmi? Yana bosing!';btn.style.background='var(--red)';btn.style.color='#fff';btn.dataset.c='1';
+    setTimeout(()=>{if(btn){btn.textContent="🗑 Obyektni o'chirish";btn.style.background='#fff';btn.style.color='var(--red)';btn.dataset.c='0';}},3000);
     return;
   }
   await sb.from('operatsiyalar').delete().eq('obyekt_id',obId);
@@ -1199,7 +1199,7 @@ function renderChart(){
       <div class="sum-card"><div class="sum-lbl">Foyda</div><div class="sum-val" style="color:${bal>=0?'var(--green)':'var(--red)'}">${(bal>=0?'+':'')+usd(bal)}</div></div>
     </div>
     <div class="chart-card">
-      <div style="font-size:14px;font-weight:800;margin-bottom:16px">ð Dinamika</div>
+      <div style="font-size:14px;font-weight:800;margin-bottom:16px">📊 Dinamika</div>
       ${bars.map(b=>`<div class="bar-row">
         <div class="bar-lbl">${b.lbl}</div>
         <div style="flex:1;display:flex;flex-direction:column;gap:4px">
@@ -1210,7 +1210,7 @@ function renderChart(){
       </div>`).join('')}
     </div>
     <div class="chart-card">
-      <div style="font-size:14px;font-weight:800;margin-bottom:14px">ð¸ Xarajatlar</div>
+      <div style="font-size:14px;font-weight:800;margin-bottom:14px">💸 Xarajatlar</div>
       ${Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([k,v])=>{
         const ic=CAT_ICONS[k]||CAT_ICONS.usta;
         return`<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
@@ -1221,7 +1221,7 @@ function renderChart(){
       }).join('')||'<div class="empty" style="padding:16px">Bu davrda chiqim yo\'q</div>'}
     </div>
     <div class="chart-card">
-      <div style="font-size:14px;font-weight:800;margin-bottom:14px">ð Obyektlar</div>
+      <div style="font-size:14px;font-weight:800;margin-bottom:14px">🏗 Obyektlar</div>
       ${OBS.map((ob,i)=>{
         const obOps=main.filter(o=>o.obyekt_id===ob.id);
         const b=obOps.reduce((s,o)=>o.tur==='kirim'?s+Number(o.summa):s-Number(o.summa),0);
@@ -1241,8 +1241,8 @@ function renderIshchilar(){
     const c=COLORS[i%COLORS.length];
     return`<div class="ish-card">
       <div class="ish-top">
-        <div class="ish-av" style="background:${c}22;font-size:24px">ð·</div>
-        <div style="flex:1"><div class="ish-nm">${w.name}</div><div class="ish-mt">${w.kasb||'Ishchi'} Â· ${w.phone||''}</div></div>
+        <div class="ish-av" style="background:${c}22;font-size:24px">👷</div>
+        <div style="flex:1"><div class="ish-nm">${w.name}</div><div class="ish-mt">${w.kasb||'Ishchi'} · ${w.phone||''}</div></div>
         <div style="text-align:right"><div style="font-size:10px;color:var(--muted);font-weight:700;margin-bottom:2px">QOLDIQ</div><div style="font-size:18px;font-weight:900;color:${qoldiq>=0?'var(--green)':'var(--red)'}">${qoldiq>=0?'+':''}${usd(qoldiq)}</div></div>
       </div>
       <div class="ish-stats">
@@ -1251,7 +1251,7 @@ function renderIshchilar(){
         <div class="ist"><div class="ist-v" style="color:${qoldiq>=0?'var(--green)':'var(--red)'}">${qoldiq>=0?'+':''}${usd(qoldiq)}</div><div class="ist-l">Hisob-kitob</div></div>
       </div>
       <div style="padding:10px 14px;background:var(--bg);display:flex;gap:8px">
-        <button onclick="openIshAvans('${w.id}')" style="flex:1;padding:10px;border-radius:12px;border:none;background:var(--red-bg);color:var(--red);font-size:13px;font-weight:800;font-family:'Manrope',sans-serif;cursor:pointer">â Avans</button>
+        <button onclick="openIshAvans('${w.id}')" style="flex:1;padding:10px;border-radius:12px;border:none;background:var(--red-bg);color:var(--red);font-size:13px;font-weight:800;font-family:'Manrope',sans-serif;cursor:pointer">− Avans</button>
         <button onclick="openIshHaqqi('${w.id}')" style="flex:1;padding:10px;border-radius:12px;border:none;background:var(--green-bg);color:var(--green);font-size:13px;font-weight:800;font-family:'Manrope',sans-serif;cursor:pointer">+ Ish haqqi</button>
       </div>
     </div>`;
@@ -1277,10 +1277,10 @@ function openOpForm(obId){
   $('op-sum').value='';$('op-date').value=today();$('op-izoh').value='';$('op-err').textContent='';
   $('op-ob-id').value=obId||'';
   const ob=OBS.find(o=>o.id===obId);
-  $('op-ob-txt').textContent=ob?'ð '+ob.nomi:'Tanlang';
+  $('op-ob-txt').textContent=ob?'🏗 '+ob.nomi:'Tanlang';
   $('op-ob-txt').style.color=ob?'var(--text)':'var(--muted)';
   $('wkr-row').style.display=curCat==='usta'?'block':'none';
-  $('op-wkr').innerHTML='<option value="">â Ishchi tanlang â</option>'+ISHCHILAR.map(w=>`<option value="${w.id}">${w.name}</option>`).join('');
+  $('op-wkr').innerHTML='<option value="">— Ishchi tanlang —</option>'+ISHCHILAR.map(w=>`<option value="${w.id}">${w.name}</option>`).join('');
   $('op-bg').classList.add('open');
   setTimeout(()=>$('op-sum').focus(),350);
 }
@@ -1292,7 +1292,7 @@ function openObPicker(){
   $('obpick-bg').classList.add('open');
 }
 function closeObPicker(){$('obpick-bg').classList.remove('open');}
-function pickOb(id,nm){closeObPicker();$('op-ob-id').value=id;$('op-ob-txt').textContent='ð '+nm;$('op-ob-txt').style.color='var(--text)';}
+function pickOb(id,nm){closeObPicker();$('op-ob-id').value=id;$('op-ob-txt').textContent='🏗 '+nm;$('op-ob-txt').style.color='var(--text)';}
 
 async function saveOp(){
   const summa=parseFloat($('op-sum').value)||0;
@@ -1310,7 +1310,7 @@ async function saveOp(){
     user_id:curUser.id,tur:curType,summa,sana,kategoriya:curCat,
     izoh:izoh||null,obyekt_id:obId,ishchi_id:ishchiId||null
   });
-  btn.textContent='ð¾ Saqlash';btn.disabled=false;
+  btn.textContent='💾 Saqlash';btn.disabled=false;
   if(error){err.textContent=error.message;return;}
   const{data}=await sb.from('operatsiyalar').select('*').eq('user_id',curUser.id).order('created_at',{ascending:false}).limit(1);
   if(data?.[0])OPS.unshift(data[0]);
@@ -1374,7 +1374,7 @@ function openAvansObPicker(){
   $('ob-pick-list').innerHTML=OBS.map(ob=>`<div onclick="pickAvansOb('${ob.id}','${ob.nomi}')" style="background:var(--bg);border:1.5px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg><div style="font-size:15px;font-weight:700">${ob.nomi}</div></div>`).join('');
   $('obpick-bg').classList.add('open');
 }
-function pickAvansOb(id,nm){closeObPicker();$('ish-avans-ob-id').value=id;$('ish-avans-ob-txt').textContent='ð '+nm;$('ish-avans-ob-txt').style.color='var(--text)';$('ish-avans-bg').classList.add('open');}
+function pickAvansOb(id,nm){closeObPicker();$('ish-avans-ob-id').value=id;$('ish-avans-ob-txt').textContent='🏗 '+nm;$('ish-avans-ob-txt').style.color='var(--text)';$('ish-avans-bg').classList.add('open');}
 
 async function saveIshAvans(){
   const summa=parseFloat($('ish-avans-sum').value)||0;
@@ -1386,7 +1386,7 @@ async function saveIshAvans(){
   if(!obId){$('ish-avans-err').textContent='Obyektni tanlang!';return;}
   const{error,data}=await sb.from('operatsiyalar').insert({
     user_id:curUser.id,tur:'chiqim',summa,sana,kategoriya:'usta',
-    izoh:izoh||(w?.name+' â avans'),obyekt_id:obId,ishchi_id:curIshAvansId
+    izoh:izoh||(w?.name+' — avans'),obyekt_id:obId,ishchi_id:curIshAvansId
   }).select().single();
   if(error){$('ish-avans-err').textContent=error.message;return;}
   if(data)OPS.unshift(data);
@@ -1410,7 +1410,7 @@ function openHaqqiObPicker(){
   $('ob-pick-list').innerHTML=OBS.map(ob=>`<div onclick="pickHaqqiOb('${ob.id}','${ob.nomi}')" style="background:var(--bg);border:1.5px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg><div style="font-size:15px;font-weight:700">${ob.nomi}</div></div>`).join('');
   $('obpick-bg').classList.add('open');
 }
-function pickHaqqiOb(id,nm){closeObPicker();$('ish-haqqi-ob-id').value=id;$('ish-haqqi-ob-txt').textContent='ð '+nm;$('ish-haqqi-ob-txt').style.color='var(--text)';$('ish-haqqi-bg').classList.add('open');}
+function pickHaqqiOb(id,nm){closeObPicker();$('ish-haqqi-ob-id').value=id;$('ish-haqqi-ob-txt').textContent='🏗 '+nm;$('ish-haqqi-ob-txt').style.color='var(--text)';$('ish-haqqi-bg').classList.add('open');}
 
 async function saveIshHaqqi(){
   const summa=parseFloat($('ish-haqqi-sum').value)||0;
@@ -1425,7 +1425,7 @@ async function saveIshHaqqi(){
   const[opRes,wRes]=await Promise.all([
     sb.from('operatsiyalar').insert({
       user_id:curUser.id,tur:'kirim',summa,sana,kategoriya:'ish_haqqi',
-      izoh:izoh||(w?.name+' â ish haqqi'),obyekt_id:obId,ishchi_id:curIshHaqqiId
+      izoh:izoh||(w?.name+' — ish haqqi'),obyekt_id:obId,ishchi_id:curIshHaqqiId
     }).select().single(),
     sb.from('ishchilar').update({ish_haqqi:newHaqqi}).eq('id',curIshHaqqiId)
   ]);
@@ -1533,7 +1533,7 @@ function addAIMsg(text,who){
   const div=document.createElement('div');
   div.style.cssText='display:flex;align-items:flex-end;gap:8px;'+(who==='user'?'justify-content:flex-end':'');
   if(who==='bot'){
-    div.innerHTML=`<div style="width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,#1e293b,#0f172a);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">ð¤</div><div style="max-width:82%;padding:13px 16px;border-radius:20px;border-bottom-left-radius:6px;background:#fff;border:1px solid var(--border);font-size:14px;font-weight:500;line-height:1.5;color:var(--text)">${text}</div>`;
+    div.innerHTML=`<div style="width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,#1e293b,#0f172a);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🤖</div><div style="max-width:82%;padding:13px 16px;border-radius:20px;border-bottom-left-radius:6px;background:#fff;border:1px solid var(--border);font-size:14px;font-weight:500;line-height:1.5;color:var(--text)">${text}</div>`;
   } else {
     div.innerHTML=`<div style="max-width:82%;padding:13px 16px;border-radius:20px;border-bottom-right-radius:6px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;font-size:14px;font-weight:500;line-height:1.5">${text}</div>`;
   }
@@ -1545,7 +1545,7 @@ function addThinking(id){
   const el=$('ai-messages');if(!el)return;
   const div=document.createElement('div');
   div.id=id;div.style.cssText='display:flex;align-items:flex-end;gap:8px';
-  div.innerHTML=`<div style="width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,#1e293b,#0f172a);display:flex;align-items:center;justify-content:center;font-size:16px">ð¤</div><div style="padding:14px 16px;border-radius:20px;border-bottom-left-radius:6px;background:#fff;border:1px solid var(--border);display:flex;gap:5px"><div style="width:7px;height:7px;border-radius:50%;background:#94a3b8;animation:pulse 1.2s infinite"></div><div style="width:7px;height:7px;border-radius:50%;background:#94a3b8;animation:pulse 1.2s .2s infinite"></div><div style="width:7px;height:7px;border-radius:50%;background:#94a3b8;animation:pulse 1.2s .4s infinite"></div></div>`;
+  div.innerHTML=`<div style="width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,#1e293b,#0f172a);display:flex;align-items:center;justify-content:center;font-size:16px">🤖</div><div style="padding:14px 16px;border-radius:20px;border-bottom-left-radius:6px;background:#fff;border:1px solid var(--border);display:flex;gap:5px"><div style="width:7px;height:7px;border-radius:50%;background:#94a3b8;animation:pulse 1.2s infinite"></div><div style="width:7px;height:7px;border-radius:50%;background:#94a3b8;animation:pulse 1.2s .2s infinite"></div><div style="width:7px;height:7px;border-radius:50%;background:#94a3b8;animation:pulse 1.2s .4s infinite"></div></div>`;
   el.appendChild(div);
   setTimeout(()=>el.scrollTop=el.scrollHeight,50);
 }
@@ -1582,7 +1582,7 @@ async function askAI(q){
     addAIMsg(text,'bot');
   }catch(e){
     document.getElementById(thinkId)?.remove();
-    addAIMsg('â Ulanishda xato. Internet tekshiring.','bot');
+    addAIMsg('❌ Ulanishda xato. Internet tekshiring.','bot');
   }
   aiThinking=false;
 }
@@ -1610,12 +1610,12 @@ function startMic(){
       const btn=$('mic-btn'),st=$('mic-status');
       if(btn){btn.style.background='var(--red)';btn.style.border='none';}
       if($('mic-icon'))$('mic-icon').setAttribute('stroke','#fff');
-      if(st){st.style.display='block';st.textContent='ð´ Gapiring...';}
+      if(st){st.style.display='block';st.textContent='🔴 Gapiring...';}
       recognition.onresult=e=>{
         let txt='';
         for(let i=0;i<e.results.length;i++) txt+=e.results[i][0].transcript;
         if($('ai-inp'))$('ai-inp').value=txt;
-        if($('mic-status'))$('mic-status').textContent='ð¤ '+txt;
+        if($('mic-status'))$('mic-status').textContent='🎤 '+txt;
       };
       recognition.onend=()=>{
         const txt=($('ai-inp')?.value||'').trim();
