@@ -965,26 +965,25 @@ function txRowHtml(tx){
 }
 
 function renderObMembers(container){
-  // Owner faqat member(usta)larni ko'radi, workerlarni ko'rmaydi
-  // Member(usta) faqat o'z workerlarini ko'radi
   let visible=[];
   if(curObRole==='owner'){
-    // Faqat owner va memberlarni ko'rsatamiz (workerlar ko'rinmaydi)
-    visible=obMembers.filter(m=>m.role!=='worker');
+    visible=obMembers.filter(m=>m.role==='member');
   }else if(curObRole==='member'){
-    // O'zini va o'z workerlarini ko'rsatamiz
-    // Worker qo'shganda added_by field kerak - hozircha barchasini ko'rsatamiz
-    visible=obMembers.filter(m=>m.user_id!==curUser?.id);
-    // Faqat workerlarni ko'rsatamiz
-    visible=obMembers.filter(m=>m.role==='worker');
-  }else{
-    visible=[];
+    visible=obMembers.filter(m=>m.role==='worker'&&m.added_by===curUser?.id);
+  }
+
+  let out='';
+  if(curObRole==='owner'){
+    out+=`<button onclick="openAddMember()" style="width:100%;padding:13px;border-radius:14px;border:none;background:#eff6ff;color:#3b82f6;font-size:14px;font-weight:800;font-family:Manrope,sans-serif;margin-bottom:12px;cursor:pointer">👤 Usta qo'shish</button>`;
+  }else if(curObRole==='member'){
+    out+=`<button onclick="openAddWorker()" style="width:100%;padding:13px;border-radius:14px;border:none;background:#f0fdf4;color:#16a34a;font-size:14px;font-weight:800;font-family:Manrope,sans-serif;margin-bottom:12px;cursor:pointer">🔨 Ishchi qo'shish</button>`;
   }
   if(visible.length===0){
-    container.innerHTML='<div class="empty"><div class="empty-icon">👥</div><div class="empty-text">A\'zolar yo\'q</div>' + (curObRole!=='worker'?'<div class="empty-sub">A\'zo qo\'shish tugmasini bosing</div>':'') + '</div>';
-    return;
+    out+='<div class="empty"><div class="empty-icon">👥</div><div class="empty-text">Hali hech kim yo\'q</div></div>';
+  }else{
+    out+=visible.map(m=>memberCardHtml(m)).join('');
   }
-  container.innerHTML=visible.map(m=>memberCardHtml(m)).join('');
+  container.innerHTML=out;
 }
 
 function memberCardHtml(m){
