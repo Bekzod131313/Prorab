@@ -1240,7 +1240,7 @@ async function createOb(){
   try{
     const {data:ob,error}=await sb.from('obyektlar').insert({
       nomi:name,
-      owner_id:curUser.id,
+      owner_id:curUser?.id,user_id:curUser?.id,
       boshlanish:date||new Date().toISOString().slice(0,10),
       muddat:days,
       kirim:0,chiqim:0,
