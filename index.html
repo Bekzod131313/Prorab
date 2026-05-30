@@ -2,377 +2,454 @@
 <html lang="uz">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Prorab Pro</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Qurilish</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
-  --acc:#f97316;--acc2:#ea580c;
-  --green:#16a34a;--green-bg:#f0fdf4;
-  --red:#ef4444;--red-bg:#fef2f2;
-  --blue:#3b82f6;--blue-bg:#eff6ff;
-  --purple:#a855f7;--purple-bg:#fdf4ff;
-  --yellow:#f59e0b;--yellow-bg:#fffbeb;
-  --text:#0f172a;--text2:#334155;--muted:#94a3b8;
-  --border:#e2e8f0;--bg:#f1f5f9;--card:#fff;
-  --dark:#0f172a;--dark2:#1e293b;
+  --g1:#16A34A;--g2:#22C55E;--g3:#4ADE80;
+  --acc:#16A34A;--acc2:#15803D;
+  --red:#EF4444;--red-bg:#FEF2F2;
+  --blue:#3B82F6;--blue-bg:#EFF6FF;
+  --yellow:#F59E0B;--yellow-bg:#FFFBEB;
+  --text:#0F172A;--text2:#334155;--muted:#94A3B8;
+  --border:#E2E8F0;--bg:#F1F5F9;--card:#FFFFFF;
+  --dark:#0F172A;--dark2:#1E293B;
+  --nav-h:64px;
 }
-body{font-family:'Manrope',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
-button{font-family:'Manrope',sans-serif;cursor:pointer}
-button:active{opacity:.85;transform:scale(.98)}
-svg{display:block;flex-shrink:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+button{font-family:inherit;cursor:pointer;border:none;outline:none}
+button:active{opacity:.8;transform:scale(.97)}
+input,select,textarea{font-family:inherit;outline:none}
 a{text-decoration:none;color:inherit}
-input,textarea{font-family:'Manrope',sans-serif;outline:none}
 
-/* ── ANIMATIONS ── */
-@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}
-@keyframes spin{to{transform:rotate(360deg)}}
-.fade-up{animation:fadeUp .35s ease both}
-.fade-in{animation:fadeIn .25s ease both}
+/* LOADING */
+#loading{position:fixed;inset:0;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999}
+.load-logo{width:72px;height:72px;background:var(--acc);border-radius:20px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;animation:pulse 1.5s ease infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.load-text{font-size:22px;font-weight:800;color:var(--text);margin-bottom:4px}
+.load-sub{font-size:13px;color:var(--muted)}
 
-/* ── PAGES ── */
-.page{display:none;min-height:100vh;padding-bottom:70px}
-.page.active{display:block}
+/* AUTH */
+#pg-auth{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:var(--dark);display:none}
+.auth-logo{width:72px;height:72px;background:var(--acc);border-radius:20px;display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+.auth-title{font-size:26px;font-weight:900;color:#fff;margin-bottom:4px;text-align:center}
+.auth-sub{font-size:13px;color:rgba(255,255,255,.4);text-align:center;margin-bottom:32px}
+.auth-card{background:var(--dark2);border-radius:20px;padding:24px;width:100%;max-width:380px}
+.auth-tabs{display:flex;background:rgba(255,255,255,.08);border-radius:12px;padding:4px;margin-bottom:20px;gap:4px}
+.auth-tab{flex:1;padding:9px;border-radius:9px;border:none;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;color:rgba(255,255,255,.4);background:transparent}
+.auth-tab.active{background:#fff;color:var(--dark)}
+.auth-lbl{font-size:11px;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:block}
+.auth-inp{width:100%;padding:13px 16px;border:1.5px solid rgba(255,255,255,.1);border-radius:12px;font-size:16px;color:#fff;background:rgba(255,255,255,.06);margin-bottom:12px;transition:border-color .2s}
+.auth-inp:focus{border-color:var(--acc)}
+.auth-btn{width:100%;padding:15px;border-radius:14px;background:var(--acc);color:#fff;font-size:16px;font-weight:800;margin-top:4px;transition:opacity .2s}
+.auth-err{color:#f87171;font-size:13px;text-align:center;margin-top:8px;display:none}
 
-/* ── BOTTOM NAV ── */
-.bnav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
-.bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0;cursor:pointer;color:var(--muted);font-size:10px;font-weight:700;transition:color .2s}
+/* APP */
+#app{display:none;min-height:100vh;padding-bottom:var(--nav-h)}
+
+/* BOTTOM NAV */
+.bnav{position:fixed;bottom:0;left:0;right:0;height:var(--nav-h);background:var(--card);border-top:1px solid var(--border);display:flex;align-items:center;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
+.bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:var(--muted);font-size:10px;font-weight:600;position:relative;padding:8px 0;transition:color .2s}
 .bnav-item.active{color:var(--acc)}
-.bnav-item svg{width:22px;height:22px}
+.bnav-item svg{width:22px;height:22px;stroke-width:2}
+.bnav-fab{width:52px;height:52px;background:var(--acc);border-radius:16px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(22,163,74,.35);cursor:pointer;transition:transform .15s}
+.bnav-fab:active{transform:scale(.92)}
 
-/* ── TOPBAR ── */
-.topbar{position:sticky;top:0;background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;z-index:50}
-.topbar-title{font-size:17px;font-weight:800;color:var(--text)}
+/* PAGES */
+.page{display:none;min-height:calc(100vh - var(--nav-h));animation:fadeIn .2s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
-/* ── CARDS ── */
-.card{background:var(--card);border-radius:16px;padding:16px;margin-bottom:12px}
-.card-sm{background:var(--card);border-radius:12px;padding:12px}
+/* TOPBAR */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50}
+.topbar-title{font-size:17px;font-weight:800}
+.topbar-back{width:36px;height:36px;border-radius:10px;background:var(--bg);display:flex;align-items:center;justify-content:center;cursor:pointer;border:none}
 
-/* ── BUTTONS ── */
-.btn{padding:14px;border-radius:14px;border:none;font-size:15px;font-weight:800;font-family:'Manrope',sans-serif;width:100%;cursor:pointer;transition:opacity .2s}
-.btn-acc{background:var(--acc);color:#fff}
-.btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--text2)}
-.btn-red{background:transparent;border:1.5px solid var(--red);color:var(--red)}
-.btn-green{background:var(--green);color:#fff}
-.btn-sm{padding:8px 14px;border-radius:10px;font-size:13px;font-weight:700;border:none;cursor:pointer}
+/* DASHBOARD */
+.dash-header{background:linear-gradient(135deg,#15803D,#16A34A);padding:20px 16px 28px;color:#fff}
+.dash-greeting{font-size:14px;color:rgba(255,255,255,.7);margin-bottom:2px}
+.dash-name{font-size:20px;font-weight:800;margin-bottom:20px}
+.dash-balance{font-size:13px;color:rgba(255,255,255,.7);margin-bottom:6px}
+.dash-amount{font-size:36px;font-weight:900;margin-bottom:16px}
+.dash-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dash-stat{background:rgba(255,255,255,.12);border-radius:12px;padding:12px}
+.dash-stat-lbl{font-size:11px;color:rgba(255,255,255,.6);font-weight:700;text-transform:uppercase;margin-bottom:4px}
+.dash-stat-val{font-size:18px;font-weight:800}
 
-/* ── INPUTS ── */
-.inp-wrap{margin-bottom:14px}
-.inp-lbl{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:block}
-.inp{width:100%;padding:13px 14px;border:1.5px solid var(--border);border-radius:12px;font-size:15px;font-family:'Manrope',sans-serif;color:var(--text);background:var(--card);transition:border-color .2s}
-.inp:focus{border-color:var(--acc)}
-.inp-phone{font-size:18px;font-weight:700;letter-spacing:2px}
-
-/* ── MODAL (BOTTOM SHEET) ── */
-.sbg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;flex-direction:column;justify-content:flex-end;opacity:0;pointer-events:none;transition:opacity .25s}
-.sbg.open{opacity:1;pointer-events:all}
-.sheet{background:var(--card);border-radius:20px 20px 0 0;max-height:92vh;overflow-y:auto;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1)}
-.sbg.open .sheet{transform:translateY(0)}
-.sheet-bar{width:36px;height:4px;background:var(--border);border-radius:4px;margin:10px auto 4px}
-.sheet-head{padding:4px 16px 16px;font-size:17px;font-weight:800}
-.sheet-body{padding:0 16px 24px}
-
-/* ── AUTH ── */
-#pg-auth{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:var(--dark);padding-bottom:env(safe-area-inset-bottom)}
-.auth-logo{width:72px;height:72px;background:var(--acc);border-radius:20px;display:flex;align-items:center;justify-content:center;margin-bottom:20px}
-.auth-title{font-size:26px;font-weight:900;color:#fff;margin-bottom:6px;text-align:center}
-.auth-sub{font-size:14px;color:rgba(255,255,255,.5);text-align:center;margin-bottom:36px}
-.auth-box{background:var(--dark2);border-radius:20px;padding:24px;width:100%;max-width:380px}
-.auth-inp{width:100%;padding:14px 16px;border:1.5px solid rgba(255,255,255,.1);border-radius:12px;font-size:18px;font-weight:700;font-family:'Manrope',sans-serif;color:#fff;background:rgba(255,255,255,.05);letter-spacing:2px;text-align:center}
-.auth-inp:focus{border-color:var(--acc);outline:none}
-.auth-btn{width:100%;padding:15px;border-radius:14px;border:none;background:var(--acc);color:#fff;font-size:16px;font-weight:800;font-family:'Manrope',sans-serif;cursor:pointer;margin-top:12px}
-.otp-boxes{display:flex;gap:10px;justify-content:center;margin:8px 0}
-.otp-box{width:46px;height:56px;border:1.5px solid rgba(255,255,255,.15);border-radius:12px;background:rgba(255,255,255,.05);color:#fff;font-size:22px;font-weight:800;text-align:center;font-family:'Manrope',sans-serif}
-.otp-box:focus{border-color:var(--acc);outline:none}
-
-/* ── HOME ── */
-.balance-card{background:linear-gradient(135deg,var(--dark) 0%,var(--dark2) 100%);border-radius:20px;padding:20px;margin:12px 16px;color:#fff}
-.balance-label{font-size:12px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
-.balance-amount{font-size:36px;font-weight:900;margin-bottom:16px}
-.balance-row{display:flex;gap:10px}
-.balance-sub{flex:1;background:rgba(255,255,255,.07);border-radius:12px;padding:10px}
-.balance-sub-lbl{font-size:10px;color:rgba(255,255,255,.4);font-weight:700;text-transform:uppercase;margin-bottom:2px}
-.balance-sub-val{font-size:15px;font-weight:800}
-
-/* ── SECTION ── */
+/* CARDS */
+.card{background:var(--card);border-radius:16px;padding:16px;margin-bottom:10px}
 .section{padding:0 16px;margin-bottom:4px}
-.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-top:8px}
-.section-title{font-size:14px;font-weight:800;color:var(--text2)}
+.section-head{display:flex;align-items:center;justify-content:space-between;padding:16px 0 10px}
+.section-title{font-size:15px;font-weight:800}
 .section-more{font-size:13px;font-weight:700;color:var(--acc)}
 
-/* ── OB CARD ── */
-.ob-card{background:var(--card);border-radius:16px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:transform .15s}
+/* OB CARD */
+.ob-card{background:var(--card);border-radius:16px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:transform .15s;border:1px solid var(--border)}
 .ob-card:active{transform:scale(.98)}
-.ob-ico{width:46px;height:46px;border-radius:14px;background:var(--acc);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.ob-info{flex:1;min-width:0}
-.ob-name{font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ob-meta{font-size:12px;color:var(--muted);margin-top:2px}
+.ob-ico{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px}
+.ob-name{font-size:15px;font-weight:800;margin-bottom:2px}
+.ob-meta{font-size:12px;color:var(--muted)}
 .ob-bal{text-align:right;flex-shrink:0}
-.ob-bal-val{font-size:15px;font-weight:800}
-.ob-bal-lbl{font-size:11px;color:var(--muted);margin-top:1px}
-.ob-role-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:800;text-transform:uppercase}
-.role-owner{background:#fff7ed;color:var(--acc)}
-.role-member{background:#eff6ff;color:var(--blue)}
-.role-worker{background:#f0fdf4;color:var(--green)}
+.ob-bal-val{font-size:16px;font-weight:800;color:var(--acc)}
+.ob-bal-lbl{font-size:11px;color:var(--muted)}
 
-/* ── OB DETAIL ── */
-.ob-detail-header{background:linear-gradient(135deg,var(--dark),var(--dark2));padding:20px 16px 24px;color:#fff;position:relative}
-.ob-detail-name{font-size:22px;font-weight:900;margin-bottom:4px}
-.ob-detail-meta{font-size:13px;color:rgba(255,255,255,.5)}
-.ob-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:0 16px;margin-top:-16px;margin-bottom:4px}
-.ob-stat{background:var(--card);border-radius:14px;padding:12px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.06)}
-.ob-stat-val{font-size:16px;font-weight:900}
-.ob-stat-lbl{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-top:2px}
-
-/* ── ACTION BTNS ── */
-.act-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 16px;margin-bottom:12px}
-.act-btn{border:none;border-radius:14px;padding:13px;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:800;font-family:'Manrope',sans-serif;cursor:pointer}
-.act-btn-in{background:var(--green-bg);color:var(--green)}
-.act-btn-out{background:var(--red-bg);color:var(--red)}
-.act-btn-send{background:var(--blue-bg);color:var(--blue)}
-.act-btn-full{grid-column:1/-1;background:var(--bg);color:var(--text2)}
-
-/* ── MEMBER CARD ── */
-.member-card{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card);border-radius:14px;margin-bottom:8px}
-.member-avatar{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;color:#fff;flex-shrink:0}
-.member-info{flex:1;min-width:0}
-.member-name{font-size:14px;font-weight:800}
-.member-phone{font-size:12px;color:var(--muted)}
-.member-bal{text-align:right}
-.member-bal-val{font-size:14px;font-weight:800}
-
-/* ── TX ROW ── */
-.tx-row{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card);border-radius:14px;margin-bottom:8px;cursor:pointer}
-.tx-ico{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.tx-info{flex:1;min-width:0}
+/* TX ROW */
+.tx-row{display:flex;align-items:center;gap:12px;padding:12px;background:var(--card);border-radius:14px;margin-bottom:8px;cursor:pointer;border:1px solid var(--border)}
+.tx-ico{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
 .tx-title{font-size:14px;font-weight:700}
 .tx-meta{font-size:12px;color:var(--muted);margin-top:1px}
 .tx-amount{font-size:15px;font-weight:800;white-space:nowrap}
 
-/* ── SPINNER ── */
-.spinner{width:22px;height:22px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
-.spinner-acc{border:3px solid rgba(249,115,22,.2);border-top-color:var(--acc)}
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700}
+.badge-owner{background:#f0fdf4;color:#16a34a}
+.badge-member{background:#eff6ff;color:#3b82f6}
+.badge-worker{background:#fff7ed;color:#ea580c}
+.badge-pro{background:linear-gradient(90deg,#f59e0b,#ea580c);color:#fff}
+.badge-lite{background:var(--bg);color:var(--muted)}
 
-/* ── TOAST ── */
-.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:10px 20px;border-radius:12px;font-size:14px;font-weight:700;z-index:500;white-space:nowrap;animation:fadeUp .3s ease}
+/* BUTTONS */
+.btn{width:100%;padding:15px;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer;transition:opacity .2s;border:none}
+.btn-acc{background:var(--acc);color:#fff}
+.btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--text2)}
+.btn-red{background:transparent;border:1.5px solid var(--red);color:var(--red)}
+.btn-sm{padding:9px 16px;border-radius:10px;font-size:13px;font-weight:700;border:none;cursor:pointer}
 
-/* ── TABS ── */
-.tabs{display:flex;background:var(--bg);border-radius:12px;padding:4px;margin:0 16px 12px;gap:4px}
-.tab{flex:1;padding:8px;border-radius:9px;border:none;background:transparent;font-size:13px;font-weight:700;color:var(--muted);font-family:'Manrope',sans-serif;cursor:pointer;transition:all .2s}
+/* INPUTS */
+.inp-group{margin-bottom:14px}
+.inp-lbl{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:block}
+.inp{width:100%;padding:13px 14px;border:1.5px solid var(--border);border-radius:12px;font-size:15px;color:var(--text);background:var(--card);transition:border-color .2s}
+.inp:focus{border-color:var(--acc)}
+.inp-big{font-size:24px;font-weight:800;letter-spacing:1px}
+
+/* BOTTOM SHEET */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;opacity:0;pointer-events:none;transition:opacity .25s}
+.overlay.open{opacity:1;pointer-events:all}
+.sheet{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-radius:22px 22px 0 0;z-index:201;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1);max-height:92vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom)}
+.sheet.open{transform:translateY(0)}
+.sheet-handle{width:36px;height:4px;background:var(--border);border-radius:4px;margin:10px auto 4px}
+.sheet-title{font-size:17px;font-weight:800;padding:8px 16px 16px}
+.sheet-body{padding:0 16px 24px}
+
+/* MEMBER CARD */
+.member-card{display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg);border-radius:14px;margin-bottom:8px;cursor:pointer}
+.avatar{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;color:#fff;flex-shrink:0}
+
+/* SPINNER */
+.spinner{width:20px;height:20px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* TOAST */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--dark);color:#fff;padding:10px 20px;border-radius:12px;font-size:14px;font-weight:700;z-index:999;white-space:nowrap;animation:toastIn .3s ease}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+/* STATS GRID */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:0 16px;margin-bottom:12px}
+.stat-card{background:var(--card);border-radius:14px;padding:12px;text-align:center;border:1px solid var(--border)}
+.stat-val{font-size:17px;font-weight:900;margin-bottom:2px}
+.stat-lbl{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase}
+
+/* TABS */
+.tabs{display:flex;background:var(--bg);border-radius:12px;padding:4px;gap:4px}
+.tab{flex:1;padding:8px;border-radius:9px;border:none;background:transparent;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;transition:all .2s}
 .tab.active{background:var(--card);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.08)}
 
-/* ── AVATAR COLORS ── */
-.av-orange{background:var(--acc)}
-.av-blue{background:var(--blue)}
-.av-green{background:var(--green)}
-.av-purple{background:var(--purple)}
-.av-red{background:var(--red)}
+/* PROFILE */
+.profile-header{background:linear-gradient(135deg,#15803D,#16A34A);padding:32px 16px 24px;text-align:center;color:#fff}
+.profile-avatar{width:80px;height:80px;border-radius:24px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:900;margin:0 auto 12px;border:3px solid rgba(255,255,255,.3)}
+.profile-name{font-size:22px;font-weight:900;margin-bottom:4px}
+.profile-phone{font-size:14px;color:rgba(255,255,255,.6)}
+.menu-item{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--card);border-radius:14px;margin-bottom:8px;cursor:pointer;border:1px solid var(--border)}
+.menu-ico{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
+.menu-lbl{flex:1;font-size:15px;font-weight:600}
+.menu-arr{color:var(--muted);font-size:18px}
+.menu-val{font-size:13px;color:var(--muted);font-weight:600}
 
-/* ── EMPTY STATE ── */
+/* CHART (donut) */
+.donut-wrap{position:relative;width:140px;height:140px;margin:0 auto}
+.donut-wrap svg{transform:rotate(-90deg)}
+.donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.donut-total{font-size:16px;font-weight:900}
+.donut-lbl{font-size:10px;color:var(--muted);font-weight:700}
+.legend-item{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.legend-name{font-size:13px;color:var(--text2);flex:1}
+.legend-val{font-size:13px;font-weight:700}
+
+/* LITE/PRO */
+.regime-card{border-radius:16px;padding:16px;margin-bottom:10px;cursor:pointer;border:2px solid transparent;transition:all .2s}
+.regime-card.active{border-color:var(--acc)}
+.regime-title{font-size:16px;font-weight:800;margin-bottom:4px}
+.regime-sub{font-size:12px;color:var(--muted)}
+.regime-feature{display:flex;align-items:center;gap:6px;font-size:13px;margin-top:6px}
+
+/* SETTINGS */
+.soz-section{padding:0 16px;margin-bottom:16px}
+.soz-title{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding-top:8px}
+
+/* SEARCH */
+.search-wrap{padding:10px 16px;background:var(--card);border-bottom:1px solid var(--border)}
+.search-inp-wrap{position:relative}
+.search-inp{width:100%;padding:10px 14px 10px 38px;border:1.5px solid var(--border);border-radius:12px;font-size:14px;background:var(--bg)}
+.search-ico{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted)}
+
+/* EMPTY */
 .empty{text-align:center;padding:40px 20px;color:var(--muted)}
-.empty-icon{font-size:48px;margin-bottom:12px}
-.empty-text{font-size:15px;font-weight:700;margin-bottom:4px;color:var(--text2)}
+.empty-ico{font-size:48px;margin-bottom:12px}
+.empty-txt{font-size:15px;font-weight:700;color:var(--text2);margin-bottom:4px}
 .empty-sub{font-size:13px}
 
-/* ── FAB ── */
-.fab{position:fixed;bottom:82px;right:16px;width:52px;height:52px;border-radius:16px;background:var(--acc);border:none;color:#fff;font-size:26px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(249,115,22,.4);cursor:pointer;z-index:90;transition:transform .15s}
-.fab:active{transform:scale(.93)}
+/* FILTER CHIPS */
+.chips{display:flex;gap:8px;padding:10px 16px;overflow-x:auto;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{padding:6px 14px;border-radius:20px;font-size:13px;font-weight:700;border:1.5px solid var(--border);background:var(--card);color:var(--text2);white-space:nowrap;cursor:pointer;transition:all .2s;flex-shrink:0}
+.chip.active{background:var(--acc);color:#fff;border-color:var(--acc)}
 
-/* ── CHIP ── */
-.chip{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:8px;font-size:12px;font-weight:700;background:var(--bg);color:var(--text2)}
+/* AMOUNT INPUT */
+.amount-display{font-size:40px;font-weight:900;text-align:center;padding:20px;color:var(--text);letter-spacing:1px}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border-radius:16px;overflow:hidden;margin:0 16px}
+.numpad-btn{padding:18px;font-size:20px;font-weight:700;background:var(--card);border:none;cursor:pointer;transition:background .15s}
+.numpad-btn:active{background:var(--bg)}
 
-/* ── PROFILE ── */
-.profile-header{background:linear-gradient(135deg,var(--dark),var(--dark2));padding:32px 16px 24px;text-align:center;color:#fff}
-.profile-avatar{width:72px;height:72px;border-radius:20px;background:var(--acc);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;color:#fff;margin:0 auto 12px}
-.profile-name{font-size:20px;font-weight:900;margin-bottom:4px}
-.profile-phone{font-size:14px;color:rgba(255,255,255,.5)}
-.soz-item{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--card);border-radius:14px;margin-bottom:8px;cursor:pointer}
-.soz-ico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.soz-lbl{flex:1;font-size:15px;font-weight:700}
-.soz-arr{color:var(--muted);font-size:18px}
-
-/* ── HISOBOT ── */
-.chart-card{background:var(--card);border-radius:16px;padding:16px;margin:0 16px 12px}
-.chart-title{font-size:14px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:6px}
-.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.bar-lbl{font-size:11px;color:var(--muted);width:38px;flex-shrink:0;text-align:right}
-.bar-wraps{flex:1;display:flex;flex-direction:column;gap:3px}
-.bar-wrap{background:var(--border);border-radius:5px;overflow:hidden;height:9px}
-.bar-fill{height:9px;border-radius:5px;min-width:2px;transition:width .5s ease}
-.bar-in{background:var(--green)}
-.bar-out{background:var(--red)}
-.bar-vals{font-size:10px;text-align:right;min-width:60px}
-
-/* ── NOTIFICATION DOT ── */
-.notif-dot{width:8px;height:8px;background:var(--red);border-radius:50%;position:absolute;top:6px;right:calc(50% - 14px)}
-
-/* ── SEARCH ── */
-.search-box{margin:8px 16px;position:relative}
-.search-inp{width:100%;padding:10px 14px 10px 38px;border:1.5px solid var(--border);border-radius:12px;font-size:14px;font-family:'Manrope',sans-serif;background:var(--card);color:var(--text)}
-.search-ico{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted)}
+/* PRO BADGE */
+.pro-banner{background:linear-gradient(90deg,#f59e0b,#ea580c);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;margin:0 16px 12px;color:#fff;cursor:pointer}
+.pro-banner-ico{font-size:24px}
+.pro-banner-title{font-size:14px;font-weight:800}
+.pro-banner-sub{font-size:12px;opacity:.8}
 </style>
 </head>
 <body>
 
-<!-- ══════════════ AUTH ══════════════ -->
+<!-- LOADING -->
+<div id="loading">
+  <div class="load-logo">
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+  </div>
+  <div class="load-text">Qurilish</div>
+  <div class="load-sub" id="load-sub">Yuklanmoqda...</div>
+</div>
+
+<!-- AUTH -->
 <div id="pg-auth">
   <div class="auth-logo">
-    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><rect x="2" y="7" width="20" height="14" rx="3"/><path d="M16 7V5a2 2 0 00-4 0v2"/><line x1="12" y1="12" x2="12" y2="16"/></svg>
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
   </div>
-  <div class="auth-title">Prorab Pro</div>
-  <div class="auth-sub">Qurilish moliya boshqaruvi</div>
-
-  <!-- Login tab -->
-  <div class="auth-box" id="auth-login-box">
-    <div style="display:flex;background:rgba(255,255,255,.08);border-radius:12px;padding:4px;margin-bottom:20px;gap:4px">
-      <button id="tab-login" onclick="switchAuthTab('login')" style="flex:1;padding:9px;border-radius:9px;border:none;background:#fff;color:#0f172a;font-size:14px;font-weight:800;font-family:Manrope,sans-serif;cursor:pointer;transition:all .2s">Kirish</button>
-      <button id="tab-reg" onclick="switchAuthTab('reg')" style="flex:1;padding:9px;border-radius:9px;border:none;background:transparent;color:rgba(255,255,255,.5);font-size:14px;font-weight:800;font-family:Manrope,sans-serif;cursor:pointer;transition:all .2s">Ro'yxat</button>
+  <div class="auth-title">Qurilish</div>
+  <div class="auth-sub" id="auth-sub-text">Pul oqimi — oson, aniq, shaffof</div>
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Kirish</button>
+      <button class="auth-tab" id="tab-reg" onclick="switchAuthTab('reg')">Ro'yxat</button>
     </div>
-    <div style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Telefon raqam</div>
-    <input class="auth-inp" id="auth-phone" type="tel" value="+998" placeholder="90 000 00 00" value="+998" maxlength="17" oninput="formatPhone(this)" style="margin-bottom:12px">
-    <div style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Parol</div>
-    <input class="auth-inp" id="auth-pass" type="password" placeholder="••••••••" style="letter-spacing:4px;margin-bottom:4px">
-    <!-- Register only fields -->
-    <div id="reg-fields" style="display:none;margin-top:12px">
-      <div style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Ism Familiya</div>
-      <input class="auth-inp" id="auth-name" type="text" placeholder="Ism Familiya" style="font-size:16px;letter-spacing:0;margin-bottom:4px">
+    <label class="auth-lbl" id="lbl-phone">Telefon raqam</label>
+    <input class="auth-inp" id="auth-phone" type="tel" value="+998" oninput="fmtPhone(this)">
+    <label class="auth-lbl" id="lbl-pass">Parol</label>
+    <input class="auth-inp" id="auth-pass" type="password" placeholder="••••••••">
+    <div id="reg-extra" style="display:none">
+      <label class="auth-lbl" id="lbl-name">Ism Familiya</label>
+      <input class="auth-inp" id="auth-name" type="text">
     </div>
-    <button class="auth-btn" id="auth-submit-btn" onclick="doAuth()">Kirish →</button>
-    <div id="auth-err" style="color:#f87171;font-size:13px;margin-top:10px;text-align:center;display:none"></div>
+    <button class="auth-btn" id="auth-btn" onclick="doAuth()">Kirish →</button>
+    <div class="auth-err" id="auth-err"></div>
   </div>
 </div>
 
-<!-- ══════════════ MAIN APP ══════════════ -->
-<div id="app" style="display:none">
+<!-- APP -->
+<div id="app">
 
-  <!-- HOME -->
+  <!-- DASHBOARD -->
   <div class="page active" id="pg-home">
-    <div class="balance-card fade-up">
-      <div class="balance-label">Umumiy balans</div>
-      <div class="balance-amount" id="home-total-bal">$0</div>
-      <div class="balance-row">
-        <div class="balance-sub">
-          <div class="balance-sub-lbl">Kirim</div>
-          <div class="balance-sub-val" id="home-total-in" style="color:#4ade80">$0</div>
+    <div class="dash-header">
+      <div class="dash-greeting" id="dash-greeting">Salom,</div>
+      <div class="dash-name" id="dash-name">-</div>
+      <div class="dash-balance" id="lbl-umumiy-balans">Umumiy balans</div>
+      <div class="dash-amount" id="dash-total">$0</div>
+      <div class="dash-row">
+        <div class="dash-stat">
+          <div class="dash-stat-lbl" id="lbl-bugunki-kirim">Bugungi kirim</div>
+          <div class="dash-stat-val" id="dash-today-in" style="color:#4ade80">$0</div>
         </div>
-        <div class="balance-sub">
-          <div class="balance-sub-lbl">Chiqim</div>
-          <div class="balance-sub-val" id="home-total-out" style="color:#f87171">$0</div>
+        <div class="dash-stat">
+          <div class="dash-stat-lbl" id="lbl-bugunki-chiqim">Bugungi chiqim</div>
+          <div class="dash-stat-val" id="dash-today-out" style="color:#f87171">$0</div>
         </div>
       </div>
     </div>
-
+    <div id="pro-banner-wrap"></div>
     <div class="section">
       <div class="section-head">
-        <div class="section-title">Mening loyihalarim</div>
-        <div class="section-more" onclick="gp('projects')">Barchasi ›</div>
+        <div class="section-title" id="lbl-mening-obyektlar">Mening obyektlarim</div>
+        <div class="section-more" onclick="gp('projects')" id="lbl-barchasi">Barchasi →</div>
       </div>
-      <div id="home-obs-list"></div>
+      <div id="home-obs"></div>
+      <button class="btn btn-acc" style="margin-top:8px" onclick="openNewOb()" id="lbl-yangi-ob">+ Yangi obyekt</button>
     </div>
   </div>
 
   <!-- PROJECTS -->
   <div class="page" id="pg-projects">
     <div class="topbar">
-      <div class="topbar-title">Loyihalar</div>
-      <div style="display:flex;gap:8px">
-        <div class="tabs" style="margin:0;background:transparent">
-          <button class="tab active" id="tab-my" onclick="switchObTab('my')">Mening</button>
-          <button class="tab" id="tab-shared" onclick="switchObTab('shared')">Ulashilgan</button>
-        </div>
+      <div class="topbar-title" id="lbl-obyektlar">Obyektlar</div>
+      <button class="btn-sm" style="background:var(--acc);color:#fff" onclick="openNewOb()">+ Qo'shish</button>
+    </div>
+    <div class="search-wrap">
+      <div class="search-inp-wrap">
+        <span class="search-ico">🔍</span>
+        <input class="search-inp" id="obs-search" placeholder="Qidirish..." oninput="filterObs(this.value)">
       </div>
     </div>
-    <div class="search-box">
-      <span class="search-ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></span>
-      <input class="search-inp" placeholder="Qidirish..." oninput="filterObs(this.value)">
-    </div>
-    <div id="obs-list" style="padding:0 16px"></div>
+    <div style="padding:12px 16px" id="obs-list"></div>
   </div>
 
   <!-- OB DETAIL -->
-  <div class="page" id="pg-ob-detail">
-    <div class="ob-detail-header">
-      <button onclick="gp('projects')" style="background:rgba(255,255,255,.1);border:none;color:#fff;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;margin-bottom:12px">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-      </button>
-      <div style="display:flex;align-items:flex-start;justify-content:space-between">
-        <div>
-          <div class="ob-detail-name" id="ob-detail-name">Loyiha</div>
-          <div class="ob-detail-meta" id="ob-detail-meta"></div>
+  <div class="page" id="pg-ob">
+    <div style="background:linear-gradient(135deg,#15803D,#16A34A);padding:16px;color:#fff">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <button class="topbar-back" onclick="gp('projects')" style="background:rgba(255,255,255,.15);color:#fff">←</button>
+        <div style="flex:1">
+          <div style="font-size:18px;font-weight:800" id="ob-name">-</div>
+          <div style="font-size:12px;opacity:.7" id="ob-meta">-</div>
         </div>
-        <div id="ob-detail-role-badge"></div>
+        <div id="ob-role-badge"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <div style="background:rgba(255,255,255,.12);border-radius:12px;padding:10px;text-align:center">
+          <div style="font-size:16px;font-weight:900;color:#4ade80" id="ob-in">$0</div>
+          <div style="font-size:10px;opacity:.6;font-weight:700;text-transform:uppercase" id="lbl-kirim2">KIRIM</div>
+        </div>
+        <div style="background:rgba(255,255,255,.12);border-radius:12px;padding:10px;text-align:center">
+          <div style="font-size:16px;font-weight:900;color:#f87171" id="ob-out">$0</div>
+          <div style="font-size:10px;opacity:.6;font-weight:700;text-transform:uppercase" id="lbl-chiqim2">CHIQIM</div>
+        </div>
+        <div style="background:rgba(255,255,255,.12);border-radius:12px;padding:10px;text-align:center">
+          <div style="font-size:16px;font-weight:900" id="ob-bal">$0</div>
+          <div style="font-size:10px;opacity:.6;font-weight:700;text-transform:uppercase" id="lbl-balans2">BALANS</div>
+        </div>
       </div>
     </div>
-    <div class="ob-stats">
-      <div class="ob-stat">
-        <div class="ob-stat-val" id="ob-stat-in" style="color:var(--green)">$0</div>
-        <div class="ob-stat-lbl">Kirim</div>
-      </div>
-      <div class="ob-stat">
-        <div class="ob-stat-val" id="ob-stat-out" style="color:var(--red)">$0</div>
-        <div class="ob-stat-lbl">Chiqim</div>
-      </div>
-      <div class="ob-stat">
-        <div class="ob-stat-val" id="ob-stat-bal">$0</div>
-        <div class="ob-stat-lbl">Balans</div>
-      </div>
-    </div>
-
-    <div class="act-btns" id="ob-act-btns"></div>
-
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 16px" id="ob-actions"></div>
     <div style="padding:0 16px">
-      <div class="tabs" style="margin:0 0 12px">
-        <button class="tab active" onclick="obTab('txs',this)">Operatsiyalar</button>
-        <button class="tab" onclick="obTab('members',this)">A'zolar</button>
-        <button class="tab" onclick="obTab('my-bal',this)">Mening pulim</button>
+      <div class="tabs" id="ob-tabs" style="margin-bottom:12px">
+        <button class="tab active" onclick="obTab('txs',this)" id="lbl-operatsiyalar">Operatsiyalar</button>
+        <button class="tab" onclick="obTab('members',this)" id="lbl-azolar">A'zolar</button>
+        <button class="tab" onclick="obTab('mybal',this)" id="lbl-mening-pulik">Mening pulim</button>
       </div>
-      <div id="ob-tab-content"></div>
+      <div id="ob-content"></div>
     </div>
-  </div>
-
-  <!-- SEND MONEY -->
-  <div class="page" id="pg-send">
-    <div class="topbar">
-      <button onclick="history.back()" style="background:var(--bg);border:none;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-      </button>
-      <div class="topbar-title" id="send-title">Pul yuborish</div>
-      <div></div>
-    </div>
-    <div style="padding:16px" id="send-content"></div>
   </div>
 
   <!-- HISOBOT -->
   <div class="page" id="pg-hisobot">
-    <div class="topbar"><div class="topbar-title">Hisobot</div></div>
+    <div class="topbar">
+      <div class="topbar-title" id="lbl-hisobot">Hisobot</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-sm" style="background:var(--bg);color:var(--text2)" onclick="exportPDF()" id="lbl-eksport">📄 Eksport</button>
+      </div>
+    </div>
+    <div class="chips" id="hisobot-filter">
+      <div class="chip active" data-period="month" onclick="setHisFilter('month',this)" id="lbl-oy">Bu oy</div>
+      <div class="chip" data-period="week" onclick="setHisFilter('week',this)" id="lbl-hafta">Bu hafta</div>
+      <div class="chip" data-period="all" onclick="setHisFilter('all',this)" id="lbl-hammasi">Hammasi</div>
+    </div>
     <div id="hisobot-content" style="padding-bottom:16px"></div>
   </div>
 
   <!-- PROFIL -->
   <div class="page" id="pg-profil">
     <div class="profile-header">
-      <div class="profile-avatar" id="profil-av">R</div>
-      <div class="profile-name" id="profil-name-disp">-</div>
-      <div class="profile-phone" id="profil-phone-disp">-</div>
+      <div class="profile-avatar" id="profil-av">?</div>
+      <div class="profile-name" id="profil-name">-</div>
+      <div class="profile-phone" id="profil-phone">-</div>
+      <div style="margin-top:10px">
+        <div class="stats-grid" style="padding:0;margin-top:12px">
+          <div style="background:rgba(255,255,255,.12);border-radius:12px;padding:10px;text-align:center">
+            <div style="font-size:20px;font-weight:900" id="profil-bal">$0</div>
+            <div style="font-size:10px;opacity:.6;font-weight:700;text-transform:uppercase" id="lbl-balans3">Balans</div>
+          </div>
+          <div style="background:rgba(255,255,255,.12);border-radius:12px;padding:10px;text-align:center">
+            <div style="font-size:20px;font-weight:900" id="profil-obs">0</div>
+            <div style="font-size:10px;opacity:.6;font-weight:700;text-transform:uppercase" id="lbl-obs-count">Obyektlar</div>
+          </div>
+          <div style="background:rgba(255,255,255,.12);border-radius:12px;padding:10px;text-align:center">
+            <div style="font-size:20px;font-weight:900" id="profil-people">0</div>
+            <div style="font-size:10px;opacity:.6;font-weight:700;text-transform:uppercase" id="lbl-odamlar">Odamlar</div>
+          </div>
+        </div>
+      </div>
     </div>
     <div style="padding:16px">
-      <div class="soz-item" onclick="openEditName()">
-        <div class="soz-ico" style="background:#fff7ed">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-        </div>
-        <div class="soz-lbl">Ismni o'zgartirish</div>
-        <span class="soz-arr">›</span>
+      <div class="menu-item" onclick="openEditProfile()">
+        <div class="menu-ico" style="background:#f0fdf4">✏️</div>
+        <div class="menu-lbl" id="lbl-profil-tahrir">Profilni tahrirlash</div>
+        <div class="menu-arr">›</div>
       </div>
-      <div class="soz-item" onclick="doLogout()" style="margin-top:8px">
-        <div class="soz-ico" style="background:#fef2f2">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      <div class="menu-item" onclick="gp('settings')">
+        <div class="menu-ico" style="background:#eff6ff">⚙️</div>
+        <div class="menu-lbl" id="lbl-sozlamalar">Sozlamalar</div>
+        <div class="menu-arr">›</div>
+      </div>
+      <div class="menu-item" onclick="showRegime()">
+        <div class="menu-ico" style="background:#fff7ed">⭐</div>
+        <div class="menu-lbl" id="lbl-rejim">Ilova rejimi</div>
+        <div class="menu-val" id="profil-regime-val">LITE</div>
+        <div class="menu-arr">›</div>
+      </div>
+      <div class="menu-item" onclick="doBackup()">
+        <div class="menu-ico" style="background:#fdf4ff">💾</div>
+        <div class="menu-lbl" id="lbl-zaxira">Zaxira nusxa</div>
+        <div class="menu-arr">›</div>
+      </div>
+      <div class="menu-item" onclick="doLogout()" style="margin-top:8px">
+        <div class="menu-ico" style="background:#fef2f2">🚪</div>
+        <div class="menu-lbl" style="color:var(--red)" id="lbl-chiqish">Chiqish</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="page" id="pg-settings">
+    <div class="topbar">
+      <button class="topbar-back" onclick="gp('profil')">←</button>
+      <div class="topbar-title" id="lbl-soz-title">Sozlamalar</div>
+      <div></div>
+    </div>
+    <div style="padding:16px">
+      <div class="soz-section">
+        <div class="soz-title" id="lbl-til">TIL</div>
+        <div class="menu-item" onclick="setLang('uz')" id="lang-uz">
+          <div class="menu-ico" style="background:#f0fdf4">🇺🇿</div>
+          <div class="menu-lbl">O'zbekcha</div>
+          <div class="menu-val" id="lang-uz-check"></div>
         </div>
-        <div class="soz-lbl" style="color:var(--red)">Chiqish</div>
+        <div class="menu-item" onclick="setLang('ru')" id="lang-ru">
+          <div class="menu-ico" style="background:#eff6ff">🇷🇺</div>
+          <div class="menu-lbl">Русский</div>
+          <div class="menu-val" id="lang-ru-check"></div>
+        </div>
+      </div>
+      <div class="soz-section">
+        <div class="soz-title" id="lbl-ilova-rejimi">ILOVA REJIMI</div>
+        <div class="menu-item" onclick="showRegime()">
+          <div class="menu-ico" style="background:#fff7ed">⭐</div>
+          <div class="menu-lbl" id="lbl-rejim2">Rejimni o'zgartirish</div>
+          <div class="menu-val" id="soz-regime-val">LITE</div>
+          <div class="menu-arr">›</div>
+        </div>
+      </div>
+      <div class="soz-section">
+        <div class="soz-title" id="lbl-hisob">HISOB</div>
+        <div class="menu-item" onclick="openEditProfile()">
+          <div class="menu-ico" style="background:#f0fdf4">👤</div>
+          <div class="menu-lbl" id="lbl-profil2">Profil ma'lumotlari</div>
+          <div class="menu-arr">›</div>
+        </div>
+        <div class="menu-item" onclick="doLogout()">
+          <div class="menu-ico" style="background:#fef2f2">🚪</div>
+          <div class="menu-lbl" style="color:var(--red)" id="lbl-chiqish2">Chiqish</div>
+        </div>
       </div>
     </div>
   </div>
@@ -380,190 +457,162 @@ input,textarea{font-family:'Manrope',sans-serif;outline:none}
   <!-- BOTTOM NAV -->
   <nav class="bnav">
     <div class="bnav-item active" onclick="gp('home')" id="nav-home">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      Asosiy
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span id="lbl-nav-asosiy">Asosiy</span>
     </div>
     <div class="bnav-item" onclick="gp('projects')" id="nav-projects">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/></svg>
-      Loyihalar
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-4 0v2"/></svg>
+      <span id="lbl-nav-obs">Obyektlar</span>
+    </div>
+    <div onclick="openMainFab()">
+      <div class="bnav-fab">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </div>
     </div>
     <div class="bnav-item" onclick="gp('hisobot')" id="nav-hisobot">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-      Hisobot
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <span id="lbl-nav-his">Hisobot</span>
     </div>
     <div class="bnav-item" onclick="gp('profil')" id="nav-profil">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      Profil
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span id="lbl-nav-profil">Profil</span>
     </div>
   </nav>
-
-  <!-- FAB -->
-  <button class="fab" id="main-fab" onclick="openMainFab()">+</button>
 </div>
 
-<!-- ══════════════ MODALS ══════════════ -->
-
-<!-- New Ob -->
-<div class="sbg" id="new-ob-bg" onclick="if(event.target===this)closeSbg('new-ob-bg')">
-  <div class="sheet">
-    <div class="sheet-bar"></div>
-    <div class="sheet-head">🏗 Yangi loyiha</div>
-    <div class="sheet-body">
-      <div class="inp-wrap">
-        <label class="inp-lbl">Loyiha nomi</label>
-        <input class="inp" id="new-ob-name" placeholder="Masalan: Yunusobod kvartira">
-      </div>
-      <div class="inp-wrap">
-        <label class="inp-lbl">Boshlash sanasi</label>
-        <input class="inp" id="new-ob-date" type="date">
-      </div>
-      <div class="inp-wrap">
-        <label class="inp-lbl">Muddat (kun)</label>
-        <input class="inp" id="new-ob-days" type="number" placeholder="30" min="1">
-      </div>
-      <button class="btn btn-acc" onclick="createOb()">Yaratish</button>
-    </div>
+<!-- SHEETS -->
+<!-- New Ob Sheet -->
+<div class="overlay" id="ov-newob" onclick="closeSheet('sh-newob')"></div>
+<div class="sheet" id="sh-newob">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title" id="lbl-yangi-ob-title">🏗 Yangi obyekt</div>
+  <div class="sheet-body">
+    <div class="inp-group"><label class="inp-lbl" id="lbl-ob-nom">Obyekt nomi</label><input class="inp" id="new-ob-name" placeholder="Masalan: Yunusobod kvartira"></div>
+    <div class="inp-group"><label class="inp-lbl" id="lbl-ob-date">Boshlash sanasi</label><input class="inp" id="new-ob-date" type="date"></div>
+    <div class="inp-group"><label class="inp-lbl" id="lbl-ob-days">Muddat (kun)</label><input class="inp" id="new-ob-days" type="number" placeholder="30"></div>
+    <button class="btn btn-acc" id="lbl-yaratish" onclick="createOb()">Yaratish</button>
   </div>
 </div>
 
-<!-- Add Member -->
-<div class="sbg" id="add-member-bg" onclick="if(event.target===this)closeSbg('add-member-bg')">
-  <div class="sheet">
-    <div class="sheet-bar"></div>
-    <div class="sheet-head">👤 A'zo qo'shish</div>
-    <div class="sheet-body">
-      <div class="inp-wrap">
-        <label class="inp-lbl">Telefon raqami</label>
-        <input class="inp inp-phone" id="member-phone" type="tel" value="+998" placeholder="90 000 00 00" oninput="formatPhone(this)">
-      </div>
-      <div class="inp-wrap">
-        <label class="inp-lbl">Rol</label>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" id="role-selector">
-          <div class="role-opt active" data-role="member" onclick="selectRole('member',this)">
-            <div style="font-size:13px;font-weight:800;color:var(--blue)">👷 Ishchi boshi</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:2px">Pul sarflaydi</div>
+<!-- Add Income Sheet -->
+<div class="overlay" id="ov-income" onclick="closeSheet('sh-income')"></div>
+<div class="sheet" id="sh-income">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title" id="lbl-pul-kirdi">📥 Pul kirdi</div>
+  <div class="sheet-body">
+    <div class="inp-group"><label class="inp-lbl" id="lbl-manba">Manba</label>
+      <select class="inp" id="income-src">
+        <option value="mijoz" id="lbl-mijoz">Mijozdan</option>
+        <option value="kredit" id="lbl-kredit">Kredit</option>
+        <option value="boshqa" id="lbl-boshqa">Boshqa</option>
+      </select>
+    </div>
+    <div class="inp-group"><label class="inp-lbl" id="lbl-summa">Summa</label><input class="inp inp-big" id="income-amount" type="number" placeholder="0"></div>
+    <div class="inp-group"><label class="inp-lbl" id="lbl-izoh">Izoh</label><input class="inp" id="income-note"></div>
+    <div class="inp-group"><label class="inp-lbl" id="lbl-sana-vaqt">Sana va vaqt</label><input class="inp" id="income-dt" type="datetime-local"></div>
+    <button class="btn btn-acc" id="lbl-saqlash" onclick="doAddIncome()">Saqlash</button>
+  </div>
+</div>
+
+<!-- Send Money Sheet -->
+<div class="overlay" id="ov-send" onclick="closeSheet('sh-send')"></div>
+<div class="sheet" id="sh-send">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title" id="lbl-pul-ber">💸 Pul berish</div>
+  <div class="sheet-body">
+    <div class="inp-group"><label class="inp-lbl" id="lbl-kimga">Kimga?</label><select class="inp" id="send-to" onchange="onSendToChange()"><option value="">Tanlang...</option></select></div>
+    <div class="inp-group"><label class="inp-lbl" id="lbl-summa2">Summa</label><input class="inp inp-big" id="send-amount" type="number" placeholder="0"></div>
+    <div class="inp-group"><label class="inp-lbl" id="lbl-kategoriya">Kategoriya</label><input class="inp" id="send-note" placeholder="Izoh..."></div>
+    <div class="inp-group"><label class="inp-lbl" id="lbl-sana2">Sana va vaqt</label><input class="inp" id="send-dt" type="datetime-local"></div>
+    <div id="send-bal-info" style="background:var(--bg);border-radius:10px;padding:10px;margin-bottom:12px;font-size:13px;color:var(--muted);display:none"></div>
+    <button class="btn btn-acc" id="lbl-yuborish" onclick="doSendMoney()">Saqlash</button>
+  </div>
+</div>
+
+<!-- Spend Sheet -->
+<div class="overlay" id="ov-spend" onclick="closeSheet('sh-spend')"></div>
+<div class="sheet" id="sh-spend">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title" id="lbl-sarflash">💳 Pul sarflash</div>
+  <div class="sheet-body">
+    <div style="background:var(--bg);border-radius:12px;padding:12px;text-align:center;margin-bottom:14px">
+      <div style="font-size:12px;color:var(--muted);font-weight:700;margin-bottom:2px" id="lbl-qolimda">Qo'limdagi pul</div>
+      <div style="font-size:28px;font-weight:900;color:var(--acc)" id="spend-mybal">$0</div>
+    </div>
+    <div class="inp-group"><label class="inp-lbl" id="lbl-cat">Kategoriya</label>
+      <div id="spend-cats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px"></div>
+    </div>
+    <div class="inp-group"><label class="inp-lbl" id="lbl-summa3">Summa</label><input class="inp inp-big" id="spend-amount" type="number" placeholder="0"></div>
+    <div class="inp-group"><label class="inp-lbl" id="lbl-izoh2">Izoh</label><input class="inp" id="spend-note"></div>
+    <div class="inp-group"><label class="inp-lbl" id="lbl-sana3">Sana va vaqt</label><input class="inp" id="spend-dt" type="datetime-local"></div>
+    <button class="btn btn-acc" id="lbl-sarflash2" onclick="doSpend()">Sarflash</button>
+  </div>
+</div>
+
+<!-- Add Member Sheet -->
+<div class="overlay" id="ov-member" onclick="closeSheet('sh-member')"></div>
+<div class="sheet" id="sh-member">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title" id="lbl-azo-qosh">👤 A'zo qo'shish</div>
+  <div class="sheet-body">
+    <div class="inp-group"><label class="inp-lbl" id="lbl-tel">Telefon raqam</label><input class="inp" id="member-phone" type="tel" value="+998" oninput="fmtPhone(this)"></div>
+    <div id="member-role-wrap">
+      <div class="inp-group"><label class="inp-lbl" id="lbl-rol">Rol</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" id="role-opts">
+          <div onclick="setRole('member',this)" class="role-opt active" style="padding:12px;border-radius:12px;border:2px solid var(--acc);background:#f0fdf4;cursor:pointer">
+            <div style="font-size:13px;font-weight:800;color:var(--acc)" id="lbl-usta">👷 Usta</div>
+            <div style="font-size:11px;color:var(--muted)" id="lbl-usta-sub">Pul sarflaydi</div>
           </div>
-          <div class="role-opt" data-role="worker" onclick="selectRole('worker',this)">
-            <div style="font-size:13px;font-weight:800;color:var(--green)">🔨 Ishchi</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:2px">Pul oladi/sarflaydi</div>
+          <div onclick="setRole('worker',this)" class="role-opt" style="padding:12px;border-radius:12px;border:2px solid var(--border);background:var(--bg);cursor:pointer">
+            <div style="font-size:13px;font-weight:800;color:var(--text2)" id="lbl-ishchi">🔨 Ishchi</div>
+            <div style="font-size:11px;color:var(--muted)" id="lbl-ishchi-sub">Pul oladi</div>
           </div>
         </div>
       </div>
-      <div id="member-search-result" style="margin-bottom:14px"></div>
-      <button class="btn btn-acc" onclick="addMember()">Qo'shish</button>
+    </div>
+    <button class="btn btn-acc" id="lbl-qoshish" onclick="doAddMember()">Qo'shish</button>
+  </div>
+</div>
+
+<!-- Regime Sheet -->
+<div class="overlay" id="ov-regime" onclick="closeSheet('sh-regime')"></div>
+<div class="sheet" id="sh-regime">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title" id="lbl-rejim-title">Ilova rejimi</div>
+  <div class="sheet-body">
+    <div class="regime-card" id="regime-lite" style="background:#f8fafc;border-color:var(--acc)" onclick="setRegime('lite')">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="regime-title" id="lbl-lite-rejim">Lite rejim</div>
+        <span class="badge badge-lite">LITE</span>
+      </div>
+      <div class="regime-sub" id="lbl-lite-sub">Faqat ishchilarga pul berish va asosiy hisob-kitoblar</div>
+    </div>
+    <div class="regime-card" id="regime-pro" style="background:#fff7ed" onclick="setRegime('pro')">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="regime-title" id="lbl-pro-rejim">Pro rejim</div>
+        <span class="badge badge-pro">PRO</span>
+      </div>
+      <div class="regime-sub" id="lbl-pro-sub">Barcha imkoniyatlar: kategoriyalar, hisobot, eksport va ko'proq</div>
     </div>
   </div>
 </div>
 
-<!-- Send Money -->
-<div class="sbg" id="send-money-bg" onclick="if(event.target===this)closeSbg('send-money-bg')">
-  <div class="sheet">
-    <div class="sheet-bar"></div>
-    <div class="sheet-head" id="send-money-title">💸 Pul yuborish</div>
-    <div class="sheet-body">
-      <div id="send-to-info" style="background:var(--bg);border-radius:12px;padding:12px;margin-bottom:14px;display:none"></div>
-      <div class="inp-wrap">
-        <label class="inp-lbl">Kimga</label>
-        <select class="inp" id="send-to-select" onchange="onSendToChange()">
-          <option value="">Tanlang...</option>
-        </select>
-      </div>
-      <div class="inp-wrap">
-        <label class="inp-lbl">Summa (so'm)</label>
-        <input class="inp" id="send-amount" type="number" placeholder="0" style="font-size:20px;font-weight:800" min="0">
-      </div>
-      <div class="inp-wrap">
-        <label class="inp-lbl">Izoh (ixtiyoriy)</label>
-        <input class="inp" id="send-note" placeholder="Masalan: avans, ish haqi...">
-      </div>
-      <div id="send-bal-info" style="font-size:13px;color:var(--muted);margin-bottom:14px;padding:10px;background:var(--bg);border-radius:10px;display:none"></div>
-      <button class="btn btn-acc" onclick="doSendMoney()">Yuborish</button>
-    </div>
+<!-- Edit Profile Sheet -->
+<div class="overlay" id="ov-editprof" onclick="closeSheet('sh-editprof')"></div>
+<div class="sheet" id="sh-editprof">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title" id="lbl-tahrir-title">Profilni tahrirlash</div>
+  <div class="sheet-body">
+    <div class="inp-group"><label class="inp-lbl" id="lbl-ism">Ism</label><input class="inp" id="edit-name"></div>
+    <button class="btn btn-acc" id="lbl-saqla" onclick="saveProfile()">Saqlash</button>
   </div>
 </div>
 
-<!-- Spend Money -->
-<div class="sbg" id="spend-money-bg" onclick="if(event.target===this)closeSbg('spend-money-bg')">
-  <div class="sheet">
-    <div class="sheet-bar"></div>
-    <div class="sheet-head">💳 Pul sarflash</div>
-    <div class="sheet-body">
-      <div id="my-balance-info" style="background:var(--green-bg);border-radius:12px;padding:12px;margin-bottom:14px;text-align:center">
-        <div style="font-size:12px;color:var(--green);font-weight:700;margin-bottom:2px">Qo'limdagi pul</div>
-        <div style="font-size:24px;font-weight:900;color:var(--green)" id="spend-my-bal">$0</div>
-      </div>
-      <div class="inp-wrap">
-        <label class="inp-lbl">Kategoriya</label>
-        <div id="spend-cats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px"></div>
-      </div>
-      <div class="inp-wrap">
-        <label class="inp-lbl">Summa</label>
-        <input class="inp" id="spend-amount" type="number" placeholder="0" style="font-size:20px;font-weight:800" min="0">
-      </div>
-      <div class="inp-wrap">
-        <label class="inp-lbl">Izoh</label>
-        <input class="inp" id="spend-note" placeholder="Nima uchun...">
-      </div>
-      <button class="btn btn-acc" onclick="doSpendMoney()">Sarflash</button>
-    </div>
-  </div>
-</div>
-
-<!-- Receive from Owner (Owner sends money into project) -->
-<div class="sbg" id="add-income-bg" onclick="if(event.target===this)closeSbg('add-income-bg')">
-  <div class="sheet">
-    <div class="sheet-bar"></div>
-    <div class="sheet-head">📥 Pul kirimi</div>
-    <div class="sheet-body">
-      <div class="inp-wrap">
-        <label class="inp-lbl">Manba</label>
-        <select class="inp" id="income-source">
-          <option value="mijoz">Mijozdan</option>
-          <option value="kredit">Kredit</option>
-          <option value="boshqa">Boshqa</option>
-        </select>
-      </div>
-      <div class="inp-wrap">
-        <label class="inp-lbl">Summa</label>
-        <input class="inp" id="income-amount" type="number" placeholder="0" style="font-size:20px;font-weight:800" min="0">
-      </div>
-      <div class="inp-wrap">
-        <label class="inp-lbl">Izoh</label>
-        <input class="inp" id="income-note" placeholder="Masalan: birinchi to'lov...">
-      </div>
-      <button class="btn btn-acc" onclick="doAddIncome()">Saqlash</button>
-    </div>
-  </div>
-</div>
-
-<!-- Tx Detail -->
-<div class="sbg" id="tx-detail-bg" onclick="if(event.target===this)closeSbg('tx-detail-bg')">
-  <div class="sheet">
-    <div class="sheet-bar"></div>
-    <div id="tx-detail-content" class="sheet-body" style="padding-top:8px"></div>
-  </div>
-</div>
-
-<!-- Edit Name -->
-<div class="sbg" id="edit-name-bg" onclick="if(event.target===this)closeSbg('edit-name-bg')">
-  <div class="sheet">
-    <div class="sheet-bar"></div>
-    <div class="sheet-head">✏️ Ismni o'zgartirish</div>
-    <div class="sheet-body">
-      <div class="inp-wrap">
-        <input class="inp" id="edit-name-inp" placeholder="Ism Familiya" style="font-size:16px">
-      </div>
-      <button class="btn btn-acc" onclick="saveEditName()">Saqlash</button>
-    </div>
-  </div>
-</div>
-
-<!-- Member Detail -->
-<div class="sbg" id="member-detail-bg" onclick="if(event.target===this)closeSbg('member-detail-bg')">
-  <div class="sheet">
-    <div class="sheet-bar"></div>
-    <div id="member-detail-content" class="sheet-body" style="padding-top:8px"></div>
-  </div>
+<!-- Tx Detail Sheet -->
+<div class="overlay" id="ov-txdetail" onclick="closeSheet('sh-txdetail')"></div>
+<div class="sheet" id="sh-txdetail">
+  <div class="sheet-handle"></div>
+  <div id="txdetail-content" class="sheet-body" style="padding-top:8px"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -571,132 +620,192 @@ input,textarea{font-family:'Manrope',sans-serif;outline:none}
 // ═══════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════
-const SB_URL = 'https://djreovvpojsiccndlgzu.supabase.co';
-const SB_KEY = 'sb_publishable_-tcry0NA9FiCG0O2iUN4pg_9x-NeL-y';
-const sb = supabase.createClient(SB_URL, SB_KEY);
+const SB_URL='https://djreovvpojsiccndlgzu.supabase.co';
+const SB_KEY='sb_publishable_-tcry0NA9FiCG0O2iUN4pg_9x-NeL-y';
+const sb=supabase.createClient(SB_URL,SB_KEY);
+
+// ═══════════════════════════════════════════
+// I18N
+// ═══════════════════════════════════════════
+const I18N={
+  uz:{
+    'lbl-umumiy-balans':'Umumiy balans','lbl-bugunki-kirim':"Bugungi kirim",'lbl-bugunki-chiqim':'Bugungi chiqim',
+    'lbl-mening-obyektlar':'Mening obyektlarim','lbl-barchasi':'Barchasi →','lbl-yangi-ob':'+ Yangi obyekt',
+    'lbl-obyektlar':'Obyektlar','lbl-hisobot':'Hisobot','lbl-nav-asosiy':'Asosiy','lbl-nav-obs':'Obyektlar',
+    'lbl-nav-his':'Hisobot','lbl-nav-profil':'Profil','lbl-operatsiyalar':'Operatsiyalar',
+    "lbl-azolar":"A'zolar",'lbl-mening-pulik':'Mening pulim','lbl-kirim2':'KIRIM','lbl-chiqim2':'CHIQIM',
+    'lbl-balans2':'BALANS','lbl-balans3':'Balans','lbl-obs-count':'Obyektlar','lbl-odamlar':'Odamlar',
+    'lbl-profil-tahrir':'Profilni tahrirlash','lbl-sozlamalar':'Sozlamalar','lbl-rejim':'Ilova rejimi',
+    'lbl-zaxira':'Zaxira nusxa','lbl-chiqish':'Chiqish','lbl-chiqish2':'Chiqish','lbl-soz-title':'Sozlamalar',
+    'lbl-til':'TIL','lbl-ilova-rejimi':'ILOVA REJIMI','lbl-hisob':'HISOB','lbl-profil2':"Profil ma'lumotlari",
+    'lbl-rejim2':"Rejimni o'zgartirish",'lbl-yangi-ob-title':'🏗 Yangi obyekt','lbl-ob-nom':'Obyekt nomi',
+    'lbl-ob-date':'Boshlash sanasi','lbl-ob-days':'Muddat (kun)','lbl-yaratish':'Yaratish',
+    'lbl-pul-kirdi':'📥 Pul kirdi','lbl-manba':'Manba','lbl-mijoz':'Mijozdan','lbl-kredit':'Kredit',
+    'lbl-boshqa':'Boshqa','lbl-summa':'Summa','lbl-izoh':'Izoh','lbl-sana-vaqt':'Sana va vaqt',
+    'lbl-saqlash':'Saqlash','lbl-pul-ber':'💸 Pul berish','lbl-kimga':'Kimga?','lbl-summa2':'Summa',
+    'lbl-kategoriya':'Izoh','lbl-sana2':'Sana va vaqt','lbl-yuborish':'Saqlash',
+    'lbl-sarflash':'💳 Pul sarflash','lbl-qolimda':"Qo'limdagi pul",'lbl-cat':'Kategoriya',
+    'lbl-summa3':'Summa','lbl-izoh2':'Izoh','lbl-sana3':'Sana va vaqt','lbl-sarflash2':'Sarflash',
+    "lbl-azo-qosh":"A'zo qo'shish",'lbl-tel':'Telefon raqam','lbl-rol':'Rol',
+    'lbl-usta':'👷 Usta','lbl-usta-sub':'Pul sarflaydi','lbl-ishchi':'🔨 Ishchi','lbl-ishchi-sub':'Pul oladi',
+    "lbl-qoshish":"Qo'shish",'lbl-rejim-title':'Ilova rejimi','lbl-lite-rejim':'Lite rejim',
+    'lbl-lite-sub':'Faqat ishchilarga pul berish va asosiy hisob-kitoblar',
+    'lbl-pro-rejim':'Pro rejim','lbl-pro-sub':'Barcha imkoniyatlar: kategoriyalar, hisobot, eksport',
+    'lbl-tahrir-title':'Profilni tahrirlash','lbl-ism':'Ism','lbl-saqla':'Saqlash',
+    'lbl-eksport':'📄 Eksport','lbl-oy':'Bu oy','lbl-hafta':'Bu hafta','lbl-hammasi':'Hammasi',
+    'auth-sub':'Pul oqimi — oson, aniq, shaffof','lbl-phone':'Telefon raqam','lbl-pass':'Parol',
+    'lbl-name':"Ism Familiya",'lbl-rejim3':'Rejim','lbl-profil3':'Profil',
+    'lbl-summa4':'Jami kirim','lbl-summa5':'Jami chiqim','lbl-foyda':'Foyda',
+  },
+  ru:{
+    'lbl-umumiy-balans':'Общий баланс','lbl-bugunki-kirim':'Приход сегодня','lbl-bugunki-chiqim':'Расход сегодня',
+    'lbl-mening-obyektlar':'Мои объекты','lbl-barchasi':'Все →','lbl-yangi-ob':'+ Новый объект',
+    'lbl-obyektlar':'Объекты','lbl-hisobot':'Отчёт','lbl-nav-asosiy':'Главная','lbl-nav-obs':'Объекты',
+    'lbl-nav-his':'Отчёт','lbl-nav-profil':'Профиль','lbl-operatsiyalar':'Операции',
+    'lbl-azolar':'Участники','lbl-mening-pulik':'Мои деньги','lbl-kirim2':'ПРИХОД','lbl-chiqim2':'РАСХОД',
+    'lbl-balans2':'БАЛАНС','lbl-balans3':'Баланс','lbl-obs-count':'Объекты','lbl-odamlar':'Люди',
+    'lbl-profil-tahrir':'Редактировать профиль','lbl-sozlamalar':'Настройки','lbl-rejim':'Режим приложения',
+    'lbl-zaxira':'Резервная копия','lbl-chiqish':'Выйти','lbl-chiqish2':'Выйти','lbl-soz-title':'Настройки',
+    'lbl-til':'ЯЗЫК','lbl-ilova-rejimi':'РЕЖИМ ПРИЛОЖЕНИЯ','lbl-hisob':'АККАУНТ','lbl-profil2':'Данные профиля',
+    'lbl-rejim2':'Изменить режим','lbl-yangi-ob-title':'🏗 Новый объект','lbl-ob-nom':'Название объекта',
+    'lbl-ob-date':'Дата начала','lbl-ob-days':'Срок (дней)','lbl-yaratish':'Создать',
+    'lbl-pul-kirdi':'📥 Приход','lbl-manba':'Источник','lbl-mijoz':'От клиента','lbl-kredit':'Кредит',
+    'lbl-boshqa':'Другое','lbl-summa':'Сумма','lbl-izoh':'Комментарий','lbl-sana-vaqt':'Дата и время',
+    'lbl-saqlash':'Сохранить','lbl-pul-ber':'💸 Перевод','lbl-kimga':'Кому?','lbl-summa2':'Сумма',
+    'lbl-kategoriya':'Комментарий','lbl-sana2':'Дата и время','lbl-yuborish':'Сохранить',
+    'lbl-sarflash':'💳 Расход','lbl-qolimda':'У меня на руках','lbl-cat':'Категория',
+    'lbl-summa3':'Сумма','lbl-izoh2':'Комментарий','lbl-sana3':'Дата и время','lbl-sarflash2':'Расход',
+    'lbl-azo-qosh':'Добавить участника','lbl-tel':'Номер телефона','lbl-rol':'Роль',
+    'lbl-usta':'👷 Мастер','lbl-usta-sub':'Управляет деньгами','lbl-ishchi':'🔨 Рабочий','lbl-ishchi-sub':'Получает деньги',
+    'lbl-qoshish':'Добавить','lbl-rejim-title':'Режим приложения','lbl-lite-rejim':'Lite режим',
+    'lbl-lite-sub':'Только переводы рабочим и базовый учёт',
+    'lbl-pro-rejim':'Pro режим','lbl-pro-sub':'Все функции: категории, отчёты, экспорт',
+    'lbl-tahrir-title':'Редактировать профиль','lbl-ism':'Имя','lbl-saqla':'Сохранить',
+    'lbl-eksport':'📄 Экспорт','lbl-oy':'Этот месяц','lbl-hafta':'Эта неделя','lbl-hammasi':'Все',
+    'auth-sub':'Денежный поток — легко, точно, прозрачно','lbl-phone':'Номер телефона','lbl-pass':'Пароль',
+    'lbl-name':'Имя Фамилия','lbl-summa4':'Общий приход','lbl-summa5':'Общий расход','lbl-foyda':'Прибыль',
+  }
+};
+let curLang=localStorage.getItem('lang')||'uz';
+
+function t(key){return I18N[curLang]?.[key]||I18N['uz']?.[key]||key;}
+function applyLang(){
+  Object.keys(I18N['uz']).forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.textContent=t(id);
+  });
+  document.getElementById('lang-uz-check').textContent=curLang==='uz'?'✓':'';
+  document.getElementById('lang-ru-check').textContent=curLang==='ru'?'✓':'';
+}
+function setLang(lang){
+  curLang=lang;
+  localStorage.setItem('lang',lang);
+  applyLang();
+  toast('✅ '+( lang==='uz'?"O'zbekcha":'Русский'));
+}
 
 // ═══════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════
-let curUser = null;
-let curProfile = null;
-let curPage = 'home';
-let curObId = null;
-let curOb = null;
-let curObRole = null;
-let allObs = []; // {ob, role, myBalance}
-let obTxs = [];
-let obMembers = [];
-let sendSelectedRole = 'member';
+let curUser=null,curProfile=null;
+let curPage='home';
+let allObs=[],allTxs=[];
+let curObId=null,curOb=null,curObRole=null,curObMembers=[];
+let curObTxs=[];
+let regime=localStorage.getItem('regime')||'lite';
+let selRole='member';
+let selCat='bozor';
+let hisPeriod='month';
 
-// Categories
-const CATS = [
-  {id:'usta',   label:'Usta',      emoji:'🔧', bg:'#fff7ed', c:'#ea580c'},
-  {id:'bozor',  label:'Bozor',     emoji:'🛒', bg:'#f0fdf4', c:'#16a34a'},
-  {id:'dostavka',label:'Yetkazish',emoji:'🚚', bg:'#eff6ff', c:'#3b82f6'},
-  {id:'dokon',  label:"Do'kon",    emoji:'🏪', bg:'#fdf4ff', c:'#a855f7'},
-  {id:'ovqat',  label:'Ovqat',     emoji:'🍱', bg:'#fffbeb', c:'#f59e0b'},
-  {id:'qoshimcha',label:'Boshqa',  emoji:'➕', bg:'#f1f5f9', c:'#64748b'},
+const CATS=[
+  {id:'usta',emoji:'🔧',uz:'Usta',ru:'Мастер'},
+  {id:'bozor',emoji:'🛒',uz:'Bozor',ru:'Рынок'},
+  {id:'dostavka',emoji:'🚚',uz:'Yetkazish',ru:'Доставка'},
+  {id:'dokon',emoji:'🏪',uz:"Do'kon",ru:'Магазин'},
+  {id:'ovqat',emoji:'🍱',uz:'Ovqat',ru:'Еда'},
+  {id:'boshqa',emoji:'➕',uz:'Boshqa',ru:'Другое'},
 ];
-let selectedCat = 'bozor';
+const CAT_COLORS=['#ea580c','#16a34a','#3b82f6','#a855f7','#f59e0b','#64748b'];
 
 // ═══════════════════════════════════════════
 // UTILS
 // ═══════════════════════════════════════════
-const usd = n => {
-  const v = Math.abs(n||0);
-  return '$'+v.toLocaleString('en-US');
-};
-const usdFull = n => (n||0).toLocaleString() ;
+const fmt=n=>'$'+(n||0).toLocaleString('en-US');
+const fmtDate=d=>d?new Date(d).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}):'';
+const fmtTime=d=>d?new Date(d).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):'';
+const fmtDT=d=>fmtDate(d)+' '+fmtTime(d);
 
-function toast(msg, color='#0f172a'){
+function toast(msg,color='#0f172a'){
+  document.querySelectorAll('.toast').forEach(t=>t.remove());
   const t=document.createElement('div');
-  t.className='toast';t.textContent=msg;
-  t.style.background=color;
+  t.className='toast';t.textContent=msg;t.style.background=color;
   document.body.appendChild(t);
   setTimeout(()=>t.remove(),2500);
 }
 
-function closeSbg(id){document.getElementById(id).classList.remove('open');}
-function openSbg(id){document.getElementById(id).classList.add('open');}
-
 function avColor(name){
-  const colors=['av-orange','av-blue','av-green','av-purple','av-red'];
+  const c=['#16a34a','#3b82f6','#a855f7','#ea580c','#f59e0b','#ef4444'];
   let h=0;for(let i=0;i<(name||'').length;i++)h+=name.charCodeAt(i);
-  return colors[h%colors.length];
-}
-function avLetter(name){return (name||'?').charAt(0).toUpperCase();}
-
-function fmtDate(d){
-  if(!d)return '';
-  return new Date(d).toLocaleDateString('uz-UZ',{day:'2-digit',month:'2-digit',year:'numeric'});
+  return c[h%c.length];
 }
 
-function formatPhone(inp){
+function fmtPhone(inp){
   let v=inp.value.replace(/\D/g,'');
-  // Remove 998 prefix if typed
-  if(v.startsWith('998'))v=v.substring(3);
-  // Max 9 digits after +998
-  v=v.substring(0,9);
+  if(v.startsWith('998'))v=v.slice(3);
+  v=v.slice(0,9);
   inp.value='+998'+v;
-  setTimeout(()=>{inp.selectionStart=inp.selectionEnd=inp.value.length;},0);
 }
 
-function gp(page){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.bnav-item').forEach(b=>b.classList.remove('active'));
-  curPage=page;
-  const pg=document.getElementById('pg-'+page);
-  if(pg){pg.classList.add('active');pg.scrollTop=0;}
-  const nav=document.getElementById('nav-'+page);
-  if(nav)nav.classList.add('active');
-  const fab=document.getElementById('main-fab');
-  if(fab)fab.style.display=['home','projects','ob-detail'].includes(page)?'flex':'none';
-
-  if(page==='home')renderHome();
-  if(page==='projects')renderObs();
-  if(page==='hisobot')renderHisobot();
-  if(page==='profil')renderProfil();
+function openSheet(id){
+  document.getElementById('ov-'+id).classList.add('open');
+  document.getElementById('sh-'+id).classList.add('open');
+}
+function closeSheet(id){
+  const sh=document.getElementById(id);
+  const ov=document.getElementById('ov-'+id.replace('sh-',''));
+  if(sh)sh.classList.remove('open');
+  if(ov)ov.classList.remove('open');
 }
 
-// Escape
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape')document.querySelectorAll('.sbg.open').forEach(el=>el.classList.remove('open'));
+  if(e.key==='Escape')document.querySelectorAll('.sheet.open').forEach(s=>{
+    const id=s.id.replace('sh-','');
+    closeSheet(s.id);
+  });
 });
 
 // ═══════════════════════════════════════════
-// AUTH — PHONE OTP
+// AUTH
 // ═══════════════════════════════════════════
-// Auth tab switcher
 let authMode='login';
 function switchAuthTab(mode){
   authMode=mode;
-  const isLogin=mode==='login';
-  const s1='flex:1;padding:9px;border-radius:9px;border:none;font-size:14px;font-weight:800;font-family:Manrope,sans-serif;cursor:pointer;transition:all .2s;';
-  document.getElementById('tab-login').style.cssText=s1+'background:'+(isLogin?'#fff':'transparent')+';color:'+(isLogin?'#0f172a':'rgba(255,255,255,.5)');
-  document.getElementById('tab-reg').style.cssText=s1+'background:'+(isLogin?'transparent':'#fff')+';color:'+(isLogin?'rgba(255,255,255,.5)':'#0f172a');
-  document.getElementById('reg-fields').style.display=isLogin?'none':'block';
-  document.getElementById('auth-submit-btn').textContent=isLogin?'Kirish →':"Ro\'yxatdan o\'tish →";
-  document.getElementById('auth-err').style.display='none';
+  const isL=mode==='login';
+  document.getElementById('tab-login').classList.toggle('active',isL);
+  document.getElementById('tab-reg').classList.toggle('active',!isL);
+  document.getElementById('reg-extra').style.display=isL?'none':'block';
+  document.getElementById('auth-btn').textContent=isL?'Kirish →':"Ro'yxatdan o'tish →";
 }
 
 async function doAuth(){
   const phone=document.getElementById('auth-phone').value.trim();
   const pass=document.getElementById('auth-pass').value;
-  if(phone.length<10){showErr('auth-err',"To\'g\'ri telefon kiriting");return;}
-  if(pass.length<4){showErr('auth-err','Parol kamida 4 ta belgi');return;}
-  const email=phone.replace(/[^0-9]/g,'')+'@prorab.app';
-  const btn=document.getElementById('auth-submit-btn');
+  if(phone.length<10){showAuthErr(curLang==='ru'?"Неверный номер":"To'g'ri telefon kiriting");return;}
+  if(pass.length<4){showAuthErr(curLang==='ru'?'Минимум 4 символа':'Parol kamida 4 ta belgi');return;}
+
+  const email=phone.replace(/\D/g,'')+'@prorab.app';
+  const btn=document.getElementById('auth-btn');
   btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
+
   try{
     if(authMode==='login'){
       const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
       if(error)throw error;
       curUser=data.user;
-      await loadOrCreateProfile();
+      await loadProfile();
     }else{
       const name=document.getElementById('auth-name').value.trim();
-      if(!name){showErr('auth-err',"Ismingizni kiriting");btn.textContent="Ro\'yxatdan o\'tish →";btn.disabled=false;return;}
+      if(!name){showAuthErr(curLang==='ru'?'Введите имя':"Ismingizni kiriting");btn.textContent="Ro'yxatdan o'tish →";btn.disabled=false;return;}
       const {data,error}=await sb.auth.signUp({email,password:pass,options:{data:{phone,full_name:name}}});
       if(error)throw error;
       curUser=data.user;
@@ -705,54 +814,41 @@ async function doAuth(){
       startApp();
     }
   }catch(e){
-    let msg=e.message||'Xato yuz berdi';
-    if(msg.includes('Invalid login'))msg="Telefon yoki parol noto\'g\'ri";
-    if(msg.includes('already registered'))msg="Bu raqam allaqachon ro\'yxatdan o\'tgan";
-    showErr('auth-err',msg);
-    btn.textContent=authMode==='login'?'Kirish →':"Ro\'yxatdan o\'tish →";
-    btn.disabled=false;
+    let msg=e.message||'Xato';
+    if(msg.includes('Invalid login'))msg=curLang==='ru'?'Неверный номер или пароль':"Telefon yoki parol noto'g'ri";
+    if(msg.includes('already registered'))msg=curLang==='ru'?'Уже зарегистрирован':'Allaqachon ro\'yxatdan o\'tgan';
+    showAuthErr(msg);
+  }finally{
+    btn.textContent=authMode==='login'?'Kirish →':"Ro'yxatdan o'tish →";btn.disabled=false;
   }
 }
 
-async function loadOrCreateProfile(){
+function showAuthErr(msg){
+  const el=document.getElementById('auth-err');
+  el.textContent=msg;el.style.display='block';
+}
+
+async function loadProfile(){
   const {data}=await sb.from('profiles').select('*').eq('id',curUser.id).single();
-  if(data&&data.full_name){curProfile=data;startApp();}
+  if(data){curProfile=data;startApp();}
   else{
     const meta=curUser.user_metadata||{};
-    const phone=meta.phone||curUser.email?.replace('@prorab.app','');
-    const name=meta.full_name||phone;
-    await sb.from('profiles').upsert({id:curUser.id,phone,full_name:name});
-    curProfile={id:curUser.id,phone,full_name:name};
+    await sb.from('profiles').upsert({id:curUser.id,phone:meta.phone||'',full_name:meta.full_name||''});
+    curProfile={id:curUser.id,phone:meta.phone||'',full_name:meta.full_name||''};
     startApp();
   }
 }
 
-function showErr(id,msg){
-  const el=document.getElementById(id);
-  if(el){el.textContent=msg;el.style.display='block';}
-}
-
 // ═══════════════════════════════════════════
-// APP START
+// DATA LOADING
 // ═══════════════════════════════════════════
-async function startApp(){
-  document.getElementById('pg-auth').style.display='none';
-  document.getElementById('app').style.display='block';
-  await loadAllData();
-  gp('home');
-}
-
-async function loadAllData(){
-  // Load all projects where user is member
-  const {data:memberRows}=await sb.from('ob_members')
-    .select('ob_id,role,balance')
-    .eq('user_id',curUser?.id);
-
-  if(!memberRows||memberRows.length===0){allObs=[];return;}
-
+async function loadAll(){
+  const uid=curUser?.id;
+  if(!uid)return;
+  const {data:memberRows}=await sb.from('ob_members').select('ob_id,role,balance').eq('user_id',uid);
+  if(!memberRows||!memberRows.length){allObs=[];return;}
   const obIds=memberRows.map(r=>r.ob_id);
   const {data:obs}=await sb.from('obyektlar').select('*').in('id',obIds);
-
   allObs=(obs||[]).map(ob=>{
     const m=memberRows.find(r=>r.ob_id===ob.id);
     return{ob,role:m?.role||'member',myBalance:m?.balance||0};
@@ -760,64 +856,93 @@ async function loadAllData(){
 }
 
 // ═══════════════════════════════════════════
+// APP START
+// ═══════════════════════════════════════════
+async function startApp(){
+  document.getElementById('loading').style.display='none';
+  document.getElementById('pg-auth').style.display='none';
+  document.getElementById('app').style.display='block';
+  applyLang();
+  await loadAll();
+  gp('home');
+}
+
+// ═══════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════
+function gp(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.bnav-item').forEach(b=>b.classList.remove('active'));
+  curPage=page;
+  const pg=document.getElementById('pg-'+page);
+  if(pg){pg.classList.add('active');pg.scrollTop=0;}
+  const nav=document.getElementById('nav-'+page);
+  if(nav)nav.classList.add('active');
+  if(page==='home')renderHome();
+  if(page==='projects')renderObs();
+  if(page==='hisobot')renderHisobot();
+  if(page==='profil')renderProfil();
+}
+
+function openMainFab(){
+  if(curPage==='ob')openSheet('income');
+  else openSheet('newob');
+}
+
+// ═══════════════════════════════════════════
 // HOME
 // ═══════════════════════════════════════════
 async function renderHome(){
-  if(!curUser?.id){
-    document.getElementById('home-total-bal').textContent="0 so'm";
-    document.getElementById('home-total-in').textContent="0 so'm";
-    document.getElementById('home-total-out').textContent="0 so'm";
-    document.getElementById('home-in-hand').textContent="0 so'm";
-    document.getElementById('home-obs-list').innerHTML='<div class="empty"><div class="empty-icon">🔐</div><div class="empty-text">Kirish kerak</div></div>';
-    return;
-  }
-  await loadAllData();
-  let totalIn=0,totalOut=0,totalHand=0;
-  // Barcha loyihalar uchun tranzaksiyalardan hisoblash
-  const obIds = allObs.map(o=>o.ob.id);
-  let txData = [];
-  if(obIds.length>0){
-    const {data:txs} = await sb.from('transactions').select('*').in('ob_id',obIds);
-    txData = txs||[];
-  }
+  await loadAll();
+  let totalIn=0,totalOut=0,todayIn=0,todayOut=0;
+  const today=new Date().toDateString();
   allObs.forEach(({ob,role,myBalance})=>{
-    if(role==='owner'){
-      totalIn += ob.kirim||0;
-      // chiqim = ushbu loyihadagi barcha spend va send tranzaksiyalari
-      const obChiqim = txData.filter(t=>t.ob_id===ob.id&&(t.tur==='spend'||t.tur==='send')).reduce((s,t)=>s+t.summa,0);
-      totalOut += obChiqim;
-    }
-    totalHand+=myBalance;
+    if(role==='owner'){totalIn+=ob.kirim||0;totalOut+=ob.chiqim||0;}
   });
-  const totalBal = totalIn>0 ? totalIn-totalOut : totalHand;
-  document.getElementById('home-total-bal').textContent=usd(totalBal);
-  document.getElementById('home-total-in').textContent=usd(totalIn);
-  document.getElementById('home-total-out').textContent=usd(totalOut);
-  // home-in-hand removed
+  document.getElementById('dash-name').textContent=curProfile?.full_name||'';
+  const h=new Date().getHours();
+  const gr=h<12?'Xayrli tong,':h<17?'Xayrli kun,':'Xayrli kech,';
+  document.getElementById('dash-greeting').textContent=t('lbl-umumiy-balans');
+  document.getElementById('dash-total').textContent=fmt(totalIn-totalOut);
+  document.getElementById('dash-today-in').textContent=fmt(todayIn);
+  document.getElementById('dash-today-out').textContent=fmt(todayOut);
 
-  const list=document.getElementById('home-obs-list');
+  // Pro banner
+  const banner=document.getElementById('pro-banner-wrap');
+  if(regime==='lite'){
+    banner.innerHTML=`<div class="pro-banner" onclick="showRegime()">
+      <div class="pro-banner-ico">⭐</div>
+      <div><div class="pro-banner-title">${curLang==='ru'?'Перейти на Pro':'Pro ga o\'ting'}</div>
+      <div class="pro-banner-sub">${curLang==='ru'?'Категории, отчёты, экспорт':'Kategoriyalar, hisobot, eksport'}</div></div>
+    </div>`;
+  }else{banner.innerHTML='';}
+
+  // Obs list
+  const list=document.getElementById('home-obs');
   const recent=allObs.slice(0,3);
-  if(recent.length===0){
-    list.innerHTML=`<div class="empty"><div class="empty-icon">🏗</div><div class="empty-text">Loyihalar yo'q</div><div class="empty-sub">Yangi loyiha yarating</div></div>`;
+  if(!recent.length){
+    list.innerHTML=`<div class="empty"><div class="empty-ico">🏗</div><div class="empty-txt">${curLang==='ru'?'Нет объектов':"Obyektlar yo'q"}</div></div>`;
     return;
   }
-  list.innerHTML=recent.map(({ob,role,myBalance})=>obCardHtml(ob,role,myBalance)).join('');
+  list.innerHTML=recent.map(o=>obCardHtml(o)).join('');
 }
 
-function obCardHtml(ob,role,myBalance){
-  const roleLabel={owner:"Egasi",member:"Ishchi boshi",worker:"Ishchi"}[role]||role;
-  const roleClass={owner:'role-owner',member:'role-member',worker:'role-worker'}[role]||'role-member';
+function obCardHtml({ob,role,myBalance}){
+  const colors=['#16a34a','#3b82f6','#a855f7','#ea580c','#f59e0b'];
+  let h=0;(ob.nomi||'').split('').forEach(c=>h+=c.charCodeAt(0));
+  const bg=colors[h%colors.length];
   const bal=role==='owner'?(ob.kirim||0)-(ob.chiqim||0):myBalance;
-  const balColor=bal>=0?'var(--green)':'var(--red)';
-  return`<div class="ob-card fade-up" onclick="openOb('${ob.id}')">
-    <div class="ob-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-4 0v2"/></svg></div>
-    <div class="ob-info">
+  const roleLabel={owner:curLang==='ru'?'Хозяин':'Egasi',member:curLang==='ru'?'Мастер':'Usta',worker:curLang==='ru'?'Рабочий':'Ishchi'}[role];
+  const badgeClass={owner:'badge-owner',member:'badge-member',worker:'badge-worker'}[role];
+  return`<div class="ob-card" onclick="openOb('${ob.id}')">
+    <div class="ob-ico" style="background:${bg}20">${ob.nomi?.charAt(0).toUpperCase()||'?'}</div>
+    <div style="flex:1;min-width:0">
       <div class="ob-name">${ob.nomi}</div>
-      <div class="ob-meta"><span class="ob-role-badge ${roleClass}">${roleLabel}</span></div>
+      <div class="ob-meta"><span class="badge ${badgeClass}">${roleLabel}</span></div>
     </div>
     <div class="ob-bal">
-      <div class="ob-bal-val" style="color:${balColor}">${usd(bal)}</div>
-      <div class="ob-bal-lbl">${role==='owner'?'balans':'qo\'limda'}</div>
+      <div class="ob-bal-val" style="color:${bal>=0?'var(--acc)':'var(--red)'}">${fmt(bal)}</div>
+      <div class="ob-bal-lbl">${curLang==='ru'?'баланс':'balans'}</div>
     </div>
   </div>`;
 }
@@ -825,31 +950,19 @@ function obCardHtml(ob,role,myBalance){
 // ═══════════════════════════════════════════
 // PROJECTS
 // ═══════════════════════════════════════════
-let obsTabCur='my';
-function switchObTab(tab){
-  obsTabCur=tab;
-  document.getElementById('tab-my').classList.toggle('active',tab==='my');
-  document.getElementById('tab-shared').classList.toggle('active',tab==='shared');
-  renderObs();
-}
-
 async function renderObs(){
-  await loadAllData();
+  await loadAll();
   filterObs('');
 }
 
 function filterObs(q){
-  const filtered=allObs.filter(({ob,role})=>{
-    const matchTab=obsTabCur==='my'?role==='owner':role!=='owner';
-    const matchQ=!q||ob.nomi.toLowerCase().includes(q.toLowerCase());
-    return matchTab&&matchQ;
-  });
+  const filtered=allObs.filter(o=>!q||o.ob.nomi.toLowerCase().includes(q.toLowerCase()));
   const list=document.getElementById('obs-list');
-  if(filtered.length===0){
-    list.innerHTML=`<div class="empty"><div class="empty-icon">${obsTabCur==='my'?'🏗':'👥'}</div><div class="empty-text">${obsTabCur==='my'?'Loyihalar yo\'q':'Ulashilgan loyihalar yo\'q'}</div><div class="empty-sub">${obsTabCur==='my'?'Yangi loyiha yarating':''}</div></div>`;
+  if(!filtered.length){
+    list.innerHTML=`<div class="empty"><div class="empty-ico">🏗</div><div class="empty-txt">${curLang==='ru'?'Нет объектов':"Obyektlar yo'q"}</div></div>`;
     return;
   }
-  list.innerHTML=filtered.map(({ob,role,myBalance})=>obCardHtml(ob,role,myBalance)).join('');
+  list.innerHTML=filtered.map(o=>obCardHtml(o)).join('');
 }
 
 // ═══════════════════════════════════════════
@@ -859,836 +972,791 @@ async function openOb(obId){
   curObId=obId;
   const found=allObs.find(o=>o.ob.id===obId);
   if(!found)return;
-  curOb=found.ob;
-  curObRole=found.role;
+  curOb=found.ob;curObRole=found.role;
 
-  document.getElementById('ob-detail-name').textContent=curOb.nomi;
-  document.getElementById('ob-detail-meta').textContent=fmtDate(curOb.created_at)+' • '+(curOb.muddat||0)+' kun';
+  document.getElementById('ob-name').textContent=curOb.nomi;
+  document.getElementById('ob-meta').textContent=fmtDate(curOb.boshlanish)+' • '+(curOb.muddat||30)+(curLang==='ru'?' дней':' kun');
 
-  const rLabel={owner:"Egasi",member:"Ishchi boshi",worker:"Ishchi"}[curObRole];
-  const rClass={owner:'role-owner',member:'role-member',worker:'role-worker'}[curObRole];
-  document.getElementById('ob-detail-role-badge').innerHTML=`<span class="ob-role-badge ${rClass}">${rLabel}</span>`;
+  const rLabel={owner:curLang==='ru'?'Хозяин':'Egasi',member:curLang==='ru'?'Мастер':'Usta',worker:curLang==='ru'?'Рабочий':'Ishchi'}[curObRole];
+  const rClass={owner:'badge-owner',member:'badge-member',worker:'badge-worker'}[curObRole];
+  document.getElementById('ob-role-badge').innerHTML=`<span class="badge ${rClass}">${rLabel}</span>`;
+
+  // Load txs
+  const {data:txs}=await sb.from('transactions').select('*').eq('ob_id',obId).order('created_at',{ascending:false});
+  curObTxs=txs||[];
+
+  // Load members
+  const {data:members}=await sb.from('ob_members').select('*,profiles(*)').eq('ob_id',obId);
+  curObMembers=members||[];
 
   // Stats
-  const {data:txs}=await sb.from('transactions').select('*').eq('ob_id',obId);
-  obTxs=txs||[];
-
-  let totalIn=0,totalOut=0;
-  obTxs.forEach(t=>{
-    if(t.tur==='income')totalIn+=t.summa||0;
-    if(t.tur==='spend'||t.tur==='send')totalOut+=t.summa||0;
-  });
-
   if(curObRole==='owner'){
-    document.getElementById('ob-stat-in').textContent=usd(curOb.kirim||0);
-    document.getElementById('ob-stat-out').textContent=usd(curOb.chiqim||0);
+    document.getElementById('ob-in').textContent=fmt(curOb.kirim||0);
+    document.getElementById('ob-out').textContent=fmt(curOb.chiqim||0);
     const bal=(curOb.kirim||0)-(curOb.chiqim||0);
-    document.getElementById('ob-stat-bal').textContent=usd(bal);
-    document.getElementById('ob-stat-bal').style.color=bal>=0?'var(--green)':'var(--red)';
+    document.getElementById('ob-bal').textContent=fmt(bal);
+    document.getElementById('ob-bal').style.color=bal>=0?'#4ade80':'#f87171';
   }else{
-    const myBal=found.myBalance;
-    // My received
-    const myRcv=obTxs.filter(t=>t.to_user===curUser.id&&t.tur==='send').reduce((s,t)=>s+t.summa,0);
-    const mySpent=obTxs.filter(t=>t.from_user===curUser.id&&t.tur==='spend').reduce((s,t)=>s+t.summa,0);
-    document.getElementById('ob-stat-in').textContent=usd(myRcv);
-    document.getElementById('ob-stat-out').textContent=usd(mySpent);
-    document.getElementById('ob-stat-bal').textContent=usd(myBal);
-    document.getElementById('ob-stat-bal').style.color=myBal>=0?'var(--green)':'var(--red)';
+    const rcv=curObTxs.filter(t=>t.to_user===curUser?.id&&t.tur==='send').reduce((s,t)=>s+t.summa,0);
+    const spnt=curObTxs.filter(t=>t.from_user===curUser?.id&&t.tur==='spend').reduce((s,t)=>s+t.summa,0);
+    document.getElementById('ob-in').textContent=fmt(rcv);
+    document.getElementById('ob-out').textContent=fmt(spnt);
+    document.getElementById('ob-bal').textContent=fmt(found.myBalance);
+    document.getElementById('ob-bal').style.color=found.myBalance>=0?'#4ade80':'#f87171';
   }
 
-  // Action buttons
-  renderActBtns();
-
-  // Members
-  const {data:members}=await sb.from('ob_members')
-    .select('*,profiles(*)')
-    .eq('ob_id',obId);
-  obMembers=members||[];
-
-  gp('ob-detail');
-  obTab('txs',document.querySelector('#pg-ob-detail .tabs .tab'));
+  // Actions
+  renderObActions();
+  gp('ob');
+  obTab('txs',document.querySelector('#ob-tabs .tab'));
 }
 
-function renderActBtns(){
-  const btns=document.getElementById('ob-act-btns');
+function renderObActions(){
+  const wrap=document.getElementById('ob-actions');
   let html='';
   if(curObRole==='owner'){
-    html+=`<button class="act-btn act-btn-in" onclick="openSbg('add-income-bg')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12l7-7 7 7"/></svg>Pul kirdi</button>`;
-    html+=`<button class="act-btn act-btn-send" onclick="openSendMoney()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>Pul ber</button>`;
-    html+=`<button class="act-btn act-full-btn" onclick="openAddMember()" style="grid-column:1/-1;background:var(--bg);color:var(--text2)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>A'zo qo'shish</button>`;
+    html+=`<button class="btn btn-acc" onclick="openSheet('income')" style="padding:12px;font-size:13px">📥 ${curLang==='ru'?'Приход':'Pul kirdi'}</button>`;
+    html+=`<button class="btn" onclick="openSendSheet()" style="padding:12px;font-size:13px;background:#eff6ff;color:#3b82f6">💸 ${curLang==='ru'?'Перевод':'Pul ber'}</button>`;
   }else{
-    const myBal=allObs.find(o=>o.ob.id===curObId)?.myBalance||0;
-    html+=`<button class="act-btn act-btn-send" onclick="openSendMoney()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>Pul ber</button>`;
-    html+=`<button class="act-btn act-btn-out" onclick="openSpendMoney()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7 7 7-7"/></svg>Sarflash</button>`;
-    html+=`<button class="act-btn" onclick="openAddWorker()" style="grid-column:1/-1;background:var(--bg);color:var(--text2)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>Ishchi qo'shish</button>`;
+    html+=`<button class="btn" onclick="openSendSheet()" style="padding:12px;font-size:13px;background:#eff6ff;color:#3b82f6">💸 ${curLang==='ru'?'Перевод':'Pul ber'}</button>`;
+    html+=`<button class="btn" onclick="openSpendSheet()" style="padding:12px;font-size:13px;background:#fef2f2;color:#ef4444">💳 ${curLang==='ru'?'Расход':'Sarflash'}</button>`;
   }
-  btns.innerHTML=html;
+  wrap.innerHTML=html;
 }
 
 function obTab(tab,el){
-  document.querySelectorAll('#pg-ob-detail .tabs .tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('#ob-tabs .tab').forEach(t=>t.classList.remove('active'));
   if(el)el.classList.add('active');
-  const content=document.getElementById('ob-tab-content');
-  if(tab==='txs')renderObTxs(content);
-  if(tab==='members')renderObMembers(content);
-  if(tab==='my-bal')renderMyBal(content);
+  const c=document.getElementById('ob-content');
+  if(tab==='txs')renderObTxs(c);
+  if(tab==='members')renderObMembers(c);
+  if(tab==='mybal')renderMyBal(c);
 }
 
 function renderObTxs(container){
-  if(obTxs.length===0){
-    container.innerHTML=`<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Operatsiyalar yo'q</div></div>`;
-    return;
-  }
-  // Har bir rol faqat o'ziga tegishli operatsiyalarni ko'radi
-  let filtered=obTxs.filter(tx=>{
-    if(curObRole==='owner'){
-      // Prorab: faqat o'zi kiritgan kirim va o'zi yuborgan pullar
-      return tx.tur==='income'||(tx.tur==='send'&&tx.from_user===curUser?.id)||(tx.tur==='spend'&&tx.from_user===curUser?.id);
-    }else{
-      // Member/Worker: faqat o'ziga kelgan va o'zi yuborgan/sarflagan pullar
-      return tx.from_user===curUser?.id||tx.to_user===curUser?.id;
-    }
+  let filtered=curObTxs.filter(tx=>{
+    if(curObRole==='owner')return tx.tur==='income'||(tx.tur==='send'&&tx.from_user===curUser?.id)||(tx.tur==='spend'&&tx.from_user===curUser?.id);
+    return tx.from_user===curUser?.id||tx.to_user===curUser?.id;
   });
-  const sorted=[...filtered].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
-  if(sorted.length===0){
-    container.innerHTML=`<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Operatsiyalar yo'q</div></div>`;
+  if(!filtered.length){
+    container.innerHTML=`<div class="empty"><div class="empty-ico">📋</div><div class="empty-txt">${curLang==='ru'?'Нет операций':"Operatsiyalar yo'q"}</div></div>`;
     return;
   }
-  container.innerHTML=sorted.map(tx=>txRowHtml(tx)).join('');
+  container.innerHTML=filtered.map(tx=>txRowHtml(tx)).join('');
 }
 
 function txRowHtml(tx){
   const cat=CATS.find(c=>c.id===tx.kategoriya)||CATS[5];
-  const isIn=tx.tur==='income'||(tx.tur==='send'&&tx.to_user===curUser.id);
-  const isOut=tx.tur==='spend'||(tx.tur==='send'&&tx.from_user===curUser.id);
-  const amtColor=isIn?'var(--green)':isOut?'var(--red)':'var(--text)';
-  const amtSign=isIn?'+':isOut?'-':'';
-  let title=cat.label;
-  if(tx.tur==='send'){
-    const toM=obMembers.find(m=>m.user_id===tx.to_user);
-    const fromM=obMembers.find(m=>m.user_id===tx.from_user);
-    title=tx.to_user===curUser.id?`${fromM?.profiles?.full_name||'Kimdir'}dan`:`${toM?.profiles?.full_name||'Kimdir'}ga`;
+  const isIn=tx.tur==='income'||(tx.tur==='send'&&tx.to_user===curUser?.id);
+  const isOut=tx.tur==='spend'||(tx.tur==='send'&&tx.from_user===curUser?.id);
+  const color=isIn?'var(--acc)':isOut?'var(--red)':'var(--muted)';
+  const sign=isIn?'+':isOut?'-':'';
+  let title='';
+  if(tx.tur==='income')title=tx.izoh||(curLang==='ru'?'Приход':'Pul kirdi');
+  else if(tx.tur==='spend')title=curLang==='ru'?(cat.ru||'Расход'):(cat.uz||'Xarajat');
+  else if(tx.tur==='send'){
+    const toM=curObMembers.find(m=>m.user_id===tx.to_user);
+    const fromM=curObMembers.find(m=>m.user_id===tx.from_user);
+    title=isIn?`${fromM?.profiles?.full_name||'?'}${curLang==='ru'?' (от)':'dan'}`:`${toM?.profiles?.full_name||'?'}${curLang==='ru'?' (кому)':'ga'}`;
   }
-  if(tx.tur==='income')title=tx.izoh||'Pul kirdi';
+  const dt=tx.tx_date||tx.created_at;
   return`<div class="tx-row" onclick="openTxDetail('${tx.id}')">
-    <div class="tx-ico" style="background:${cat.bg}">${cat.emoji}</div>
-    <div class="tx-info">
+    <div class="tx-ico" style="background:${isIn?'#f0fdf4':'#fef2f2'}">${isIn?'📥':isOut?'💳':'💸'}</div>
+    <div style="flex:1;min-width:0">
       <div class="tx-title">${title}</div>
-      <div class="tx-meta">${tx.izoh||''} • ${fmtDate(tx.created_at)}</div>
+      <div class="tx-meta">${tx.izoh?tx.izoh+' • ':''}${fmtDate(dt)} ${fmtTime(dt)}</div>
     </div>
-    <div class="tx-amount" style="color:${amtColor}">${amtSign}${usd(tx.summa)}</div>
+    <div class="tx-amount" style="color:${color}">${sign}${fmt(tx.summa)}</div>
   </div>`;
 }
 
 function renderObMembers(container){
   let visible=[];
-  if(curObRole==='owner'){
-    // Prorab faqat ustalarni ko'radi
-    visible=obMembers.filter(m=>m.role==='member');
-  }else{
-    // Usta/Ishchi faqat o'zi qo'shgan kishilarni ko'radi
-    visible=obMembers.filter(m=>m.added_by===curUser?.id);
-  }
+  if(curObRole==='owner')visible=curObMembers.filter(m=>m.role==='member');
+  else visible=curObMembers.filter(m=>m.added_by===curUser?.id);
 
-  let out='';
+  let html='';
   if(curObRole==='owner'){
-    out+=`<button onclick="openAddMember()" style="width:100%;padding:13px;border-radius:14px;border:none;background:#eff6ff;color:#3b82f6;font-size:14px;font-weight:800;font-family:Manrope,sans-serif;margin-bottom:12px;cursor:pointer">👤 Usta qo'shish</button>`;
-  }else if(curObRole==='member'){
-    out+=`<button onclick="openAddWorker()" style="width:100%;padding:13px;border-radius:14px;border:none;background:#f0fdf4;color:#16a34a;font-size:14px;font-weight:800;font-family:Manrope,sans-serif;margin-bottom:12px;cursor:pointer">🔨 Ishchi qo'shish</button>`;
-  }
-  if(visible.length===0){
-    out+='<div class="empty"><div class="empty-icon">👥</div><div class="empty-text">Hali hech kim yo\'q</div></div>';
+    html+=`<button onclick="openAddMember('member')" style="width:100%;padding:12px;border-radius:12px;border:none;background:#eff6ff;color:#3b82f6;font-size:14px;font-weight:700;margin-bottom:10px;cursor:pointer">👷 ${curLang==='ru'?'Добавить мастера':'Usta qo\'shish'}</button>`;
   }else{
-    out+=visible.map(m=>memberCardHtml(m)).join('');
+    html+=`<button onclick="openAddMember('worker')" style="width:100%;padding:12px;border-radius:12px;border:none;background:#f0fdf4;color:#16a34a;font-size:14px;font-weight:700;margin-bottom:10px;cursor:pointer">🔨 ${curLang==='ru'?'Добавить рабочего':'Ishchi qo\'shish'}</button>`;
   }
-  container.innerHTML=out;
-}
-
-function memberCardHtml(m){
-  const name=m.profiles?.full_name||m.profiles?.phone||'Noma\'lum';
-  const phone=m.profiles?.phone||'';
-  const colors=['#f97316','#3b82f6','#16a34a','#a855f7','#ef4444'];
-  let h=0;name.split('').forEach(c=>h+=c.charCodeAt(0));
-  const bg=colors[h%colors.length];
-  const roleLabel={owner:"Egasi",member:"Ishchi boshi",worker:"Ishchi"}[m.role];
-  const roleClass={owner:'role-owner',member:'role-member',worker:'role-worker'}[m.role];
-  const canSend=curObRole==='owner'||(curObRole==='member'&&m.role==='worker');
-  return`<div class="member-card" onclick="openMemberDetail('${m.user_id}')">
-    <div class="member-avatar" style="background:${bg}">${name.charAt(0).toUpperCase()}</div>
-    <div class="member-info">
-      <div class="member-name">${name}</div>
-      <div class="member-phone"><span class="ob-role-badge ${roleClass}">${roleLabel}</span></div>
-    </div>
-    <div class="member-bal">
-      <div class="member-bal-val" style="color:${m.balance>0?'var(--green)':'var(--muted)'}">${usd(m.balance||0)}</div>
-      <div style="font-size:10px;color:var(--muted)">qo'lida</div>
-    </div>
-  </div>`;
+  if(!visible.length){
+    html+=`<div class="empty"><div class="empty-ico">👥</div><div class="empty-txt">${curLang==='ru'?'Нет участников':"Hali hech kim yo'q"}</div></div>`;
+  }else{
+    html+=visible.map(m=>{
+      const name=m.profiles?.full_name||m.profiles?.phone||'?';
+      const bg=avColor(name);
+      const rLabel={owner:curLang==='ru'?'Хозяин':'Egasi',member:curLang==='ru'?'Мастер':'Usta',worker:curLang==='ru'?'Рабочий':'Ishchi'}[m.role];
+      const rClass={owner:'badge-owner',member:'badge-member',worker:'badge-worker'}[m.role];
+      return`<div class="member-card" onclick="openMemberDetail('${m.user_id}')">
+        <div class="avatar" style="background:${bg}">${name.charAt(0).toUpperCase()}</div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:700">${name}</div>
+          <div style="margin-top:2px"><span class="badge ${rClass}">${rLabel}</span></div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:14px;font-weight:800;color:var(--acc)">${fmt(m.balance||0)}</div>
+          <div style="font-size:11px;color:var(--muted)">${curLang==='ru'?'на руках':'qo\'lida'}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  container.innerHTML=html;
 }
 
 function renderMyBal(container){
   const found=allObs.find(o=>o.ob.id===curObId);
   const myBal=found?.myBalance||0;
-  const myTxs=obTxs.filter(t=>t.from_user===curUser.id||t.to_user===curUser.id);
+  const myTxs=curObTxs.filter(t=>t.from_user===curUser?.id||t.to_user===curUser?.id);
   container.innerHTML=`
-    <div style="background:var(--green-bg);border-radius:16px;padding:20px;text-align:center;margin-bottom:16px">
-      <div style="font-size:12px;color:var(--green);font-weight:700;text-transform:uppercase;margin-bottom:4px">Qo'limdagi pul</div>
-      <div style="font-size:32px;font-weight:900;color:var(--green)">${usd(myBal)} so'm</div>
+    <div style="background:linear-gradient(135deg,#15803D,#16A34A);border-radius:16px;padding:20px;text-align:center;margin-bottom:16px;color:#fff">
+      <div style="font-size:13px;opacity:.7;margin-bottom:4px">${curLang==='ru'?'У меня на руках':"Qo'limdagi pul"}</div>
+      <div style="font-size:36px;font-weight:900">${fmt(myBal)}</div>
     </div>
-    <div style="font-size:13px;font-weight:800;color:var(--text2);margin-bottom:10px">Mening operatsiyalarim</div>
-    ${myTxs.length===0?`<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Operatsiyalar yo'q</div></div>`:myTxs.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).map(tx=>txRowHtml(tx)).join('')}
+    ${myTxs.length?myTxs.map(tx=>txRowHtml(tx)).join(''):`<div class="empty"><div class="empty-ico">📋</div><div class="empty-txt">${curLang==='ru'?'Нет операций':"Operatsiyalar yo'q"}</div></div>`}
   `;
+}
+
+// ═══════════════════════════════════════════
+// OB CREATE
+// ═══════════════════════════════════════════
+function openNewOb(){
+  document.getElementById('new-ob-date').value=new Date().toISOString().slice(0,10);
+  document.getElementById('new-ob-name').value='';
+  document.getElementById('new-ob-days').value='';
+  openSheet('newob');
+}
+
+async function createOb(){
+  const name=document.getElementById('new-ob-name').value.trim();
+  if(!name){toast(curLang==='ru'?'Введите название':'Nom kiriting','#ef4444');return;}
+  const date=document.getElementById('new-ob-date').value;
+  const days=parseInt(document.getElementById('new-ob-days').value)||30;
+  const btn=document.querySelector('#sh-newob .btn');
+  btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
+  try{
+    const {data:ob,error}=await sb.from('obyektlar').insert({
+      nomi:name,owner_id:curUser?.id,user_id:curUser?.id,
+      boshlanish:date,muddat:days,kirim:0,chiqim:0
+    }).select().single();
+    if(error)throw error;
+    await sb.from('ob_members').insert({ob_id:ob.id,user_id:curUser?.id,role:'owner',balance:0,added_by:curUser?.id});
+    closeSheet('sh-newob');
+    toast('✅ '+(curLang==='ru'?'Объект создан':'Obyekt yaratildi'),'#16a34a');
+    await loadAll();
+    openOb(ob.id);
+  }catch(e){toast('Xato: '+e.message,'#ef4444');}
+  finally{btn.textContent=t('lbl-yaratish');btn.disabled=false;}
+}
+
+// ═══════════════════════════════════════════
+// INCOME
+// ═══════════════════════════════════════════
+async function doAddIncome(){
+  const amount=parseFloat(document.getElementById('income-amount').value);
+  if(!amount||amount<=0){toast(curLang==='ru'?'Введите сумму':'Summa kiriting','#ef4444');return;}
+  const note=document.getElementById('income-note').value.trim();
+  const src=document.getElementById('income-src').value;
+  const dt=document.getElementById('income-dt').value;
+  const btn=document.querySelector('#sh-income .btn');
+  btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
+  try{
+    await sb.from('transactions').insert({
+      ob_id:curObId,from_user:null,to_user:curUser?.id,
+      summa:amount,tur:'income',kategoriya:src,izoh:note||null,
+      tx_date:dt?new Date(dt).toISOString():new Date().toISOString()
+    });
+    const {data:freshOb}=await sb.from('obyektlar').select('kirim').eq('id',curObId).single();
+    const newKirim=(freshOb?.kirim||0)+amount;
+    await sb.from('obyektlar').update({kirim:newKirim}).eq('id',curObId);
+    curOb.kirim=newKirim;
+    // Update owner balance
+    const ownerM=curObMembers.find(m=>m.user_id===curUser?.id);
+    await sb.from('ob_members').update({balance:(ownerM?.balance||0)+amount}).eq('ob_id',curObId).eq('user_id',curUser?.id);
+    closeSheet('sh-income');
+    document.getElementById('income-amount').value='';
+    toast('✅ '+(curLang==='ru'?'Сохранено':'Saqlandi'),'#16a34a');
+    await openOb(curObId);
+  }catch(e){toast('Xato: '+e.message,'#ef4444');}
+  finally{btn.textContent=t('lbl-saqlash');btn.disabled=false;}
 }
 
 // ═══════════════════════════════════════════
 // SEND MONEY
 // ═══════════════════════════════════════════
-function openSendMoney(){
-  // Build recipient list based on role
-  const sel=document.getElementById('send-to-select');
+function openSendSheet(){
+  const sel=document.getElementById('send-to');
   sel.innerHTML='<option value="">Tanlang...</option>';
-
   let recipients=[];
-  if(curObRole==='owner'){
-    // Owner can send to all members
-    recipients=obMembers.filter(m=>m.user_id!==curUser.id);
-  }else if(curObRole==='member'){
-    // Member can only send to workers
-    recipients=obMembers.filter(m=>m.role==='worker');
-  }
-
-  if(recipients.length===0){
-    toast('Pul yuborish uchun avval a\'zo qo\'shing','#ef4444');
-    return;
-  }
-
+  if(curObRole==='owner')recipients=curObMembers.filter(m=>m.role==='member');
+  else recipients=curObMembers.filter(m=>m.added_by===curUser?.id&&m.role==='worker');
   recipients.forEach(m=>{
-    const name=m.profiles?.full_name||m.profiles?.phone||'Noma\'lum';
     const opt=document.createElement('option');
-    opt.value=m.user_id;opt.textContent=name;
+    opt.value=m.user_id;
+    opt.textContent=m.profiles?.full_name||m.profiles?.phone||'?';
     sel.appendChild(opt);
   });
-
   document.getElementById('send-amount').value='';
   document.getElementById('send-note').value='';
-  document.getElementById('send-bal-info').style.display='none';
-
-  // Show my balance info for non-owners
+  document.getElementById('send-dt').value=new Date().toISOString().slice(0,16);
   if(curObRole!=='owner'){
     const myBal=allObs.find(o=>o.ob.id===curObId)?.myBalance||0;
     const info=document.getElementById('send-bal-info');
-    info.textContent=`Sizning qo'lingizdagi pul: ${usd(myBal)} so'm`;
+    info.textContent=(curLang==='ru'?'У меня на руках: ':"Qo'limdagi pul: ")+fmt(myBal);
     info.style.display='block';
-  }
-
-  openSbg('send-money-bg');
+  }else document.getElementById('send-bal-info').style.display='none';
+  openSheet('send');
 }
 
 function onSendToChange(){
-  const uid=document.getElementById('send-to-select').value;
-  if(!uid)return;
-  const m=obMembers.find(m=>m.user_id===uid);
-  if(m){
-    const name=m.profiles?.full_name||'';
-    document.getElementById('send-money-title').textContent=`💸 ${name}ga yuborish`;
-  }
+  const uid=document.getElementById('send-to').value;
+  const m=curObMembers.find(m=>m.user_id===uid);
+  if(m)document.querySelector('#sh-send .sheet-title').textContent='💸 '+(m.profiles?.full_name||'?')+(curLang==='ru'?' (перевод)':'ga pul');
 }
 
 async function doSendMoney(){
-  const toUid=document.getElementById('send-to-select').value;
+  const toUid=document.getElementById('send-to').value;
   const amount=parseFloat(document.getElementById('send-amount').value);
   const note=document.getElementById('send-note').value.trim();
-
-  if(!toUid){toast('Kimga yuborishni tanlang','#ef4444');return;}
-  if(!amount||amount<=0){toast('Summani kiriting','#ef4444');return;}
-
-  // Check balance for non-owners
+  const dt=document.getElementById('send-dt').value;
+  if(!toUid){toast(curLang==='ru'?'Выберите получателя':'Kimga yuborishni tanlang','#ef4444');return;}
+  if(!amount||amount<=0){toast(curLang==='ru'?'Введите сумму':'Summa kiriting','#ef4444');return;}
   if(curObRole!=='owner'){
     const myBal=allObs.find(o=>o.ob.id===curObId)?.myBalance||0;
-    if(amount>myBal){toast('Yetarli pul yo\'q!','#ef4444');return;}
+    if(amount>myBal){toast(curLang==='ru'?'Недостаточно средств':"Yetarli pul yo'q",'#ef4444');return;}
   }
-
-  const btn=document.querySelector('#send-money-bg .btn');
+  const btn=document.querySelector('#sh-send .btn');
   btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
-
   try{
-    // Create transaction
-    const {error:txErr}=await sb.from('transactions').insert({
-      ob_id:curObId,
-      from_user:curUser.id,
-      to_user:toUid,
-      summa:amount,
-      tur:'send',
-      kategoriya:'send',
-      izoh:note||null,
+    await sb.from('transactions').insert({
+      ob_id:curObId,from_user:curUser?.id,to_user:toUid,
+      summa:amount,tur:'send',kategoriya:'send',izoh:note||null,
+      tx_date:dt?new Date(dt).toISOString():new Date().toISOString()
     });
-    if(txErr)throw txErr;
-
-    // Update balances
-    // Sender loses balance (if not owner)
     if(curObRole!=='owner'){
-      const myMember=obMembers.find(m=>m.user_id===curUser.id);
-      const newMyBal=(myMember?.balance||0)-amount;
-      await sb.from('ob_members').update({balance:newMyBal}).eq('ob_id',curObId).eq('user_id',curUser.id);
+      const myM=curObMembers.find(m=>m.user_id===curUser?.id);
+      await sb.from('ob_members').update({balance:(myM?.balance||0)-amount}).eq('ob_id',curObId).eq('user_id',curUser?.id);
     }else{
-      // Owner sends: deduct from ob.chiqim
-      await sb.from('obyektlar').update({chiqim:(curOb.chiqim||0)+amount}).eq('id',curObId);
-      curOb.chiqim=(curOb.chiqim||0)+amount;
+      const {data:f}=await sb.from('obyektlar').select('chiqim').eq('id',curObId).single();
+      await sb.from('obyektlar').update({chiqim:(f?.chiqim||0)+amount}).eq('id',curObId);
+      curOb.chiqim=(f?.chiqim||0)+amount;
     }
-
-    // Receiver gains balance
-    const toMember=obMembers.find(m=>m.user_id===toUid);
-    const newToBal=(toMember?.balance||0)+amount;
-    await sb.from('ob_members').update({balance:newToBal}).eq('ob_id',curObId).eq('user_id',toUid);
-
-    closeSbg('send-money-bg');
-    toast('✅ Pul yuborildi!','#16a34a');
+    const toM=curObMembers.find(m=>m.user_id===toUid);
+    await sb.from('ob_members').update({balance:(toM?.balance||0)+amount}).eq('ob_id',curObId).eq('user_id',toUid);
+    closeSheet('sh-send');
+    document.getElementById('send-amount').value='';
+    toast('✅ '+(curLang==='ru'?'Отправлено':'Yuborildi'),'#16a34a');
     await openOb(curObId);
-  }catch(e){
-    toast('Xato: '+e.message,'#ef4444');
-  }finally{
-    btn.textContent='Yuborish';btn.disabled=false;
-  }
+  }catch(e){toast('Xato: '+e.message,'#ef4444');}
+  finally{btn.textContent=t('lbl-yuborish');btn.disabled=false;}
 }
 
 // ═══════════════════════════════════════════
-// SPEND MONEY
+// SPEND
 // ═══════════════════════════════════════════
-function openSpendMoney(){
+function openSpendSheet(){
   const myBal=allObs.find(o=>o.ob.id===curObId)?.myBalance||0;
-  document.getElementById('spend-my-bal').textContent=usd(myBal);
+  document.getElementById('spend-mybal').textContent=fmt(myBal);
   document.getElementById('spend-amount').value='';
   document.getElementById('spend-note').value='';
-
-  // Render categories
-  const catsEl=document.getElementById('spend-cats');
-  catsEl.innerHTML=CATS.map(c=>`
-    <div onclick="selectSpendCat('${c.id}',this)" style="background:${c.id===selectedCat?c.bg:'var(--bg)'};border:1.5px solid ${c.id===selectedCat?c.c:'var(--border)'};border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;transition:all .2s" data-cat="${c.id}">
+  document.getElementById('spend-dt').value=new Date().toISOString().slice(0,16);
+  // Render cats
+  document.getElementById('spend-cats').innerHTML=CATS.map((c,i)=>`
+    <div onclick="selCat='${c.id}';renderSpendCats()" data-cat="${c.id}" style="padding:10px 6px;border-radius:10px;border:2px solid ${selCat===c.id?CAT_COLORS[i]:'var(--border)'};background:${selCat===c.id?CAT_COLORS[i]+'15':'var(--bg)'};text-align:center;cursor:pointer">
       <div style="font-size:20px">${c.emoji}</div>
-      <div style="font-size:10px;font-weight:700;color:${c.id===selectedCat?c.c:'var(--muted)'};margin-top:2px">${c.label}</div>
-    </div>
-  `).join('');
-  openSbg('spend-money-bg');
+      <div style="font-size:10px;font-weight:700;color:${selCat===c.id?CAT_COLORS[i]:'var(--muted)'};margin-top:2px">${curLang==='ru'?c.ru:c.uz}</div>
+    </div>`).join('');
+  openSheet('spend');
 }
 
-function selectSpendCat(id,el){
-  selectedCat=id;
-  const cat=CATS.find(c=>c.id===id);
-  document.querySelectorAll('#spend-cats > div').forEach(d=>{
-    const c=CATS.find(c=>c.id===d.dataset.cat);
-    d.style.background=d.dataset.cat===id?c.bg:'var(--bg)';
-    d.style.borderColor=d.dataset.cat===id?c.c:'var(--border)';
-    d.querySelector('div:last-child').style.color=d.dataset.cat===id?c.c:'var(--muted)';
+function renderSpendCats(){
+  CATS.forEach((c,i)=>{
+    const el=document.querySelector(`[data-cat="${c.id}"]`);
+    if(!el)return;
+    el.style.borderColor=selCat===c.id?CAT_COLORS[i]:'var(--border)';
+    el.style.background=selCat===c.id?CAT_COLORS[i]+'15':'var(--bg)';
+    el.querySelector('div:last-child').style.color=selCat===c.id?CAT_COLORS[i]:'var(--muted)';
   });
 }
 
-async function doSpendMoney(){
+async function doSpend(){
   const amount=parseFloat(document.getElementById('spend-amount').value);
-  const note=document.getElementById('spend-note').value.trim();
   const myBal=allObs.find(o=>o.ob.id===curObId)?.myBalance||0;
-
-  if(!amount||amount<=0){toast('Summani kiriting','#ef4444');return;}
-  if(amount>myBal){toast('Yetarli pul yo\'q!','#ef4444');return;}
-
-  const btn=document.querySelector('#spend-money-bg .btn');
+  if(!amount||amount<=0){toast(curLang==='ru'?'Введите сумму':'Summa kiriting','#ef4444');return;}
+  if(amount>myBal){toast(curLang==='ru'?'Недостаточно средств':"Yetarli pul yo'q",'#ef4444');return;}
+  const note=document.getElementById('spend-note').value.trim();
+  const dt=document.getElementById('spend-dt').value;
+  const btn=document.querySelector('#sh-spend .btn');
   btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
-
   try{
-    const {error}=await sb.from('transactions').insert({
-      ob_id:curObId,
-      from_user:curUser.id,
-      to_user:null,
-      summa:amount,
-      tur:'spend',
-      kategoriya:selectedCat,
-      izoh:note||null,
+    await sb.from('transactions').insert({
+      ob_id:curObId,from_user:curUser?.id,to_user:null,
+      summa:amount,tur:'spend',kategoriya:selCat,izoh:note||null,
+      tx_date:dt?new Date(dt).toISOString():new Date().toISOString()
     });
-    if(error)throw error;
-
-    // Deduct from my balance
-    const newBal=myBal-amount;
-    await sb.from('ob_members').update({balance:newBal}).eq('ob_id',curObId).eq('user_id',curUser.id);
-
-    // Har doim ob.chiqim ni yangilaymiz
-    await sb.from('obyektlar').update({chiqim:(curOb.chiqim||0)+amount}).eq('id',curObId);
-    curOb.chiqim=(curOb.chiqim||0)+amount;
-
-    closeSbg('spend-money-bg');
-    toast('✅ Sarflandi!','#16a34a');
+    await sb.from('ob_members').update({balance:myBal-amount}).eq('ob_id',curObId).eq('user_id',curUser?.id);
+    const {data:f}=await sb.from('obyektlar').select('chiqim').eq('id',curObId).single();
+    await sb.from('obyektlar').update({chiqim:(f?.chiqim||0)+amount}).eq('id',curObId);
+    curOb.chiqim=(f?.chiqim||0)+amount;
+    closeSheet('sh-spend');
+    document.getElementById('spend-amount').value='';
+    toast('✅ '+(curLang==='ru'?'Сохранено':'Saqlandi'),'#16a34a');
     await openOb(curObId);
-  }catch(e){
-    toast('Xato: '+e.message,'#ef4444');
-  }finally{
-    btn.textContent='Sarflash';btn.disabled=false;
-  }
-}
-
-// ═══════════════════════════════════════════
-// ADD INCOME (Owner)
-// ═══════════════════════════════════════════
-async function doAddIncome(){
-  const amount=parseFloat(document.getElementById('income-amount').value);
-  const note=document.getElementById('income-note').value.trim();
-  const source=document.getElementById('income-source').value;
-  if(!amount||amount<=0){toast('Summani kiriting','#ef4444');return;}
-
-  const btn=document.querySelector('#add-income-bg .btn');
-  btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
-
-  try{
-    const {error}=await sb.from('transactions').insert({
-      ob_id:curObId,
-      from_user:null,
-      to_user:curUser.id,
-      summa:amount,
-      tur:'income',
-      kategoriya:source,
-      izoh:note||null,
-    });
-    if(error)throw error;
-
-    // Update ob kirim
-    const newKirim=(curOb.kirim||0)+amount;
-    await sb.from('obyektlar').update({kirim:newKirim}).eq('id',curObId);
-    curOb.kirim=newKirim;
-
-    // Owner balance also increases (in their ob_members row)
-    const ownerMem=obMembers.find(m=>m.user_id===curUser.id);
-    const newOwnerBal=(ownerMem?.balance||0)+amount;
-    await sb.from('ob_members').update({balance:newOwnerBal}).eq('ob_id',curObId).eq('user_id',curUser.id);
-
-    closeSbg('add-income-bg');
-    toast('✅ Kirim qo\'shildi!','#16a34a');
-    await openOb(curObId);
-  }catch(e){
-    toast('Xato: '+e.message,'#ef4444');
-  }finally{
-    btn.textContent='Saqlash';btn.disabled=false;
-  }
-}
-
-// ═══════════════════════════════════════════
-// CREATE OB
-// ═══════════════════════════════════════════
-async function createOb(){
-  const name=document.getElementById('new-ob-name').value.trim();
-  const date=document.getElementById('new-ob-date').value;
-  const days=parseInt(document.getElementById('new-ob-days').value)||30;
-  if(!name){toast('Loyiha nomini kiriting','#ef4444');return;}
-
-  const btn=document.querySelector('#new-ob-bg .btn');
-  btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
-
-  try{
-    const {data:ob,error}=await sb.from('obyektlar').insert({
-      nomi:name,
-      owner_id:curUser?.id,user_id:curUser?.id,
-      boshlanish:date||new Date().toISOString().slice(0,10),
-      muddat:days,
-      kirim:0,chiqim:0,
-    }).select().single();
-    if(error)throw error;
-
-    // Add owner as member
-    await sb.from('ob_members').insert({
-      ob_id:ob.id,
-      user_id:curUser.id,
-      role:'owner',
-      balance:0,
-    });
-
-    closeSbg('new-ob-bg');
-    document.getElementById('new-ob-name').value='';
-    toast('✅ Loyiha yaratildi!','#16a34a');
-    await loadAllData();
-    renderObs();
-    openOb(ob.id);
-  }catch(e){
-    toast('Xato: '+e.message,'#ef4444');
-  }finally{
-    btn.textContent='Yaratish';btn.disabled=false;
-  }
+  }catch(e){toast('Xato: '+e.message,'#ef4444');}
+  finally{btn.textContent=t('lbl-sarflash2');btn.disabled=false;}
 }
 
 // ═══════════════════════════════════════════
 // ADD MEMBER
 // ═══════════════════════════════════════════
-function selectRole(role,el){
-  sendSelectedRole=role;
+function openAddMember(role){
+  selRole=role;
+  document.getElementById('member-phone').value='+998';
+  document.getElementById('member-role-wrap').style.display=curObRole==='owner'?'block':'none';
+  document.querySelector('#sh-member .sheet-title').textContent=role==='worker'?
+    (curLang==='ru'?'🔨 Добавить рабочего':"🔨 Ishchi qo'shish"):
+    (curLang==='ru'?'👷 Добавить мастера':"👷 Usta qo'shish");
+  openSheet('member');
+}
+
+function setRole(role,el){
+  selRole=role;
   document.querySelectorAll('.role-opt').forEach(r=>{
-    r.classList.remove('active');
-    r.style.background='var(--bg)';
-    r.style.border='1.5px solid var(--border)';
+    r.style.borderColor='var(--border)';r.style.background='var(--bg)';
+    r.querySelector('div').style.color='var(--text2)';
   });
-  el.classList.add('active');
-  el.style.background=role==='member'?'#eff6ff':'#f0fdf4';
-  el.style.border=role==='member'?'1.5px solid #3b82f6':'1.5px solid #16a34a';
+  el.style.borderColor='var(--acc)';el.style.background='#f0fdf4';
+  el.querySelector('div').style.color='var(--acc)';
 }
 
-// Init role opts style
-document.addEventListener('DOMContentLoaded',()=>{
-  document.querySelectorAll('.role-opt').forEach(el=>{
-    el.style.cssText='padding:12px;border-radius:12px;cursor:pointer;border:1.5px solid var(--border);background:var(--bg);transition:all .2s';
-  });
-  document.querySelector('.role-opt.active').style.cssText='padding:12px;border-radius:12px;cursor:pointer;border:1.5px solid #3b82f6;background:#eff6ff;transition:all .2s';
-});
-
-
-// Usta o'z ishchisini qo'shadi
-function openAddWorker(){
-  // Reset form
-  document.getElementById('member-phone').value='+998';
-  // Force worker role
-  sendSelectedRole='worker';
-  // Hide role selector - always worker
-  document.getElementById('role-selector').style.display='none';
-  document.querySelector('#add-member-bg .sheet-head').textContent="🔨 Ishchi qo'shish";
-  openSbg('add-member-bg');
-}
-
-// Prorab a'zo qo'shganda rol tanlash ko'rinadi
-function openAddMember(){
-  document.getElementById('member-phone').value='+998';
-  sendSelectedRole='member';
-  document.getElementById('role-selector').style.display='grid';
-  document.querySelector('#add-member-bg .sheet-head').textContent="👤 A'zo qo\'shish";
-  openSbg('add-member-bg');
-}
-async function addMember(){
+async function doAddMember(){
   const phone=document.getElementById('member-phone').value.trim();
-  if(phone.length<10){toast('Telefon raqam kiriting','#ef4444');return;}
-
-  const btn=document.querySelector('#add-member-bg .btn');
+  if(phone.length<10){toast(curLang==='ru'?'Неверный номер':'To\'g\'ri telefon kiriting','#ef4444');return;}
+  const btn=document.querySelector('#sh-member .btn');
   btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
-
   try{
-    // Find user by phone
     const {data:profile}=await sb.from('profiles').select('*').eq('phone',phone).single();
     if(!profile){
-      toast(`${phone} raqamli foydalanuvchi topilmadi. Avval u ilovaga kirishi kerak!`,'#ef4444');
-      btn.textContent='Qo\'shish';btn.disabled=false;
-      return;
+      toast((curLang==='ru'?`${phone} не найден. Пользователь должен сначала зарегистрироваться!`:`${phone} topilmadi. Avval ro'yxatdan o'tishi kerak!`),'#ef4444');
+      btn.textContent=t('lbl-qoshish');btn.disabled=false;return;
     }
-
-    // Check if already member
-    const already=obMembers.find(m=>m.user_id===profile.id);
-    if(already){toast('Bu foydalanuvchi allaqachon a\'zo','#f59e0b');btn.textContent='Qo\'shish';btn.disabled=false;return;}
-
-    await sb.from('ob_members').insert({
-      ob_id:curObId,
-      user_id:profile.id,
-      role:sendSelectedRole,
-      balance:0,
-      added_by:curUser?.id,
-    });
-
-    closeSbg('add-member-bg');
-    document.getElementById('member-phone').value='';
-    toast(`✅ ${profile.full_name||phone} qo'shildi!`,'#16a34a');
+    const already=curObMembers.find(m=>m.user_id===profile.id);
+    if(already){toast(curLang==='ru'?'Уже участник':"Allaqachon a'zo",'#f59e0b');btn.textContent=t('lbl-qoshish');btn.disabled=false;return;}
+    await sb.from('ob_members').insert({ob_id:curObId,user_id:profile.id,role:selRole,balance:0,added_by:curUser?.id});
+    closeSheet('sh-member');
+    toast('✅ '+(curLang==='ru'?'Добавлен':'Qo\'shildi'),'#16a34a');
     await openOb(curObId);
-  }catch(e){
-    toast('Xato: '+e.message,'#ef4444');
-  }finally{
-    btn.textContent='Qo\'shish';btn.disabled=false;
-  }
+  }catch(e){toast('Xato: '+e.message,'#ef4444');}
+  finally{btn.textContent=t('lbl-qoshish');btn.disabled=false;}
 }
 
 // ═══════════════════════════════════════════
 // TX DETAIL
 // ═══════════════════════════════════════════
 function openTxDetail(txId){
-  const tx=obTxs.find(t=>t.id===txId);
+  const tx=curObTxs.find(t=>t.id===txId);
   if(!tx)return;
   const cat=CATS.find(c=>c.id===tx.kategoriya)||CATS[5];
-  const isIn=tx.tur==='income'||(tx.tur==='send'&&tx.to_user===curUser.id);
-  const fromM=obMembers.find(m=>m.user_id===tx.from_user);
-  const toM=obMembers.find(m=>m.user_id===tx.to_user);
-
-  document.getElementById('tx-detail-content').innerHTML=`
+  const isIn=tx.tur==='income'||(tx.tur==='send'&&tx.to_user===curUser?.id);
+  const fromM=curObMembers.find(m=>m.user_id===tx.from_user);
+  const toM=curObMembers.find(m=>m.user_id===tx.to_user);
+  const dt=tx.tx_date||tx.created_at;
+  document.getElementById('txdetail-content').innerHTML=`
     <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
-      <div style="width:52px;height:52px;border-radius:14px;background:${cat.bg};font-size:24px;display:flex;align-items:center;justify-content:center">${cat.emoji}</div>
+      <div style="width:56px;height:56px;border-radius:16px;background:${isIn?'#f0fdf4':'#fef2f2'};font-size:26px;display:flex;align-items:center;justify-content:center">${cat.emoji}</div>
       <div>
-        <div style="font-size:17px;font-weight:800">${cat.label}</div>
-        <div style="font-size:13px;color:var(--muted)">${fmtDate(tx.created_at)}</div>
+        <div style="font-size:18px;font-weight:800">${curLang==='ru'?cat.ru:cat.uz}</div>
+        <div style="font-size:13px;color:var(--muted)">${fmtDT(dt)}</div>
       </div>
     </div>
-    <div style="background:${isIn?'var(--green-bg)':'var(--red-bg)'};border-radius:16px;padding:16px;text-align:center;margin-bottom:16px">
-      <div style="font-size:32px;font-weight:900;color:${isIn?'var(--green)':'var(--red)'}">${isIn?'+':'-'}${usd(tx.summa)} so'm</div>
+    <div style="background:${isIn?'#f0fdf4':'#fef2f2'};border-radius:16px;padding:20px;text-align:center;margin-bottom:16px">
+      <div style="font-size:36px;font-weight:900;color:${isIn?'var(--acc)':'var(--red)'}">${isIn?'+':'-'}${fmt(tx.summa)}</div>
     </div>
     <div style="display:flex;flex-direction:column;gap:8px">
       ${tx.tur==='send'?`
         <div style="display:flex;justify-content:space-between;padding:12px;background:var(--bg);border-radius:12px">
-          <span style="color:var(--muted);font-size:13px">Kimdan</span>
-          <span style="font-weight:700;font-size:13px">${fromM?.profiles?.full_name||'Tizim'}</span>
+          <span style="color:var(--muted);font-size:13px">${curLang==='ru'?'От':'Kimdan'}</span>
+          <span style="font-weight:700;font-size:13px">${fromM?.profiles?.full_name||curLang==='ru'?'Система':'Tizim'}</span>
         </div>
         <div style="display:flex;justify-content:space-between;padding:12px;background:var(--bg);border-radius:12px">
-          <span style="color:var(--muted);font-size:13px">Kimga</span>
-          <span style="font-weight:700;font-size:13px">${toM?.profiles?.full_name||'Tizim'}</span>
-        </div>
-      `:''}
-      ${tx.izoh?`<div style="display:flex;justify-content:space-between;padding:12px;background:var(--bg);border-radius:12px"><span style="color:var(--muted);font-size:13px">Izoh</span><span style="font-weight:700;font-size:13px">${tx.izoh}</span></div>`:''}
+          <span style="color:var(--muted);font-size:13px">${curLang==='ru'?'Кому':'Kimga'}</span>
+          <span style="font-weight:700;font-size:13px">${toM?.profiles?.full_name||curLang==='ru'?'Система':'Tizim'}</span>
+        </div>`:''}
+      ${tx.izoh?`<div style="display:flex;justify-content:space-between;padding:12px;background:var(--bg);border-radius:12px">
+        <span style="color:var(--muted);font-size:13px">${curLang==='ru'?'Комментарий':'Izoh'}</span>
+        <span style="font-weight:700;font-size:13px">${tx.izoh}</span>
+      </div>`:''}
     </div>
-    ${(tx.from_user===curUser.id||(curObRole==='owner'&&tx.tur!=='income'))?`<button onclick="deleteTx('${tx.id}')" id="del-tx-btn" style="width:100%;padding:13px;border-radius:14px;border:1.5px solid var(--red);background:transparent;color:var(--red);font-size:14px;font-weight:800;font-family:Manrope,sans-serif;margin-top:16px;cursor:pointer">🗑 O'chirish</button>`:''}
+    ${tx.from_user===curUser?.id||curObRole==='owner'?`
+      <button onclick="deleteTx('${tx.id}')" id="del-tx-btn" class="btn btn-red" style="margin-top:16px">
+        🗑 ${curLang==='ru'?'Удалить':'O\'chirish'}
+      </button>`:''}
   `;
-  openSbg('tx-detail-bg');
+  openSheet('txdetail');
 }
 
 async function deleteTx(txId){
   const btn=document.getElementById('del-tx-btn');
-  if(btn.dataset.confirm!=='1'){
-    btn.dataset.confirm='1';btn.textContent='⚠️ Tasdiqlaysizmi?';
-    btn.style.background='#fef3c7';btn.style.borderColor='#d97706';btn.style.color='#d97706';
-    setTimeout(()=>{if(btn.dataset.confirm==='1'){btn.dataset.confirm='';btn.textContent="🗑 O'chirish";btn.style.background='transparent';btn.style.borderColor='var(--red)';btn.style.color='var(--red)';}},3000);
+  if(btn.dataset.c!=='1'){
+    btn.dataset.c='1';
+    btn.textContent=curLang==='ru'?'⚠️ Подтвердить?':'⚠️ Tasdiqlaysizmi?';
+    setTimeout(()=>{if(btn.dataset.c==='1'){btn.dataset.c='';btn.textContent='🗑 '+(curLang==='ru'?'Удалить':"O'chirish");}},3000);
     return;
   }
-  // Delete tx and reverse balances
-  const tx=obTxs.find(t=>t.id===txId);
-  if(!tx)return;
-
-  const {error}=await sb.from('transactions').delete().eq('id',txId);
-  if(!error){
-    // Reverse balance changes
-    if(tx.tur==='send'){
-      if(tx.from_user){
-        const fromM=obMembers.find(m=>m.user_id===tx.from_user);
-        await sb.from('ob_members').update({balance:(fromM?.balance||0)+tx.summa}).eq('ob_id',curObId).eq('user_id',tx.from_user);
-      }else{
-        await sb.from('obyektlar').update({chiqim:Math.max(0,(curOb.chiqim||0)-tx.summa)}).eq('id',curObId);
-      }
-      if(tx.to_user){
-        const toM=obMembers.find(m=>m.user_id===tx.to_user);
-        await sb.from('ob_members').update({balance:Math.max(0,(toM?.balance||0)-tx.summa)}).eq('ob_id',curObId).eq('user_id',tx.to_user);
-      }
-    }else if(tx.tur==='income'){
-      await sb.from('obyektlar').update({kirim:Math.max(0,(curOb.kirim||0)-tx.summa)}).eq('id',curObId);
-    }else if(tx.tur==='spend'){
-      if(tx.from_user){
-        const fromM=obMembers.find(m=>m.user_id===tx.from_user);
-        await sb.from('ob_members').update({balance:(fromM?.balance||0)+tx.summa}).eq('ob_id',curObId).eq('user_id',tx.from_user);
-      }
-    }
-    closeSbg('tx-detail-bg');
-    toast('O\'chirildi','#64748b');
-    await openOb(curObId);
-  }
+  await sb.from('transactions').delete().eq('id',txId);
+  closeSheet('sh-txdetail');
+  toast(curLang==='ru'?'Удалено':"O'chirildi");
+  await openOb(curObId);
 }
 
 // ═══════════════════════════════════════════
 // MEMBER DETAIL
 // ═══════════════════════════════════════════
 function openMemberDetail(uid){
-  const m=obMembers.find(m=>m.user_id===uid);
+  const m=curObMembers.find(m=>m.user_id===uid);
   if(!m)return;
-  const name=m.profiles?.full_name||m.profiles?.phone||'Noma\'lum';
-  const phone=m.profiles?.phone||'';
-  const colors=['#f97316','#3b82f6','#16a34a','#a855f7','#ef4444'];
-  let h=0;name.split('').forEach(c=>h+=c.charCodeAt(0));
-  const bg=colors[h%colors.length];
-  const roleLabel={owner:"Egasi",member:"Ishchi boshi",worker:"Ishchi"}[m.role];
-  const myTxs=obTxs.filter(t=>t.from_user===uid||t.to_user===uid);
-  const canSend=(curObRole==='owner'&&m.role!=='owner')||(curObRole==='member'&&m.role==='worker');
-
-  document.getElementById('member-detail-content').innerHTML=`
+  const name=m.profiles?.full_name||m.profiles?.phone||'?';
+  const myTxs=curObTxs.filter(t=>t.from_user===uid||t.to_user===uid);
+  const bg=avColor(name);
+  const rLabel={owner:curLang==='ru'?'Хозяин':'Egasi',member:curLang==='ru'?'Мастер':'Usta',worker:curLang==='ru'?'Рабочий':'Ishchi'}[m.role];
+  const rClass={owner:'badge-owner',member:'badge-member',worker:'badge-worker'}[m.role];
+  document.getElementById('txdetail-content').innerHTML=`
     <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
-      <div style="width:56px;height:56px;border-radius:16px;background:${bg};display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#fff">${name.charAt(0).toUpperCase()}</div>
+      <div class="avatar" style="width:56px;height:56px;border-radius:16px;background:${bg};font-size:22px">${name.charAt(0).toUpperCase()}</div>
       <div>
         <div style="font-size:18px;font-weight:800">${name}</div>
-        <div style="font-size:13px;color:var(--muted)">${phone}</div>
-        <div style="margin-top:4px"><span class="ob-role-badge ${{owner:'role-owner',member:'role-member',worker:'role-worker'}[m.role]}">${roleLabel}</span></div>
+        <div style="margin-top:4px"><span class="badge ${rClass}">${rLabel}</span></div>
       </div>
     </div>
-    <div style="background:var(--green-bg);border-radius:14px;padding:14px;text-align:center;margin-bottom:16px">
-      <div style="font-size:12px;color:var(--green);font-weight:700;margin-bottom:2px">Qo'lidagi pul</div>
-      <div style="font-size:26px;font-weight:900;color:var(--green)">${usd(m.balance||0)} so'm</div>
+    <div style="background:#f0fdf4;border-radius:16px;padding:16px;text-align:center;margin-bottom:16px">
+      <div style="font-size:13px;color:var(--acc);font-weight:700;margin-bottom:4px">${curLang==='ru'?'На руках':'Qo\'lida'}</div>
+      <div style="font-size:32px;font-weight:900;color:var(--acc)">${fmt(m.balance||0)}</div>
     </div>
-    ${canSend?`<button onclick="closeSbg('member-detail-bg');openSendMoneyTo('${uid}')" style="width:100%;padding:13px;border-radius:14px;border:none;background:var(--blue-bg);color:var(--blue);font-size:14px;font-weight:800;font-family:Manrope,sans-serif;margin-bottom:12px;cursor:pointer">💸 Pul yuborish</button>`:''}
-    ${curObRole==='owner'&&m.role!=='owner'?`<button onclick="removeMemberConfirm('${uid}')" id="remove-member-btn" style="width:100%;padding:13px;border-radius:14px;border:1.5px solid var(--red);background:transparent;color:var(--red);font-size:14px;font-weight:800;font-family:Manrope,sans-serif;cursor:pointer">A'zolikdan chiqarish</button>`:''}
-    <div style="font-size:13px;font-weight:800;color:var(--text2);margin:16px 0 10px">Operatsiyalar</div>
-    ${myTxs.length===0?`<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Operatsiyalar yo'q</div></div>`:myTxs.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).map(tx=>txRowHtml(tx)).join('')}
+    ${(curObRole==='owner'&&m.role==='member')||(curObRole==='member'&&m.role==='worker')?`
+      <button onclick="closeSendToMember('${uid}')" style="width:100%;padding:13px;border-radius:14px;border:none;background:#eff6ff;color:#3b82f6;font-size:14px;font-weight:800;margin-bottom:12px;cursor:pointer">
+        💸 ${curLang==='ru'?'Отправить деньги':'Pul yuborish'}
+      </button>`:''}
+    <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:10px">${curLang==='ru'?'Операции':'Operatsiyalar'}</div>
+    ${myTxs.length?myTxs.map(tx=>txRowHtml(tx)).join(''):`<div class="empty"><div class="empty-ico">📋</div><div class="empty-txt">${curLang==='ru'?'Нет операций':"Yo'q"}</div></div>`}
   `;
-  openSbg('member-detail-bg');
+  openSheet('txdetail');
 }
 
-function openSendMoneyTo(uid){
-  const sel=document.getElementById('send-to-select');
+function closeSendToMember(uid){
+  closeSheet('sh-txdetail');
+  const sel=document.getElementById('send-to');
   sel.innerHTML='';
-  const m=obMembers.find(m=>m.user_id===uid);
-  const name=m?.profiles?.full_name||'';
+  const m=curObMembers.find(m=>m.user_id===uid);
   const opt=document.createElement('option');
-  opt.value=uid;opt.textContent=name;
+  opt.value=uid;opt.textContent=m?.profiles?.full_name||'?';
   sel.appendChild(opt);
   document.getElementById('send-amount').value='';
   document.getElementById('send-note').value='';
-  document.getElementById('send-money-title').textContent=`💸 ${name}ga yuborish`;
+  document.getElementById('send-dt').value=new Date().toISOString().slice(0,16);
   if(curObRole!=='owner'){
     const myBal=allObs.find(o=>o.ob.id===curObId)?.myBalance||0;
     const info=document.getElementById('send-bal-info');
-    info.textContent=`Sizning qo'lingizdagi pul: ${usd(myBal)} so'm`;
+    info.textContent=(curLang==='ru'?'У меня на руках: ':"Qo'limdagi pul: ")+fmt(myBal);
     info.style.display='block';
-  }else{
-    document.getElementById('send-bal-info').style.display='none';
   }
-  openSbg('send-money-bg');
-}
-
-async function removeMemberConfirm(uid){
-  const btn=document.getElementById('remove-member-btn');
-  if(btn.dataset.confirm!=='1'){
-    btn.dataset.confirm='1';btn.textContent='⚠️ Tasdiqlaysizmi?';
-    btn.style.background='#fef3c7';btn.style.borderColor='#d97706';btn.style.color='#d97706';
-    setTimeout(()=>{if(btn.dataset.confirm==='1'){btn.dataset.confirm='';btn.textContent="A'zolikdan chiqarish";btn.style.background='transparent';btn.style.borderColor='var(--red)';btn.style.color='var(--red)';}},3000);
-    return;
-  }
-  const {error}=await sb.from('ob_members').delete().eq('ob_id',curObId).eq('user_id',uid);
-  if(!error){
-    closeSbg('member-detail-bg');
-    toast('A\'zo chiqarildi','#64748b');
-    await openOb(curObId);
-  }
-}
-
-// ═══════════════════════════════════════════
-// FAB
-// ═══════════════════════════════════════════
-function openMainFab(){
-  if(curPage==='home'||curPage==='projects'){
-    openSbg('new-ob-bg');
-    document.getElementById('new-ob-date').value=new Date().toISOString().slice(0,10);
-  }else if(curPage==='ob-detail'){
-    if(curObRole==='owner'){
-      openSbg('add-income-bg');
-      document.getElementById('income-amount').value='';
-      document.getElementById('income-note').value='';
-    }else{
-      openSpendMoney();
-    }
-  }
+  openSheet('send');
 }
 
 // ═══════════════════════════════════════════
 // HISOBOT
 // ═══════════════════════════════════════════
 async function renderHisobot(){
-  if(allObs.length===0){
-    document.getElementById('hisobot-content').innerHTML=`<div class="empty" style="padding-top:60px"><div class="empty-icon">📊</div><div class="empty-text">Hali ma'lumot yo'q</div><div class="empty-sub">Loyihalar qo'shgach hisobot ko'rasiz</div></div>`;
+  await loadAll();
+  if(!allObs.length){
+    document.getElementById('hisobot-content').innerHTML=`<div class="empty" style="padding-top:60px"><div class="empty-ico">📊</div><div class="empty-txt">${curLang==='ru'?'Нет данных':"Ma'lumot yo'q"}</div></div>`;
     return;
   }
-
-  let totalIn=0,totalOut=0,totalHand=0;
-  let byMonth={};
-  const now=new Date();
-
-  // Load all transactions for all obs
   const obIds=allObs.map(o=>o.ob.id);
-  const {data:allTxs}=await sb.from('transactions').select('*').in('ob_id',obIds);
+  let q=sb.from('transactions').select('*').in('ob_id',obIds);
+  const now=new Date();
+  if(hisPeriod==='month'){
+    const start=new Date(now.getFullYear(),now.getMonth(),1).toISOString();
+    q=q.gte('created_at',start);
+  }else if(hisPeriod==='week'){
+    const start=new Date(now-7*24*3600*1000).toISOString();
+    q=q.gte('created_at',start);
+  }
+  const {data:txs}=await q.or(`from_user.eq.${curUser?.id},to_user.eq.${curUser?.id}`).order('created_at',{ascending:false});
+  const allT=txs||[];
 
-  (allTxs||[]).forEach(tx=>{
-    if(tx.tur==='income')totalIn+=tx.summa||0;
-    if(tx.tur==='spend')totalOut+=tx.summa||0;
-    // By month
-    const d=new Date(tx.created_at);
-    const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-    if(!byMonth[key])byMonth[key]={in:0,out:0};
-    if(tx.tur==='income')byMonth[key].in+=tx.summa||0;
-    if(tx.tur==='spend')byMonth[key].out+=tx.summa||0;
+  let totalIn=0,totalOut=0;
+  const catTotals={};
+  allT.forEach(tx=>{
+    const isIn=tx.tur==='income'||(tx.tur==='send'&&tx.to_user===curUser?.id);
+    const isOut=tx.tur==='spend'||(tx.tur==='send'&&tx.from_user===curUser?.id);
+    if(isIn)totalIn+=tx.summa||0;
+    if(isOut){
+      totalOut+=tx.summa||0;
+      if(tx.tur==='spend'){
+        catTotals[tx.kategoriya]=(catTotals[tx.kategoriya]||0)+(tx.summa||0);
+      }
+    }
   });
 
-  allObs.forEach(({myBalance})=>totalHand+=myBalance);
+  // Donut chart
+  let donutHtml='';
+  if(regime==='pro'&&totalOut>0){
+    const catArr=Object.entries(catTotals).sort((a,b)=>b[1]-a[1]);
+    const total=catArr.reduce((s,[,v])=>s+v,0);
+    let offset=0;const r=54;const circ=2*Math.PI*r;
+    const slices=catArr.map(([cat,val],i)=>{
+      const c=CATS.find(c=>c.id===cat)||CATS[5];
+      const pct=val/total;
+      const dash=pct*circ;
+      const s=`<circle cx="70" cy="70" r="${r}" fill="none" stroke="${CAT_COLORS[i%CAT_COLORS.length]}" stroke-width="14" stroke-dasharray="${dash} ${circ-dash}" stroke-dashoffset="${-offset}" stroke-linecap="round"/>`;
+      offset+=dash;
+      return s;
+    });
+    const legendHtml=catArr.slice(0,5).map(([cat,val],i)=>{
+      const c=CATS.find(c=>c.id===cat)||CATS[5];
+      return`<div class="legend-item">
+        <div class="legend-dot" style="background:${CAT_COLORS[i%CAT_COLORS.length]}"></div>
+        <div class="legend-name">${c.emoji} ${curLang==='ru'?c.ru:c.uz}</div>
+        <div class="legend-val">${fmt(val)}</div>
+      </div>`;
+    }).join('');
+    donutHtml=`<div style="background:var(--card);border-radius:16px;padding:16px;margin:0 16px 12px;border:1px solid var(--border)">
+      <div style="font-size:14px;font-weight:800;margin-bottom:14px">📊 ${curLang==='ru'?'По категориям':'Kategoriyalar bo\'yicha'}</div>
+      <div style="display:flex;gap:16px;align-items:center">
+        <div class="donut-wrap" style="flex-shrink:0">
+          <svg width="140" height="140" viewBox="0 0 140 140">
+            <circle cx="70" cy="70" r="${r}" fill="none" stroke="var(--border)" stroke-width="14"/>
+            ${slices.join('')}
+          </svg>
+          <div class="donut-center">
+            <div class="donut-total">${fmt(total)}</div>
+            <div class="donut-lbl">${curLang==='ru'?'расход':'chiqim'}</div>
+          </div>
+        </div>
+        <div style="flex:1">${legendHtml}</div>
+      </div>
+    </div>`;
+  }
 
-  const months=Object.keys(byMonth).sort().slice(-4);
-  const maxVal=Math.max(...months.map(m=>Math.max(byMonth[m].in,byMonth[m].out)),1);
+  const txRows=allT.map(tx=>{
+    const isIn=tx.tur==='income'||(tx.tur==='send'&&tx.to_user===curUser?.id);
+    const isOut=tx.tur==='spend'||(tx.tur==='send'&&tx.from_user===curUser?.id);
+    const color=isIn?'var(--acc)':isOut?'var(--red)':'var(--muted)';
+    const sign=isIn?'+':isOut?'-':'';
+    const cat=CATS.find(c=>c.id===tx.kategoriya)||CATS[5];
+    const ob=allObs.find(o=>o.ob.id===tx.ob_id);
+    let title=tx.tur==='income'?(tx.izoh||(curLang==='ru'?'Приход':'Kirim')):curLang==='ru'?cat.ru:cat.uz;
+    if(tx.tur==='send')title=curLang==='ru'?'Перевод':'Yuborish';
+    const dt=tx.tx_date||tx.created_at;
+    return`<div class="tx-row">
+      <div class="tx-ico" style="background:${isIn?'#f0fdf4':'#fef2f2'}">${isIn?'📥':isOut?'💳':'💸'}</div>
+      <div style="flex:1;min-width:0">
+        <div class="tx-title">${title}</div>
+        <div class="tx-meta">${ob?.ob?.nomi||''} • ${fmtDate(dt)} ${fmtTime(dt)}</div>
+      </div>
+      <div class="tx-amount" style="color:${color}">${sign}${fmt(tx.summa)}</div>
+    </div>`;
+  }).join('');
 
   document.getElementById('hisobot-content').innerHTML=`
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:12px 16px">
-      <div class="card" style="text-align:center;margin:0">
-        <div style="font-size:20px;font-weight:900;color:var(--green)">${usd(totalIn)}</div>
-        <div style="font-size:11px;color:var(--muted);font-weight:700;margin-top:2px">KIRIM</div>
-      </div>
-      <div class="card" style="text-align:center;margin:0">
-        <div style="font-size:20px;font-weight:900;color:var(--red)">${usd(totalOut)}</div>
-        <div style="font-size:11px;color:var(--muted);font-weight:700;margin-top:2px">CHIQIM</div>
-      </div>
-      <div class="card" style="text-align:center;margin:0">
-        <div style="font-size:20px;font-weight:900;color:var(--yellow)">${usd(totalHand)}</div>
-        <div style="font-size:11px;color:var(--muted);font-weight:700;margin-top:2px">QO'LDA</div>
-      </div>
+      <div class="stat-card"><div class="stat-val" style="color:var(--acc)">${fmt(totalIn)}</div><div class="stat-lbl">${curLang==='ru'?'ПРИХОД':'KIRIM'}</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:var(--red)">${fmt(totalOut)}</div><div class="stat-lbl">${curLang==='ru'?'РАСХОД':'CHIQIM'}</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:${totalIn-totalOut>=0?'var(--acc)':'var(--red)'}">${fmt(totalIn-totalOut)}</div><div class="stat-lbl">${curLang==='ru'?'ФОЙДА':'FOYDA'}</div></div>
     </div>
-
-    <div class="chart-card">
-      <div class="chart-title">📊 Dinamika</div>
-      ${months.length===0?'<div style="color:var(--muted);text-align:center;font-size:13px;padding:20px">Ma\'lumot yo\'q</div>':months.map(m=>{
-        const mv=byMonth[m];
-        const inW=Math.round((mv.in/maxVal)*100);
-        const outW=Math.round((mv.out/maxVal)*100);
-        const mn=m.split('-');
-        const lbl=mn[1]+'/'+mn[0].slice(2);
-        return`<div class="bar-row">
-          <div class="bar-lbl">${lbl}</div>
-          <div class="bar-wraps" style="flex:1">
-            <div class="bar-wrap"><div class="bar-fill bar-in" style="width:${inW}%"></div></div>
-            <div class="bar-wrap" style="margin-top:3px"><div class="bar-fill bar-out" style="width:${outW}%"></div></div>
-          </div>
-          <div class="bar-vals">
-            <div style="font-size:10px;color:var(--green);font-weight:700">+${usd(mv.in)}</div>
-            <div style="font-size:10px;color:var(--red);font-weight:700">-${usd(mv.out)}</div>
-          </div>
-        </div>`;
-      }).join('')}
-    </div>
-
+    ${donutHtml}
     <div style="padding:0 16px">
-      <div style="font-size:14px;font-weight:800;margin-bottom:10px">Loyihalar bo'yicha</div>
-      ${allObs.map(({ob,role,myBalance})=>{
-        const bal=role==='owner'?(ob.kirim||0)-(ob.chiqim||0):myBalance;
-        return`<div class="ob-card" onclick="openOb('${ob.id}')">
-          <div class="ob-ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-4 0v2"/></svg></div>
-          <div class="ob-info"><div class="ob-name">${ob.nomi}</div><div class="ob-meta">Kirim: ${usd(ob.kirim||0)} | Chiqim: ${usd(ob.chiqim||0)}</div></div>
-          <div class="ob-bal"><div class="ob-bal-val" style="color:${bal>=0?'var(--green)':'var(--red)'}">${usd(bal)}</div></div>
-        </div>`;
-      }).join('')}
+      <div style="font-size:14px;font-weight:800;margin-bottom:10px">${curLang==='ru'?'Все операции':'Barcha operatsiyalar'}</div>
+      ${txRows||`<div class="empty"><div class="empty-ico">📋</div><div class="empty-txt">${curLang==='ru'?'Нет данных':"Ma'lumot yo'q"}</div></div>`}
     </div>
   `;
+}
+
+function setHisFilter(period,el){
+  hisPeriod=period;
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  renderHisobot();
+}
+
+// ═══════════════════════════════════════════
+// PDF EXPORT
+// ═══════════════════════════════════════════
+async function exportPDF(){
+  const obIds=allObs.map(o=>o.ob.id);
+  const {data:txs}=await sb.from('transactions').select('*').in('ob_id',obIds)
+    .or(`from_user.eq.${curUser?.id},to_user.eq.${curUser?.id}`)
+    .order('created_at',{ascending:false});
+  const allT=txs||[];
+  let totalIn=0,totalOut=0;
+  allT.forEach(tx=>{
+    const isIn=tx.tur==='income'||(tx.tur==='send'&&tx.to_user===curUser?.id);
+    const isOut=tx.tur==='spend'||(tx.tur==='send'&&tx.from_user===curUser?.id);
+    if(isIn)totalIn+=tx.summa||0;
+    if(isOut)totalOut+=tx.summa||0;
+  });
+
+  const rows=allT.map(tx=>{
+    const isIn=tx.tur==='income'||(tx.tur==='send'&&tx.to_user===curUser?.id);
+    const ob=allObs.find(o=>o.ob.id===tx.ob_id);
+    const dt=tx.tx_date||tx.created_at;
+    return`<tr>
+      <td>${fmtDT(dt)}</td>
+      <td>${ob?.ob?.nomi||'-'}</td>
+      <td>${tx.tur}</td>
+      <td>${tx.izoh||'-'}</td>
+      <td style="color:${isIn?'green':'red'};font-weight:bold">${isIn?'+':'-'}${fmt(tx.summa)}</td>
+    </tr>`;
+  }).join('');
+
+  const html=`<html><head><meta charset="UTF-8"><style>
+    body{font-family:Arial,sans-serif;padding:20px;font-size:12px}
+    h1{color:#16a34a;margin-bottom:4px}
+    .summary{display:flex;gap:20px;margin:16px 0;padding:12px;background:#f0fdf4;border-radius:8px}
+    .s-item{text-align:center}.s-label{font-size:10px;color:#666}.s-val{font-size:16px;font-weight:bold}
+    table{width:100%;border-collapse:collapse}
+    th{background:#16a34a;color:#fff;padding:8px;text-align:left}
+    td{padding:6px 8px;border-bottom:1px solid #eee}
+    tr:nth-child(even){background:#f9fafb}
+  </style></head><body>
+    <h1>Qurilish — Hisobot</h1>
+    <div style="color:#666;margin-bottom:12px">${curProfile?.full_name} • ${fmtDate(new Date().toISOString())}</div>
+    <div class="summary">
+      <div class="s-item"><div class="s-label">${curLang==='ru'?'ПРИХОД':'KIRIM'}</div><div class="s-val" style="color:green">${fmt(totalIn)}</div></div>
+      <div class="s-item"><div class="s-label">${curLang==='ru'?'РАСХОД':'CHIQIM'}</div><div class="s-val" style="color:red">${fmt(totalOut)}</div></div>
+      <div class="s-item"><div class="s-label">${curLang==='ru'?'ФОЙДА':'FOYDA'}</div><div class="s-val">${fmt(totalIn-totalOut)}</div></div>
+    </div>
+    <table><thead><tr>
+      <th>${curLang==='ru'?'Дата':'Sana'}</th>
+      <th>${curLang==='ru'?'Объект':'Obyekt'}</th>
+      <th>${curLang==='ru'?'Тип':'Tur'}</th>
+      <th>${curLang==='ru'?'Комментарий':'Izoh'}</th>
+      <th>${curLang==='ru'?'Сумма':'Summa'}</th>
+    </tr></thead><tbody>${rows}</tbody></table>
+  </body></html>`;
+
+  const blob=new Blob([html],{type:'text/html'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`qurilish-hisobot-${new Date().toISOString().slice(0,10)}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('✅ '+(curLang==='ru'?'Экспорт готов':'Eksport tayyor'),'#16a34a');
 }
 
 // ═══════════════════════════════════════════
 // PROFIL
 // ═══════════════════════════════════════════
-function renderProfil(){
+async function renderProfil(){
+  await loadAll();
   const name=curProfile?.full_name||'?';
-  const phone=curProfile?.phone||curUser?.phone||'';
   document.getElementById('profil-av').textContent=name.charAt(0).toUpperCase();
-  document.getElementById('profil-name-disp').textContent=name;
-  document.getElementById('profil-phone-disp').textContent=phone;
+  document.getElementById('profil-name').textContent=name;
+  document.getElementById('profil-phone').textContent=curProfile?.phone||curUser?.email||'';
+  // Stats
+  let totalBal=0;
+  allObs.forEach(({ob,role,myBalance})=>{
+    if(role==='owner')totalBal+=((ob.kirim||0)-(ob.chiqim||0));
+    else totalBal+=myBalance;
+  });
+  document.getElementById('profil-bal').textContent=fmt(totalBal);
+  document.getElementById('profil-obs').textContent=allObs.length;
+  // Count unique people across all obs
+  const obIds=allObs.filter(o=>o.role==='owner').map(o=>o.ob.id);
+  let peopleCount=0;
+  if(obIds.length){
+    const {data:members}=await sb.from('ob_members').select('user_id').in('ob_id',obIds);
+    const unique=new Set((members||[]).map(m=>m.user_id));
+    unique.delete(curUser?.id);
+    peopleCount=unique.size;
+  }
+  document.getElementById('profil-people').textContent=peopleCount;
+  document.getElementById('profil-regime-val').textContent=regime.toUpperCase();
+  document.getElementById('soz-regime-val').textContent=regime.toUpperCase();
 }
 
-function openEditName(){
-  document.getElementById('edit-name-inp').value=curProfile?.full_name||'';
-  openSbg('edit-name-bg');
+function openEditProfile(){
+  document.getElementById('edit-name').value=curProfile?.full_name||'';
+  openSheet('editprof');
 }
 
-async function saveEditName(){
-  const name=document.getElementById('edit-name-inp').value.trim();
+async function saveProfile(){
+  const name=document.getElementById('edit-name').value.trim();
   if(!name)return;
-  await sb.from('profiles').update({full_name:name}).eq('id',curUser.id);
+  await sb.from('profiles').update({full_name:name}).eq('id',curUser?.id);
   curProfile={...curProfile,full_name:name};
-  closeSbg('edit-name-bg');
-  toast('✅ Saqlandi!','#16a34a');
+  closeSheet('sh-editprof');
+  toast('✅ '+(curLang==='ru'?'Сохранено':'Saqlandi'),'#16a34a');
   renderProfil();
 }
 
+// ═══════════════════════════════════════════
+// REGIME
+// ═══════════════════════════════════════════
+function showRegime(){
+  document.getElementById('regime-lite').style.borderColor=regime==='lite'?'var(--acc)':'var(--border)';
+  document.getElementById('regime-pro').style.borderColor=regime==='pro'?'var(--acc)':'var(--border)';
+  openSheet('regime');
+}
+
+function setRegime(r){
+  regime=r;
+  localStorage.setItem('regime',r);
+  closeSheet('sh-regime');
+  document.getElementById('profil-regime-val').textContent=r.toUpperCase();
+  document.getElementById('soz-regime-val').textContent=r.toUpperCase();
+  toast('✅ '+(r==='pro'?'Pro':'Lite')+' '+(curLang==='ru'?'режим активирован':'rejim yoqildi'),'#16a34a');
+  renderHome();
+}
+
+// ═══════════════════════════════════════════
+// BACKUP
+// ═══════════════════════════════════════════
+async function doBackup(){
+  await loadAll();
+  const obIds=allObs.map(o=>o.ob.id);
+  const {data:txs}=await sb.from('transactions').select('*').in('ob_id',obIds);
+  const backup={
+    date:new Date().toISOString(),
+    user:curProfile,
+    obs:allObs.map(o=>o.ob),
+    transactions:txs||[]
+  };
+  const blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`qurilish-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('✅ '+(curLang==='ru'?'Резервная копия сохранена':'Zaxira saqlandi'),'#16a34a');
+}
+
+// ═══════════════════════════════════════════
+// LOGOUT
+// ═══════════════════════════════════════════
 async function doLogout(){
   await sb.auth.signOut();
   location.reload();
 }
 
 // ═══════════════════════════════════════════
-// INIT — Check session
+// SQL: add tx_date column
+// ═══════════════════════════════════════════
+
+// ═══════════════════════════════════════════
+// INIT
 // ═══════════════════════════════════════════
 (async()=>{
+  document.getElementById('load-sub').textContent=curLang==='ru'?'Загрузка...':'Yuklanmoqda...';
+  applyLang();
   const {data:{session}}=await sb.auth.getSession();
   if(session){
     curUser=session.user;
-    await loadOrCreateProfile();
+    await loadProfile();
+  }else{
+    document.getElementById('loading').style.display='none';
+    document.getElementById('pg-auth').style.display='flex';
   }
 })();
 </script>
