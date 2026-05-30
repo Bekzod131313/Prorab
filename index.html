@@ -82,18 +82,13 @@ a{text-decoration:none;color:inherit}
 .dash-stat{background:rgba(255,255,255,.09);border-radius:14px;padding:14px;border:1px solid rgba(255,255,255,.07)}
 .dash-stat-lbl{font-size:11px;color:rgba(255,255,255,.5);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;gap:4px}
 .dash-stat-val{font-size:20px;font-weight:900}
-/* Quick actions */
-.quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:0 16px;margin-bottom:20px}
-.qa-card{background:var(--card);border-radius:16px;padding:14px 8px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;box-shadow:var(--shadow);transition:transform .15s}
-.qa-card:active{transform:scale(.94)}
-.qa-ico{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px}
-.qa-lbl{font-size:12px;font-weight:600;color:var(--text2);text-align:center}
+
 /* Quick actions */
 .quick-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:0 16px;margin-bottom:20px}
 .qa-btn{background:var(--card);border-radius:16px;padding:14px 8px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;border:1px solid var(--border);transition:transform .15s}
 .qa-btn:active{transform:scale(.95)}
-.qa-ico{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:20px}
-.qa-lbl{font-size:12px;font-weight:700;color:var(--text2);text-align:center}
+
+
 /* Ob card new style */
 .ob-card-new{background:var(--card);border-radius:18px;padding:16px;margin-bottom:10px;cursor:pointer;border:1px solid var(--border);transition:transform .15s;overflow:hidden;position:relative}
 .ob-card-new:active{transform:scale(.98)}
@@ -315,51 +310,7 @@ a{text-decoration:none;color:inherit}
       </div>
     </div>
 
-    <!-- Quick actions -->
-    <div class="quick-actions">
-      <div class="qa-btn" onclick="gp('projects')">
-        <div class="qa-ico" style="background:#fff7ed">🏗</div>
-        <div class="qa-lbl" id="qa-obs">Obyektlar</div>
-      </div>
-      <div class="qa-btn" onclick="openMainFab()">
-        <div class="qa-ico" style="background:#fef2f2">➕</div>
-        <div class="qa-lbl" id="qa-chiqim">Chiqim</div>
-      </div>
-      <div class="qa-btn" onclick="gp('workers')">
-        <div class="qa-ico" style="background:#eff6ff">👷</div>
-        <div class="qa-lbl" id="qa-ishchilar">Ishchilar</div>
-      </div>
-      <div class="qa-btn" onclick="gp('hisobot')">
-        <div class="qa-ico" style="background:#f0fdf4">📊</div>
-        <div class="qa-lbl" id="qa-hisobot">Hisobot</div>
-      </div>
-    </div>
-
-    <!-- Quick Actions -->
-    <div class="quick-grid">
-      <div class="qa-card" onclick="gp('projects')">
-        <div class="qa-ico" style="background:#fff7ed">🏗</div>
-        <div class="qa-lbl" id="qa-obs">Obyektlar</div>
-      </div>
-      <div class="qa-card" onclick="openMainFab()">
-        <div class="qa-ico" style="background:#fef2f2">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="var(--red)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
-        </div>
-        <div class="qa-lbl" id="qa-chiqim">Chiqim</div>
-      </div>
-      <div class="qa-card" onclick="gp('workers')">
-        <div class="qa-ico" style="background:#eff6ff">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        </div>
-        <div class="qa-lbl" id="qa-ishchilar">Ishchilar</div>
-      </div>
-      <div class="qa-card" onclick="gp('hisobot')">
-        <div class="qa-ico" style="background:#f0fdf4">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><rect x="3" y="3" width="4" height="18"/><rect x="10" y="8" width="4" height="13"/><rect x="17" y="13" width="4" height="8"/></svg>
-        </div>
-        <div class="qa-lbl" id="qa-hisobot">Hisobot</div>
-      </div>
-    </div>
+    <!-- Quick a
 
     <div id="pro-banner-wrap"></div>
 
@@ -1121,13 +1072,7 @@ async function renderHome(){
   document.getElementById('dash-total').textContent=(totalIn-totalOut>=0?'+':'')+fmt(totalIn-totalOut);
   document.getElementById('dash-today-in').textContent=fmt(totalIn);
   document.getElementById('dash-today-out').textContent=fmt(totalOut);
-  // Quick action labels
-  document.getElementById('qa-obs').textContent=curLang==='ru'?'Объекты':'Obyektlar';
-  document.getElementById('qa-chiqim').textContent=curLang==='ru'?'Расход':'Chiqim';
-  document.getElementById('qa-ishchilar').textContent=curLang==='ru'?'Рабочие':'Ishchilar';
-  document.getElementById('qa-hisobot').textContent=curLang==='ru'?'Отчёт':'Hisobot';
-
-  // Pro banner
+// Pro banner
   const banner=document.getElementById('pro-banner-wrap');
   if(regime==='lite'){
     banner.innerHTML=`<div class="pro-banner" onclick="showRegime()">
