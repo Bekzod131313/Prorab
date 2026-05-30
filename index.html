@@ -69,15 +69,34 @@ a{text-decoration:none;color:inherit}
 .topbar-back{width:36px;height:36px;border-radius:10px;background:var(--bg);display:flex;align-items:center;justify-content:center;cursor:pointer;border:none}
 
 /* DASHBOARD */
-.dash-header{background:linear-gradient(135deg,#15803D,#16A34A);padding:20px 16px 28px;color:#fff}
-.dash-greeting{font-size:14px;color:rgba(255,255,255,.7);margin-bottom:2px}
-.dash-name{font-size:20px;font-weight:800;margin-bottom:20px}
-.dash-balance{font-size:13px;color:rgba(255,255,255,.7);margin-bottom:6px}
-.dash-amount{font-size:36px;font-weight:900;margin-bottom:16px}
+.dash-header{background:linear-gradient(160deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);padding:20px 16px 28px;color:#fff;border-radius:0 0 24px 24px;margin-bottom:16px}
+.dash-greeting{font-size:13px;color:rgba(255,255,255,.5);margin-bottom:2px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.dash-name{font-size:22px;font-weight:900;margin-bottom:20px}
+.dash-balance{font-size:13px;color:rgba(255,255,255,.5);margin-bottom:4px;font-weight:600}
+.dash-amount{font-size:42px;font-weight:900;margin-bottom:16px;letter-spacing:-1px}
 .dash-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.dash-stat{background:rgba(255,255,255,.12);border-radius:12px;padding:12px}
-.dash-stat-lbl{font-size:11px;color:rgba(255,255,255,.6);font-weight:700;text-transform:uppercase;margin-bottom:4px}
-.dash-stat-val{font-size:18px;font-weight:800}
+.dash-stat{background:rgba(255,255,255,.08);border-radius:14px;padding:14px;border:1px solid rgba(255,255,255,.08)}
+.dash-stat-lbl{font-size:10px;color:rgba(255,255,255,.45);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;gap:4px}
+.dash-stat-val{font-size:20px;font-weight:900}
+/* Quick actions */
+.quick-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:0 16px;margin-bottom:20px}
+.qa-btn{background:var(--card);border-radius:16px;padding:14px 8px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;border:1px solid var(--border);transition:transform .15s}
+.qa-btn:active{transform:scale(.95)}
+.qa-ico{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.qa-lbl{font-size:12px;font-weight:700;color:var(--text2);text-align:center}
+/* Ob card new style */
+.ob-card-new{background:var(--card);border-radius:18px;padding:16px;margin-bottom:10px;cursor:pointer;border:1px solid var(--border);transition:transform .15s;overflow:hidden;position:relative}
+.ob-card-new:active{transform:scale(.98)}
+.ob-card-header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.ob-card-ico{width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:22px;position:relative}
+.ob-card-active-dot{width:10px;height:10px;background:#4ade80;border-radius:50%;border:2px solid #fff;position:absolute;top:2px;right:2px}
+.ob-card-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.ob-stat-item{display:flex;flex-direction:column;gap:2px}
+.ob-stat-lbl{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase}
+.ob-stat-val{font-size:15px;font-weight:800}
+.ob-progress{height:4px;background:var(--border);border-radius:4px;overflow:hidden}
+.ob-progress-fill{height:4px;background:var(--acc);border-radius:4px;transition:width .5s ease}
+.ob-days-left{font-size:12px;font-weight:700;color:var(--acc);margin-top:6px}
 
 /* CARDS */
 .card{background:var(--card);border-radius:16px;padding:16px;margin-bottom:10px}
@@ -262,30 +281,58 @@ a{text-decoration:none;color:inherit}
 
   <!-- DASHBOARD -->
   <div class="page active" id="pg-home">
+    <!-- Balance card -->
     <div class="dash-header">
-      <div class="dash-greeting" id="dash-greeting">Salom,</div>
-      <div class="dash-name" id="dash-name">-</div>
-      <div class="dash-balance" id="lbl-umumiy-balans">Umumiy balans</div>
+      <div class="dash-greeting" id="dash-greeting">UMUMIY BALANS</div>
       <div class="dash-amount" id="dash-total">$0</div>
       <div class="dash-row">
         <div class="dash-stat">
-          <div class="dash-stat-lbl" id="lbl-bugunki-kirim">Bugungi kirim</div>
-          <div class="dash-stat-val" id="dash-today-in" style="color:#4ade80">$0</div>
+          <div class="dash-stat-lbl" id="lbl-bugunki-kirim">↓ KIRIM</div>
+          <div class="dash-stat-val" id="dash-today-in" style="color:#fff">$0</div>
         </div>
         <div class="dash-stat">
-          <div class="dash-stat-lbl" id="lbl-bugunki-chiqim">Bugungi chiqim</div>
+          <div class="dash-stat-lbl" id="lbl-bugunki-chiqim">↑ CHIQIM</div>
           <div class="dash-stat-val" id="dash-today-out" style="color:#f87171">$0</div>
         </div>
       </div>
     </div>
+
+    <!-- Quick actions -->
+    <div class="quick-actions">
+      <div class="qa-btn" onclick="gp('projects')">
+        <div class="qa-ico" style="background:#fff7ed">🏗</div>
+        <div class="qa-lbl" id="qa-obs">Obyektlar</div>
+      </div>
+      <div class="qa-btn" onclick="openMainFab()">
+        <div class="qa-ico" style="background:#fef2f2">➕</div>
+        <div class="qa-lbl" id="qa-chiqim">Chiqim</div>
+      </div>
+      <div class="qa-btn" onclick="gp('workers')">
+        <div class="qa-ico" style="background:#eff6ff">👷</div>
+        <div class="qa-lbl" id="qa-ishchilar">Ishchilar</div>
+      </div>
+      <div class="qa-btn" onclick="gp('hisobot')">
+        <div class="qa-ico" style="background:#f0fdf4">📊</div>
+        <div class="qa-lbl" id="qa-hisobot">Hisobot</div>
+      </div>
+    </div>
+
     <div id="pro-banner-wrap"></div>
+
     <div class="section">
       <div class="section-head">
-        <div class="section-title" id="lbl-mening-obyektlar">Mening obyektlarim</div>
+        <div class="section-title" id="lbl-mening-obyektlar">Faol obyektlar</div>
         <div class="section-more" onclick="gp('projects')" id="lbl-barchasi">Barchasi →</div>
       </div>
       <div id="home-obs"></div>
-      <button class="btn btn-acc" style="margin-top:8px" onclick="openNewOb()" id="lbl-yangi-ob">+ Yangi obyekt</button>
+    </div>
+
+    <div class="section" id="home-last-txs-wrap" style="display:none">
+      <div class="section-head">
+        <div class="section-title" id="lbl-oxirgi-txs">Oxirgi operatsiyalar</div>
+        <div class="section-more" onclick="gp('hisobot')" id="lbl-barchasi2">Barchasi →</div>
+      </div>
+      <div id="home-last-txs"></div>
     </div>
   </div>
 
@@ -454,6 +501,14 @@ a{text-decoration:none;color:inherit}
     </div>
   </div>
 
+
+  <!-- WORKERS PAGE -->
+  <div class="page" id="pg-workers">
+    <div class="topbar">
+      <div class="topbar-title" id="lbl-ishchilar-page">Ishchilar</div>
+    </div>
+    <div style="padding:12px 16px" id="workers-list"></div>
+  </div>
   <!-- BOTTOM NAV -->
   <nav class="bnav">
     <div class="bnav-item active" onclick="gp('home')" id="nav-home">
@@ -473,11 +528,26 @@ a{text-decoration:none;color:inherit}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       <span id="lbl-nav-his">Hisobot</span>
     </div>
-    <div class="bnav-item" onclick="gp('profil')" id="nav-profil">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      <span id="lbl-nav-profil">Profil</span>
+    <div class="bnav-item" onclick="gp('workers')" id="nav-workers">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      <span id="lbl-nav-workers">Ishchilar</span>
     </div>
   </nav>
+
+<!-- FAB Spend Sheet -->
+<div class="overlay" id="ov-fab-spend" onclick="closeSheet('sh-fab-spend')"></div>
+<div class="sheet" id="sh-fab-spend">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title" id="lbl-xarajat">💳 Xarajat</div>
+  <div class="sheet-body">
+    <div class="inp-group">
+      <label class="inp-lbl" id="lbl-qaysi-ob">Qaysi obyekt?</label>
+      <select class="inp" id="fab-ob-sel" style="font-size:15px;font-weight:700"></select>
+    </div>
+    <div class="inp-lbl" style="margin-bottom:10px" id="lbl-kategoriya-tan">Kategoriyani tanlang</div>
+    <div id="fab-cats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div>
+  </div>
+</div>
 </div>
 
 <!-- SHEETS -->
@@ -725,6 +795,18 @@ const CATS=[
   {id:'ovqat',emoji:'🍱',uz:'Ovqat',ru:'Еда'},
   {id:'boshqa',emoji:'➕',uz:'Boshqa',ru:'Другое'},
 ];
+const CATS_ALL=[
+  {id:'usta',emoji:'🔧',uz:'Usta',ru:'Мастер'},
+  {id:'bozor',emoji:'🛒',uz:'Bozor',ru:'Рынок'},
+  {id:'dostavka',emoji:'🚚',uz:'Yetkazish',ru:'Доставка'},
+  {id:'dokon',emoji:'🏪',uz:"Do'kon",ru:'Магазин'},
+  {id:'ovqat',emoji:'🍱',uz:'Ovqat',ru:'Еда'},
+  {id:'taksi',emoji:'🚕',uz:'Taksi',ru:'Такси'},
+  {id:'material',emoji:'🧱',uz:'Material',ru:'Материал'},
+  {id:'asbob',emoji:'🔩',uz:'Asbob',ru:'Инструмент'},
+  {id:'kommunal',emoji:'💡',uz:'Kommunal',ru:'Коммунальные'},
+  {id:'boshqa',emoji:'➕',uz:'Boshqa',ru:'Другое'},
+];
 const CAT_COLORS=['#ea580c','#16a34a','#3b82f6','#a855f7','#f59e0b','#64748b'];
 
 // ═══════════════════════════════════════════
@@ -882,11 +964,102 @@ function gp(page){
   if(page==='projects')renderObs();
   if(page==='hisobot')renderHisobot();
   if(page==='profil')renderProfil();
+  if(page==='workers')renderWorkers();
 }
 
 function openMainFab(){
-  if(curPage==='ob')openSheet('income');
-  else openSheet('newob');
+  openSpendFab();
+}
+
+function openSpendFab(){
+  // Populate ob selector
+  const sel = document.getElementById('fab-ob-sel');
+  sel.innerHTML = '';
+  if(!allObs.length){
+    toast(curLang==='ru'?'Сначала создайте объект':'Avval obyekt yarating','#ef4444');
+    return;
+  }
+  allObs.forEach(({ob,role})=>{
+    const opt = document.createElement('option');
+    opt.value = ob.id;
+    opt.textContent = ob.nomi;
+    sel.appendChild(opt);
+  });
+  // Select current ob if in ob page
+  if(curObId) sel.value = curObId;
+  
+  // Render categories
+  renderFabCats();
+  openSheet('fab-spend');
+}
+
+function renderFabCats(){
+  const isLite = regime==='lite';
+  const cats = isLite ? [
+    {id:'usta',emoji:'🔧',uz:'Usta',ru:'Мастер'},
+    {id:'bozor',emoji:'🛒',uz:'Bozor',ru:'Рынок'},
+    {id:'ovqat',emoji:'🍱',uz:'Ovqat',ru:'Еда'},
+    {id:'boshqa',emoji:'➕',uz:'Boshqa',ru:'Другое'},
+  ] : [
+    {id:'usta',emoji:'🔧',uz:'Usta',ru:'Мастер'},
+    {id:'bozor',emoji:'🛒',uz:'Bozor',ru:'Рынок'},
+    {id:'dostavka',emoji:'🚚',uz:'Yetkazish',ru:'Доставка'},
+    {id:'dokon',emoji:'🏪',uz:"Do'kon",ru:'Магазин'},
+    {id:'ovqat',emoji:'🍱',uz:'Ovqat',ru:'Еда'},
+    {id:'taksi',emoji:'🚕',uz:'Taksi',ru:'Такси'},
+    {id:'material',emoji:'🧱',uz:'Material',ru:'Материал'},
+    {id:'asbob',emoji:'🔩',uz:'Asbob',ru:'Инструмент'},
+    {id:'kommunal',emoji:'💡',uz:'Kommunal',ru:'Коммунальные'},
+    {id:'boshqa',emoji:'➕',uz:'Boshqa',ru:'Другое'},
+  ];
+  
+  const wrap = document.getElementById('fab-cats');
+  wrap.innerHTML = cats.map(c=>`
+    <div onclick="openFabCatSpend('${c.id}')" style="
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      padding:14px 8px;border-radius:14px;border:1.5px solid var(--border);
+      background:var(--card);cursor:pointer;gap:6px;transition:all .2s;
+      active:background:var(--bg)
+    " onmousedown="this.style.background='var(--bg)'" onmouseup="this.style.background='var(--card)'" ontouchstart="this.style.background='var(--bg)'" ontouchend="this.style.background='var(--card)'">
+      <div style="font-size:28px">${c.emoji}</div>
+      <div style="font-size:12px;font-weight:700;color:var(--text2);text-align:center">${curLang==='ru'?c.ru:c.uz}</div>
+    </div>
+  `).join('');
+}
+
+async function openFabCatSpend(catId){
+  const obId = document.getElementById('fab-ob-sel').value;
+  if(!obId){toast(curLang==='ru'?'Выберите объект':'Obyekt tanlang','#ef4444');return;}
+  
+  // Set current ob context
+  if(obId !== curObId){
+    const found = allObs.find(o=>o.ob.id===obId);
+    if(!found)return;
+    curObId=obId;curOb=found.ob;curObRole=found.role;
+    const {data:members}=await sb.from('ob_members').select('*,profiles(*)').eq('ob_id',obId);
+    curObMembers=members||[];
+    const {data:txs}=await sb.from('transactions').select('*').eq('ob_id',obId).order('created_at',{ascending:false});
+    curObTxs=txs||[];
+  }
+  
+  selCat = catId;
+  closeSheet('sh-fab-spend');
+  
+  // Open spend sheet with pre-selected category
+  const myBal = allObs.find(o=>o.ob.id===obId)?.myBalance||0;
+  document.getElementById('spend-mybal').textContent=fmt(myBal);
+  document.getElementById('spend-amount').value='';
+  document.getElementById('spend-note').value='';
+  document.getElementById('spend-dt').value=new Date().toISOString().slice(0,16);
+  
+  // Render cats with pre-selected
+  document.getElementById('spend-cats').innerHTML=CATS_ALL.map((c,i)=>`
+    <div onclick="selCat='${c.id}';renderSpendCats()" data-cat="${c.id}" style="padding:10px 6px;border-radius:10px;border:2px solid ${selCat===c.id?CAT_COLORS[i%CAT_COLORS.length]:'var(--border)'};background:${selCat===c.id?CAT_COLORS[i%CAT_COLORS.length]+'15':'var(--bg)'};text-align:center;cursor:pointer">
+      <div style="font-size:20px">${c.emoji}</div>
+      <div style="font-size:10px;font-weight:700;color:${selCat===c.id?CAT_COLORS[i%CAT_COLORS.length]:'var(--muted)'};margin-top:2px">${curLang==='ru'?c.ru:c.uz}</div>
+    </div>`).join('');
+  
+  openSheet('spend');
 }
 
 // ═══════════════════════════════════════════
@@ -895,17 +1068,20 @@ function openMainFab(){
 async function renderHome(){
   await loadAll();
   let totalIn=0,totalOut=0,todayIn=0,todayOut=0;
-  const today=new Date().toDateString();
+  const todayStr=new Date().toDateString();
   allObs.forEach(({ob,role,myBalance})=>{
     if(role==='owner'){totalIn+=ob.kirim||0;totalOut+=ob.chiqim||0;}
   });
-  document.getElementById('dash-name').textContent=curProfile?.full_name||'';
-  const h=new Date().getHours();
-  const gr=h<12?'Xayrli tong,':h<17?'Xayrli kun,':'Xayrli kech,';
-  document.getElementById('dash-greeting').textContent=t('lbl-umumiy-balans');
-  document.getElementById('dash-total').textContent=fmt(totalIn-totalOut);
-  document.getElementById('dash-today-in').textContent=fmt(todayIn);
-  document.getElementById('dash-today-out').textContent=fmt(todayOut);
+  // Update balans
+  document.getElementById('dash-greeting').textContent=curLang==='ru'?'ОБЩИЙ БАЛАНС':'UMUMIY BALANS';
+  document.getElementById('dash-total').textContent=(totalIn-totalOut>=0?'+':'')+fmt(totalIn-totalOut);
+  document.getElementById('dash-today-in').textContent=fmt(totalIn);
+  document.getElementById('dash-today-out').textContent=fmt(totalOut);
+  // Quick action labels
+  document.getElementById('qa-obs').textContent=curLang==='ru'?'Объекты':'Obyektlar';
+  document.getElementById('qa-chiqim').textContent=curLang==='ru'?'Расход':'Chiqim';
+  document.getElementById('qa-ishchilar').textContent=curLang==='ru'?'Рабочие':'Ishchilar';
+  document.getElementById('qa-hisobot').textContent=curLang==='ru'?'Отчёт':'Hisobot';
 
   // Pro banner
   const banner=document.getElementById('pro-banner-wrap');
@@ -921,29 +1097,109 @@ async function renderHome(){
   const list=document.getElementById('home-obs');
   const recent=allObs.slice(0,3);
   if(!recent.length){
-    list.innerHTML=`<div class="empty"><div class="empty-ico">🏗</div><div class="empty-txt">${curLang==='ru'?'Нет объектов':"Obyektlar yo'q"}</div></div>`;
+    list.innerHTML=`<div class="empty"><div class="empty-ico">🏗</div><div class="empty-txt">${curLang==='ru'?'Нет объектов':"Obyektlar yo'q"}</div><button class="btn btn-acc" style="margin-top:12px;max-width:200px" onclick="openNewOb()">${curLang==='ru'?'+ Новый объект':'+ Yangi obyekt'}</button></div>`;
     return;
   }
-  list.innerHTML=recent.map(o=>obCardHtml(o)).join('');
+  list.innerHTML=recent.map(o=>obCardHtml(o,true)).join('');
+
+  // Load tx counts
+  const obIds=recent.map(o=>o.ob.id);
+  if(obIds.length){
+    const {data:txs}=await sb.from('transactions').select('ob_id').in('ob_id',obIds);
+    recent.forEach(({ob})=>{
+      const count=(txs||[]).filter(t=>t.ob_id===ob.id).length;
+      const el=document.getElementById('ob-tx-count-'+ob.id);
+      if(el)el.textContent=count+' ta';
+    });
+  }
+
+  // Load last 3 txs across all obs
+  if(allObs.length){
+    const {data:lastTxs}=await sb.from('transactions')
+      .select('*').in('ob_id',allObs.map(o=>o.ob.id))
+      .or(`from_user.eq.${curUser?.id},to_user.eq.${curUser?.id}`)
+      .order('created_at',{ascending:false}).limit(3);
+    if(lastTxs&&lastTxs.length){
+      document.getElementById('home-last-txs-wrap').style.display='block';
+      // Need curObMembers for all obs - simplified version
+      curObTxs=lastTxs;
+      curObMembers=[];
+      document.getElementById('home-last-txs').innerHTML=lastTxs.map(tx=>{
+        const isIn=tx.tur==='income'||(tx.tur==='send'&&tx.to_user===curUser?.id);
+        const isOut=tx.tur==='spend'||(tx.tur==='send'&&tx.from_user===curUser?.id);
+        const color=isIn?'var(--acc)':isOut?'var(--red)':'var(--muted)';
+        const sign=isIn?'+':isOut?'-':'';
+        const ob=allObs.find(o=>o.ob.id===tx.ob_id);
+        const dt=tx.tx_date||tx.created_at;
+        return`<div class="tx-row">
+          <div class="tx-ico" style="background:${isIn?'#f0fdf4':'#fef2f2'}">${isIn?'📥':isOut?'💳':'💸'}</div>
+          <div style="flex:1;min-width:0">
+            <div class="tx-title">${ob?.ob?.nomi||'-'}</div>
+            <div class="tx-meta">${fmtDate(dt)} ${fmtTime(dt)}</div>
+          </div>
+          <div class="tx-amount" style="color:${color}">${sign}${fmt(tx.summa)}</div>
+        </div>`;
+      }).join('');
+    }
+  }
 }
 
-function obCardHtml({ob,role,myBalance}){
-  const colors=['#16a34a','#3b82f6','#a855f7','#ea580c','#f59e0b'];
+function obCardHtml({ob,role,myBalance},extended=false){
+  const colors=['#f97316','#3b82f6','#a855f7','#16a34a','#f59e0b'];
   let h=0;(ob.nomi||'').split('').forEach(c=>h+=c.charCodeAt(0));
   const bg=colors[h%colors.length];
   const bal=role==='owner'?(ob.kirim||0)-(ob.chiqim||0):myBalance;
   const roleLabel={owner:curLang==='ru'?'Хозяин':'Egasi',member:curLang==='ru'?'Мастер':'Usta',worker:curLang==='ru'?'Рабочий':'Ishchi'}[role];
   const badgeClass={owner:'badge-owner',member:'badge-member',worker:'badge-worker'}[role];
-  return`<div class="ob-card" onclick="openOb('${ob.id}')">
-    <div class="ob-ico" style="background:${bg}20">${ob.nomi?.charAt(0).toUpperCase()||'?'}</div>
-    <div style="flex:1;min-width:0">
-      <div class="ob-name">${ob.nomi}</div>
-      <div class="ob-meta"><span class="badge ${badgeClass}">${roleLabel}</span></div>
+
+  if(!extended){
+    // Simple card for projects page
+    return`<div class="ob-card" onclick="openOb('${ob.id}')">
+      <div class="ob-ico" style="background:${bg}20;font-size:20px;font-weight:800;color:${bg}">${ob.nomi?.charAt(0).toUpperCase()||'?'}</div>
+      <div style="flex:1;min-width:0">
+        <div class="ob-name">${ob.nomi}</div>
+        <div class="ob-meta"><span class="badge ${badgeClass}">${roleLabel}</span></div>
+      </div>
+      <div class="ob-bal">
+        <div class="ob-bal-val" style="color:${bal>=0?'var(--acc)':'var(--red)'}">${fmt(bal)}</div>
+        <div class="ob-bal-lbl">${curLang==='ru'?'баланс':'balans'}</div>
+      </div>
+    </div>`;
+  }
+
+  // Extended card for home page
+  const startDate=ob.boshlanish?new Date(ob.boshlanish):new Date(ob.created_at);
+  const endDate=new Date(startDate);
+  endDate.setDate(endDate.getDate()+(ob.muddat||30));
+  const today=new Date();
+  const totalDays=ob.muddat||30;
+  const passedDays=Math.max(0,Math.floor((today-startDate)/(1000*60*60*24)));
+  const leftDays=Math.max(0,totalDays-passedDays);
+  const progress=Math.min(100,Math.round((passedDays/totalDays)*100));
+
+  return`<div class="ob-card-new" onclick="openOb('${ob.id}')">
+    <div class="ob-card-header">
+      <div class="ob-card-ico" style="background:${bg}15;color:${bg}">
+        <span style="font-size:22px;font-weight:800">${ob.nomi?.charAt(0).toUpperCase()||'?'}</span>
+        <div class="ob-card-active-dot"></div>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:16px;font-weight:800">${ob.nomi}</div>
+        <div style="margin-top:2px"><span class="badge ${badgeClass}">${roleLabel}</span></div>
+      </div>
     </div>
-    <div class="ob-bal">
-      <div class="ob-bal-val" style="color:${bal>=0?'var(--acc)':'var(--red)'}">${fmt(bal)}</div>
-      <div class="ob-bal-lbl">${curLang==='ru'?'баланс':'balans'}</div>
+    <div class="ob-card-stats">
+      <div class="ob-stat-item">
+        <div class="ob-stat-lbl">${curLang==='ru'?'ОСТАТОК':'QOLDIQ'}</div>
+        <div class="ob-stat-val" style="color:${bal>=0?'var(--acc)':'var(--red)'}">${bal>=0?'+':''}${fmt(bal)}</div>
+      </div>
+      <div class="ob-stat-item">
+        <div class="ob-stat-lbl">${curLang==='ru'?'ОПЕРАЦИЙ':'OPERATSIYA'}</div>
+        <div class="ob-stat-val" id="ob-tx-count-${ob.id}">...</div>
+      </div>
     </div>
+    <div class="ob-progress"><div class="ob-progress-fill" style="width:${progress}%"></div></div>
+    <div class="ob-days-left">${leftDays} ${curLang==='ru'?'дней осталось':'kun qoldi'}</div>
   </div>`;
 }
 
@@ -1262,7 +1518,8 @@ function openSpendSheet(){
   document.getElementById('spend-note').value='';
   document.getElementById('spend-dt').value=new Date().toISOString().slice(0,16);
   // Render cats
-  document.getElementById('spend-cats').innerHTML=CATS.map((c,i)=>`
+  const spendCats = regime==='pro' ? CATS_ALL : CATS;
+  document.getElementById('spend-cats').innerHTML=spendCats.map((c,i)=>`
     <div onclick="selCat='${c.id}';renderSpendCats()" data-cat="${c.id}" style="padding:10px 6px;border-radius:10px;border:2px solid ${selCat===c.id?CAT_COLORS[i]:'var(--border)'};background:${selCat===c.id?CAT_COLORS[i]+'15':'var(--bg)'};text-align:center;cursor:pointer">
       <div style="font-size:20px">${c.emoji}</div>
       <div style="font-size:10px;font-weight:700;color:${selCat===c.id?CAT_COLORS[i]:'var(--muted)'};margin-top:2px">${curLang==='ru'?c.ru:c.uz}</div>
@@ -1271,12 +1528,13 @@ function openSpendSheet(){
 }
 
 function renderSpendCats(){
-  CATS.forEach((c,i)=>{
+  const spendCatsList = regime==='pro' ? CATS_ALL : CATS;
+  spendCatsList.forEach((c,i)=>{
     const el=document.querySelector(`[data-cat="${c.id}"]`);
     if(!el)return;
-    el.style.borderColor=selCat===c.id?CAT_COLORS[i]:'var(--border)';
-    el.style.background=selCat===c.id?CAT_COLORS[i]+'15':'var(--bg)';
-    el.querySelector('div:last-child').style.color=selCat===c.id?CAT_COLORS[i]:'var(--muted)';
+    el.style.borderColor=selCat===c.id?CAT_COLORS[i%CAT_COLORS.length]:'var(--border)';
+    el.style.background=selCat===c.id?CAT_COLORS[i%CAT_COLORS.length]+'15':'var(--bg)';
+    el.querySelector('div:last-child').style.color=selCat===c.id?CAT_COLORS[i%CAT_COLORS.length]:'var(--muted)';
   });
 }
 
@@ -1738,6 +1996,55 @@ async function doBackup(){
 async function doLogout(){
   await sb.auth.signOut();
   location.reload();
+}
+
+
+// ═══════════════════════════════════════════
+// WORKERS PAGE
+// ═══════════════════════════════════════════
+async function renderWorkers(){
+  await loadAll();
+  const ownerObs=allObs.filter(o=>o.role==='owner');
+  if(!ownerObs.length){
+    document.getElementById('workers-list').innerHTML=`<div class="empty"><div class="empty-ico">👷</div><div class="empty-txt">${curLang==='ru'?'Нет объектов':'Obyektlar yo\'q'}</div></div>`;
+    return;
+  }
+  const obIds=ownerObs.map(o=>o.ob.id);
+  const {data:members}=await sb.from('ob_members').select('*,profiles(*)').in('ob_id',obIds);
+  const workers=(members||[]).filter(m=>m.user_id!==curUser?.id);
+
+  if(!workers.length){
+    document.getElementById('workers-list').innerHTML=`<div class="empty"><div class="empty-ico">👷</div><div class="empty-txt">${curLang==='ru'?'Нет рабочих':"Ishchilar yo'q"}</div><div class="empty-sub">${curLang==='ru'?'Добавьте рабочих в объектах':'Obyektlarda ishchilar qo\'shing'}</div></div>`;
+    return;
+  }
+
+  // Group by ob
+  let html='';
+  ownerObs.forEach(({ob})=>{
+    const obWorkers=workers.filter(m=>m.ob_id===ob.id);
+    if(!obWorkers.length)return;
+    html+=`<div style="margin-bottom:16px">
+      <div style="font-size:13px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:0 4px">${ob.nomi}</div>
+      ${obWorkers.map(m=>{
+        const name=m.profiles?.full_name||m.profiles?.phone||'?';
+        const bg=avColor(name);
+        const rLabel={member:curLang==='ru'?'Мастер':'Usta',worker:curLang==='ru'?'Рабочий':'Ishchi'}[m.role]||m.role;
+        const rClass={member:'badge-member',worker:'badge-worker'}[m.role]||'badge-worker';
+        return`<div class="member-card" onclick="curObId='${ob.id}';curOb=allObs.find(o=>o.ob.id==='${ob.id}')?.ob;curObRole='owner';openMemberDetail('${m.user_id}')">
+          <div class="avatar" style="background:${bg}">${name.charAt(0).toUpperCase()}</div>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:700">${name}</div>
+            <div style="margin-top:2px"><span class="badge ${rClass}">${rLabel}</span></div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:15px;font-weight:800;color:var(--acc)">${fmt(m.balance||0)}</div>
+            <div style="font-size:11px;color:var(--muted)">${curLang==='ru'?'на руках':'qo\'lida'}</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  });
+  document.getElementById('workers-list').innerHTML=html;
 }
 
 // ═══════════════════════════════════════════
