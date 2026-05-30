@@ -69,15 +69,25 @@ a{text-decoration:none;color:inherit}
 .topbar-back{width:36px;height:36px;border-radius:10px;background:var(--bg);display:flex;align-items:center;justify-content:center;cursor:pointer;border:none}
 
 /* DASHBOARD */
-.dash-header{background:linear-gradient(160deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);padding:20px 16px 28px;color:#fff;border-radius:0 0 24px 24px;margin-bottom:16px}
-.dash-greeting{font-size:13px;color:rgba(255,255,255,.5);margin-bottom:2px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
-.dash-name{font-size:22px;font-weight:900;margin-bottom:20px}
-.dash-balance{font-size:13px;color:rgba(255,255,255,.5);margin-bottom:4px;font-weight:600}
-.dash-amount{font-size:42px;font-weight:900;margin-bottom:16px;letter-spacing:-1px}
+.dash-header{background:linear-gradient(160deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);padding:20px 16px 24px;color:#fff;border-radius:0 0 24px 24px;margin-bottom:16px;position:relative;overflow:hidden}
+.dash-header::before{content:'';position:absolute;right:-20px;top:-20px;width:140px;height:140px;background:rgba(255,255,255,.04);border-radius:50%}
+.dash-topbar-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.dash-menu-ico{display:flex;flex-direction:column;gap:5px;cursor:pointer;padding:4px}
+.dash-menu-ico span{width:22px;height:2px;background:rgba(255,255,255,.7);border-radius:2px;display:block}
+.dash-menu-ico span:last-child{width:14px}
+.dash-av{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;cursor:pointer}
+.dash-greeting{font-size:13px;color:rgba(255,255,255,.55);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.dash-amount{font-size:42px;font-weight:900;margin-bottom:20px;letter-spacing:-1px}
 .dash-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.dash-stat{background:rgba(255,255,255,.08);border-radius:14px;padding:14px;border:1px solid rgba(255,255,255,.08)}
-.dash-stat-lbl{font-size:10px;color:rgba(255,255,255,.45);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;gap:4px}
+.dash-stat{background:rgba(255,255,255,.09);border-radius:14px;padding:14px;border:1px solid rgba(255,255,255,.07)}
+.dash-stat-lbl{font-size:11px;color:rgba(255,255,255,.5);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;gap:4px}
 .dash-stat-val{font-size:20px;font-weight:900}
+/* Quick actions */
+.quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:0 16px;margin-bottom:20px}
+.qa-card{background:var(--card);border-radius:16px;padding:14px 8px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;box-shadow:var(--shadow);transition:transform .15s}
+.qa-card:active{transform:scale(.94)}
+.qa-ico{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px}
+.qa-lbl{font-size:12px;font-weight:600;color:var(--text2);text-align:center}
 /* Quick actions */
 .quick-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:0 16px;margin-bottom:20px}
 .qa-btn{background:var(--card);border-radius:16px;padding:14px 8px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;border:1px solid var(--border);transition:transform .15s}
@@ -281,8 +291,16 @@ a{text-decoration:none;color:inherit}
 
   <!-- DASHBOARD -->
   <div class="page active" id="pg-home">
-    <!-- Balance card -->
     <div class="dash-header">
+      <!-- Topbar row: menu + title + avatar -->
+      <div class="dash-topbar-row">
+        <div class="dash-menu-ico" onclick="gp('settings')">
+          <span></span><span></span><span></span>
+        </div>
+        <div style="font-size:17px;font-weight:700;color:#fff">Asosiy</div>
+        <div class="dash-av" id="dash-av" onclick="gp('profil')">R</div>
+      </div>
+      <!-- Balance -->
       <div class="dash-greeting" id="dash-greeting">UMUMIY BALANS</div>
       <div class="dash-amount" id="dash-total">$0</div>
       <div class="dash-row">
@@ -313,6 +331,32 @@ a{text-decoration:none;color:inherit}
       </div>
       <div class="qa-btn" onclick="gp('hisobot')">
         <div class="qa-ico" style="background:#f0fdf4">📊</div>
+        <div class="qa-lbl" id="qa-hisobot">Hisobot</div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-grid">
+      <div class="qa-card" onclick="gp('projects')">
+        <div class="qa-ico" style="background:#fff7ed">🏗</div>
+        <div class="qa-lbl" id="qa-obs">Obyektlar</div>
+      </div>
+      <div class="qa-card" onclick="openMainFab()">
+        <div class="qa-ico" style="background:#fef2f2">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="var(--red)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+        </div>
+        <div class="qa-lbl" id="qa-chiqim">Chiqim</div>
+      </div>
+      <div class="qa-card" onclick="gp('workers')">
+        <div class="qa-ico" style="background:#eff6ff">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <div class="qa-lbl" id="qa-ishchilar">Ishchilar</div>
+      </div>
+      <div class="qa-card" onclick="gp('hisobot')">
+        <div class="qa-ico" style="background:#f0fdf4">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><rect x="3" y="3" width="4" height="18"/><rect x="10" y="8" width="4" height="13"/><rect x="17" y="13" width="4" height="8"/></svg>
+        </div>
         <div class="qa-lbl" id="qa-hisobot">Hisobot</div>
       </div>
     </div>
@@ -1100,7 +1144,7 @@ async function renderHome(){
     list.innerHTML=`<div class="empty"><div class="empty-ico">🏗</div><div class="empty-txt">${curLang==='ru'?'Нет объектов':"Obyektlar yo'q"}</div><button class="btn btn-acc" style="margin-top:12px;max-width:200px" onclick="openNewOb()">${curLang==='ru'?'+ Новый объект':'+ Yangi obyekt'}</button></div>`;
     return;
   }
-  list.innerHTML=recent.map(o=>obCardHtml(o,true)).join('');
+  list.innerHTML=recent.map(o=>obBigCardHtml(o)).join('');
 
   // Load tx counts
   const obIds=recent.map(o=>o.ob.id);
@@ -1142,6 +1186,46 @@ async function renderHome(){
       }).join('');
     }
   }
+}
+
+
+function obBigCardHtml({ob,role,myBalance}){
+  const colors=['#f97316','#3b82f6','#a855f7','#16a34a','#f59e0b'];
+  let h=0;(ob.nomi||'').split('').forEach(c=>h+=c.charCodeAt(0));
+  const bg=colors[h%colors.length];
+  const bal=role==='owner'?(ob.kirim||0)-(ob.chiqim||0):myBalance;
+  const start=ob.boshlanish?new Date(ob.boshlanish):new Date(ob.created_at);
+  const total=ob.muddat||30;
+  const passed=Math.max(0,Math.floor((new Date()-start)/86400000));
+  const left=Math.max(0,total-passed);
+  const prog=Math.min(100,Math.round(passed/total*100));
+  const rl={owner:curLang==='ru'?'Хозяин':'Egasi',member:curLang==='ru'?'Мастер':'Usta',worker:curLang==='ru'?'Рабочий':'Ishchi'}[role];
+  const rc={owner:'role-owner',member:'role-member',worker:'role-worker'}[role];
+  const emojis=['🏗','🏢','🏠','🏭','🏬'];
+  return`<div style="background:var(--card);border-radius:20px;margin-bottom:12px;box-shadow:0 2px 12px rgba(0,0,0,.07);cursor:pointer;overflow:hidden" onclick="openOb('${ob.id}')">
+    <div style="height:120px;background:linear-gradient(135deg,${bg}cc,${bg}77);display:flex;align-items:center;justify-content:center;font-size:48px;position:relative">
+      ${emojis[h%5]}
+      <div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 40%,rgba(0,0,0,.35))"></div>
+    </div>
+    <div style="padding:14px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div style="font-size:18px;font-weight:800">${ob.nomi}</div>
+        <span class="ob-role-badge ${rc}">${rl}</span>
+      </div>
+      <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:3px">${curLang==='ru'?'Jami balans':'Jami balans'}</div>
+      <div style="font-size:22px;font-weight:900;color:${bal>=0?'var(--green)':'var(--red)'};margin-bottom:10px">${bal>=0?'+':''}${fmt(bal)}</div>
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text2);font-weight:600">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          <span id="ob-cnt-${ob.id}">...</span> ${curLang==='ru'?'чел.':'ta odam'}
+        </div>
+      </div>
+      <div style="height:4px;background:var(--border);border-radius:4px;overflow:hidden;margin-bottom:6px">
+        <div style="height:4px;background:var(--green);border-radius:4px;width:${prog}%"></div>
+      </div>
+      <div style="font-size:12px;font-weight:700;color:var(--green)">${left} ${curLang==='ru'?'дней осталось':'kun qoldi'}</div>
+    </div>
+  </div>`;
 }
 
 function obCardHtml({ob,role,myBalance},extended=false){
