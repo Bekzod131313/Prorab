@@ -1329,10 +1329,13 @@ const sb=supabase.createClient(SB_URL,SB_KEY);
 // ═══════════════════════════════════════════
 async function loadAll(){
   if(!curUser) return;
-  const {data}=await sb.from('ob_members')
+  const {data,error}=await sb.from('ob_members')
     .select('ob_id,role,balance,ishaqi,olingan,ob:obyektlar(*)')
     .eq('user_id',curUser.id);
-  allObs=(data||[]).map(r=>({ob:r.ob,role:r.role,myBalance:r.balance||0,ishaqi:r.ishaqi||0,olingan:r.olingan||0})).filter(o=>o.ob);
+  if(error){console.error('loadAll error:',error);return;}
+  allObs=(data||[])
+    .filter(r=>r.ob)
+    .map(r=>({ob:r.ob,role:r.role,myBalance:r.balance||0,ishaqi:r.ishaqi||0,olingan:r.olingan||0}));
 }
 
 async function loadProfile(){
@@ -1347,23 +1350,6 @@ async function loadProfile(){
   const {data:prof}=await sb.from('profiles').select('*').eq('id',curUser.id).single();
   curProfile=prof||{id:curUser.id,full_name:'',phone:''};
   startApp();
-}
-
-async function openOb(obId){
-  await loadAll();
-  const found=allObs.find(o=>o.ob.id===obId);
-  if(!found) return;
-  curObId=obId;
-  curOb=found.ob;
-  curObRole=found.role;
-  // Load members
-  const {data:members}=await sb.from('ob_members').select('*,profiles(*)').eq('ob_id',obId);
-  curObMembers=members||[];
-  // Load transactions
-  const {data:txs}=await sb.from('transactions').select('*').eq('ob_id',obId).order('tx_date',{ascending:false});
-  curObTxs=txs||[];
-  renderObPage();
-  gp('ob');
 }
 
 // ═══════════════════════════════════════════
@@ -2295,32 +2281,6 @@ function openNewOb(){
   openSheet('newob');
 }
 
-async function createOb(){
-  const name=document.getElementById('new-ob-name').value.trim();
-  const date=document.getElementById('new-ob-date').value;
-  const days=parseInt(document.getElementById('new-ob-days').value)||30;
-  if(!name){toast(curLang==='ru'?'Введите название':'Ob nomi kiriting','#ef4444');return;}
-  const btn=document.querySelector('#sh-newob .btn');
-  btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
-  try{
-    const {data:ob}=await sb.from('obyektlar').insert({
-      nomi:name,boshlanish:date||new Date().toISOString().slice(0,10),
-      muddat:days,owner_id:curUser?.id,kirim:0,chiqim:0
-    }).select().single();
-    if(ob){
-      // Save image locally
-      if(newObImgData) localStorage.setItem('ob-img-'+ob.id,newObImgData);
-      await sb.from('ob_members').insert({ob_id:ob.id,user_id:curUser?.id,role:'owner',balance:0});
-    }
-    closeSheet('sh-newob');
-    newObImgData=null;
-    toast('✅ '+(curLang==='ru'?'Создан':'Yaratildi'),'#1D4ED8');
-    await loadAll();
-    renderHome();
-  }catch(e){toast('Xato: '+e.message,'#ef4444');}
-  finally{btn.textContent=curLang==='ru'?'Создать':'Yaratish';btn.disabled=false;}
-}
-
 // ═══════════════════════════════════════════
 // PROJECTS
 // ═══════════════════════════════════════════
@@ -2664,35 +2624,6 @@ async function saveObEdit(){
 // ═══════════════════════════════════════════
 // OB CREATE
 // ═══════════════════════════════════════════
-function openNewOb(){
-  document.getElementById('new-ob-date').value=new Date().toISOString().slice(0,10);
-  document.getElementById('new-ob-name').value='';
-  document.getElementById('new-ob-days').value='';
-  openSheet('newob');
-}
-
-async function createOb(){
-  const name=document.getElementById('new-ob-name').value.trim();
-  if(!name){toast(curLang==='ru'?'Введите название':'Nom kiriting','#ef4444');return;}
-  const date=document.getElementById('new-ob-date').value;
-  const days=parseInt(document.getElementById('new-ob-days').value)||30;
-  const btn=document.querySelector('#sh-newob .btn');
-  btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
-  try{
-    const {data:ob,error}=await sb.from('obyektlar').insert({
-      nomi:name,owner_id:curUser?.id,user_id:curUser?.id,
-      boshlanish:date,muddat:days,kirim:0,chiqim:0
-    }).select().single();
-    if(error)throw error;
-    await sb.from('ob_members').insert({ob_id:ob.id,user_id:curUser?.id,role:'owner',balance:0,added_by:curUser?.id});
-    closeSheet('sh-newob');
-    toast('✅ '+(curLang==='ru'?'Объект создан':'Obyekt yaratildi'),'#1D4ED8');
-    await loadAll();
-    openOb(ob.id);
-  }catch(e){toast('Xato: '+e.message,'#ef4444');}
-  finally{btn.textContent=t('lbl-yaratish');btn.disabled=false;}
-}
-
 // ═══════════════════════════════════════════
 // INCOME
 // ═══════════════════════════════════════════
@@ -2722,7 +2653,7 @@ async function doAddIncome(){
     toast('✅ '+(curLang==='ru'?'Сохранено':'Saqlandi'),'#1D4ED8');
     await openOb(curObId);
   }catch(e){toast('Xato: '+e.message,'#ef4444');}
-  finally{btn.textContent=t('lbl-saqlash');btn.disabled=false;}
+  finally{btn.textContent=curLang==='ru'?'Сохранить':'Saqlash';btn.disabled=false;}
 }
 
 // ═══════════════════════════════════════════
@@ -2792,7 +2723,7 @@ async function doSendMoney(){
     toast('✅ '+(curLang==='ru'?'Отправлено':'Yuborildi'),'#1D4ED8');
     await openOb(curObId);
   }catch(e){toast('Xato: '+e.message,'#ef4444');}
-  finally{btn.textContent=t('lbl-yuborish');btn.disabled=false;}
+  finally{btn.textContent=curLang==='ru'?'Отправить':'Yuborish';btn.disabled=false;}
 }
 
 // ═══════════════════════════════════════════
@@ -2923,7 +2854,7 @@ async function doSpend(){
     toast('✅ '+(curLang==='ru'?'Сохранено':'Saqlandi'),'#1D4ED8');
     await openOb(curObId);
   }catch(e){toast('Xato: '+e.message,'#ef4444');}
-  finally{btn.textContent=t('lbl-sarflash2');btn.disabled=false;}
+  finally{btn.textContent=curLang==='ru'?'Sarflash':'Sarflash';btn.disabled=false;}
 }
 
 // ═══════════════════════════════════════════
