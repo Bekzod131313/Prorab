@@ -1961,16 +1961,22 @@ function gp(page){
   document.querySelectorAll('.bnav-item').forEach(b=>b.classList.remove('active'));
   prevPage=curPage;
   curPage=page;
-  window.scrollTo(0,0);
   const pg=document.getElementById('pg-'+page);
   if(pg) pg.classList.add('active');
   const nav=document.getElementById('nav-'+page);
   if(nav) nav.classList.add('active');
-  if(page==='home') renderHome();
-  if(page==='projects') renderObs();
-  if(page==='hisobot') renderHisobot();
-  if(page==='profil') renderProfil();
-  if(page==='workers') renderWorkers();
+  const reset=()=>{window.scrollTo(0,0);document.documentElement.scrollTop=0;document.body.scrollTop=0;};
+  reset();
+  const run=async()=>{
+    if(page==='home') await renderHome();
+    else if(page==='projects') await renderObs();
+    else if(page==='hisobot') await renderHisobot();
+    else if(page==='profil') await renderProfil();
+    else if(page==='workers') await renderWorkers();
+    reset();
+    requestAnimationFrame(reset);
+  };
+  run();
 }
 
 function openMainFab(){
@@ -2624,6 +2630,337 @@ async function saveObEdit(){
 // ═══════════════════════════════════════════
 // OB CREATE
 // ═══════════════════════════════════════════
+// ═══════════════════════════════════════════
+// HOME
+// ═══════════════════════════════════════════
+async function renderHome(){
+  await loadAll();
+  const r=curLang==='ru';
+  // Umumiy balans = barcha owner obyektlar (kirim - chiqim)
+  let totalBal=0;
+  allObs.forEach(({ob,role})=>{
+    if(role==='owner') totalBal+=(ob.kirim||0)-(ob.chiqim||0);
+  });
+  const totalEl=document.getElementById('dash-total');
+  if(totalEl) totalEl.textContent=fmt(totalBal);
+
+  // Faol obyektlar (yakunlanganlar ko'rinmaydi)
+  const activeObs=allObs.filter(o=>(o.ob.status||'active')!=='done');
+  const list=document.getElementById('home-obs');
+  if(!list)return;
+  if(!activeObs.length){
+    list.innerHTML=`<div class="empty"><div class="empty-ico"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="1.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-4 0v2M9 11v6M12 11v6M15 11v6"/></svg></div><div class="empty-txt">${r?'Нет активных объектов':"Faol obyektlar yo'q"}</div></div>`;
+    return;
+  }
+  list.innerHTML=activeObs.map(o=>obBigCardHtml(o)).join('');
+  // A'zo sonini yuklash
+  for(const {ob} of activeObs){
+    const {count}=await sb.from('ob_members').select('*',{count:'exact',head:true}).eq('ob_id',ob.id);
+    const el=document.getElementById('ob-cnt-'+ob.id);
+    if(el) el.textContent=(count||1)-1>=0?(count||1):0;
+  }
+}
+
+// ═══════════════════════════════════════════
+// CREATE OB
+// ═══════════════════════════════════════════
+async function createOb(){
+  const name=document.getElementById('new-ob-name').value.trim();
+  if(!name){toast(curLang==='ru'?'Введите название':'Nom kiriting','#ef4444');return;}
+  const date=document.getElementById('new-ob-date').value||new Date().toISOString().slice(0,10);
+  const days=parseInt(document.getElementById('new-ob-days').value)||30;
+  const btn=document.querySelector('#sh-newob .btn');
+  if(!btn)return;
+  btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
+  try{
+    // 1. Obyekt yaratish
+    const {data:ob,error}=await sb.from('obyektlar').insert({
+      nomi:name,
+      owner_id:curUser.id,
+      boshlanish:date,
+      muddat:days,
+      kirim:0,
+      chiqim:0,
+      status:'active'
+    }).select().single();
+    if(error) throw new Error('Obyekt: '+error.message);
+
+    // 2. Rasm saqlash
+    if(newObImgData){
+      localStorage.setItem('ob-img-'+ob.id, newObImgData);
+      newObImgData=null;
+    }
+
+    // 3. Owner sifatida ob_members ga qo'shish
+    const {error:memErr}=await sb.from('ob_members').insert({
+      ob_id:ob.id,
+      user_id:curUser.id,
+      role:'owner',
+      balance:0,
+      ishaqi:0,
+      olingan:0
+    });
+    if(memErr) throw new Error('Member: '+memErr.message);
+
+    // 4. Muvaffaqiyat
+    closeSheet('sh-newob');
+    toast('✅ '+(curLang==='ru'?'Объект создан':'Obyekt yaratildi'),'#1D4ED8');
+    await loadAll();
+    renderHome();
+    if(curPage==='projects') renderObs();
+
+  }catch(e){
+    console.error(e);
+    toast('Xato: '+e.message,'#ef4444');
+  }finally{
+    btn.textContent=curLang==='ru'?'Создать':'Yaratish';
+    btn.disabled=false;
+  }
+}
+
+// ═══════════════════════════════════════════
+// WORKERS
+// ═══════════════════════════════════════════
+let workerFilter='all', workerSearch='', allWorkers=[];
+
+async function renderWorkers(){
+  await loadAll();
+  const r=curLang==='ru';
+  allWorkers=[];
+  for(const {ob} of allObs){
+    const {data:mems}=await sb.from('ob_members')
+      .select('*,profiles(*)').eq('ob_id',ob.id).neq('user_id',curUser.id);
+    (mems||[]).forEach(m=>{
+      const ex=allWorkers.find(w=>w.user_id===m.user_id);
+      if(ex){
+        ex.obs_count++;
+        ex.ishaqi+=(m.ishaqi||0);
+        ex.olingan+=(m.olingan||0);
+        ex.balans=ex.ishaqi-ex.olingan;
+      } else {
+        allWorkers.push({...m,ob_nomi:ob.nomi,obs_count:1,
+          ishaqi:m.ishaqi||0,olingan:m.olingan||0,
+          balans:(m.ishaqi||0)-(m.olingan||0)});
+      }
+    });
+  }
+  // Stats
+  const total=allWorkers.length;
+  const plus=allWorkers.filter(w=>w.balans>0).length;
+  const minus=allWorkers.filter(w=>w.balans<0).length;
+  const zero=allWorkers.filter(w=>w.balans===0).length;
+  const st=document.getElementById('workers-stats');
+  if(st) st.innerHTML=[
+    {n:total,lbl:r?'ВСЕГО':'JAMI',c:'var(--text)'},
+    {n:plus,lbl:r?'ПЛЮС':'MUSBAT',c:'#16A34A'},
+    {n:minus,lbl:r?'МИНУС':'MANFIY',c:'#EF4444'},
+    {n:zero,lbl:r?'НОЛЬ':'NOL',c:'var(--muted)'},
+  ].map(s=>`<div style="background:var(--card);border-radius:16px;padding:14px 8px;text-align:center;border:1px solid var(--border)"><div style="font-size:22px;font-weight:900;color:${s.c}">${s.n}</div><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-top:3px">${s.lbl}</div></div>`).join('');
+  filterWorkers(workerSearch);
+}
+
+function filterWorkers(q){
+  workerSearch=q||'';
+  const r=curLang==='ru';
+  let list=[...allWorkers];
+  if(q) list=list.filter(w=>(w.profiles?.full_name||'').toLowerCase().includes(q.toLowerCase())||(w.kasb||'').toLowerCase().includes(q.toLowerCase()));
+  if(workerFilter==='plus') list=list.filter(w=>w.balans>0);
+  if(workerFilter==='minus') list=list.filter(w=>w.balans<0);
+  if(workerFilter==='zero') list=list.filter(w=>w.balans===0);
+  const el=document.getElementById('workers-list');
+  if(!el)return;
+  if(!list.length){
+    el.innerHTML=`<div class="empty"><div class="empty-ico"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div class="empty-txt">${r?'Нет рабочих':"Ishchilar yo'q"}</div></div>`;
+    return;
+  }
+  const colors=['#1D4ED8','#ea580c','#16A34A','#7c3aed','#0891b2','#f59e0b'];
+  el.innerHTML=list.map((w,i)=>{
+    const name=w.profiles?.full_name||w.profiles?.phone||'?';
+    const av=name[0].toUpperCase();
+    const bg=colors[i%colors.length];
+    const bal=w.balans||0;
+    const bc=bal>0?'#16A34A':bal<0?'#EF4444':'var(--muted)';
+    const last=w.created_at?new Date(w.created_at).toLocaleDateString(r?'ru-RU':'uz-UZ',{day:'2-digit',month:'short'}):'';
+    return`<div onclick="openWorkerDetail('${w.user_id}')" style="background:var(--card);border-radius:18px;padding:16px;border:1px solid var(--border);margin-bottom:12px;cursor:pointer">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+        <div style="width:48px;height:48px;border-radius:14px;background:${bg};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff">${av}</div>
+        <div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:800;color:var(--text)">${name}</div><div style="font-size:12px;color:var(--muted);margin-top:2px">${w.kasb||''}</div></div>
+        <div style="text-align:right"><div style="font-size:17px;font-weight:900;color:${bc}">${bal>=0?'+':''}$${Math.abs(bal).toLocaleString()}</div><div style="font-size:11px;color:var(--muted)">${last}</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding-top:12px;border-top:1px solid var(--border)">
+        <div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:3px">${r?'ЗАР-ТА':'ISH HAQI'}</div><div style="font-size:14px;font-weight:800;color:var(--text)">$${(w.ishaqi||0).toLocaleString()}</div></div>
+        <div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:3px">${r?'ПОЛУЧ':'OLINGAN'}</div><div style="font-size:14px;font-weight:800;color:#EF4444">$${(w.olingan||0).toLocaleString()}</div></div>
+        <div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:3px">${r?'ОБЪЕКТЫ':'OBYEKT'}</div><div style="font-size:14px;font-weight:800;color:var(--text)">${w.obs_count} ${r?'шт':'ta'}</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setWorkerFilter(f,el){
+  workerFilter=f;
+  document.querySelectorAll('#workers-chips .chip').forEach(c=>c.classList.remove('active'));
+  if(el) el.classList.add('active');
+  filterWorkers(workerSearch);
+}
+
+async function openWorkerDetail(uid){
+  const w=allWorkers.find(w=>w.user_id===uid)||{user_id:uid,profiles:{},ishaqi:0,olingan:0,balans:0,kasb:''};
+  const name=w.profiles?.full_name||w.profiles?.phone||'?';
+  const r=curLang==='ru';
+  const colors=['#1D4ED8','#ea580c','#16A34A','#7c3aed','#0891b2','#f59e0b'];
+  const bg=colors[name.charCodeAt(0)%colors.length];
+  const bal=w.balans||0;
+  const bc=bal>0?'#16A34A':bal<0?'#EF4444':'var(--muted)';
+  document.getElementById('wd-title').textContent=name;
+  const {data:txs}=await sb.from('transactions').select('*').or(`to_user.eq.${uid},from_user.eq.${uid}`).order('tx_date',{ascending:false}).limit(30);
+  const wtxs=(txs||[]).filter(t=>t.to_user===uid);
+  document.getElementById('wd-content').innerHTML=`
+    <div style="margin:0 16px;background:var(--card);border-radius:20px;padding:20px;border:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+        <div style="width:58px;height:58px;border-radius:18px;background:${bg};display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#fff">${name[0].toUpperCase()}</div>
+        <div style="flex:1"><div style="font-size:18px;font-weight:900;color:var(--text)">${name}</div><div style="font-size:13px;color:var(--muted)">${w.kasb||''}</div><div style="font-size:13px;color:var(--muted)">${w.profiles?.phone||''}</div></div>
+        <div style="text-align:right"><div style="font-size:22px;font-weight:900;color:${bc}">${bal>=0?'+':''}$${Math.abs(bal).toLocaleString()}</div><div style="font-size:11px;color:var(--muted)">${r?'баланс':'balans'}</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-top:14px;border-top:1px solid var(--border)">
+        <div style="background:var(--bg);border-radius:14px;padding:12px;text-align:center"><div style="font-size:18px;font-weight:900;color:#16A34A">$${(w.ishaqi||0).toLocaleString()}</div><div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-top:3px">${r?'Зарплата':'Ish haqi'}</div></div>
+        <div style="background:var(--bg);border-radius:14px;padding:12px;text-align:center"><div style="font-size:18px;font-weight:900;color:#EF4444">$${(w.olingan||0).toLocaleString()}</div><div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-top:3px">${r?'Получено':'Olingan'}</div></div>
+      </div>
+    </div>
+    <div style="margin:12px 16px;padding-bottom:calc(var(--nav-h) + 80px)">
+      <div style="font-size:15px;font-weight:800;margin-bottom:10px;color:var(--text)">${r?'Последние операции':"So'nggi operatsiyalar"}</div>
+      ${wtxs.length?wtxs.map(tx=>{
+        const lbl=tx.tur==='ishhaqi'?(r?'Зарплата':'Ish haqi'):tx.tur==='send'?(r?'Аванс':'Avans'):(tx.izoh||tx.tur);
+        return`<div class="tx-row"><div class="tx-ico" style="background:rgba(22,163,74,.1)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2"><path d="M12 19V5M5 12l7 7 7-7"/></svg></div><div style="flex:1"><div class="tx-title">${lbl}</div><div class="tx-meta">${fmtDate(tx.tx_date||tx.created_at)}</div></div><div class="tx-amount" style="color:#16A34A">+$${(tx.summa||0).toLocaleString()}</div></div>`;
+      }).join(''):`<div class="empty"><div class="empty-ico">📭</div><div class="empty-txt">${r?'Нет операций':"Operatsiya yo'q"}</div></div>`}
+    </div>
+    <div style="position:fixed;bottom:var(--nav-h);left:0;right:0;padding:12px 16px;background:var(--bg);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;gap:10px;z-index:50">
+      <button onclick="openAvansSheet('${uid}')" style="flex:1;padding:14px;background:var(--card);color:#F59E0B;border:1.5px solid rgba(245,158,11,.3);border-radius:16px;font-size:14px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7 7 7-7"/></svg>${r?'Аванс':'Avans'}</button>
+      <button onclick="openIshHaqiSheet('${uid}')" style="flex:2;padding:14px;background:linear-gradient(135deg,var(--acc),#3B82F6);color:#fff;border:none;border-radius:16px;font-size:14px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 16px rgba(29,78,216,.3)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>${r?'Записать зарплату':'Ish haqi yozish'}</button>
+    </div>`;
+  gp('worker-detail');
+}
+
+// ═══════════════════════════════════════════
+// AVANS & ISH HAQI
+// ═══════════════════════════════════════════
+function openAvansSheet(uid){
+  const r=curLang==='ru';
+  // Select to'ldirish
+  const toSel=document.getElementById('avans-to');
+  const obSel=document.getElementById('avans-ob');
+  if(uid){
+    // Worker detail dan kelgan — shu uid ni qo'yamiz
+    const w=allWorkers.find(w=>w.user_id===uid);
+    const name=w?.profiles?.full_name||w?.profiles?.phone||'?';
+    toSel.innerHTML=`<option value="${uid}">${name}</option>`;
+    // Obyektlar ro'yxati
+    obSel.innerHTML=allObs.map(o=>`<option value="${o.ob.id}">${o.ob.nomi}</option>`).join('');
+  } else if(curObId){
+    // Obyekt ichidan
+    const members=curObMembers.filter(m=>m.user_id!==curUser?.id);
+    toSel.innerHTML=members.map(m=>`<option value="${m.user_id}">${m.profiles?.full_name||m.profiles?.phone||'?'}</option>`).join('');
+    obSel.innerHTML=`<option value="${curObId}">${curOb?.nomi||''}</option>`;
+  }
+  document.getElementById('avans-amount').value='';
+  document.getElementById('avans-note').value='';
+  document.getElementById('avans-date').value=new Date().toISOString().slice(0,10);
+  openSheet('avans');
+}
+
+function openIshHaqiSheet(uid){
+  const r=curLang==='ru';
+  const toSel=document.getElementById('ishhaqi-to');
+  const obSel=document.getElementById('ishhaqi-ob');
+  if(uid){
+    const w=allWorkers.find(w=>w.user_id===uid);
+    const name=w?.profiles?.full_name||w?.profiles?.phone||'?';
+    toSel.innerHTML=`<option value="${uid}">${name}</option>`;
+    obSel.innerHTML=allObs.map(o=>`<option value="${o.ob.id}">${o.ob.nomi}</option>`).join('');
+  } else if(curObId){
+    const members=curObMembers.filter(m=>m.user_id!==curUser?.id);
+    toSel.innerHTML=members.map(m=>`<option value="${m.user_id}">${m.profiles?.full_name||m.profiles?.phone||'?'}</option>`).join('');
+    obSel.innerHTML=`<option value="${curObId}">${curOb?.nomi||''}</option>`;
+  }
+  document.getElementById('ishhaqi-amount').value='';
+  document.getElementById('ishhaqi-note').value='';
+  document.getElementById('ishhaqi-date').value=new Date().toISOString().slice(0,10);
+  openSheet('ishhaqi');
+}
+
+function openIshHaqiFromMember(uid){
+  openIshHaqiSheet(uid);
+}
+
+async function doAvans(){
+  const toUid=document.getElementById('avans-to').value;
+  const obId=document.getElementById('avans-ob').value||curObId;
+  const amount=parseFloat(document.getElementById('avans-amount').value);
+  const note=document.getElementById('avans-note').value.trim();
+  const date=document.getElementById('avans-date').value;
+  const r=curLang==='ru';
+
+  if(!toUid){toast(r?'Выберите получателя':'Kimga berishini tanlang','#ef4444');return;}
+  if(!obId){toast(r?'Выберите объект':'Obyekt tanlang','#ef4444');return;}
+  if(!amount||amount<=0){toast(r?'Введите сумму':'Summa kiriting','#ef4444');return;}
+
+  const btn=document.querySelector('#sh-avans .btn');
+  btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
+  try{
+    await sb.from('transactions').insert({
+      ob_id:obId,from_user:curUser?.id,to_user:toUid,
+      summa:amount,tur:'send',kategoriya:'usta',izoh:note||(r?'Аванс':'Avans'),
+      tx_date:date?new Date(date).toISOString():new Date().toISOString()
+    });
+    // A'zo olingan pulini oshirish
+    const {data:mem}=await sb.from('ob_members').select('olingan').eq('ob_id',obId).eq('user_id',toUid).single();
+    if(mem){
+      await sb.from('ob_members').update({olingan:(mem.olingan||0)+amount}).eq('ob_id',obId).eq('user_id',toUid);
+    }
+    closeSheet('sh-avans');
+    toast('✅ '+(r?'Аванс выдан':'Avans berildi'),'#16A34A');
+    await loadAll();
+    if(curPage==='workers') await renderWorkers();
+    if(curPage==='ob') await openOb(obId);
+    if(curPage==='worker-detail') await openWorkerDetail(toUid);
+  }catch(e){toast('Xato: '+e.message,'#ef4444');}
+  finally{btn.textContent=r?'Подтвердить':'Tasdiqlash';btn.disabled=false;}
+}
+
+async function doIshHaqi(){
+  const toUid=document.getElementById('ishhaqi-to').value;
+  const obId=document.getElementById('ishhaqi-ob').value||curObId;
+  const amount=parseFloat(document.getElementById('ishhaqi-amount').value);
+  const note=document.getElementById('ishhaqi-note').value.trim();
+  const date=document.getElementById('ishhaqi-date').value;
+  const r=curLang==='ru';
+
+  if(!toUid){toast(r?'Выберите получателя':'Kimga yozilishini tanlang','#ef4444');return;}
+  if(!obId){toast(r?'Выберите объект':'Obyekt tanlang','#ef4444');return;}
+  if(!amount||amount<=0){toast(r?'Введите сумму':'Summa kiriting','#ef4444');return;}
+
+  const btn=document.querySelector('#sh-ishhaqi .btn');
+  btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
+  try{
+    await sb.from('transactions').insert({
+      ob_id:obId,from_user:curUser?.id,to_user:toUid,
+      summa:amount,tur:'ishhaqi',kategoriya:'usta',izoh:note||(r?'Зарплата':'Ish haqi'),
+      tx_date:date?new Date(date).toISOString():new Date().toISOString()
+    });
+    // A'zo ish haqini oshirish
+    const {data:mem}=await sb.from('ob_members').select('ishaqi').eq('ob_id',obId).eq('user_id',toUid).single();
+    if(mem){
+      await sb.from('ob_members').update({ishaqi:(mem.ishaqi||0)+amount}).eq('ob_id',obId).eq('user_id',toUid);
+    }
+    closeSheet('sh-ishhaqi');
+    toast('✅ '+(r?'Зарплата записана':'Ish haqi yozildi'),'#16A34A');
+    await loadAll();
+    if(curPage==='workers') await renderWorkers();
+    if(curPage==='ob') await openOb(obId);
+    if(curPage==='worker-detail') await openWorkerDetail(toUid);
+  }catch(e){toast('Xato: '+e.message,'#ef4444');}
+  finally{btn.textContent=r?'Подтвердить':'Tasdiqlash';btn.disabled=false;}
+}
+
 // ═══════════════════════════════════════════
 // INCOME
 // ═══════════════════════════════════════════
