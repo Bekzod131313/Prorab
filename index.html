@@ -109,7 +109,7 @@ a{text-decoration:none;color:inherit}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
 /* APP container */
-#app{display:none;padding-bottom:calc(var(--nav-h) + 16px)}
+#app{display:none;position:fixed;top:0;left:0;right:0;bottom:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:var(--nav-h)}
 
 /* TOPBAR */
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:rgba(242,246,250,.88);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.8)}
@@ -1965,7 +1965,7 @@ function gp(page){
   if(pg) pg.classList.add('active');
   const nav=document.getElementById('nav-'+page);
   if(nav) nav.classList.add('active');
-  const reset=()=>{window.scrollTo(0,0);document.documentElement.scrollTop=0;document.body.scrollTop=0;};
+  const reset=()=>{const app=document.getElementById('app');if(app)app.scrollTop=0;window.scrollTo(0,0);};
   reset();
   const run=async()=>{
     if(page==='home') await renderHome();
@@ -3370,16 +3370,7 @@ async function renderHisobot(){
     allT=txs||[];
   }
 
-  // Demo data if empty
-  const isDemo=allT.length===0;
-  if(isDemo){
-    const base=new Date(); base.setDate(1);
-    for(let i=0;i<20;i++){
-      const d=new Date(base); d.setDate(i+1);
-      allT.push({tur:'income',summa:Math.round(300+Math.random()*900),created_at:d.toISOString(),kategoriya:'mijoz',ob_id:'demo',from_user:null,to_user:'demo',tx_date:d.toISOString()});
-      if(i%3===0) allT.push({tur:'spend',summa:Math.round(100+Math.random()*500),created_at:d.toISOString(),kategoriya:['usta','bozor','material','ovqat'][i%4],ob_id:'demo',from_user:'demo',to_user:null,tx_date:d.toISOString()});
-    }
-  }
+  const isDemo=false; // Demo o'chirildi - real ma'lumot ko'rsatiladi
 
   let totalIn=0,totalOut=0;
   const catTotals={};
