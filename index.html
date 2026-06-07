@@ -1200,24 +1200,15 @@ body.dark .topbar{background:rgba(13,17,23,.92)!important;border-bottom:1px soli
 <div class="overlay" id="ov-addcat" onclick="closeSheet('sh-addcat')"></div>
 <div class="sheet" id="sh-addcat" style="max-height:88vh">
   <div class="sheet-handle"></div>
-  <div style="padding:8px 16px 16px">
-    <div style="font-size:17px;font-weight:900;color:var(--text);margin-bottom:16px">➕ Kategoriya qo'shish</div>
-
-    <!-- Kategoriya nomi -->
+  <div style="padding:8px 16px 24px">
+    <div style="font-size:17px;font-weight:900;color:var(--text);margin-bottom:16px">Kategoriya qo'shish</div>
     <div class="inp-group">
       <label class="inp-lbl">KATEGORIYA NOMI</label>
       <input class="inp" id="newcat-name" placeholder="Masalan: Qorovul, Lift...">
     </div>
-
-    <!-- Stiker tanlash -->
-    <label class="inp-lbl" style="margin-bottom:10px;display:block">STIKER TANLANG</label>
-    <div id="stiker-grid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;max-height:280px;overflow-y:auto;padding:4px 0"></div>
-    <div style="margin-top:12px;padding:10px;background:var(--bg);border-radius:12px;border:1.5px solid var(--acc);text-align:center">
-      <span id="selStiker-preview" style="font-size:32px">🔧</span>
-      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-top:4px">Tanlangan stiker</div>
-    </div>
-
-    <button onclick="saveCustomCat()" style="width:100%;margin-top:14px;padding:15px;background:var(--acc);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer">Saqlash</button>
+    <label class="inp-lbl" style="margin-bottom:10px;display:block">IKONKA TANLANG</label>
+    <div id="stiker-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-height:320px;overflow-y:auto;padding:4px 0"></div>
+    <button onclick="saveCustomCat()" style="width:100%;margin-top:16px;padding:15px;background:var(--acc);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer">Saqlash</button>
   </div>
 </div>
 
@@ -1339,6 +1330,43 @@ const sb=supabase.createClient(SB_URL,SB_KEY);
 // ═══════════════════════════════════════════
 // DEMO MA'LUMOTLAR
 // ═══════════════════════════════════════════
+// Rasmni kichraytirib saqlash (localStorage quota muammosi uchun)
+function compressImg(file, maxW=600, quality=0.65){
+  return new Promise(res=>{
+    const img=new Image();
+    const url=URL.createObjectURL(file);
+    img.onload=()=>{
+      URL.revokeObjectURL(url);
+      const ratio=Math.min(maxW/img.width, maxW/img.height, 1);
+      const c=document.createElement('canvas');
+      c.width=Math.round(img.width*ratio);
+      c.height=Math.round(img.height*ratio);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      res(c.toDataURL('image/jpeg',quality));
+    };
+    img.onerror=()=>res(null);
+    img.src=url;
+  });
+}
+
+function saveImgLocal(key, dataUrl){
+  try{
+    localStorage.setItem(key, dataUrl);
+    return true;
+  }catch(e){
+    // Quota — eski rasmlarni o'chirib qayta urinish
+    try{
+      Object.keys(localStorage)
+        .filter(k=>k.startsWith('ob-img-')&&k!==key)
+        .forEach(k=>localStorage.removeItem(k));
+      localStorage.setItem(key, dataUrl);
+      return true;
+    }catch{
+      return false;
+    }
+  }
+}
+
 // ═══════════════════════════════════════════
 // REAL SUPABASE FUNCTIONS
 // ═══════════════════════════════════════════
@@ -1724,20 +1752,14 @@ const STIKERS=[
   '🪑','🛏️','🚿','🛁','🪴','🌿','🏢','🏭','🏛️','🏗','🔲','🟥','🟦','🟩','🔺'
 ];
 
-// Default kategoriyalar
+// Ishchi SVG icon
+const SVG_ISHCHI=`<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+
+// Default kategoriya — faqat bitta: Ishchi
 const DEFAULT_CATS=[
-  {id:'usta',stiker:'👷',uz:'Usta',ru:'Мастер'},
-  {id:'bozor',stiker:'🛒',uz:'Bozor',ru:'Рынок'},
-  {id:'dostavka',stiker:'🚚',uz:'Yetkazish',ru:'Доставка'},
-  {id:'dokon',stiker:'🏪',uz:"Do'kon",ru:'Магазин'},
-  {id:'ovqat',stiker:'🍱',uz:'Ovqat',ru:'Еда'},
-  {id:'taksi',stiker:'🚕',uz:'Taksi',ru:'Такси'},
-  {id:'material',stiker:'🧱',uz:'Material',ru:'Материал'},
-  {id:'asbob',stiker:'🔧',uz:'Asbob',ru:'Инструмент'},
-  {id:'kommunal',stiker:'💡',uz:'Kommunal',ru:'Коммунальные'},
+  {id:'ishchi',svg:SVG_ISHCHI,uz:'Ishchi',ru:'Рабочий'},
 ];
 
-// Custom kategoriyalarni localStorage dan olish
 function getCustomCats(){
   try{return JSON.parse(localStorage.getItem('custom_cats')||'[]');}catch{return [];}
 }
@@ -1747,7 +1769,7 @@ function getAllCats(){
 
 const CATS=DEFAULT_CATS;
 const CATS_ALL=DEFAULT_CATS;
-const CAT_COLORS=['#ea580c','#1D4ED8','#3b82f6','#a855f7','#f59e0b','#64748b','#16a34a','#0891b2','#dc2626','#7c3aed'];
+const CAT_COLORS=['#1D4ED8','#ea580c','#3b82f6','#a855f7','#f59e0b','#64748b','#16a34a','#0891b2','#dc2626','#7c3aed'];
 
 // ═══════════════════════════════════════════
 // SPEND SHEET
@@ -1811,18 +1833,27 @@ function renderSpendCats(){
   const cats=getAllCats();
   const el=document.getElementById('spend-cats');
   if(!el)return;
+
+  // SVG ikonkalar har bir custom kat uchun
+  const getSvgIcon=(c)=>{
+    if(c.svg) return `<div style="color:${selCat===c.id?CAT_COLORS[0]:'#64748b'}">${c.svg}</div>`;
+    // Custom kat uchun stiker emoji (oxirgi variant)
+    return `<div style="font-size:28px;line-height:1">${c.stiker||'📦'}</div>`;
+  };
+
   el.innerHTML=cats.map((c,i)=>{
     const col=CAT_COLORS[i%CAT_COLORS.length];
     const active=selCat===c.id;
-    return`<div onclick="selCat='${c.id}';renderSpendCats();toggleUstaPicker()" style="padding:12px 6px;border-radius:14px;border:2px solid ${active?col:'var(--border)'};background:${active?col+'15':'var(--card)'};text-align:center;cursor:pointer;transition:all .15s">
-      <div style="font-size:28px;line-height:1;margin-bottom:6px">${c.stiker||c.emoji||'📦'}</div>
-      <div style="font-size:11px;font-weight:700;color:${active?col:'var(--muted)'}">${curLang==='ru'?c.ru:c.uz}</div>
+    return`<div onclick="selCat='${c.id}';renderSpendCats();toggleUstaPicker()" style="padding:14px 6px;border-radius:16px;border:2px solid ${active?col:'var(--border)'};background:${active?col+'15':'var(--card)'};text-align:center;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:8px">
+      <div style="color:${active?col:'#64748b'}">${c.svg||`<span style="font-size:28px">${c.stiker||'📦'}</span>`}</div>
+      <div style="font-size:12px;font-weight:700;color:${active?col:'var(--muted)'}">${curLang==='ru'?c.ru:c.uz}</div>
     </div>`;
   }).join('')
-  +`<div onclick="openAddCat()" style="padding:12px 6px;border-radius:14px;border:2px dashed var(--border);background:var(--card);text-align:center;cursor:pointer">
-      <div style="font-size:28px;line-height:1;margin-bottom:6px">➕</div>
-      <div style="font-size:11px;font-weight:700;color:var(--muted)">${curLang==='ru'?'Добавить':'Qo\'shish'}</div>
-    </div>`;
+  +`<div onclick="openAddCat()" style="padding:14px 6px;border-radius:16px;border:2px dashed var(--border);background:var(--card);text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px">
+    <div style="color:var(--acc)"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+    <div style="font-size:12px;font-weight:700;color:var(--muted)">${curLang==='ru'?'Добавить':'Qo\'shish'}</div>
+  </div>`;
+
   toggleUstaPicker();
 }
 
@@ -1854,26 +1885,52 @@ function renderSpendWorkers(){
   // Ishchilar bo'limi faqat chiqimda ko'rinmaydi — bu alohida emas
 }
 
+// SVG ikonkalar kutubxonasi (kategoriyalar uchun)
+const SVG_ICONS=[
+  {id:'worker',svg:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,label:'Ishchi'},
+  {id:'tool',svg:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>`,label:'Asbob'},
+  {id:'material',svg:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>`,label:'Material'},
+  {id:'car',svg:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M5 17H3a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v5a2 2 0 01-2 2h-2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>`,label:'Transport'},
+  {id:'food',svg:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zM6 1v3M10 1v3M14 1v3"/></svg>`,label:'Ovqat'},
+  {id:'money',svg:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>`,label:'Pul'},
+  {id:'light',svg:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 017 7c0 2.5-1.3 4.7-3.3 6H8.3C6.3 13.7 5 11.5 5 9a7 7 0 017-7z"/></svg>`,label:'Kommunal'},
+  {id:'store',svg:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,label:"Do'kon"},
+  {id:'truck',svg:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>`,label:'Yetkazish'},
+  {id:'box',svg:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>`,label:'Mahsulot'},
+  {id:'phone',svg:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.67A2 2 0 012 1h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>`,label:'Aloqa'},
+  {id:'key',svg:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>`,label:'Kalit'},
+  {id:'shield',svg:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,label:'Himoya'},
+  {id:'star',svg:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,label:'Yulduz'},
+  {id:'chart',svg:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,label:'Hisobot'},
+];
+
+let selIconId=SVG_ICONS[0].id;
+
 function openAddCat(){
-  selStikerEmoji=STIKERS[0];
+  selIconId=SVG_ICONS[0].id;
   document.getElementById('newcat-name').value='';
-  document.getElementById('selStiker-preview').textContent=STIKERS[0];
   const grid=document.getElementById('stiker-grid');
-  grid.innerHTML=STIKERS.map(s=>`<div onclick="selStikerEmoji='${s}';document.getElementById('selStiker-preview').textContent='${s}';document.querySelectorAll('#stiker-grid .stiker-item').forEach(x=>x.style.background='var(--bg)');this.style.background='rgba(29,78,216,.1)'" class="stiker-item" style="width:100%;aspect-ratio:1;border-radius:12px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:26px;cursor:pointer;border:1.5px solid var(--border)">${s}</div>`).join('');
+  grid.innerHTML=SVG_ICONS.map(ic=>`
+    <div onclick="selIconId='${ic.id}';document.querySelectorAll('.icon-item').forEach(x=>{x.style.background='var(--bg)';x.style.borderColor='var(--border)'});this.style.background='rgba(29,78,216,.1)';this.style.borderColor='var(--acc)'" class="icon-item" style="border-radius:14px;background:${ic.id===selIconId?'rgba(29,78,216,.1)':'var(--bg)'};border:1.5px solid ${ic.id===selIconId?'var(--acc)':'var(--border)'};padding:10px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer">
+      <div style="color:var(--text2)">${ic.svg}</div>
+      <div style="font-size:9px;font-weight:700;color:var(--muted);text-align:center">${ic.label}</div>
+    </div>`).join('');
   openSheet('addcat');
 }
 
 function saveCustomCat(){
   const name=document.getElementById('newcat-name').value.trim();
-  if(!name){toast(curLang==='ru'?'Введите название':'Nom kiriting','#ef4444');return;}
+  const r=curLang==='ru';
+  if(!name){toast(r?'Введите название':'Nom kiriting','#ef4444');return;}
+  const icon=SVG_ICONS.find(i=>i.id===selIconId)||SVG_ICONS[0];
   const id='cat_'+Date.now();
   const cats=getCustomCats();
-  cats.push({id,stiker:selStikerEmoji,uz:name,ru:name,custom:true});
+  cats.push({id,svg:icon.svg,uz:name,ru:name,custom:true});
   localStorage.setItem('custom_cats',JSON.stringify(cats));
   selCat=id;
   closeSheet('sh-addcat');
   renderSpendCats();
-  toast('✅ Kategoriya qo\'shildi','#16A34A');
+  toast('✅ '+(r?'Категория добавлена':'Kategoriya qo\'shildi'),'#16A34A');
 }
 
 // ═══════════════════════════════════════════
@@ -2129,6 +2186,7 @@ function gp(page){
     else if(page==='hisobot') await renderHisobot();
     else if(page==='profil') await renderProfil();
     else if(page==='workers') await renderWorkers();
+    // worker-detail va ob — content allaqachon to'ldirilgan, render kerak emas
     reset();
     requestAnimationFrame(reset);
   };
@@ -2377,19 +2435,18 @@ let newObImgData=null;
 function onObImgChange(input){
   const file=input.files[0];
   if(!file)return;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    newObImgData=e.target.result;
+  compressImg(file).then(dataUrl=>{
+    if(!dataUrl)return;
+    newObImgData=dataUrl;
     const preview=document.getElementById('ob-img-preview');
     preview.innerHTML=`
-      <img src="${newObImgData}" style="width:100%;height:100%;object-fit:cover;border-radius:14px">
+      <img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:14px">
       <div style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.5);color:#fff;font-size:11px;font-weight:700;padding:4px 8px;border-radius:8px;backdrop-filter:blur(4px)">
         ${curLang==='ru'?'Изменить':'O\'zgartirish'}
       </div>`;
     preview.style.border='2px solid var(--acc)';
     preview.style.padding='0';
-  };
-  reader.readAsDataURL(file);
+  });
 }
 
 function onObDetailImgChange(input){
@@ -2677,16 +2734,16 @@ function openObEdit(obId){
 function onEditObImgChange(input){
   const file=input.files[0];
   if(!file) return;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    editObNewImg=e.target.result;
+  const r=curLang==='ru';
+  // Compress before saving
+  compressImg(file).then(dataUrl=>{
+    if(!dataUrl){toast(r?'Ошибка файла':'Fayl xatosi','#ef4444');return;}
+    editObNewImg=dataUrl;
     const prev=document.getElementById('editob-img-preview');
-    const r=curLang==='ru';
-    prev.innerHTML=`<img src="${editObNewImg}" style="width:100%;height:100%;object-fit:cover;border-radius:14px">
+    prev.innerHTML=`<img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:14px">
       <div style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.5);color:#fff;font-size:11px;font-weight:700;padding:4px 8px;border-radius:8px">${r?'Изменить':'O\'zgartirish'}</div>`;
     prev.style.border='2px solid var(--acc)';
-  };
-  reader.readAsDataURL(file);
+  });
 }
 
 function setObStatus(status, silent=false){
@@ -2736,9 +2793,10 @@ async function saveObEdit(){
       status:editObStatus
     }).eq('id',curObId);
 
-    // Save image
+    // Save image — compressed, with quota handling
     if(editObNewImg){
-      localStorage.setItem('ob-img-'+curObId,editObNewImg);
+      const saved=saveImgLocal('ob-img-'+curObId, editObNewImg);
+      if(!saved) toast(r?'Фото не сохранено (память заполнена)':'Rasm saqlanmadi (xotira to\'la)','#f59e0b');
     }
 
     // Update local state
@@ -2972,9 +3030,9 @@ async function createOb(){
     }).select().single();
     if(error) throw new Error('Obyekt: '+error.message);
 
-    // 2. Rasm saqlash
+    // 2. Rasm saqlash — compress va quota handling
     if(newObImgData){
-      localStorage.setItem('ob-img-'+ob.id, newObImgData);
+      saveImgLocal('ob-img-'+ob.id, newObImgData);
       newObImgData=null;
     }
 
@@ -3092,6 +3150,7 @@ function setWorkerFilter(f,el){
 }
 
 async function openWorkerDetail(uid){
+  if(!uid||uid==='undefined'){toast('Xato: ishchi topilmadi','#ef4444');return;}
   const w=allWorkers.find(w=>w.user_id===uid)||{user_id:uid,profiles:{},ishaqi:0,olingan:0,balans:0,kasb:''};
   const name=w.profiles?.full_name||w.profiles?.phone||'?';
   const r=curLang==='ru';
@@ -3100,8 +3159,14 @@ async function openWorkerDetail(uid){
   const bal=w.balans||0;
   const bc=bal>0?'#16A34A':bal<0?'#EF4444':'var(--muted)';
   document.getElementById('wd-title').textContent=name;
-  const {data:txs}=await sb.from('transactions').select('*').or(`to_user.eq.${uid},from_user.eq.${uid}`).order('tx_date',{ascending:false}).limit(30);
-  const wtxs=(txs||[]).filter(t=>t.to_user===uid);
+  // Avval sahifaga o'tamiz
+  document.getElementById('wd-content').innerHTML='<div style="text-align:center;padding:40px"><div class="spinner" style="border-color:var(--border);border-top-color:var(--acc);width:28px;height:28px;margin:0 auto"></div></div>';
+  gp('worker-detail');
+  let wtxs=[];
+  try{
+    const {data:txs}=await sb.from('transactions').select('*').or(`to_user.eq.${uid},from_user.eq.${uid}`).order('tx_date',{ascending:false}).limit(30);
+    wtxs=(txs||[]).filter(t=>t.to_user===uid);
+  }catch(e){console.error('tx load:',e);}
   document.getElementById('wd-content').innerHTML=`
     <div style="margin:0 16px;background:var(--card);border-radius:20px;padding:20px;border:1px solid var(--border)">
       <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
@@ -3125,7 +3190,6 @@ async function openWorkerDetail(uid){
       <button onclick="openAvansSheet('${uid}')" style="flex:1;padding:14px;background:var(--card);color:#F59E0B;border:1.5px solid rgba(245,158,11,.3);border-radius:16px;font-size:14px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7 7 7-7"/></svg>${r?'Аванс':'Avans'}</button>
       <button onclick="openIshHaqiSheet('${uid}')" style="flex:2;padding:14px;background:linear-gradient(135deg,var(--acc),#3B82F6);color:#fff;border:none;border-radius:16px;font-size:14px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 16px rgba(29,78,216,.3)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>${r?'Записать зарплату':'Ish haqi yozish'}</button>
     </div>`;
-  gp('worker-detail');
 }
 
 // ═══════════════════════════════════════════
