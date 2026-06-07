@@ -109,7 +109,7 @@ a{text-decoration:none;color:inherit}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
 /* APP container */
-#app{display:none;position:fixed;top:0;left:0;right:0;bottom:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:var(--nav-h)}
+#app{display:none;position:fixed;top:0;left:0;right:0;bottom:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-top:env(safe-area-inset-top,0px);padding-bottom:var(--nav-h)}
 
 /* TOPBAR */
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:rgba(242,246,250,.88);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.8)}
@@ -2653,11 +2653,11 @@ async function renderHome(){
     return;
   }
   list.innerHTML=activeObs.map(o=>obBigCardHtml(o)).join('');
-  // A'zo sonini yuklash
+  // A'zo sonini yuklash (owner hisoblanmaydi)
   for(const {ob} of activeObs){
-    const {count}=await sb.from('ob_members').select('*',{count:'exact',head:true}).eq('ob_id',ob.id);
+    const {count}=await sb.from('ob_members').select('*',{count:'exact',head:true}).eq('ob_id',ob.id).neq('role','owner');
     const el=document.getElementById('ob-cnt-'+ob.id);
-    if(el) el.textContent=(count||1)-1>=0?(count||1):0;
+    if(el) el.textContent=count||0;
   }
 }
 
@@ -2727,7 +2727,8 @@ async function renderWorkers(){
   await loadAll();
   const r=curLang==='ru';
   allWorkers=[];
-  for(const {ob} of allObs){
+  const activeObs2=allObs.filter(o=>(o.ob.status||'active')!=='done');
+  for(const {ob} of activeObs2){
     const {data:mems}=await sb.from('ob_members')
       .select('*,profiles(*)').eq('ob_id',ob.id).neq('user_id',curUser.id);
     (mems||[]).forEach(m=>{
@@ -3392,9 +3393,9 @@ async function renderHisobot(){
   setEl('his-kirim',fmt(totalIn));
   setEl('his-chiqim',fmt(totalOut));
   setEl('his-foyda',fmt(foyda));
-  setEl('his-kirim-pct',isDemo?'▲ 18.6%':'▲ 0%');
-  setEl('his-chiqim-pct',isDemo?'▲ 12.3%':'▲ 0%');
-  setEl('his-foyda-pct',isDemo?'▲ 23.4%':'▲ 0%');
+  setEl('his-kirim-pct','');
+  setEl('his-chiqim-pct','');
+  setEl('his-foyda-pct','');
   setEl('his-leg-kirim-val',fmt(totalIn));
   setEl('his-leg-chiqim-val',fmt(totalOut));
   setEl('his-avg-val',fmt(avgDaily));
@@ -3405,9 +3406,9 @@ async function renderHisobot(){
   // Tezkor
   const tezkorEl=document.getElementById('his-tezkor');
   if(tezkorEl) tezkorEl.innerHTML=[
-    {ico:'📈',val:isDemo?'+18.6%':'0%',lbl:r?'Рост дохода':'Kirim o\'sishi',c:'rgba(22,163,74,.15)',tc:'#16A34A'},
-    {ico:'📉',val:isDemo?'+12.3%':'0%',lbl:r?'Рост расходов':'Chiqim o\'sishi',c:'rgba(239,68,68,.15)',tc:'#EF4444'},
-    {ico:'💹',val:isDemo?'+23.4%':'0%',lbl:r?'Рост прибыли':'Foyda o\'sishi',c:'rgba(29,78,216,.15)',tc:'#1D4ED8'},
+    {ico:'📈',val:'—',lbl:r?'Рост дохода':'Kirim o\'sishi',c:'rgba(22,163,74,.15)',tc:'#16A34A'},
+    {ico:'📉',val:'—',lbl:r?'Рост расходов':'Chiqim o\'sishi',c:'rgba(239,68,68,.15)',tc:'#EF4444'},
+    {ico:'💹',val:'—',lbl:r?'Рост прибыли':'Foyda o\'sishi',c:'rgba(29,78,216,.15)',tc:'#1D4ED8'},
     {ico:'📊',val:fmt(avgDaily),lbl:r?'Среднее в день':'O\'rtacha kunlik',c:'rgba(168,85,247,.15)',tc:'#a855f7'},
   ].map(i=>`<div style="background:${i.c};border-radius:16px;padding:14px 12px;display:flex;flex-direction:column;gap:6px">
     <div style="font-size:22px">${i.ico}</div>
@@ -3421,7 +3422,7 @@ async function renderHisobot(){
   },50);
 
   // Tx list
-  const realTxs=isDemo?[]:allT.slice().reverse();
+  const realTxs=allT.slice().reverse();
   document.getElementById('hisobot-content').innerHTML=realTxs.length
     ?realTxs.map(tx=>{
         const isIn=tx.tur==='income'||(tx.tur==='send'&&tx.to_user===curUser?.id);
