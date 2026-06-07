@@ -1161,6 +1161,12 @@ body.dark .topbar{background:rgba(13,17,23,.92)!important;border-bottom:1px soli
       <div id="spend-worker-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:4px"></div>
     </div>
 
+    <!-- Kirim manbasi (faqat kirimda) -->
+    <div id="spend-kirim-section" style="display:none">
+      <label class="inp-lbl" id="lbl-kirim-kimdan">KIMDAN?</label>
+      <div id="spend-kirim-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:4px"></div>
+    </div>
+
     <!-- Kategoriyalar (faqat chiqimda) -->
     <div id="spend-cat-section">
       <label class="inp-lbl" id="lbl-cat">KATEGORIYANI TANLANG</label>
@@ -1780,6 +1786,7 @@ let selStikerEmoji='🔧';
 
 function setSpendTab(tab){
   selSpendTab=tab;
+  const r=curLang==='ru';
   const chBtn=document.getElementById('spend-tab-chiqim');
   const kiBtn=document.getElementById('spend-tab-kirim');
   if(chBtn){
@@ -1792,13 +1799,24 @@ function setSpendTab(tab){
     kiBtn.style.color=tab==='kirim'?'#16A34A':'var(--muted)';
     kiBtn.style.boxShadow=tab==='kirim'?'0 2px 8px rgba(0,0,0,.08)':'none';
   }
+
   const catSec=document.getElementById('spend-cat-section');
-  const workerSec=document.getElementById('spend-worker-section');
-  if(catSec) catSec.style.display=tab==='chiqim'?'block':'none';
-  if(workerSec) workerSec.style.display='none';
+  const ustaSec=document.getElementById('spend-usta-section');
+  const kirimSec=document.getElementById('spend-kirim-section');
+
+  if(tab==='chiqim'){
+    if(catSec) catSec.style.display='block';
+    if(ustaSec) ustaSec.style.display='none';
+    if(kirimSec) kirimSec.style.display='none';
+  } else {
+    if(catSec) catSec.style.display='none';
+    if(ustaSec) ustaSec.style.display='none';
+    if(kirimSec) kirimSec.style.display='block';
+  }
+
   document.getElementById('lbl-sarflash2').textContent=tab==='chiqim'?
-    (curLang==='ru'?'Подтвердить расход':'Chiqim qo\'shish'):
-    (curLang==='ru'?'Подтвердить доход':'Kirim qo\'shish');
+    (r?'Подтвердить расход':'Chiqim qo\'shish'):
+    (r?'Подтвердить доход':'Kirim qo\'shish');
 }
 
 function openSpend(tab='chiqim'){
@@ -1815,6 +1833,9 @@ function openSpend(tab='chiqim'){
     if(curObId) obSel.value=curObId;
     obSel.onchange=()=>{selUstaId=null;toggleUstaPicker();};
   }
+
+  // Kirim manbalari
+  renderKirimSources();
 
   // Kategoriyalar
   renderSpendCats();
@@ -1892,11 +1913,31 @@ async function toggleUstaPicker(){
   }
 }
 
-function renderSpendWorkers(){
-  const sec=document.getElementById('spend-worker-section');
-  if(!sec)return;
-  // Ishchilar bo'limi faqat chiqimda ko'rinmaydi — bu alohida emas
+let selKirimSource='mijoz';
+
+function renderKirimSources(){
+  const r=curLang==='ru';
+  const el=document.getElementById('spend-kirim-list');
+  if(!el) return;
+  const obId=document.getElementById('spend-ob')?.value||curObId;
+  const myOb=allObs.find(o=>o.ob.id===obId);
+  const isOwner=(myOb?.role||curObRole)==='owner';
+  const sources=isOwner
+    ?[{id:'mijoz',label:r?'Клиент (оплата за работу)':'Mijoz (ish haqi to\'lovi)'}]
+    :[
+      {id:'mijoz',label:r?'Клиент':'Mijoz'},
+      {id:'owner',label:r?'Прораб (аванс)':'Prorab (avans)'},
+    ];
+  el.innerHTML=sources.map(s=>{
+    const sel=selKirimSource===s.id;
+    return`<div onclick="selKirimSource='${s.id}';renderKirimSources()" style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-radius:14px;border:2px solid ${sel?'var(--acc)':'var(--border)'};background:${sel?'rgba(29,78,216,.06)':'var(--card)'};cursor:pointer">
+      <span style="font-size:14px;font-weight:700;color:var(--text)">${s.label}</span>
+      ${sel?`<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`:`<div style="width:20px;height:20px;border-radius:50%;border:2px solid var(--border)"></div>`}
+    </div>`;
+  }).join('');
 }
+
+function renderSpendWorkers(){}
 
 // SVG ikonkalar kutubxonasi (kategoriyalar uchun)
 const SVG_ICONS=[
@@ -3482,10 +3523,9 @@ async function doSpend(){
   try{
     const txDate=dt?new Date(dt).toISOString():new Date().toISOString();
     if(isKirim){
-      // Kirim
       await sb.from('transactions').insert({
         ob_id:obId,from_user:null,to_user:curUser?.id,
-        summa:amount,tur:'income',kategoriya:'mijoz',
+        summa:amount,tur:'income',kategoriya:selKirimSource,
         izoh:note||null,tx_date:txDate
       });
       const {data:f}=await sb.from('obyektlar').select('kirim').eq('id',obId).single();
