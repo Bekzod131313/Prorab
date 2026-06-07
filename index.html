@@ -1138,21 +1138,86 @@ body.dark .topbar{background:rgba(13,17,23,.92)!important;border-bottom:1px soli
 
 <!-- Spend Sheet -->
 <div class="overlay" id="ov-spend" onclick="closeSheet('sh-spend')"></div>
-<div class="sheet" id="sh-spend">
+<div class="sheet" id="sh-spend" style="max-height:92vh">
   <div class="sheet-handle"></div>
-  <div class="sheet-title" id="lbl-sarflash"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg> Pul sarflash</div>
-  <div class="sheet-body">
-    <div style="background:var(--bg);border-radius:12px;padding:12px;text-align:center;margin-bottom:14px">
-      <div style="font-size:12px;color:var(--muted);font-weight:700;margin-bottom:2px" id="lbl-qolimda">Qo'limdagi pul</div>
-      <div style="font-size:28px;font-weight:900;color:#16A34A" id="spend-mybal">$0</div>
+  <!-- Tabs: Chiqim / Kirim -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:8px 16px 16px;background:var(--bg);border-radius:14px;padding:4px">
+    <button id="spend-tab-chiqim" onclick="setSpendTab('chiqim')" style="padding:11px;border-radius:10px;font-size:14px;font-weight:800;border:none;background:#fff;color:#EF4444;box-shadow:0 2px 8px rgba(0,0,0,.08);cursor:pointer">Chiqim</button>
+    <button id="spend-tab-kirim" onclick="setSpendTab('kirim')" style="padding:11px;border-radius:10px;font-size:14px;font-weight:800;border:none;background:transparent;color:var(--muted);cursor:pointer">Kirim</button>
+  </div>
+
+  <div style="overflow-y:auto;max-height:calc(92vh - 120px);padding:0 16px 24px">
+    <!-- Obyekt -->
+    <div class="inp-group">
+      <label class="inp-lbl" id="lbl-qaysi-ob2">QAYSI OBYEKT?</label>
+      <select class="inp" id="spend-ob" style="font-weight:700"></select>
     </div>
-    <div class="inp-group"><label class="inp-lbl" id="lbl-cat">Kategoriya</label>
-      <div id="spend-cats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px"></div>
+
+    <!-- Ishchiga pul berish (faqat chiqimda) -->
+    <div id="spend-worker-section" style="display:none">
+      <label class="inp-lbl">ISHCHIGA PUL BERISH</label>
+      <div id="spend-worker-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:4px"></div>
     </div>
-    <div class="inp-group"><label class="inp-lbl" id="lbl-summa3">Summa</label><input class="inp inp-big" id="spend-amount" type="number" placeholder="0"></div>
-    <div class="inp-group"><label class="inp-lbl" id="lbl-izoh2">Izoh</label><input class="inp" id="spend-note"></div>
-    <div class="inp-group"><label class="inp-lbl" id="lbl-sana3">Sana va vaqt</label><input class="inp" id="spend-dt" type="datetime-local"></div>
-    <button class="btn btn-acc" id="lbl-sarflash2" onclick="doSpend()">Sarflash</button>
+
+    <!-- Kategoriyalar (faqat chiqimda) -->
+    <div id="spend-cat-section">
+      <label class="inp-lbl" id="lbl-cat">KATEGORIYANI TANLANG</label>
+      <div id="spend-cats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:4px"></div>
+    </div>
+
+    <!-- Usta tanlash (usta kategoriya tanlanganda) -->
+    <div id="spend-usta-section" style="display:none">
+      <label class="inp-lbl">USTANI TANLANG</label>
+      <div id="spend-usta-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:4px"></div>
+    </div>
+
+    <!-- Summa -->
+    <div class="inp-group">
+      <label class="inp-lbl" id="lbl-summa3">SUMMA</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input class="inp inp-big" id="spend-amount" type="number" placeholder="0" style="flex:1">
+        <div style="font-size:13px;font-weight:700;color:var(--muted);background:var(--bg);padding:10px 14px;border-radius:12px;border:1.5px solid var(--border)">USD</div>
+      </div>
+    </div>
+
+    <!-- Izoh -->
+    <div class="inp-group">
+      <label class="inp-lbl" id="lbl-izoh2">IZOH</label>
+      <input class="inp" id="spend-note" placeholder="Masalan: 1-hafta uchun material...">
+    </div>
+
+    <!-- Sana -->
+    <div class="inp-group">
+      <label class="inp-lbl" id="lbl-sana3">SANA</label>
+      <input class="inp" id="spend-dt" type="datetime-local">
+    </div>
+
+    <button class="btn btn-acc" id="lbl-sarflash2" onclick="doSpend()" style="font-size:16px;font-weight:800">Tasdiqlash</button>
+  </div>
+</div>
+
+<!-- Custom kategoriya qo'shish sheet -->
+<div class="overlay" id="ov-addcat" onclick="closeSheet('sh-addcat')"></div>
+<div class="sheet" id="sh-addcat" style="max-height:88vh">
+  <div class="sheet-handle"></div>
+  <div style="padding:8px 16px 16px">
+    <div style="font-size:17px;font-weight:900;color:var(--text);margin-bottom:16px">➕ Kategoriya qo'shish</div>
+
+    <!-- Kategoriya nomi -->
+    <div class="inp-group">
+      <label class="inp-lbl">KATEGORIYA NOMI</label>
+      <input class="inp" id="newcat-name" placeholder="Masalan: Qorovul, Lift...">
+    </div>
+
+    <!-- Stiker tanlash -->
+    <label class="inp-lbl" style="margin-bottom:10px;display:block">STIKER TANLANG</label>
+    <div id="stiker-grid" style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;max-height:280px;overflow-y:auto;padding:4px 0"></div>
+    <div style="margin-top:12px;padding:10px;background:var(--bg);border-radius:12px;border:1.5px solid var(--acc);text-align:center">
+      <span id="selStiker-preview" style="font-size:32px">🔧</span>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);margin-top:4px">Tanlangan stiker</div>
+    </div>
+
+    <button onclick="saveCustomCat()" style="width:100%;margin-top:14px;padding:15px;background:var(--acc);color:#fff;border:none;border-radius:14px;font-size:15px;font-weight:800;cursor:pointer">Saqlash</button>
   </div>
 </div>
 
@@ -1645,30 +1710,171 @@ let curObTxs=[];
 let regime=localStorage.getItem('regime')||'lite';
 let selRole='member';
 let selCat='bozor';
+let selSpendTab='chiqim';
+let selUstaId=null;
+let selWorkerId=null;
 let hisPeriod='month';
 let prevPage='home';
 
-const CATS=[
-  {id:'usta',emoji:'🔧',uz:'Usta',ru:'Мастер'},
-  {id:'bozor',emoji:'🛒',uz:'Bozor',ru:'Рынок'},
-  {id:'dostavka',emoji:'🚚',uz:'Yetkazish',ru:'Доставка'},
-  {id:'dokon',emoji:'🏪',uz:"Do'kon",ru:'Магазин'},
-  {id:'ovqat',emoji:'🍱',uz:'Ovqat',ru:'Еда'},
-  {id:'boshqa',emoji:'➕',uz:'Boshqa',ru:'Другое'},
+// Stiker kutubxonasi
+const STIKERS=[
+  '🔧','🛒','🚚','🏪','🍱','🚕','🧱','🔩','💡','💰','🏗️','👷','🔨','⚡','🪛',
+  '🔑','🚰','🧹','📦','🪚','🔌','🏠','🪟','🚪','🛠️','📋','💼','🪜','🧰','🔐',
+  '💳','💵','🏧','📊','📈','🎯','⭐','🔴','🟢','🔵','🟡','🟠','🔶','🔷','🌟',
+  '🪑','🛏️','🚿','🛁','🪴','🌿','🏢','🏭','🏛️','🏗','🔲','🟥','🟦','🟩','🔺'
 ];
-const CATS_ALL=[
-  {id:'usta',emoji:'🔧',uz:'Usta',ru:'Мастер'},
-  {id:'bozor',emoji:'🛒',uz:'Bozor',ru:'Рынок'},
-  {id:'dostavka',emoji:'🚚',uz:'Yetkazish',ru:'Доставка'},
-  {id:'dokon',emoji:'🏪',uz:"Do'kon",ru:'Магазин'},
-  {id:'ovqat',emoji:'🍱',uz:'Ovqat',ru:'Еда'},
-  {id:'taksi',emoji:'🚕',uz:'Taksi',ru:'Такси'},
-  {id:'material',emoji:'🧱',uz:'Material',ru:'Материал'},
-  {id:'asbob',emoji:'🔩',uz:'Asbob',ru:'Инструмент'},
-  {id:'kommunal',emoji:'💡',uz:'Kommunal',ru:'Коммунальные'},
-  {id:'boshqa',emoji:'➕',uz:'Boshqa',ru:'Другое'},
+
+// Default kategoriyalar
+const DEFAULT_CATS=[
+  {id:'usta',stiker:'👷',uz:'Usta',ru:'Мастер'},
+  {id:'bozor',stiker:'🛒',uz:'Bozor',ru:'Рынок'},
+  {id:'dostavka',stiker:'🚚',uz:'Yetkazish',ru:'Доставка'},
+  {id:'dokon',stiker:'🏪',uz:"Do'kon",ru:'Магазин'},
+  {id:'ovqat',stiker:'🍱',uz:'Ovqat',ru:'Еда'},
+  {id:'taksi',stiker:'🚕',uz:'Taksi',ru:'Такси'},
+  {id:'material',stiker:'🧱',uz:'Material',ru:'Материал'},
+  {id:'asbob',stiker:'🔧',uz:'Asbob',ru:'Инструмент'},
+  {id:'kommunal',stiker:'💡',uz:'Kommunal',ru:'Коммунальные'},
 ];
-const CAT_COLORS=['#ea580c','#1D4ED8','#3b82f6','#a855f7','#f59e0b','#64748b'];
+
+// Custom kategoriyalarni localStorage dan olish
+function getCustomCats(){
+  try{return JSON.parse(localStorage.getItem('custom_cats')||'[]');}catch{return [];}
+}
+function getAllCats(){
+  return [...DEFAULT_CATS,...getCustomCats()];
+}
+
+const CATS=DEFAULT_CATS;
+const CATS_ALL=DEFAULT_CATS;
+const CAT_COLORS=['#ea580c','#1D4ED8','#3b82f6','#a855f7','#f59e0b','#64748b','#16a34a','#0891b2','#dc2626','#7c3aed'];
+
+// ═══════════════════════════════════════════
+// SPEND SHEET
+// ═══════════════════════════════════════════
+let selStikerEmoji='🔧';
+
+function setSpendTab(tab){
+  selSpendTab=tab;
+  const chBtn=document.getElementById('spend-tab-chiqim');
+  const kiBtn=document.getElementById('spend-tab-kirim');
+  if(chBtn){
+    chBtn.style.background=tab==='chiqim'?'#fff':'transparent';
+    chBtn.style.color=tab==='chiqim'?'#EF4444':'var(--muted)';
+    chBtn.style.boxShadow=tab==='chiqim'?'0 2px 8px rgba(0,0,0,.08)':'none';
+  }
+  if(kiBtn){
+    kiBtn.style.background=tab==='kirim'?'#fff':'transparent';
+    kiBtn.style.color=tab==='kirim'?'#16A34A':'var(--muted)';
+    kiBtn.style.boxShadow=tab==='kirim'?'0 2px 8px rgba(0,0,0,.08)':'none';
+  }
+  const catSec=document.getElementById('spend-cat-section');
+  const workerSec=document.getElementById('spend-worker-section');
+  if(catSec) catSec.style.display=tab==='chiqim'?'block':'none';
+  if(workerSec) workerSec.style.display='none';
+  document.getElementById('lbl-sarflash2').textContent=tab==='chiqim'?
+    (curLang==='ru'?'Подтвердить расход':'Chiqim qo\'shish'):
+    (curLang==='ru'?'Подтвердить доход':'Kirim qo\'shish');
+}
+
+function openSpend(tab='chiqim'){
+  const r=curLang==='ru';
+  selSpendTab=tab;
+  selUstaId=null;
+  selWorkerId=null;
+
+  // Obyektlar
+  const obSel=document.getElementById('spend-ob');
+  if(obSel){
+    const myObs=allObs.filter(o=>o.role==='owner'||(o.role==='member'));
+    obSel.innerHTML=myObs.map(o=>`<option value="${o.ob.id}">${o.ob.nomi}</option>`).join('');
+    if(curObId) obSel.value=curObId;
+    obSel.onchange=()=>renderSpendWorkers();
+  }
+
+  // Kategoriyalar
+  renderSpendCats();
+  renderSpendWorkers();
+
+  // Sana
+  const dtEl=document.getElementById('spend-dt');
+  if(dtEl) dtEl.value=new Date().toISOString().slice(0,16);
+
+  document.getElementById('spend-amount').value='';
+  document.getElementById('spend-note').value='';
+
+  setSpendTab(tab);
+  openSheet('spend');
+}
+
+function renderSpendCats(){
+  const cats=getAllCats();
+  const el=document.getElementById('spend-cats');
+  if(!el)return;
+  el.innerHTML=cats.map((c,i)=>{
+    const col=CAT_COLORS[i%CAT_COLORS.length];
+    const active=selCat===c.id;
+    return`<div onclick="selCat='${c.id}';renderSpendCats();toggleUstaPicker()" style="padding:12px 6px;border-radius:14px;border:2px solid ${active?col:'var(--border)'};background:${active?col+'15':'var(--card)'};text-align:center;cursor:pointer;transition:all .15s">
+      <div style="font-size:28px;line-height:1;margin-bottom:6px">${c.stiker||c.emoji||'📦'}</div>
+      <div style="font-size:11px;font-weight:700;color:${active?col:'var(--muted)'}">${curLang==='ru'?c.ru:c.uz}</div>
+    </div>`;
+  }).join('')
+  +`<div onclick="openAddCat()" style="padding:12px 6px;border-radius:14px;border:2px dashed var(--border);background:var(--card);text-align:center;cursor:pointer">
+      <div style="font-size:28px;line-height:1;margin-bottom:6px">➕</div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted)">${curLang==='ru'?'Добавить':'Qo\'shish'}</div>
+    </div>`;
+  toggleUstaPicker();
+}
+
+function toggleUstaPicker(){
+  const sec=document.getElementById('spend-usta-section');
+  if(!sec)return;
+  if(selCat==='usta'){
+    sec.style.display='block';
+    const obId=document.getElementById('spend-ob')?.value||curObId;
+    const mems=(curObMembers.length?curObMembers:allObs.find(o=>o.ob.id===obId)?.members||[]).filter(m=>m.user_id!==curUser?.id);
+    sec.querySelector('#spend-usta-list').innerHTML=mems.length?mems.map(m=>{
+      const name=m.profiles?.full_name||m.profiles?.phone||'?';
+      const sel=selUstaId===m.user_id;
+      return`<div onclick="selUstaId='${m.user_id}';renderSpendCats()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:14px;border:2px solid ${sel?'var(--acc)':'var(--border)'};background:${sel?'rgba(29,78,216,.06)':'var(--card)'};cursor:pointer">
+        <div style="width:36px;height:36px;border-radius:11px;background:${avColor(name)};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:#fff;flex-shrink:0">${name[0].toUpperCase()}</div>
+        <div><div style="font-size:14px;font-weight:700;color:var(--text)">${name}</div><div style="font-size:11px;color:var(--muted)">${m.kasb||''}</div></div>
+        ${sel?`<svg style="margin-left:auto" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`:''}
+      </div>`;
+    }).join(''):`<div style="font-size:13px;color:var(--muted);text-align:center;padding:10px">${curLang==='ru'?'Нет рабочих на этом объекте':"Bu ob'ektda ishchi yo'q"}</div>`;
+  } else {
+    sec.style.display='none';
+    selUstaId=null;
+  }
+}
+
+function renderSpendWorkers(){
+  const sec=document.getElementById('spend-worker-section');
+  if(!sec)return;
+  // Ishchilar bo'limi faqat chiqimda ko'rinmaydi — bu alohida emas
+}
+
+function openAddCat(){
+  selStikerEmoji=STIKERS[0];
+  document.getElementById('newcat-name').value='';
+  document.getElementById('selStiker-preview').textContent=STIKERS[0];
+  const grid=document.getElementById('stiker-grid');
+  grid.innerHTML=STIKERS.map(s=>`<div onclick="selStikerEmoji='${s}';document.getElementById('selStiker-preview').textContent='${s}';document.querySelectorAll('#stiker-grid .stiker-item').forEach(x=>x.style.background='var(--bg)');this.style.background='rgba(29,78,216,.1)'" class="stiker-item" style="width:100%;aspect-ratio:1;border-radius:12px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:26px;cursor:pointer;border:1.5px solid var(--border)">${s}</div>`).join('');
+  openSheet('addcat');
+}
+
+function saveCustomCat(){
+  const name=document.getElementById('newcat-name').value.trim();
+  if(!name){toast(curLang==='ru'?'Введите название':'Nom kiriting','#ef4444');return;}
+  const id='cat_'+Date.now();
+  const cats=getCustomCats();
+  cats.push({id,stiker:selStikerEmoji,uz:name,ru:name,custom:true});
+  localStorage.setItem('custom_cats',JSON.stringify(cats));
+  selCat=id;
+  closeSheet('sh-addcat');
+  renderSpendCats();
+  toast('✅ Kategoriya qo\'shildi','#16A34A');
+}
 
 // ═══════════════════════════════════════════
 // UTILS
@@ -1984,22 +2190,8 @@ async function doFabIncome(){
 }
 
 function openSpendFab(){
-  const sel = document.getElementById('fab-ob-sel');
-  sel.innerHTML = '';
-  if(!allObs.length){
-    toast('Avval obyekt yarating','#ef4444');
-    return;
-  }
-  allObs.forEach(({ob})=>{
-    const opt = document.createElement('option');
-    opt.value = ob.id; opt.textContent = ob.nomi;
-    sel.appendChild(opt);
-  });
-  if(curObId) sel.value = curObId;
-  // Default: chiqim tab
-  switchFabTab('chiqim');
-  renderFabCats();
-  openSheet('fab-spend');
+  if(!allObs.length){toast(curLang==='ru'?'Сначала создайте объект':'Avval obyekt yarating','#ef4444');return;}
+  openSpend('chiqim');
 }
 
 function renderFabCats(){
@@ -3163,37 +3355,11 @@ async function doSendMoney(){
 // DASH BUTTONS — Kirim / Chiqim
 // ═══════════════════════════════════════════
 function openDashKirim(){
-  // If only one ob, open directly
-  const myObs=allObs.filter(o=>o.role==='owner');
-  if(myObs.length===1){
-    curObId=myObs[0].ob.id;
-    curOb=myObs[0].ob;
-    curObRole='owner';
-    curObMembers=[];
-    curObTxs=[];
-    // Pre-fill ob selector and open income sheet
-    document.getElementById('income-amount').value='';
-    document.getElementById('income-note').value='';
-    document.getElementById('income-dt').value=new Date().toISOString().slice(0,16);
-    openSheet('income');
-    return;
-  }
-  // Multiple obs — show picker sheet
-  openDashObPicker('kirim');
+  openSpend('kirim');
 }
 
 function openDashChiqim(){
-  const myObs=allObs.filter(o=>o.role==='owner'||o.role==='member');
-  if(myObs.length===1){
-    curObId=myObs[0].ob.id;
-    curOb=myObs[0].ob;
-    curObRole=myObs[0].role;
-    curObMembers=[];
-    curObTxs=[];
-    openSpendSheet();
-    return;
-  }
-  openDashObPicker('chiqim');
+  openSpend('chiqim');
 }
 
 function openDashObPicker(type){
@@ -3252,42 +3418,57 @@ function openSpendSheet(){
   openSheet('spend');
 }
 
-function renderSpendCats(){
-  const spendCatsList = regime==='pro' ? CATS_ALL : CATS;
-  spendCatsList.forEach((c,i)=>{
-    const el=document.querySelector(`[data-cat="${c.id}"]`);
-    if(!el)return;
-    el.style.borderColor=selCat===c.id?CAT_COLORS[i%CAT_COLORS.length]:'var(--border)';
-    el.style.background=selCat===c.id?CAT_COLORS[i%CAT_COLORS.length]+'15':'var(--bg)';
-    el.querySelector('div:last-child').style.color=selCat===c.id?CAT_COLORS[i%CAT_COLORS.length]:'var(--muted)';
-  });
-}
-
 async function doSpend(){
+  const obId=document.getElementById('spend-ob')?.value||curObId;
   const amount=parseFloat(document.getElementById('spend-amount').value);
-  const myBal=allObs.find(o=>o.ob.id===curObId)?.myBalance||0;
-  if(!amount||amount<=0){toast(curLang==='ru'?'Введите сумму':'Summa kiriting','#ef4444');return;}
-  if(amount>myBal){toast(curLang==='ru'?'Недостаточно средств':"Yetarli pul yo'q",'#ef4444');return;}
   const note=document.getElementById('spend-note').value.trim();
   const dt=document.getElementById('spend-dt').value;
-  const btn=document.querySelector('#sh-spend .btn');
+  const r=curLang==='ru';
+  const isKirim=selSpendTab==='kirim';
+
+  if(!obId){toast(r?'Выберите объект':'Obyekt tanlang','#ef4444');return;}
+  if(!amount||amount<=0){toast(r?'Введите сумму':'Summa kiriting','#ef4444');return;}
+  if(selCat==='usta'&&!selUstaId&&!isKirim){toast(r?'Выберите мастера':'Ustani tanlang','#ef4444');return;}
+
+  const btn=document.getElementById('lbl-sarflash2');
   btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
   try{
-    await sb.from('transactions').insert({
-      ob_id:curObId,from_user:curUser?.id,to_user:null,
-      summa:amount,tur:'spend',kategoriya:selCat,izoh:note||null,
-      tx_date:dt?new Date(dt).toISOString():new Date().toISOString()
-    });
-    await sb.from('ob_members').update({balance:myBal-amount}).eq('ob_id',curObId).eq('user_id',curUser?.id);
-    const {data:f}=await sb.from('obyektlar').select('chiqim').eq('id',curObId).single();
-    await sb.from('obyektlar').update({chiqim:(f?.chiqim||0)+amount}).eq('id',curObId);
-    curOb.chiqim=(f?.chiqim||0)+amount;
+    const txDate=dt?new Date(dt).toISOString():new Date().toISOString();
+    if(isKirim){
+      // Kirim
+      await sb.from('transactions').insert({
+        ob_id:obId,from_user:null,to_user:curUser?.id,
+        summa:amount,tur:'income',kategoriya:'mijoz',
+        izoh:note||null,tx_date:txDate
+      });
+      const {data:f}=await sb.from('obyektlar').select('kirim').eq('id',obId).single();
+      await sb.from('obyektlar').update({kirim:(f?.kirim||0)+amount}).eq('id',obId);
+    } else {
+      // Chiqim
+      await sb.from('transactions').insert({
+        ob_id:obId,from_user:curUser?.id,to_user:selUstaId||null,
+        summa:amount,tur:'spend',kategoriya:selCat,
+        izoh:note||(selCat==='usta'?'Usta uchun':null),tx_date:txDate
+      });
+      // Agar usta tanlangan bo'lsa — uning olingan pulini oshir
+      if(selUstaId){
+        const {data:mem}=await sb.from('ob_members').select('olingan').eq('ob_id',obId).eq('user_id',selUstaId).single();
+        if(mem) await sb.from('ob_members').update({olingan:(mem.olingan||0)+amount}).eq('ob_id',obId).eq('user_id',selUstaId);
+      }
+      const {data:f}=await sb.from('obyektlar').select('chiqim').eq('id',obId).single();
+      await sb.from('obyektlar').update({chiqim:(f?.chiqim||0)+amount}).eq('id',obId);
+    }
     closeSheet('sh-spend');
     document.getElementById('spend-amount').value='';
-    toast('✅ '+(curLang==='ru'?'Сохранено':'Saqlandi'),'#1D4ED8');
-    await openOb(curObId);
+    toast('✅ '+(r?'Сохранено':'Saqlandi'),'#16A34A');
+    await loadAll();
+    if(curPage==='ob') await openOb(obId);
+    if(curPage==='home') await renderHome();
   }catch(e){toast('Xato: '+e.message,'#ef4444');}
-  finally{btn.textContent=curLang==='ru'?'Sarflash':'Sarflash';btn.disabled=false;}
+  finally{
+    btn.textContent=isKirim?(r?'Подтвердить доход':"Kirim qo'shish"):(r?'Подтвердить расход':"Chiqim qo'shish");
+    btn.disabled=false;
+  }
 }
 
 // ═══════════════════════════════════════════
