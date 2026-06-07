@@ -26,6 +26,10 @@
   --shadow-lg:0 8px 32px rgba(10,15,30,.1);
 }
 
+/* SLIDER */
+#home-ob-slider::-webkit-scrollbar{display:none}
+#home-ob-slider{scroll-behavior:smooth}
+
 /* DARK MODE */
 body.dark{
   --text:#F0F4FA;--text2:#B8C4D4;--muted:#5A6A7E;
@@ -377,86 +381,76 @@ body.dark .topbar{background:rgba(13,17,23,.92)!important;border-bottom:1px soli
   <!-- DASHBOARD -->
   <div class="page active" id="pg-home">
     <!-- Topbar -->
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;background:transparent">
-      <div class="dash-menu-ico" onclick="openDrawer()">
-        <span></span><span></span><span></span>
-      </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px">
+      <div class="dash-menu-ico" onclick="openDrawer()"><span></span><span></span><span></span></div>
       <div style="font-size:17px;font-weight:800;color:var(--text)" id="dash-center-title">Asosiy</div>
       <div class="dash-av" id="dash-av" onclick="gp('profil')">R</div>
     </div>
 
-    <!-- Balance Card -->
-    <div style="margin:4px 16px 18px;border-radius:28px;background:linear-gradient(155deg,#0D2137 0%,#0F3460 45%,#1A4A7A 100%);padding:26px 24px 22px;position:relative;overflow:hidden;box-shadow:0 16px 48px rgba(13,33,55,.45)">
-      <!-- Glow blobs -->
-      <div style="position:absolute;width:200px;height:200px;background:radial-gradient(circle,rgba(59,130,246,.2) 0%,transparent 70%);top:-60px;right:-40px;pointer-events:none"></div>
-      <div style="position:absolute;width:140px;height:140px;background:radial-gradient(circle,rgba(16,185,129,.12) 0%,transparent 70%);bottom:-30px;left:20px;pointer-events:none"></div>
-
-      <!-- Menu dots top right -->
-      <div style="position:absolute;top:20px;right:20px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;cursor:pointer" onclick="gp('hisobot')">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+    <!-- Swipeable Ob Cards -->
+    <div style="padding:0 16px 6px;position:relative">
+      <div id="home-ob-slider" style="display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:4px" onscroll="onObSliderScroll()">
       </div>
+      <!-- Dots -->
+      <div id="home-ob-dots" style="display:flex;justify-content:center;gap:6px;margin-top:10px"></div>
+    </div>
 
-      <!-- Label -->
-      <div style="font-size:13px;color:rgba(255,255,255,.55);font-weight:600;margin-bottom:10px;letter-spacing:.3px" id="dash-greeting">UMUMIY BALANS</div>
-
-      <!-- Amount -->
-      <div id="dash-total" style="font-size:44px;font-weight:900;color:#fff;letter-spacing:-2px;line-height:1;margin-bottom:24px">$0</div>
-
-      <!-- Two action buttons -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <button onclick="openDashKirim()" style="padding:14px;border-radius:50px;background:rgba(59,130,246,.85);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;transition:opacity .2s">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 19V5M5 12l7 7 7-7"/></svg>
-          <span id="lbl-btn-kirim">Kirim</span>
-        </button>
-        <button onclick="openDashChiqim()" style="padding:14px;border-radius:50px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.18);color:#fff;font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;transition:opacity .2s">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 5v14M5 12l7-7 7 7"/></svg>
-          <span id="lbl-btn-chiqim">Chiqim</span>
-        </button>
+    <!-- Stats Row -->
+    <div style="margin:4px 16px 0;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div style="background:var(--card);border-radius:16px;padding:14px 12px;border:1px solid var(--border);box-shadow:var(--shadow)">
+        <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px" id="lbl-stat-balans">JAMI BALANS</div>
+        <div style="font-size:17px;font-weight:900;color:#16A34A;letter-spacing:-.3px" id="stat-total">+$0</div>
+      </div>
+      <div style="background:var(--card);border-radius:16px;padding:14px 12px;border:1px solid var(--border);box-shadow:var(--shadow)">
+        <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px" id="lbl-stat-kirim">KIRIM</div>
+        <div style="font-size:17px;font-weight:900;color:#1D4ED8;letter-spacing:-.3px" id="stat-kirim">+$0</div>
+      </div>
+      <div style="background:var(--card);border-radius:16px;padding:14px 12px;border:1px solid var(--border);box-shadow:var(--shadow)">
+        <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px" id="lbl-stat-chiqim">CHIQIM</div>
+        <div style="font-size:17px;font-weight:900;color:#EF4444;letter-spacing:-.3px" id="stat-chiqim">-$0</div>
       </div>
     </div>
 
     <!-- Quick Actions -->
-    <div class="qa-row">
-      <div class="qa-item" onclick="openNewOb()">
-        <div class="qa-ico" style="background:#EEF2FF">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-4 0v2"/><line x1="12" y1="12" x2="12" y2="17"/><line x1="9.5" y1="14.5" x2="14.5" y2="14.5"/></svg>
+    <div style="margin:14px 16px 0;display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+      <div onclick="openNewOb()" style="background:var(--card);border-radius:16px;padding:14px 8px;text-align:center;cursor:pointer;border:1px solid var(--border);box-shadow:var(--shadow)">
+        <div style="width:44px;height:44px;border-radius:14px;background:#EEF2FF;display:flex;align-items:center;justify-content:center;margin:0 auto 8px">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-4 0v2"/><line x1="12" y1="12" x2="12" y2="17"/><line x1="9.5" y1="14.5" x2="14.5" y2="14.5"/></svg>
         </div>
-        <div class="qa-lbl">Obyekt qo'sh</div>
+        <div style="font-size:11px;font-weight:700;color:var(--text2)" id="qa-lbl-ob">Obyekt qo'sh</div>
       </div>
-      <div class="qa-item" onclick="openAddWorkerQuick()">
-        <div class="qa-ico" style="background:#EFF6FF">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+      <div onclick="openAddWorkerQuick()" style="background:var(--card);border-radius:16px;padding:14px 8px;text-align:center;cursor:pointer;border:1px solid var(--border);box-shadow:var(--shadow)">
+        <div style="width:44px;height:44px;border-radius:14px;background:#EFF6FF;display:flex;align-items:center;justify-content:center;margin:0 auto 8px">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
         </div>
-        <div class="qa-lbl">Ishchi qo'sh</div>
+        <div style="font-size:11px;font-weight:700;color:var(--text2)" id="qa-lbl-ishchi">Ishchi qo'sh</div>
       </div>
-      <div class="qa-item" onclick="openKurs()">
-        <div class="qa-ico" style="background:#FFFBEB">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+      <div onclick="openDashKirim()" style="background:var(--card);border-radius:16px;padding:14px 8px;text-align:center;cursor:pointer;border:1px solid var(--border);box-shadow:var(--shadow)">
+        <div style="width:44px;height:44px;border-radius:14px;background:#ECFDF5;display:flex;align-items:center;justify-content:center;margin:0 auto 8px">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
         </div>
-        <div class="qa-lbl">Bugungi kurs</div>
+        <div style="font-size:11px;font-weight:700;color:var(--text2)" id="qa-lbl-tolov">To'lov qo'sh</div>
       </div>
-      <div class="qa-item" onclick="openAI()">
-        <div class="qa-ico" style="background:#EFF6FF">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" stroke-width="2"><path d="M12 2a4 4 0 014 4v1h1a3 3 0 013 3v6a3 3 0 01-3 3H7a3 3 0 01-3-3V10a3 3 0 013-3h1V6a4 4 0 014-4z"/><circle cx="9" cy="13" r="1" fill="#1D4ED8"/><circle cx="15" cy="13" r="1" fill="#1D4ED8"/><path d="M9 17c1 1 5 1 6 0"/></svg>
+      <div onclick="gp('hisobot')" style="background:var(--card);border-radius:16px;padding:14px 8px;text-align:center;cursor:pointer;border:1px solid var(--border);box-shadow:var(--shadow)">
+        <div style="width:44px;height:44px;border-radius:14px;background:#FFFBEB;display:flex;align-items:center;justify-content:center;margin:0 auto 8px">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         </div>
-        <div class="qa-lbl">AI</div>
+        <div style="font-size:11px;font-weight:700;color:var(--text2)" id="qa-lbl-hisob">Hisobotlar</div>
       </div>
     </div>
-    <div id="pro-banner-wrap"></div>
-    <div>
-      <div class="dash-section-head">
-        <div class="dash-section-title" id="lbl-mening-obyektlar">Faol obyektlar</div>
-        <div class="dash-section-more" onclick="gp('projects')" id="lbl-barchasi">Barchasi →</div>
+
+    <!-- Selected ob details -->
+    <div id="home-ob-detail" style="margin:14px 16px 0;display:none"></div>
+
+    <!-- Last txs -->
+    <div id="home-last-txs-wrap" style="display:none;margin:14px 16px 0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:15px;font-weight:800;color:var(--text)" id="lbl-oxirgi-txs">Oxirgi operatsiyalar</div>
+        <div onclick="gp('hisobot')" style="font-size:13px;font-weight:700;color:var(--acc);cursor:pointer">Barchasi →</div>
       </div>
-      <div style="padding:0 16px" id="home-obs"></div>
+      <div id="home-last-txs"></div>
     </div>
-    <div id="home-last-txs-wrap" style="display:none;margin-top:8px">
-      <div class="dash-section-head">
-        <div class="dash-section-title" id="lbl-oxirgi-txs">Oxirgi operatsiyalar</div>
-        <div class="dash-section-more" onclick="gp('hisobot')" id="lbl-barchasi2">Barchasi →</div>
-      </div>
-      <div style="padding:0 16px" id="home-last-txs"></div>
-    </div>
+    <div style="height:20px"></div>
   </div>
 
   <!-- PROJECTS -->
@@ -2481,7 +2475,11 @@ function renderMyBal(container){
 let editObStatus='active';
 let editObNewImg=null;
 
-function openObEdit(){
+function openObEdit(obId){
+  if(obId&&obId!==curObId){
+    const found=allObs.find(o=>o.ob.id===obId);
+    if(found){curObId=obId;curOb=found.ob;curObRole=found.role;}
+  }
   if(!curOb) return;
   const r=curLang==='ru';
 
@@ -2630,35 +2628,202 @@ async function saveObEdit(){
 // ═══════════════════════════════════════════
 // OB CREATE
 // ═══════════════════════════════════════════
-// ═══════════════════════════════════════════
-// HOME
-// ═══════════════════════════════════════════
+let curObSliderIdx=0;
+let homeObsList=[];
+
 async function renderHome(){
   await loadAll();
   const r=curLang==='ru';
-  // Umumiy balans = barcha owner obyektlar (kirim - chiqim)
-  let totalBal=0;
-  allObs.forEach(({ob,role})=>{
-    if(role==='owner') totalBal+=(ob.kirim||0)-(ob.chiqim||0);
-  });
-  const totalEl=document.getElementById('dash-total');
-  if(totalEl) totalEl.textContent=fmt(totalBal);
 
-  // Faol obyektlar (yakunlanganlar ko'rinmaydi)
-  const activeObs=allObs.filter(o=>(o.ob.status||'active')!=='done');
-  const list=document.getElementById('home-obs');
-  if(!list)return;
-  if(!activeObs.length){
-    list.innerHTML=`<div class="empty"><div class="empty-ico"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="1.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-4 0v2M9 11v6M12 11v6M15 11v6"/></svg></div><div class="empty-txt">${r?'Нет активных объектов':"Faol obyektlar yo'q"}</div></div>`;
+  // Umumiy stats
+  let totalBal=0,totalKirim=0,totalChiqim=0;
+  allObs.forEach(({ob,role})=>{
+    if(role==='owner'){
+      totalKirim+=(ob.kirim||0);
+      totalChiqim+=(ob.chiqim||0);
+      totalBal+=(ob.kirim||0)-(ob.chiqim||0);
+    }
+  });
+  const setEl=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  setEl('stat-total',(totalBal>=0?'+':'')+fmt(totalBal));
+  setEl('stat-kirim','+'+fmt(totalKirim));
+  setEl('stat-chiqim','-'+fmt(totalChiqim));
+  document.getElementById('stat-total').style.color=totalBal>=0?'#16A34A':'#EF4444';
+
+  // Labels
+  if(r){
+    setEl('lbl-stat-balans','ОБЩИЙ БАЛАНС');
+    setEl('lbl-stat-kirim','ДОХОД');
+    setEl('lbl-stat-chiqim','РАСХОД');
+    setEl('qa-lbl-ob','Доб. объект');
+    setEl('qa-lbl-ishchi','Доб. рабочего');
+    setEl('qa-lbl-tolov','Доб. платёж');
+    setEl('qa-lbl-hisob','Отчёты');
+  }
+
+  // Avatar
+  const av=document.getElementById('dash-av');
+  if(av) av.textContent=(curProfile?.full_name||'U')[0].toUpperCase();
+
+  // Faol obyektlar
+  homeObsList=allObs.filter(o=>(o.ob.status||'active')!=='done');
+  const slider=document.getElementById('home-ob-slider');
+  const dots=document.getElementById('home-ob-dots');
+  if(!slider)return;
+
+  if(!homeObsList.length){
+    slider.innerHTML=`<div style="min-width:calc(100vw - 32px);height:180px;background:var(--card);border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed var(--border);gap:10px;cursor:pointer;flex-shrink:0" onclick="openNewOb()">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-4 0v2"/><line x1="12" y1="12" x2="12" y2="17"/><line x1="9.5" y1="14.5" x2="14.5" y2="14.5"/></svg>
+      <div style="font-size:14px;font-weight:700;color:var(--muted)">${r?'Создать объект':"Obyekt qo'shish"}</div>
+    </div>`;
+    dots.innerHTML='';
+    document.getElementById('home-ob-detail').style.display='none';
     return;
   }
-  list.innerHTML=activeObs.map(o=>obBigCardHtml(o)).join('');
-  // A'zo sonini yuklash (owner hisoblanmaydi)
-  for(const {ob} of activeObs){
-    const {count}=await sb.from('ob_members').select('*',{count:'exact',head:true}).eq('ob_id',ob.id).neq('role','owner');
-    const el=document.getElementById('ob-cnt-'+ob.id);
-    if(el) el.textContent=count||0;
+
+  // Slider cards
+  const imgs=['https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=500&q=80','https://images.unsplash.com/photo-1590486803833-1c5dc8ddd4c8?w=500&q=80','https://images.unsplash.com/photo-1517581177682-a085bb7ffb15?w=500&q=80','https://images.unsplash.com/photo-1486325212027-8081e485255e?w=500&q=80','https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=500&q=80'];
+  slider.innerHTML=homeObsList.map(({ob,role,myBalance},i)=>{
+    const bal=role==='owner'?(ob.kirim||0)-(ob.chiqim||0):myBalance;
+    const balCol=bal>=0?'#16A34A':'#EF4444';
+    let h=0;(ob.nomi||'').split('').forEach(c=>h+=c.charCodeAt(0));
+    const img=localStorage.getItem('ob-img-'+ob.id)||imgs[h%imgs.length];
+    const statusTxt=ob.status==='done'?(r?'ЗАВЕРШЁН':'YAKUNLANGAN'):(r?'АКТИВНЫЙ':'FAOL');
+    const statusCol=ob.status==='done'?'#F59E0B':'#16A34A';
+    return`<div style="min-width:calc(100vw - 32px);height:200px;border-radius:20px;overflow:hidden;position:relative;cursor:pointer;flex-shrink:0;scroll-snap-align:start;box-shadow:0 8px 24px rgba(0,0,0,.12)" onclick="openOb('${ob.id}')">
+      <img src="${img}" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.src='';this.parentElement.style.background='#1D4ED8'">
+      <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.1) 0%,rgba(0,0,0,.6) 100%)"></div>
+      <div style="position:absolute;top:14px;left:14px;background:${statusCol};color:#fff;font-size:10px;font-weight:800;padding:4px 10px;border-radius:20px;letter-spacing:.5px">● ${statusTxt}</div>
+      <button onclick="event.stopPropagation();openObEdit('${ob.id}')" style="position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.2);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+      <div style="position:absolute;bottom:14px;left:14px;right:14px">
+        <div style="font-size:20px;font-weight:900;color:#fff;margin-bottom:4px;text-shadow:0 2px 8px rgba(0,0,0,.3)">${ob.nomi}</div>
+        <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.75)">${r?'Общий баланс':'Jami balans'}</div>
+        <div style="font-size:24px;font-weight:900;color:${balCol};text-shadow:0 2px 8px rgba(0,0,0,.3)">${bal>=0?'+':''}${fmt(bal)}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Dots
+  dots.innerHTML=homeObsList.map((_,i)=>`<div id="home-dot-${i}" style="width:${i===0?'20px':'6px'};height:6px;border-radius:3px;background:${i===0?'var(--acc)':'var(--border)'};transition:all .3s;cursor:pointer" onclick="scrollToOb(${i})"></div>`).join('');
+
+  // A'zo soni
+  for(let i=0;i<homeObsList.length;i++){
+    const {count}=await sb.from('ob_members').select('*',{count:'exact',head:true}).eq('ob_id',homeObsList[i].ob.id).neq('role','owner');
+    homeObsList[i]._memberCount=count||0;
   }
+
+  // Birinchi ob details
+  showObDetail(0);
+}
+
+function onObSliderScroll(){
+  const slider=document.getElementById('home-ob-slider');
+  if(!slider||!homeObsList.length)return;
+  const idx=Math.round(slider.scrollLeft/(slider.offsetWidth));
+  if(idx!==curObSliderIdx&&idx>=0&&idx<homeObsList.length){
+    curObSliderIdx=idx;
+    updateObDots(idx);
+    showObDetail(idx);
+  }
+}
+
+function scrollToOb(i){
+  const slider=document.getElementById('home-ob-slider');
+  if(!slider)return;
+  slider.scrollTo({left:i*slider.offsetWidth,behavior:'smooth'});
+}
+
+function updateObDots(idx){
+  homeObsList.forEach((_,i)=>{
+    const d=document.getElementById('home-dot-'+i);
+    if(d){
+      d.style.width=i===idx?'20px':'6px';
+      d.style.background=i===idx?'var(--acc)':'var(--border)';
+    }
+  });
+}
+
+function showObDetail(idx){
+  curObSliderIdx=idx;
+  const det=document.getElementById('home-ob-detail');
+  if(!det||!homeObsList[idx])return;
+  const {ob,_memberCount}=homeObsList[idx];
+  const r=curLang==='ru';
+  const start=ob.boshlanish?new Date(ob.boshlanish):new Date(ob.created_at||Date.now());
+  const end=new Date(start);end.setDate(end.getDate()+(ob.muddat||30));
+  const left=Math.max(0,Math.ceil((end-new Date())/86400000));
+  const fmt2=(d)=>d?new Date(d).toLocaleDateString(r?'ru-RU':'uz-UZ',{day:'2-digit',month:'2-digit',year:'numeric'}):'—';
+
+  det.style.display='block';
+  det.innerHTML=`
+    <div style="background:var(--card);border-radius:20px;border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden">
+      <!-- Header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer" onclick="openOb('${ob.id}')">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:36px;height:36px;border-radius:12px;background:#EEF2FF;display:flex;align-items:center;justify-content:center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-4 0v2"/></svg>
+          </div>
+          <div style="font-size:15px;font-weight:800;color:var(--text)">${r?'Сведения об объекте':"Obyekt haqida ma'lumot"}</div>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <!-- Dates grid -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border)">
+        <div style="background:var(--card);padding:12px 14px">
+          <div style="font-size:10px;color:var(--muted);font-weight:700;margin-bottom:4px">${r?'НАЧАЛО':'BOSHLANISH'}</div>
+          <div style="font-size:13px;font-weight:800;color:var(--text)">${fmt2(ob.boshlanish)}</div>
+        </div>
+        <div style="background:var(--card);padding:12px 14px">
+          <div style="font-size:10px;color:var(--muted);font-weight:700;margin-bottom:4px">${r?'КОНЕЦ':'TUGASH'}</div>
+          <div style="font-size:13px;font-weight:800;color:var(--text)">${fmt2(end.toISOString().slice(0,10))}</div>
+        </div>
+        <div style="background:var(--card);padding:12px 14px">
+          <div style="font-size:10px;color:var(--muted);font-weight:700;margin-bottom:4px">${r?'ОСТАЛОСЬ':'QOLDI'}</div>
+          <div style="font-size:13px;font-weight:800;color:${left<7?'#EF4444':'var(--text)'}\">${left} ${r?'дн.':'kun'}</div>
+        </div>
+      </div>
+      <!-- Members + rooms -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border)">
+        <div style="background:var(--card);padding:12px 14px;display:flex;align-items:center;gap:8px">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          <div>
+            <div style="font-size:10px;color:var(--muted);font-weight:700">${r?'РАБОЧИЕ':'ISHCHILAR'}</div>
+            <div style="font-size:15px;font-weight:900;color:var(--text)">${_memberCount||0} ${r?'чел.':'ta'}</div>
+          </div>
+        </div>
+        <div style="background:var(--card);padding:12px 14px;display:flex;align-items:center;gap:8px">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <div>
+            <div style="font-size:10px;color:var(--muted);font-weight:700">${r?'СРОК':'MUDDAT'}</div>
+            <div style="font-size:15px;font-weight:900;color:var(--text)">${ob.muddat||30} ${r?'дн.':'kun'}</div>
+          </div>
+        </div>
+      </div>
+      <!-- Financial -->
+      <div style="padding:14px 16px;border-top:1px solid var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;cursor:pointer" onclick="openOb('${ob.id}')">
+          <div style="display:flex;align-items:center;gap:8px">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            <div style="font-size:15px;font-weight:800;color:var(--text)">${r?'Финансы':'Moliyaviy holat'}</div>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+          <span style="font-size:14px;color:var(--muted);font-weight:600">${r?'Доходы':'Jami kirim'}</span>
+          <span style="font-size:14px;font-weight:800;color:#16A34A">+${fmt(ob.kirim||0)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+          <span style="font-size:14px;color:var(--muted);font-weight:600">${r?'Расходы':'Jami chiqim'}</span>
+          <span style="font-size:14px;font-weight:800;color:#EF4444">-${fmt(ob.chiqim||0)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0">
+          <span style="font-size:14px;color:var(--text);font-weight:700">${r?'Остаток':'Qolgan balans'}</span>
+          <span style="font-size:15px;font-weight:900;color:${(ob.kirim||0)-(ob.chiqim||0)>=0?'#16A34A':'#EF4444'}">${(ob.kirim||0)-(ob.chiqim||0)>=0?'+':''}${fmt((ob.kirim||0)-(ob.chiqim||0))}</span>
+        </div>
+      </div>
+    </div>`;
 }
 
 // ═══════════════════════════════════════════
