@@ -1378,16 +1378,34 @@ function saveImgLocal(key, dataUrl){
 // ═══════════════════════════════════════════
 // REAL SUPABASE FUNCTIONS
 // ═══════════════════════════════════════════
-async function loadAll(){
+let _lastLoadTime=0;
+let _loadPromise=null;
+
+async function loadAll(force=false){
   if(!curUser) return;
-  const {data,error}=await sb.from('ob_members')
-    .select('ob_id,role,balance,ishaqi,olingan,ob:obyektlar(*)')
-    .eq('user_id',curUser.id);
-  if(error){console.error('loadAll error:',error);return;}
-  allObs=(data||[])
-    .filter(r=>r.ob)
-    .map(r=>({ob:r.ob,role:r.role,myBalance:r.balance||0,ishaqi:r.ishaqi||0,olingan:r.olingan||0}));
+  const now=Date.now();
+  // 30 soniyada bir marta yukla (force=true bo'lmasa)
+  if(!force && allObs.length>0 && (now-_lastLoadTime)<30000) return;
+  // Parallel so'rovlar bo'lmasligi uchun
+  if(_loadPromise) return _loadPromise;
+  _loadPromise=(async()=>{
+    try{
+      const {data}=await sb.from('ob_members')
+        .select('ob_id,role,balance,ishaqi,olingan,ob:obyektlar(*)')
+        .eq('user_id',curUser.id);
+      allObs=(data||[])
+        .filter(r=>r.ob)
+        .map(r=>({ob:r.ob,role:r.role,myBalance:r.balance||0,ishaqi:r.ishaqi||0,olingan:r.olingan||0}));
+      _lastLoadTime=Date.now();
+    }finally{
+      _loadPromise=null;
+    }
+  })();
+  return _loadPromise;
 }
+
+// Ma'lumot o'zgarganda keshni tozalash
+function invalidateCache(){_lastLoadTime=0;}
 
 async function loadProfile(){
   const {data:{session}}=await sb.auth.getSession();
@@ -2234,13 +2252,20 @@ function gp(page){
   if(nav) nav.classList.add('active');
   const reset=()=>{const app=document.getElementById('app');if(app)app.scrollTop=0;window.scrollTo(0,0);};
   reset();
+  // Skeleton ko'rsatish (faqat asosiy sahifalar uchun)
+  const skeletonPages={
+    home:'home-obs',projects:'obs-list',workers:'workers-list',hisobot:null,profil:null
+  };
+  if(page in skeletonPages && skeletonPages[page]){
+    const el=document.getElementById(skeletonPages[page]);
+    if(el&&!el.innerHTML.trim()) el.innerHTML=`<div style="padding:20px;text-align:center"><div class="spinner" style="border-color:var(--border);border-top-color:var(--acc);width:28px;height:28px;margin:0 auto"></div></div>`;
+  }
   const run=async()=>{
     if(page==='home') await renderHome();
     else if(page==='projects') await renderObs();
     else if(page==='hisobot') await renderHisobot();
     else if(page==='profil') await renderProfil();
     else if(page==='workers') await renderWorkers();
-    // 'ob' va 'worker-detail' — content tashqaridan to'ldiriladi, render shart emas
     reset();
     requestAnimationFrame(reset);
   };
@@ -2979,49 +3004,83 @@ function updateObDots(idx){
   });
 }
 
+let balanceVisible=true;
+
+function toggleBalance(){
+  balanceVisible=!balanceVisible;
+  showObDetail(curObSliderIdx);
+}
+
 function showObDetail(idx){
   curObSliderIdx=idx;
   const det=document.getElementById('home-ob-detail');
   if(!det||!homeObsList[idx])return;
   const {ob,_memberCount}=homeObsList[idx];
   const r=curLang==='ru';
-  const start=ob.boshlanish?new Date(ob.boshlanish):new Date(ob.created_at||Date.now());
-  const end=new Date(start);end.setDate(end.getDate()+(ob.muddat||30));
-  const left=Math.max(0,Math.ceil((end-new Date())/86400000));
-  const fmt2=(d)=>d?new Date(d).toLocaleDateString(r?'ru-RU':'uz-UZ',{day:'2-digit',month:'2-digit',year:'numeric'}):'—';
+  const bal=(ob.kirim||0)-(ob.chiqim||0);
+  const hide='••••';
 
   det.style.display='block';
-  const bal2=(ob.kirim||0)-(ob.chiqim||0);
   det.innerHTML=`
-    <div style="background:var(--card);border-radius:16px;border:1px solid var(--border);overflow:hidden">
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border)">
-        <div style="background:var(--card);padding:10px 8px;text-align:center">
-          <div style="font-size:8px;color:var(--muted);font-weight:700;margin-bottom:3px">${r?'НАЧ':'BOSH'}</div>
-          <div style="font-size:11px;font-weight:800;color:var(--text)">${fmt2(ob.boshlanish)}</div>
+    <div style="background:var(--card);border-radius:20px;border:1px solid var(--border);overflow:hidden;box-shadow:var(--shadow)">
+
+      <!-- Ob nomi + ochish -->
+      <div onclick="openOb('${ob.id}')" style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:40px;height:40px;border-radius:12px;overflow:hidden;flex-shrink:0;background:#e2e8f0">
+            <img src="${localStorage.getItem('ob-img-'+ob.id)||''}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">
+          </div>
+          <div>
+            <div style="font-size:15px;font-weight:800;color:var(--text)">${ob.nomi}</div>
+            <div style="font-size:11px;color:var(--muted)">${_memberCount||0} ${r?'рабочих':'ishchi'} · ${ob.muddat||30} ${r?'дн.':'kun'}</div>
+          </div>
         </div>
-        <div style="background:var(--card);padding:10px 8px;text-align:center">
-          <div style="font-size:8px;color:var(--muted);font-weight:700;margin-bottom:3px">${r?'КОН':'TUG'}</div>
-          <div style="font-size:11px;font-weight:800;color:var(--text)">${fmt2(end.toISOString().slice(0,10))}</div>
-        </div>
-        <div style="background:var(--card);padding:10px 8px;text-align:center">
-          <div style="font-size:8px;color:var(--muted);font-weight:700;margin-bottom:3px">${r?'ОСТ':'QOLDI'}</div>
-          <div style="font-size:11px;font-weight:800;color:${left<7?'#EF4444':'var(--text)'}">${left}${r?'д':'к'}</div>
-        </div>
-        <div style="background:var(--card);padding:10px 8px;text-align:center">
-          <div style="font-size:8px;color:var(--muted);font-weight:700;margin-bottom:3px">${r?'ИШЧ':'ISHCHI'}</div>
-          <div style="font-size:11px;font-weight:800;color:var(--text)">${_memberCount||0}</div>
-        </div>
-        <div style="background:var(--card);padding:10px 8px;text-align:center">
-          <div style="font-size:8px;color:var(--muted);font-weight:700;margin-bottom:3px">${r?'БАЛ':'BAL'}</div>
-          <div style="font-size:11px;font-weight:800;color:${bal2>=0?'#16A34A':'#EF4444'}">${bal2>=0?'+':''}${fmt(bal2)}</div>
-        </div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
       </div>
-      <div style="padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
-        <div style="display:flex;gap:12px">
-          <span style="font-size:12px;color:var(--muted)">${r?'Доход:':'Kirim:'} <b style="color:#16A34A">+${fmt(ob.kirim||0)}</b></span>
-          <span style="font-size:12px;color:var(--muted)">${r?'Расход:':'Chiqim:'} <b style="color:#EF4444">-${fmt(ob.chiqim||0)}</b></span>
+
+      <!-- Moliya qatorlari -->
+      <div style="padding:4px 0">
+
+        <!-- Kirim -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 16px;border-bottom:1px solid var(--border)">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:34px;height:34px;border-radius:10px;background:#ECFDF5;display:flex;align-items:center;justify-content:center">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.5"><path d="M12 19V5M5 12l7 7 7-7"/></svg>
+            </div>
+            <span style="font-size:14px;font-weight:600;color:var(--text2)">${r?'Доход':'Kirim'}</span>
+          </div>
+          <span style="font-size:15px;font-weight:800;color:#16A34A">${balanceVisible?'+'+fmt(ob.kirim||0):hide}</span>
         </div>
-        <button onclick="openOb('${ob.id}')" style="padding:6px 12px;background:var(--acc);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap">${r?'Открыть':'Ochish'} →</button>
+
+        <!-- Chiqim -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 16px;border-bottom:1px solid var(--border)">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:34px;height:34px;border-radius:10px;background:#FFF1F2;display:flex;align-items:center;justify-content:center">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5"><path d="M12 5v14M5 12l7-7 7 7"/></svg>
+            </div>
+            <span style="font-size:14px;font-weight:600;color:var(--text2)">${r?'Расход':'Chiqim'}</span>
+          </div>
+          <span style="font-size:15px;font-weight:800;color:#EF4444">${balanceVisible?'-'+fmt(ob.chiqim||0):hide}</span>
+        </div>
+
+        <!-- Balans + ko'z -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 16px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:34px;height:34px;border-radius:10px;background:#EFF6FF;display:flex;align-items:center;justify-content:center">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+            </div>
+            <span style="font-size:14px;font-weight:700;color:var(--text)">${r?'Баланс':'Balans'}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:16px;font-weight:900;color:${bal>=0?'#16A34A':'#EF4444'}">${balanceVisible?(bal>=0?'+':'')+fmt(bal):hide}</span>
+            <button onclick="toggleBalance()" style="width:32px;height:32px;border-radius:50%;border:1.5px solid var(--border);background:var(--bg);display:flex;align-items:center;justify-content:center;cursor:pointer">
+              ${balanceVisible
+                ?`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`
+                :`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`}
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>`;
 }
@@ -3093,23 +3152,33 @@ async function renderWorkers(){
   const r=curLang==='ru';
   allWorkers=[];
   const activeObs2=allObs.filter(o=>(o.ob.status||'active')!=='done');
-  for(const {ob} of activeObs2){
-    const {data:mems}=await sb.from('ob_members')
-      .select('*,profiles(*)').eq('ob_id',ob.id).neq('user_id',curUser.id);
-    (mems||[]).forEach(m=>{
-      const ex=allWorkers.find(w=>w.user_id===m.user_id);
-      if(ex){
-        ex.obs_count++;
-        ex.ishaqi+=(m.ishaqi||0);
-        ex.olingan+=(m.olingan||0);
-        ex.balans=ex.ishaqi-ex.olingan;
-      } else {
-        allWorkers.push({...m,ob_nomi:ob.nomi,obs_count:1,
-          ishaqi:m.ishaqi||0,olingan:m.olingan||0,
-          balans:(m.ishaqi||0)-(m.olingan||0)});
-      }
-    });
+  if(!activeObs2.length){
+    const st=document.getElementById('workers-stats');
+    if(st) st.innerHTML='';
+    filterWorkers('');
+    return;
   }
+  // Barcha obyektlar uchun bitta so'rov
+  const obIds=activeObs2.map(o=>o.ob.id);
+  const {data:allMems}=await sb.from('ob_members')
+    .select('*,profiles(*)')
+    .in('ob_id',obIds)
+    .neq('user_id',curUser.id);
+
+  const obMap=Object.fromEntries(activeObs2.map(o=>[o.ob.id,o.ob]));
+  (allMems||[]).forEach(m=>{
+    const ex=allWorkers.find(w=>w.user_id===m.user_id);
+    if(ex){
+      ex.obs_count++;
+      ex.ishaqi+=(m.ishaqi||0);
+      ex.olingan+=(m.olingan||0);
+      ex.balans=ex.ishaqi-ex.olingan;
+    } else {
+      allWorkers.push({...m,ob_nomi:obMap[m.ob_id]?.nomi||'',obs_count:1,
+        ishaqi:m.ishaqi||0,olingan:m.olingan||0,
+        balans:(m.ishaqi||0)-(m.olingan||0)});
+    }
+  });
   // Stats
   const total=allWorkers.length;
   const plus=allWorkers.filter(w=>w.balans>0).length;
@@ -3294,7 +3363,7 @@ async function doAvans(){
     }
     closeSheet('sh-avans');
     toast('✅ '+(r?'Аванс выдан':'Avans berildi'),'#16A34A');
-    await loadAll();
+    invalidateCache();await loadAll();
     if(curPage==='workers') await renderWorkers();
     if(curPage==='ob') await openOb(obId);
     if(curPage==='worker-detail') await openWorkerDetail(toUid);
@@ -3329,7 +3398,7 @@ async function doIshHaqi(){
     }
     closeSheet('sh-ishhaqi');
     toast('✅ '+(r?'Зарплата записана':'Ish haqi yozildi'),'#16A34A');
-    await loadAll();
+    invalidateCache();await loadAll();
     if(curPage==='workers') await renderWorkers();
     if(curPage==='ob') await openOb(obId);
     if(curPage==='worker-detail') await openWorkerDetail(toUid);
@@ -3548,7 +3617,7 @@ async function doSpend(){
     closeSheet('sh-spend');
     document.getElementById('spend-amount').value='';
     toast('✅ '+(r?'Сохранено':'Saqlandi'),'#16A34A');
-    await loadAll();
+    invalidateCache();await loadAll();
     if(curPage==='ob') await openOb(obId);
     if(curPage==='home') await renderHome();
   }catch(e){toast('Xato: '+e.message,'#ef4444');}
