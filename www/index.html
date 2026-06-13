@@ -3068,6 +3068,53 @@ async function renderHome(){
 
   // Birinchi ob details
   showObDetail(0);
+
+  // So'nggi operatsiyalar
+  loadHomeRecentTxs();
+}
+
+async function loadHomeRecentTxs(){
+  const wrap=document.getElementById('home-last-txs-wrap');
+  const cont=document.getElementById('home-last-txs');
+  if(!wrap||!cont)return;
+  if(!homeObsList.length){wrap.style.display='none';return;}
+  const r=curLang==='ru';
+  const obIds=homeObsList.map(o=>o.ob.id);
+  const obMap=Object.fromEntries(homeObsList.map(o=>[o.ob.id,o.ob.nomi]));
+  let txs=[];
+  try{
+    const {data}=await sb.from('transactions').select('*').in('ob_id',obIds).order('tx_date',{ascending:false}).limit(6);
+    txs=data||[];
+  }catch(e){console.error('home txs:',e);}
+  if(!txs.length){wrap.style.display='none';return;}
+  wrap.style.display='block';
+  cont.innerHTML=txs.map(tx=>{
+    const isIn=tx.tur==='income';
+    const color=isIn?'#16A34A':'#EF4444';
+    const sign=isIn?'+':'-';
+    let title='';
+    if(tx.tur==='income'){
+      const c=getAllIncomeCats().find(c=>c.id===tx.kategoriya);
+      title=c?(r?c.ru:c.uz):(tx.izoh||(r?'Доход':'Kirim'));
+    }else if(tx.tur==='spend'){
+      const c=getAllCats().find(c=>c.id===tx.kategoriya);
+      title=c?(r?c.ru:c.uz):(tx.izoh||(r?'Расход':'Chiqim'));
+    }else if(tx.tur==='ishhaqi'){
+      title=r?'Зарплата':'Ish haqi';
+    }else if(tx.tur==='send'){
+      title=r?'Перевод':"Pul o'tkazma";
+    }else title=tx.izoh||'';
+    const dt=tx.tx_date||tx.created_at;
+    const obNomi=obMap[tx.ob_id]||'';
+    return`<div class="tx-row">
+      <div class="tx-ico" style="background:${isIn?'#EFF6FF':'#fef2f2'}">${isIn?'📥':'💳'}</div>
+      <div style="flex:1;min-width:0">
+        <div class="tx-title">${title}</div>
+        <div class="tx-meta">${obNomi}${obNomi?' • ':''}${fmtDate(dt)}</div>
+      </div>
+      <div class="tx-amount" style="color:${color}">${sign}${fmt(tx.summa)}</div>
+    </div>`;
+  }).join('');
 }
 
 function onObSliderScroll(){
