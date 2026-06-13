@@ -268,6 +268,9 @@ body.dark .topbar{background:rgba(13,17,23,.92)!important;border-bottom:1px soli
 .tabs{display:flex;background:var(--bg);border-radius:14px;padding:4px;gap:4px}
 .tab{flex:1;padding:9px;border-radius:11px;border:none;background:transparent;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;transition:all .2s;font-family:'Manrope',sans-serif}
 .tab.active{background:var(--card);color:var(--text);box-shadow:0 2px 8px rgba(10,15,30,.1)}
+#ob-tabs{overflow-x:auto;scrollbar-width:none}
+#ob-tabs::-webkit-scrollbar{display:none}
+#ob-tabs .tab{flex:0 0 auto;white-space:nowrap}
 
 /* PROFILE */
 .profile-header{background:linear-gradient(145deg,#0D2137 0%,#0F3460 50%,#1D4ED8 100%);padding:36px 16px 28px;text-align:center;color:#fff;position:relative;overflow:hidden}
@@ -458,52 +461,67 @@ body.dark .topbar{background:rgba(13,17,23,.92)!important;border-bottom:1px soli
 
   <!-- OB DETAIL -->
   <div class="page" id="pg-ob">
-    <div id="ob-header" style="padding:18px;color:#fff;position:relative;overflow:hidden;min-height:160px;background:linear-gradient(145deg,#0D2137 0%,#0F3460 50%,#1D4ED8 100%)">
-      <!-- Background image -->
-      <div id="ob-header-img" style="position:absolute;inset:0;background-size:cover;background-position:center;opacity:0;transition:opacity .4s"></div>
-      <!-- Dark overlay when image is set -->
-      <div id="ob-header-overlay" style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.35) 0%,rgba(0,0,0,.6) 100%);opacity:0;transition:opacity .4s"></div>
-      <div style="position:absolute;right:-30px;top:-30px;width:160px;height:160px;background:radial-gradient(circle,rgba(255,255,255,.15) 0%,transparent 70%)"></div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;position:relative;z-index:1">
-        <button class="topbar-back" onclick="gp('projects')" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.2)">←</button>
-        <div style="flex:1">
-          <div style="font-size:18px;font-weight:800" id="ob-name">-</div>
-          <div style="font-size:12px;opacity:.7" id="ob-meta">-</div>
-        </div>
-        <div id="ob-role-badge"></div>
-        <!-- Edit ob button (only for owner) -->
-        <button id="ob-edit-btn" onclick="openObEdit()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:10px;color:#fff;font-size:11px;font-weight:700;padding:7px 10px;cursor:pointer;display:none;align-items:center;gap:5px">
+    <!-- Full-bleed hero -->
+    <div style="position:relative">
+      <div style="position:absolute;top:0;left:0;right:0;z-index:3;display:flex;align-items:flex-start;justify-content:space-between;padding:16px 16px;pointer-events:none">
+        <button onclick="gp('projects')" style="pointer-events:auto;width:42px;height:42px;border-radius:13px;background:rgba(255,255,255,.16);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.22);color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer">←</button>
+        <button id="ob-edit-btn" onclick="openObEdit()" style="pointer-events:auto;display:none;align-items:center;gap:6px;background:rgba(255,255,255,.16);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.22);border-radius:13px;color:#fff;font-size:12px;font-weight:800;padding:0 14px;height:42px;cursor:pointer">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          <span id="lbl-tahrir-ob">Tahrir</span>
+          <span id="lbl-tahrir-ob">Tahrirlash</span>
         </button>
-        <!-- Change photo button -->
         <input type="file" id="ob-img-input" accept="image/*" style="display:none" onchange="onObDetailImgChange(this)">
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;position:relative;z-index:1">
-        <div style="background:rgba(255,255,255,.1);backdrop-filter:blur(8px);border-radius:16px;padding:12px;text-align:center;border:1px solid rgba(255,255,255,.12)">
-          <div style="font-size:17px;font-weight:900;color:#4ADE80" id="ob-in">$0</div>
-          <div style="font-size:10px;opacity:.55;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-top:3px" id="lbl-kirim2">KIRIM</div>
-        </div>
-        <div style="background:rgba(255,255,255,.1);backdrop-filter:blur(8px);border-radius:16px;padding:12px;text-align:center;border:1px solid rgba(255,255,255,.12)">
-          <div style="font-size:17px;font-weight:900;color:#FB7185" id="ob-out">$0</div>
-          <div style="font-size:10px;opacity:.55;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-top:3px" id="lbl-chiqim2">CHIQIM</div>
-        </div>
-        <div style="background:rgba(255,255,255,.1);backdrop-filter:blur(8px);border-radius:16px;padding:12px;text-align:center;border:1px solid rgba(255,255,255,.12)">
-          <div style="font-size:17px;font-weight:900" id="ob-bal">$0</div>
-          <div style="font-size:10px;opacity:.55;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-top:3px" id="lbl-balans2">BALANS</div>
+      <div style="height:280px;border-radius:0 0 28px 28px;overflow:hidden;position:relative">
+        <div id="ob-header-img" style="position:absolute;inset:0;background-size:cover;background-position:center;background-color:#16244A"></div>
+        <div id="ob-header-overlay" style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,11,22,.4) 0%,rgba(8,11,22,.1) 38%,rgba(8,11,22,.92) 100%)"></div>
+        <div style="position:absolute;bottom:0;left:0;right:0;padding:20px;z-index:1">
+          <div id="ob-role-badge" style="margin-bottom:8px"></div>
+          <div style="font-size:25px;font-weight:900;color:#fff;letter-spacing:-.5px;text-shadow:0 2px 14px rgba(0,0,0,.5)" id="ob-name">-</div>
+          <div style="font-size:12.5px;color:rgba(255,255,255,.82);font-weight:600;margin-top:4px" id="ob-meta">-</div>
         </div>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 16px" id="ob-actions"></div>
-    <div style="padding:0 16px 12px" id="ob-info"></div>
-    <div style="padding:0 16px">
-      <div class="tabs" id="ob-tabs" style="margin-bottom:12px">
+
+    <!-- Moliya card -->
+    <div style="margin:18px 16px 0;background:var(--card);border:1px solid var(--border);border-radius:22px;padding:18px;box-shadow:var(--shadow)">
+      <div style="font-size:15px;font-weight:900;color:var(--text);margin-bottom:14px;letter-spacing:-.2px" id="lbl-moliya">Moliya</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+        <div style="text-align:center">
+          <div style="font-size:18px;font-weight:900;color:#22C55E;letter-spacing:-.4px" id="ob-in">0</div>
+          <div style="font-size:9.5px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.6px;margin-top:4px" id="lbl-kirim2">KIRIM</div>
+        </div>
+        <div style="text-align:center;border-left:1px solid var(--border);border-right:1px solid var(--border)">
+          <div style="font-size:18px;font-weight:900;color:#F43F5E;letter-spacing:-.4px" id="ob-out">0</div>
+          <div style="font-size:9.5px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.6px;margin-top:4px" id="lbl-chiqim2">CHIQIM</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:18px;font-weight:900;color:var(--text);letter-spacing:-.4px" id="ob-bal">0</div>
+          <div style="font-size:9.5px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.6px;margin-top:4px" id="lbl-balans2">BALANS</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loyiha progress -->
+    <div id="ob-progress" style="margin:14px 16px 0"></div>
+
+    <!-- Tezkor amallar -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 16px 0" id="ob-actions"></div>
+
+    <!-- Loyiha ma'lumotlari -->
+    <div style="padding:14px 16px 0" id="ob-info"></div>
+
+    <!-- Bo'limlar -->
+    <div style="padding:14px 16px 0">
+      <div class="tabs" id="ob-tabs" style="margin-bottom:14px">
         <button class="tab active" onclick="obTab('txs',this)" id="lbl-operatsiyalar">Operatsiyalar</button>
         <button class="tab" onclick="obTab('members',this)" id="lbl-azolar">A'zolar</button>
+        <button class="tab" onclick="obTab('tasks',this)" id="lbl-vazifalar">Vazifalar</button>
+        <button class="tab" onclick="obTab('mats',this)" id="lbl-materiallar">Material</button>
         <button class="tab" onclick="obTab('mybal',this)" id="lbl-mening-pulik">Mening pulim</button>
       </div>
       <div id="ob-content"></div>
     </div>
+    <div style="height:24px"></div>
   </div>
 
   <!-- HISOBOT -->
@@ -2697,24 +2715,35 @@ async function openOb(obId){
     document.getElementById('ob-bal').style.color=found.myBalance>=0?'#16A34A':'#EF4444';
   }
 
-  // Load photo
+  // Hero rasm — har doim ko'rinadi
   const imgEl=document.getElementById('ob-header-img');
-  const overlayEl=document.getElementById('ob-header-overlay');
-  const savedImg=localStorage.getItem('ob-img-'+obId);
-  if(savedImg&&imgEl){
-    imgEl.style.backgroundImage=`url(${savedImg})`;
-    imgEl.style.opacity='1';
-    overlayEl.style.opacity='1';
-  }else if(imgEl){
-    imgEl.style.opacity='0';
-    overlayEl.style.opacity='0';
-  }
+  if(imgEl) imgEl.style.backgroundImage=`url(${obImg(curOb)})`;
 
   // Actions
   renderObActions();
+  renderObProgress();
   renderObInfo();
   gp('ob');
   obTab('txs',document.querySelector('#ob-tabs .tab'));
+}
+
+function renderObProgress(){
+  const wrap=document.getElementById('ob-progress');
+  if(!wrap||!curOb)return;
+  const r=curLang==='ru';
+  const prog=obProgress(curOb);
+  const dl=daysLeft(curOb);
+  wrap.innerHTML=`
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:22px;padding:18px;box-shadow:var(--shadow)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:15px;font-weight:900;color:var(--text);letter-spacing:-.2px">${r?'Прогресс проекта':'Loyiha progress'}</div>
+        <div style="font-size:16px;font-weight:900;color:var(--acc)">${prog}%</div>
+      </div>
+      <div style="height:10px;background:var(--border);border-radius:6px;overflow:hidden">
+        <div style="height:100%;width:${prog}%;background:linear-gradient(90deg,var(--acc),#4F8DFB);border-radius:6px;transition:width .5s"></div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);font-weight:700;margin-top:10px">${dl} ${r?'дней осталось':'kun qoldi'}</div>
+    </div>`;
 }
 
 function renderObInfo(){
@@ -2730,27 +2759,42 @@ function renderObInfo(){
   const left=Math.max(0,(curOb.muddat||30)-passed);
   const workersCnt=curObMembers.filter(m=>m.role!=='owner').length;
 
+  const dash=`<span style="color:var(--muted)">—</span>`;
   const items=[
     {ico:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
-     lbl:r?'Дата начала':'Boshlanish sanasi', val:fmtDate(start)},
-    {ico:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>`,
-     lbl:r?'Дата завершения':'Tugash sanasi', val:fmtDate(end)},
+     lbl:r?'Дата начала':'Boshlanish', val:fmtDate(start)},
+    {ico:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,
+     lbl:r?'Завершение':'Tugash', val:fmtDate(end)},
     {ico:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A855F7" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
-     lbl:r?'Осталось дней':'Qolgan kun', val:left+' '+(r?'дн.':'kun')},
-    {ico:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>`,
+     lbl:r?'Осталось':'Qolgan', val:left+' '+(r?'дн.':'kun')},
+    {ico:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>`,
      lbl:r?'Рабочие':'Ishchilar', val:workersCnt+' '+(r?'чел.':'ta')},
+    {ico:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+     lbl:r?'Клиент':'Mijoz', val:curOb.mijoz||dash},
+    {ico:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+     lbl:r?'Этап':'Bosqich', val:curOb.bosqich||dash},
   ];
 
   wrap.innerHTML=`
-    <div style="background:var(--card);border-radius:20px;border:1px solid var(--border);padding:14px;box-shadow:var(--shadow)">
-      <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:12px">${r?'Информация об объекте':"Obyekt haqida ma'lumot"}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div style="background:var(--card);border-radius:22px;border:1px solid var(--border);padding:18px;box-shadow:var(--shadow)">
+      <div style="font-size:15px;font-weight:900;color:var(--text);margin-bottom:14px;letter-spacing:-.2px">${r?'Информация о проекте':"Loyiha ma'lumotlari"}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
         ${items.map(it=>`
-          <div style="background:var(--bg);border-radius:14px;padding:10px;border:1px solid var(--border)">
-            <div style="margin-bottom:6px">${it.ico}</div>
-            <div style="font-size:10px;color:var(--muted);font-weight:700;margin-bottom:2px">${it.lbl}</div>
-            <div style="font-size:13px;font-weight:800;color:var(--text)">${it.val}</div>
+          <div style="background:var(--bg);border-radius:14px;padding:12px;border:1px solid var(--border)">
+            <div style="margin-bottom:7px">${it.ico}</div>
+            <div style="font-size:10px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">${it.lbl}</div>
+            <div style="font-size:13.5px;font-weight:800;color:var(--text)">${it.val}</div>
           </div>`).join('')}
+      </div>
+      <!-- Manzil -->
+      <div style="display:flex;align-items:center;gap:12px;background:var(--bg);border-radius:14px;padding:12px;border:1px solid var(--border)">
+        <div style="width:36px;height:36px;border-radius:11px;background:rgba(59,130,246,.14);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2.3"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </div>
+        <div style="min-width:0">
+          <div style="font-size:10px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.4px">${r?'Адрес':'Manzil'}</div>
+          <div style="font-size:13.5px;font-weight:800;color:var(--text);margin-top:2px">${curOb.manzil||dash}</div>
+        </div>
       </div>
     </div>`;
 }
@@ -2768,13 +2812,97 @@ function renderObActions(){
   wrap.innerHTML=html;
 }
 
+async function openAddTask(){
+  const r=curLang==='ru';
+  const nomi=prompt(r?'Название задачи:':'Vazifa nomi:');
+  if(!nomi||!nomi.trim())return;
+  const {error}=await sb.from('tasks').insert({ob_id:curObId,nomi:nomi.trim(),holat:'todo',created_by:curUser?.id});
+  if(error){toast('Xato: '+error.message,'#ef4444');return;}
+  toast('✅ '+(r?'Задача добавлена':'Vazifa qo\'shildi'),'#22C55E');
+  renderObTasks(document.getElementById('ob-content'));
+}
+async function toggleTask(id,cur){
+  const next=cur==='todo'?'progress':cur==='progress'?'done':'todo';
+  await sb.from('tasks').update({holat:next}).eq('id',id);
+  renderObTasks(document.getElementById('ob-content'));
+}
+async function openAddMat(){
+  const r=curLang==='ru';
+  const nomi=prompt(r?'Название материала:':'Material nomi:');
+  if(!nomi||!nomi.trim())return;
+  const miqdor=parseFloat(prompt(r?'Количество:':'Miqdor:')||'0')||0;
+  const birlik=prompt(r?'Единица (кг, шт...):':'Birlik (kg, dona...):')||'';
+  const {error}=await sb.from('materials').insert({ob_id:curObId,nomi:nomi.trim(),miqdor,birlik,holat:'kerak'});
+  if(error){toast('Xato: '+error.message,'#ef4444');return;}
+  toast('✅ '+(r?'Материал добавлен':'Material qo\'shildi'),'#22C55E');
+  renderObMats(document.getElementById('ob-content'));
+}
+
 function obTab(tab,el){
   document.querySelectorAll('#ob-tabs .tab').forEach(t=>t.classList.remove('active'));
   if(el)el.classList.add('active');
   const c=document.getElementById('ob-content');
   if(tab==='txs')renderObTxs(c);
   if(tab==='members')renderObMembers(c);
+  if(tab==='tasks')renderObTasks(c);
+  if(tab==='mats')renderObMats(c);
   if(tab==='mybal')renderMyBal(c);
+}
+
+async function renderObTasks(container){
+  const r=curLang==='ru';
+  container.innerHTML=`<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">${r?'Загрузка...':'Yuklanmoqda...'}</div>`;
+  let tasks=[];
+  try{ const {data}=await sb.from('tasks').select('*').eq('ob_id',curObId).order('created_at',{ascending:false}); tasks=data||[]; }
+  catch(e){ container.innerHTML=`<div class="empty"><div class="empty-txt">${r?'Включите таблицу tasks (миграция)':'tasks jadvalini yoqing (migratsiya)'}</div></div>`; return; }
+  const stMap={todo:{uz:'Boshlanmagan',ru:'Не начато',c:'#71809B'},progress:{uz:'Jarayonda',ru:'В процессе',c:'#F59E0B'},done:{uz:'Bajarildi',ru:'Готово',c:'#22C55E'}};
+  let html=`<button onclick="openAddTask()" style="width:100%;padding:14px;border-radius:14px;border:1px dashed var(--acc);background:rgba(59,130,246,.08);color:var(--acc);font-size:14px;font-weight:800;margin-bottom:12px;cursor:pointer">+ ${r?'Добавить задачу':'Vazifa qo\'shish'}</button>`;
+  if(!tasks.length){
+    html+=`<div class="empty"><div class="empty-ico"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div><div class="empty-txt">${r?'Нет задач':"Vazifalar yo'q"}</div></div>`;
+  }else{
+    html+=tasks.map(t=>{
+      const st=stMap[t.holat]||stMap.todo;
+      const done=t.holat==='done';
+      return`<div onclick="toggleTask('${t.id}','${t.holat}')" style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:10px;cursor:pointer;box-shadow:var(--shadow)">
+        <div style="width:24px;height:24px;border-radius:8px;border:2px solid ${done?'#22C55E':'var(--border)'};background:${done?'#22C55E':'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          ${done?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>':''}
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:800;color:var(--text);${done?'text-decoration:line-through;opacity:.6':''}">${t.nomi}</div>
+          <div style="font-size:11.5px;color:${st.c};font-weight:700;margin-top:3px">${r?st.ru:st.uz}${t.muddat?' • '+fmtDate(t.muddat):''}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  container.innerHTML=html;
+}
+
+async function renderObMats(container){
+  const r=curLang==='ru';
+  container.innerHTML=`<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">${r?'Загрузка...':'Yuklanmoqda...'}</div>`;
+  let mats=[];
+  try{ const {data}=await sb.from('materials').select('*').eq('ob_id',curObId).order('created_at',{ascending:false}); mats=data||[]; }
+  catch(e){ container.innerHTML=`<div class="empty"><div class="empty-txt">${r?'Включите таблицу materials (миграция)':'materials jadvalini yoqing (migratsiya)'}</div></div>`; return; }
+  const stMap={kerak:{uz:'Kerak',ru:'Нужно',c:'#F43F5E'},buyurtma:{uz:'Buyurtma',ru:'Заказано',c:'#F59E0B'},yetkazildi:{uz:'Yetkazildi',ru:'Доставлено',c:'#22C55E'}};
+  let html=`<button onclick="openAddMat()" style="width:100%;padding:14px;border-radius:14px;border:1px dashed var(--acc);background:rgba(59,130,246,.08);color:var(--acc);font-size:14px;font-weight:800;margin-bottom:12px;cursor:pointer">+ ${r?'Добавить материал':'Material qo\'shish'}</button>`;
+  if(!mats.length){
+    html+=`<div class="empty"><div class="empty-ico"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#CBD5E1" stroke-width="1.5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></div><div class="empty-txt">${r?'Нет материалов':"Materiallar yo'q"}</div></div>`;
+  }else{
+    html+=mats.map(m=>{
+      const st=stMap[m.holat]||stMap.kerak;
+      return`<div style="display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:10px;box-shadow:var(--shadow)">
+        <div style="width:40px;height:40px;border-radius:12px;background:rgba(245,158,11,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:800;color:var(--text)">${m.nomi}</div>
+          <div style="font-size:11.5px;color:${st.c};font-weight:700;margin-top:3px">${r?st.ru:st.uz} • ${m.miqdor||0} ${m.birlik||''}</div>
+        </div>
+        ${m.narx?`<div style="font-size:14px;font-weight:900;color:var(--text)">${fmt((m.narx||0)*(m.miqdor||0))}</div>`:''}
+      </div>`;
+    }).join('');
+  }
+  container.innerHTML=html;
 }
 
 function renderObTxs(container){
