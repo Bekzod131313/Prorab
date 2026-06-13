@@ -1111,11 +1111,7 @@ body.dark .topbar{background:rgba(13,17,23,.92)!important;border-bottom:1px soli
   <div class="sheet-title" id="lbl-pul-kirdi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px"><path d="M12 2v14M5 9l7 7 7-7"/><path d="M5 22h14"/></svg> Pul kirdi</div>
   <div class="sheet-body">
     <div class="inp-group"><label class="inp-lbl" id="lbl-manba">Manba</label>
-      <select class="inp" id="income-src">
-        <option value="mijoz" id="lbl-mijoz">Mijozdan</option>
-        <option value="kredit" id="lbl-kredit">Kredit</option>
-        <option value="boshqa" id="lbl-boshqa">Boshqa</option>
-      </select>
+      <div id="income-cats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:4px"></div>
     </div>
     <div class="inp-group"><label class="inp-lbl" id="lbl-summa">Summa</label><input class="inp inp-big" id="income-amount" type="number" placeholder="0"></div>
     <div class="inp-group"><label class="inp-lbl" id="lbl-izoh">Izoh</label><input class="inp" id="income-note"></div>
@@ -1796,6 +1792,38 @@ function getAllCats(){
 
 const CATS=DEFAULT_CATS;
 const CATS_ALL=DEFAULT_CATS;
+
+// Kirim (income) kategoriyalari
+let selIncomeCat='mijoz';
+const DEFAULT_INCOME_CATS=[
+  {id:'mijoz',svg:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,uz:'Mijozdan',ru:'От клиента'},
+  {id:'kredit',svg:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`,uz:'Kredit',ru:'Кредит'},
+  {id:'owner',svg:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>`,uz:'Prorab (avans)',ru:'Прораб (аванс)'},
+  {id:'boshqa',svg:`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>`,uz:'Boshqa',ru:'Другое'},
+];
+function getCustomIncomeCats(){
+  try{return JSON.parse(localStorage.getItem('custom_income_cats')||'[]');}catch{return [];}
+}
+function getAllIncomeCats(){
+  return [...DEFAULT_INCOME_CATS,...getCustomIncomeCats()];
+}
+function renderIncomeCats(){
+  const cats=getAllIncomeCats();
+  const el=document.getElementById('income-cats');
+  if(!el)return;
+  el.innerHTML=cats.map((c,i)=>{
+    const col=CAT_COLORS[i%CAT_COLORS.length];
+    const active=selIncomeCat===c.id;
+    return`<div onclick="selIncomeCat='${c.id}';renderIncomeCats()" style="padding:14px 6px;border-radius:16px;border:2px solid ${active?col:'var(--border)'};background:${active?col+'15':'var(--card)'};text-align:center;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:8px">
+      <div style="color:${active?col:'#64748b'}">${c.svg||`<span style="font-size:28px">${c.stiker||'📦'}</span>`}</div>
+      <div style="font-size:12px;font-weight:700;color:${active?col:'var(--muted)'}">${curLang==='ru'?c.ru:c.uz}</div>
+    </div>`;
+  }).join('')
+  +`<div onclick="openAddCat('income')" style="padding:14px 6px;border-radius:16px;border:2px dashed var(--border);background:var(--card);text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px">
+    <div style="color:var(--acc)"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+    <div style="font-size:12px;font-weight:700;color:var(--muted)">${curLang==='ru'?'Добавить':'Qo\'shish'}</div>
+  </div>`;
+}
 const CAT_COLORS=['#1D4ED8','#ea580c','#3b82f6','#a855f7','#f59e0b','#64748b','#16a34a','#0891b2','#dc2626','#7c3aed'];
 
 // ═══════════════════════════════════════════
@@ -1978,8 +2006,10 @@ const SVG_ICONS=[
 ];
 
 let selIconId=SVG_ICONS[0].id;
+let addCatType='spend';
 
-function openAddCat(){
+function openAddCat(type='spend'){
+  addCatType=type;
   selIconId=SVG_ICONS[0].id;
   document.getElementById('newcat-name').value='';
   const grid=document.getElementById('stiker-grid');
@@ -1997,12 +2027,21 @@ function saveCustomCat(){
   if(!name){toast(r?'Введите название':'Nom kiriting','#ef4444');return;}
   const icon=SVG_ICONS.find(i=>i.id===selIconId)||SVG_ICONS[0];
   const id='cat_'+Date.now();
-  const cats=getCustomCats();
-  cats.push({id,svg:icon.svg,uz:name,ru:name,custom:true});
-  localStorage.setItem('custom_cats',JSON.stringify(cats));
-  selCat=id;
-  closeSheet('sh-addcat');
-  renderSpendCats();
+  if(addCatType==='income'){
+    const cats=getCustomIncomeCats();
+    cats.push({id,svg:icon.svg,uz:name,ru:name,custom:true});
+    localStorage.setItem('custom_income_cats',JSON.stringify(cats));
+    selIncomeCat=id;
+    closeSheet('sh-addcat');
+    renderIncomeCats();
+  }else{
+    const cats=getCustomCats();
+    cats.push({id,svg:icon.svg,uz:name,ru:name,custom:true});
+    localStorage.setItem('custom_cats',JSON.stringify(cats));
+    selCat=id;
+    closeSheet('sh-addcat');
+    renderSpendCats();
+  }
   toast('✅ '+(r?'Категория добавлена':'Kategoriya qo\'shildi'),'#16A34A');
 }
 
@@ -2690,7 +2729,7 @@ function renderObActions(){
   const wrap=document.getElementById('ob-actions');
   let html='';
   if(curObRole==='owner'){
-    html+=`<button class="btn btn-acc" onclick="openSheet('income')" style="padding:12px;font-size:13px">📥 ${curLang==='ru'?'Приход':'Pul kirdi'}</button>`;
+    html+=`<button class="btn btn-acc" onclick="renderIncomeCats();openSheet('income')" style="padding:12px;font-size:13px">📥 ${curLang==='ru'?'Приход':'Pul kirdi'}</button>`;
     html+=`<button class="btn" onclick="openSendSheet()" style="padding:12px;font-size:13px;background:#eff6ff;color:#3b82f6">💸 ${curLang==='ru'?'Перевод':'Pul ber'}</button>`;
   }else{
     html+=`<button class="btn" onclick="openSendSheet()" style="padding:12px;font-size:13px;background:#eff6ff;color:#3b82f6">💸 ${curLang==='ru'?'Перевод':'Pul ber'}</button>`;
@@ -3417,7 +3456,7 @@ async function doAddIncome(){
   const amount=parseFloat(document.getElementById('income-amount').value);
   if(!amount||amount<=0){toast(curLang==='ru'?'Введите сумму':'Summa kiriting','#ef4444');return;}
   const note=document.getElementById('income-note').value.trim();
-  const src=document.getElementById('income-src').value;
+  const src=selIncomeCat;
   const dt=document.getElementById('income-dt').value;
   const btn=document.querySelector('#sh-income .btn');
   btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
@@ -3554,6 +3593,7 @@ async function dashObSelected(obId,role,type){
     document.getElementById('income-amount').value='';
     document.getElementById('income-note').value='';
     document.getElementById('income-dt').value=new Date().toISOString().slice(0,16);
+    renderIncomeCats();
     openSheet('income');
   }else{
     openSpendSheet();
@@ -3578,6 +3618,7 @@ async function homeQuickAction(type){
     document.getElementById('income-amount').value='';
     document.getElementById('income-note').value='';
     document.getElementById('income-dt').value=new Date().toISOString().slice(0,16);
+    renderIncomeCats();
     openSheet('income');
   }else{
     openSpend('chiqim');
