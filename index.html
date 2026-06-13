@@ -3640,12 +3640,28 @@ function filterWorkers(q){
     const av=(name[0]||'?').toUpperCase();
     const bg=colors[i%colors.length];
     const bal=w.balans||0;
-    const bc=bal>0?'#16A34A':bal<0?'#EF4444':'var(--muted)';
+    const bc=bal>0?'#22C55E':bal<0?'#F43F5E':'var(--muted)';
+    const dot=bal>0?'#22C55E':bal<0?'#F43F5E':'#71809B';
+    const role=w.kasb||(r?'Рабочий':'Ishchi');
+    const cnt=w.obs_count||1;
     const last=w.created_at?new Date(w.created_at).toLocaleDateString(r?'ru-RU':'uz-UZ',{day:'2-digit',month:'short'}):'';
-    return`<div class="worker-card" data-uid="${w.user_id}" role="button" style="background:var(--card);border-radius:18px;padding:14px 16px;border:1px solid var(--border);margin-bottom:10px;cursor:pointer;display:flex;align-items:center;gap:12px">
-      <div style="width:48px;height:48px;border-radius:14px;background:${bg};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;flex-shrink:0;pointer-events:none">${av}</div>
-      <div style="flex:1;min-width:0;pointer-events:none"><div style="font-size:15px;font-weight:800;color:var(--text)">${name}</div><div style="font-size:12px;color:var(--muted);margin-top:2px">${w.kasb||''}</div></div>
-      <div style="text-align:right;flex-shrink:0;pointer-events:none"><div style="font-size:16px;font-weight:900;color:${bc}">${bal>=0?'+':''}$${Math.abs(bal).toLocaleString()}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${r?'Активность':'Faoliyat'}: ${last}</div></div>
+    return`<div class="worker-card" data-uid="${w.user_id}" role="button" style="background:var(--card);border-radius:20px;padding:15px 16px;border:1px solid var(--border);margin-bottom:11px;cursor:pointer;display:flex;align-items:center;gap:13px;box-shadow:var(--shadow)">
+      <div style="position:relative;flex-shrink:0;pointer-events:none">
+        <div style="width:50px;height:50px;border-radius:15px;background:${bg};display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:900;color:#fff">${av}</div>
+        <div style="position:absolute;bottom:-2px;right:-2px;width:15px;height:15px;border-radius:50%;background:${dot};border:3px solid var(--bg)"></div>
+      </div>
+      <div style="flex:1;min-width:0;pointer-events:none">
+        <div style="font-size:15.5px;font-weight:800;color:var(--text)">${name}</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:3px">
+          <span style="font-size:12px;color:var(--muted);font-weight:600">${role}</span>
+          <span style="width:3px;height:3px;border-radius:50%;background:var(--muted)"></span>
+          <span style="font-size:12px;color:var(--muted);font-weight:600">${cnt} ${r?'проект':'loyiha'}</span>
+        </div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;pointer-events:none">
+        <div style="font-size:16px;font-weight:900;color:${bc}">${bal>=0?'+':'-'}${Math.abs(bal).toLocaleString('en-US')}</div>
+        <div style="font-size:10.5px;color:var(--muted);margin-top:3px;font-weight:600">${last}</div>
+      </div>
     </div>`;
   }).join('');
 }
