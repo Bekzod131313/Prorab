@@ -1,0 +1,16 @@
+{
+  "name": "prorab",
+  "version": "1.0.0",
+  "description": "Prorab - qurilish loyihalarini boshqarish",
+  "scripts": {
+    "build": "cp index.html www/index.html",
+    "sync": "npm run build && cap sync"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@capacitor/android": "^8.4.0",
+    "@capacitor/cli": "^8.4.0",
+    "@capacitor/core": "^8.4.0",
+    "@capacitor/ios": "^8.4.0"
+  }
+}
