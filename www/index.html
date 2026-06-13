@@ -8,6 +8,7 @@
 <title>Qurilish</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>window.addEventListener("error",function(e){if(e.message==="Script error.")e.preventDefault();});</script>
 <script>window.addEventListener("error",function(e){
@@ -117,7 +118,7 @@ body.dark #loading{background:radial-gradient(120% 80% at 50% 0%,#13203F 0%,#0C1
 /* APP - see below */
 
 /* BOTTOM NAV */
-.bnav{position:fixed;bottom:0;left:0;right:0;height:var(--nav-h);background:rgba(242,246,250,.88);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border-top:1px solid rgba(255,255,255,.8);display:flex;align-items:center;z-index:100;padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -2px 20px rgba(10,15,30,.06)}
+.bnav{position:fixed;bottom:0;left:0;right:0;height:var(--nav-h);background:rgba(242,246,250,.88);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border-top:1px solid rgba(255,255,255,.8);display:flex;align-items:center;z-index:100;padding-bottom:calc(env(safe-area-inset-bottom) + var(--tg-safe-area-inset-bottom,0px));box-shadow:0 -2px 20px rgba(10,15,30,.06)}
 .bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:var(--muted);font-size:10px;font-weight:700;position:relative;padding:8px 0;transition:color .2s}
 .bnav-item.active{color:var(--acc)}
 .bnav-item svg{width:22px;height:22px;stroke-width:2}
@@ -130,7 +131,7 @@ body.dark #loading{background:radial-gradient(120% 80% at 50% 0%,#13203F 0%,#0C1
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
 /* APP container */
-#app{display:none;position:fixed;top:0;left:0;right:0;bottom:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-top:env(safe-area-inset-top,0px);padding-bottom:var(--nav-h)}
+#app{display:none;position:fixed;top:0;left:0;right:0;bottom:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-top:calc(env(safe-area-inset-top,0px) + var(--tg-content-safe-area-inset-top,0px) + var(--tg-safe-area-inset-top,0px));padding-bottom:var(--nav-h)}
 
 /* TOPBAR */
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:rgba(242,246,250,.88);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.8)}
@@ -2365,6 +2366,7 @@ function gp(page){
   if(pg) pg.classList.add('active');
   const nav=document.getElementById('nav-'+page);
   if(nav) nav.classList.add('active');
+  tgUpdateBackButton(page);
   const reset=()=>{const app=document.getElementById('app');if(app)app.scrollTop=0;window.scrollTo(0,0);};
   reset();
   // Skeleton ko'rsatish (faqat asosiy sahifalar uchun)
@@ -4911,6 +4913,17 @@ function applyTheme(theme){
   const drawer=document.getElementById('drawer');
   if(drawer) drawer.style.background=isDark?'rgba(13,17,23,.97)':'rgba(242,246,250,.97)';
 
+  // Telegram Mini App — sync header/background colors with theme
+  try{
+    const tg=window.Telegram&&window.Telegram.WebApp;
+    if(tg){
+      const bg=isDark?'#0A0E1A':'#F2F6FA';
+      tg.setHeaderColor&&tg.setHeaderColor(bg);
+      tg.setBackgroundColor&&tg.setBackgroundColor(bg);
+      tg.setBottomBarColor&&tg.setBottomBarColor(bg);
+    }
+  }catch(e){}
+
   // Update active button highlight
   ['auto','light','dark'].forEach(t=>{
     const btn=document.getElementById('theme-btn-'+t);
@@ -4939,9 +4952,40 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>
 // ═══════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════
+// Telegram Mini App bootstrap
+function initTelegram(){
+  try{
+    const tg=window.Telegram&&window.Telegram.WebApp;
+    if(!tg)return;
+    tg.ready();
+    tg.expand();
+    try{tg.disableVerticalSwipes&&tg.disableVerticalSwipes();}catch(e){}
+    try{tg.setHeaderColor&&tg.setHeaderColor(document.body.classList.contains('dark')?'#0A0E1A':'#F2F6FA');}catch(e){}
+    try{tg.setBackgroundColor&&tg.setBackgroundColor(document.body.classList.contains('dark')?'#0A0E1A':'#F2F6FA');}catch(e){}
+    if(tg.BackButton){
+      tg.BackButton.onClick(()=>{
+        if(curPage==='ob') gp('projects');
+        else gp(prevPage||'home');
+      });
+    }
+  }catch(e){}
+}
+
+// Show/hide Telegram BackButton depending on current page
+function tgUpdateBackButton(page){
+  try{
+    const tg=window.Telegram&&window.Telegram.WebApp;
+    if(!tg||!tg.BackButton)return;
+    const rootPages=['home','projects','hisobot','workers','profil'];
+    if(rootPages.includes(page)) tg.BackButton.hide();
+    else tg.BackButton.show();
+  }catch(e){}
+}
+
 function initApp(){
   applyTheme(curTheme);
   applyLang();
+  initTelegram();
   // Hide nav until logged in
   const nav=document.querySelector('.bnav');
   if(nav) nav.style.display='none';
