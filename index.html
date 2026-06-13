@@ -401,24 +401,22 @@ body.dark .topbar{background:rgba(13,17,23,.92)!important;border-bottom:1px soli
 
   <!-- DASHBOARD — loyiha-markazli -->
   <div class="page active" id="pg-home">
-    <!-- Topbar -->
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 10px;gap:12px">
-      <div class="dash-menu-ico" onclick="openDrawer()"><span></span><span></span><span></span></div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:12px;color:var(--muted);font-weight:700" id="home-greet">Salom</div>
-        <div style="font-size:17px;font-weight:900;color:var(--text);letter-spacing:-.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="home-greet-name">—</div>
-      </div>
-      <div class="dash-av" id="dash-av" onclick="gp('profil')">R</div>
-    </div>
-
-    <!-- Section label -->
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 18px 12px">
-      <div style="font-size:20px;font-weight:900;color:var(--text);letter-spacing:-.4px" id="home-proj-lbl">Loyihalar</div>
-      <div onclick="gp('projects')" style="font-size:13px;font-weight:800;color:var(--acc);cursor:pointer" id="home-proj-all">Barchasi →</div>
-    </div>
-
-    <!-- Full-width hero project carousel -->
+    <!-- Full-bleed hero project carousel -->
     <div style="position:relative">
+      <!-- Overlay topbar (rasm ustida) -->
+      <div style="position:absolute;top:0;left:0;right:0;z-index:3;display:flex;align-items:flex-start;justify-content:space-between;padding:16px 18px;pointer-events:none">
+        <div onclick="openDrawer()" style="pointer-events:auto;width:42px;height:42px;border-radius:13px;background:rgba(255,255,255,.16);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.22);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer">
+          <span style="width:16px;height:2px;background:#fff;border-radius:2px"></span>
+          <span style="width:16px;height:2px;background:#fff;border-radius:2px"></span>
+          <span style="width:10px;height:2px;background:#fff;border-radius:2px"></span>
+        </div>
+        <div style="flex:1;min-width:0;margin:2px 12px 0">
+          <div style="font-size:12px;color:rgba(255,255,255,.82);font-weight:700;text-shadow:0 1px 6px rgba(0,0,0,.4)" id="home-greet">Salom</div>
+          <div style="font-size:16px;font-weight:900;color:#fff;letter-spacing:-.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 6px rgba(0,0,0,.5)" id="home-greet-name">—</div>
+        </div>
+        <div class="dash-av" id="dash-av" onclick="gp('profil')" style="pointer-events:auto;border:2px solid rgba(255,255,255,.4)">R</div>
+      </div>
+
       <div id="home-ob-slider" style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none" onscroll="onObSliderScroll()"></div>
       <div id="home-ob-dots" style="display:flex;justify-content:center;gap:6px;margin-top:14px"></div>
     </div>
@@ -3072,7 +3070,7 @@ async function renderHome(){
   if(!slider)return;
 
   if(!homeObsList.length){
-    slider.innerHTML=`<div style="width:100%;min-width:100%;flex-shrink:0;scroll-snap-align:start;padding:0 16px"><div style="height:200px;background:var(--card);border-radius:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed var(--border);gap:12px;cursor:pointer" onclick="openNewOb()">
+    slider.innerHTML=`<div style="width:100%;min-width:100%;flex-shrink:0;scroll-snap-align:start;padding:16px"><div style="height:260px;background:var(--card);border-radius:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed var(--border);gap:12px;cursor:pointer" onclick="openNewOb()">
       <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-4 0v2"/><line x1="12" y1="12" x2="12" y2="17"/><line x1="9.5" y1="14.5" x2="14.5" y2="14.5"/></svg>
       <div style="font-size:15px;font-weight:800;color:var(--text)">${r?'Создать проект':"Loyiha qo'shish"}</div>
     </div></div>`;
@@ -3083,7 +3081,7 @@ async function renderHome(){
     return;
   }
 
-  // Hero project carousel — full width, money yashirin
+  // Hero project carousel — to'liq kenglik (full-bleed), money yashirin
   slider.innerHTML=homeObsList.map(({ob},i)=>{
     const img=obImg(ob);
     const done=ob.status==='done';
@@ -3091,27 +3089,27 @@ async function renderHome(){
     const statusCol=done?'#F59E0B':'#22C55E';
     const pid='#'+String(i+1).padStart(3,'0');
     const dl=daysLeft(ob);
-    return`<div style="width:100%;min-width:100%;flex-shrink:0;scroll-snap-align:center;padding:0 16px;box-sizing:border-box">
-      <div style="height:210px;border-radius:24px;overflow:hidden;position:relative;cursor:pointer;box-shadow:0 16px 40px rgba(0,0,0,.35)" onclick="openOb('${ob.id}')">
+    return`<div style="width:100%;min-width:100%;flex-shrink:0;scroll-snap-align:center;box-sizing:border-box">
+      <div style="height:300px;border-radius:0 0 28px 28px;overflow:hidden;position:relative;cursor:pointer;box-shadow:0 18px 44px rgba(0,0,0,.4)" onclick="openOb('${ob.id}')">
         <img src="${img}" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.style.display='none';this.parentElement.style.background='linear-gradient(135deg,#1E3A5F,#2563EB)'">
-        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,11,22,.05) 0%,rgba(8,11,22,.35) 55%,rgba(8,11,22,.88) 100%)"></div>
-        <div style="position:absolute;top:14px;left:14px;right:14px;display:flex;align-items:center;justify-content:space-between">
-          <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.16);backdrop-filter:blur(10px);padding:6px 12px;border-radius:30px;border:1px solid rgba(255,255,255,.18)">
-            <span style="width:7px;height:7px;border-radius:50%;background:${statusCol};box-shadow:0 0 8px ${statusCol}"></span>
-            <span style="font-size:11px;font-weight:800;color:#fff;letter-spacing:.5px">${statusTxt}</span>
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,11,22,.45) 0%,rgba(8,11,22,.15) 38%,rgba(8,11,22,.92) 100%)"></div>
+        <div style="position:absolute;bottom:0;left:0;right:0;padding:20px 20px 22px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.16);backdrop-filter:blur(10px);padding:5px 11px;border-radius:30px;border:1px solid rgba(255,255,255,.2)">
+              <span style="width:7px;height:7px;border-radius:50%;background:${statusCol};box-shadow:0 0 8px ${statusCol}"></span>
+              <span style="font-size:10.5px;font-weight:800;color:#fff;letter-spacing:.5px">${statusTxt}</span>
+            </div>
+            <div style="font-size:11.5px;font-weight:800;color:rgba(255,255,255,.85);background:rgba(0,0,0,.3);backdrop-filter:blur(10px);padding:5px 10px;border-radius:30px">${pid}</div>
           </div>
-          <div style="font-size:12px;font-weight:800;color:rgba(255,255,255,.85);background:rgba(0,0,0,.25);backdrop-filter:blur(10px);padding:6px 11px;border-radius:30px">${pid}</div>
-        </div>
-        <div style="position:absolute;bottom:0;left:0;right:0;padding:16px 18px">
-          <div style="font-size:22px;font-weight:900;color:#fff;letter-spacing:-.5px;margin-bottom:8px;text-shadow:0 2px 12px rgba(0,0,0,.5)">${ob.nomi}</div>
-          <div style="display:flex;gap:18px">
-            <div style="display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.92);font-size:12px;font-weight:700">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/></svg>
+          <div style="font-size:26px;font-weight:900;color:#fff;letter-spacing:-.6px;margin-bottom:10px;text-shadow:0 2px 14px rgba(0,0,0,.55);line-height:1.1">${ob.nomi}</div>
+          <div style="display:flex;gap:20px">
+            <div style="display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.95);font-size:13px;font-weight:700">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/></svg>
               <span id="hero-team-${ob.id}">0</span> ${r?'чел.':'ishchi'}
             </div>
-            <div style="display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.92);font-size:12px;font-weight:700">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-              ${dl} ${r?'дн. ост.':'kun qoldi'}
+            <div style="display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.95);font-size:13px;font-weight:700">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+              ${dl} ${r?'дн.':'kun qoldi'}
             </div>
           </div>
         </div>
