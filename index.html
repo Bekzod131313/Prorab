@@ -3211,15 +3211,18 @@ async function renderWorkers(){
   const obMap=Object.fromEntries(activeObs2.map(o=>[o.ob.id,o.ob]));
   (allMems||[]).forEach(m=>{
     const ex=allWorkers.find(w=>w.user_id===m.user_id);
+    const obEntry={ob_id:m.ob_id,ob_nomi:obMap[m.ob_id]?.nomi||'',balans:(m.ishaqi||0)-(m.olingan||0)};
     if(ex){
       ex.obs_count++;
       ex.ishaqi+=(m.ishaqi||0);
       ex.olingan+=(m.olingan||0);
       ex.balans=ex.ishaqi-ex.olingan;
+      ex.obsList.push(obEntry);
+      if(m.created_at>ex.created_at) ex.created_at=m.created_at;
     } else {
       allWorkers.push({...m,ob_nomi:obMap[m.ob_id]?.nomi||'',obs_count:1,
         ishaqi:m.ishaqi||0,olingan:m.olingan||0,
-        balans:(m.ishaqi||0)-(m.olingan||0)});
+        balans:(m.ishaqi||0)-(m.olingan||0),obsList:[obEntry]});
     }
   });
   // Stats
@@ -3259,17 +3262,10 @@ function filterWorkers(q){
     const bal=w.balans||0;
     const bc=bal>0?'#16A34A':bal<0?'#EF4444':'var(--muted)';
     const last=w.created_at?new Date(w.created_at).toLocaleDateString(r?'ru-RU':'uz-UZ',{day:'2-digit',month:'short'}):'';
-    return`<div data-worker-uid="${w.user_id}" style="background:var(--card);border-radius:18px;padding:16px;border:1px solid var(--border);margin-bottom:12px;cursor:pointer">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;pointer-events:none">
-        <div style="width:48px;height:48px;border-radius:14px;background:${bg};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff">${av}</div>
-        <div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:800;color:var(--text)">${name}</div><div style="font-size:12px;color:var(--muted);margin-top:2px">${w.kasb||''}</div></div>
-        <div style="text-align:right"><div style="font-size:17px;font-weight:900;color:${bc}">${bal>=0?'+':''}$${Math.abs(bal).toLocaleString()}</div><div style="font-size:11px;color:var(--muted)">${last}</div></div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding-top:12px;border-top:1px solid var(--border);pointer-events:none">
-        <div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:3px">${r?'ЗАР-ТА':'ISH HAQI'}</div><div style="font-size:14px;font-weight:800;color:var(--text)">$${(w.ishaqi||0).toLocaleString()}</div></div>
-        <div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:3px">${r?'ПОЛУЧ':'OLINGAN'}</div><div style="font-size:14px;font-weight:800;color:#EF4444">$${(w.olingan||0).toLocaleString()}</div></div>
-        <div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:3px">${r?'ОБЪЕКТЫ':'OBYEKT'}</div><div style="font-size:14px;font-weight:800;color:var(--text)">${w.obs_count} ${r?'шт':'ta'}</div></div>
-      </div>
+    return`<div data-worker-uid="${w.user_id}" style="background:var(--card);border-radius:18px;padding:14px 16px;border:1px solid var(--border);margin-bottom:10px;cursor:pointer;display:flex;align-items:center;gap:12px">
+      <div style="width:48px;height:48px;border-radius:14px;background:${bg};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;flex-shrink:0">${av}</div>
+      <div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:800;color:var(--text)">${name}</div><div style="font-size:12px;color:var(--muted);margin-top:2px">${w.kasb||''}</div></div>
+      <div style="text-align:right;flex-shrink:0"><div style="font-size:16px;font-weight:900;color:${bc}">${bal>=0?'+':''}$${Math.abs(bal).toLocaleString()}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${r?'Активность':'Faoliyat'}: ${last}</div></div>
     </div>`;
   }).join('');
   // Event delegation — har bir kartaga click
@@ -3303,23 +3299,50 @@ async function openWorkerDetail(uid){
     const {data:txs}=await sb.from('transactions').select('*').or(`to_user.eq.${uid},from_user.eq.${uid}`).order('tx_date',{ascending:false}).limit(30);
     wtxs=(txs||[]).filter(t=>t.to_user===uid);
   }catch(e){console.error('tx load:',e);}
+  const phone=w.profiles?.phone||'';
   document.getElementById('wd-content').innerHTML=`
     <div style="margin:0 16px;background:var(--card);border-radius:20px;padding:20px;border:1px solid var(--border)">
       <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
-        <div style="width:58px;height:58px;border-radius:18px;background:${bg};display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#fff">${name[0].toUpperCase()}</div>
-        <div style="flex:1"><div style="font-size:18px;font-weight:900;color:var(--text)">${name}</div><div style="font-size:13px;color:var(--muted)">${w.kasb||''}</div><div style="font-size:13px;color:var(--muted)">${w.profiles?.phone||''}</div></div>
-        <div style="text-align:right"><div style="font-size:22px;font-weight:900;color:${bc}">${bal>=0?'+':''}$${Math.abs(bal).toLocaleString()}</div><div style="font-size:11px;color:var(--muted)">${r?'баланс':'balans'}</div></div>
+        <div style="width:58px;height:58px;border-radius:18px;background:${bg};display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#fff;flex-shrink:0">${name[0].toUpperCase()}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <div style="font-size:17px;font-weight:900;color:var(--text)">${name}</div>
+            <div style="font-size:11px;font-weight:800;color:#16A34A;background:rgba(22,163,74,.12);padding:3px 10px;border-radius:20px">${r?'Активен':'Faol'}</div>
+          </div>
+          <div style="font-size:13px;color:var(--muted);margin-top:3px">${w.kasb||''}</div>
+        </div>
+        ${phone?`<a href="tel:${phone}" style="width:40px;height:40px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--acc);flex-shrink:0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.67A2 2 0 012 1h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg></a>`:''}
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-top:14px;border-top:1px solid var(--border)">
-        <div style="background:var(--bg);border-radius:14px;padding:12px;text-align:center"><div style="font-size:18px;font-weight:900;color:#16A34A">$${(w.ishaqi||0).toLocaleString()}</div><div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-top:3px">${r?'Зарплата':'Ish haqi'}</div></div>
-        <div style="background:var(--bg);border-radius:14px;padding:12px;text-align:center"><div style="font-size:18px;font-weight:900;color:#EF4444">$${(w.olingan||0).toLocaleString()}</div><div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-top:3px">${r?'Получено':'Olingan'}</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <div style="background:var(--bg);border-radius:14px;padding:12px 6px;text-align:center"><div style="font-size:15px;font-weight:900;color:var(--acc)">$${(w.ishaqi||0).toLocaleString()}</div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-top:3px">${r?'Зарплата':'Ish haqi'}</div></div>
+        <div style="background:var(--bg);border-radius:14px;padding:12px 6px;text-align:center"><div style="font-size:15px;font-weight:900;color:#F59E0B">$${(w.olingan||0).toLocaleString()}</div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-top:3px">${r?'Получено':'Olingan'}</div></div>
+        <div style="background:var(--bg);border-radius:14px;padding:12px 6px;text-align:center"><div style="font-size:15px;font-weight:900;color:${bc}">${bal>=0?'+':''}$${Math.abs(bal).toLocaleString()}</div><div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-top:3px">${r?'Баланс':'Balans'}</div></div>
       </div>
     </div>
-    <div style="margin:12px 16px;padding-bottom:calc(var(--nav-h) + 80px)">
+    ${w.obsList&&w.obsList.length?`<div style="margin:14px 16px 0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:15px;font-weight:800;color:var(--text)">${r?'Объекты':'Obyektlar'}</div>
+        <div onclick="gp('projects')" style="font-size:13px;font-weight:700;color:var(--acc);cursor:pointer">${r?'Все':'Barchasi'} →</div>
+      </div>
+      <div style="background:var(--card);border-radius:18px;border:1px solid var(--border);overflow:hidden">
+        ${w.obsList.map((o,idx)=>{
+          const obal=o.balans||0;
+          const obc=obal>0?'#16A34A':obal<0?'#EF4444':'var(--muted)';
+          return`<div style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;${idx<w.obsList.length-1?'border-bottom:1px solid var(--border)':''}">
+            <span style="font-size:14px;font-weight:700;color:var(--text)">${o.ob_nomi}</span>
+            <span style="font-size:14px;font-weight:800;color:${obc}">${obal>=0?'+':''}$${Math.abs(obal).toLocaleString()}</span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`:''}
+    <div style="margin:14px 16px;padding-bottom:calc(var(--nav-h) + 80px)">
       <div style="font-size:15px;font-weight:800;margin-bottom:10px;color:var(--text)">${r?'Последние операции':"So'nggi operatsiyalar"}</div>
       ${wtxs.length?wtxs.map(tx=>{
-        const lbl=tx.tur==='ishhaqi'?(r?'Зарплата':'Ish haqi'):tx.tur==='send'?(r?'Аванс':'Avans'):(tx.izoh||tx.tur);
-        return`<div class="tx-row"><div class="tx-ico" style="background:rgba(22,163,74,.1)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2"><path d="M12 19V5M5 12l7 7 7-7"/></svg></div><div style="flex:1"><div class="tx-title">${lbl}</div><div class="tx-meta">${fmtDate(tx.tx_date||tx.created_at)}</div></div><div class="tx-amount" style="color:#16A34A">+$${(tx.summa||0).toLocaleString()}</div></div>`;
+        const isIshhaqi=tx.tur==='ishhaqi';
+        const lbl=isIshhaqi?(r?'Зарплата начислена':'Ish haqi yozildi'):tx.tur==='send'?(r?'Аванс получен':'Avans oldi'):(tx.izoh||tx.tur);
+        const col=isIshhaqi?'#16A34A':'#EF4444';
+        const arrow=isIshhaqi?`<path d="M12 19V5M5 12l7-7 7 7"/>`:`<path d="M12 5v14M5 12l7 7 7-7"/>`;
+        return`<div class="tx-row"><div class="tx-ico" style="background:${isIshhaqi?'rgba(22,163,74,.1)':'rgba(239,68,68,.1)'}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${col}" stroke-width="2">${arrow}</svg></div><div style="flex:1"><div class="tx-title">${lbl}</div><div class="tx-meta">${fmtDate(tx.tx_date||tx.created_at)}</div></div><div class="tx-amount" style="color:${col}">${isIshhaqi?'+':'-'}$${(tx.summa||0).toLocaleString()}</div></div>`;
       }).join(''):`<div class="empty"><div class="empty-ico">📭</div><div class="empty-txt">${r?'Нет операций':"Operatsiya yo'q"}</div></div>`}
     </div>
     <div style="position:fixed;bottom:var(--nav-h);left:0;right:0;padding:12px 16px;background:var(--bg);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;gap:10px;z-index:50">
