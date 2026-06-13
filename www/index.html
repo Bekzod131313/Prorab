@@ -5044,16 +5044,20 @@ async function handleTelegramInvite(){
     const token=tg.initDataUnsafe.start_param;
     if(sessionStorage.getItem('invite_done_'+token))return;
     const {data:{session}}=await sb.auth.getSession();
-    if(session)return; // allaqachon tizimga kirgan
     const sub=document.getElementById('load-sub');
     if(sub) sub.textContent=curLang==='ru'?'Приглашение принимается...':'Taklif qabul qilinmoqda...';
     const res=await fetch('/api/accept-invite',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({token,initData:tg.initData})
+      body:JSON.stringify({token,initData:tg.initData,access_token:session?.access_token||null})
     });
     const data=await res.json();
     if(data.error){console.error(data.error);return;}
     sessionStorage.setItem('invite_done_'+token,'1');
+    if(data.already){
+      invalidateCache();
+      setTimeout(()=>toast('✅ '+(curLang==='ru'?'Вы добавлены в проект':"Siz loyihaga qo'shildingiz"),'#22C55E'),1200);
+      return;
+    }
     await sb.auth.verifyOtp({email:data.email,token:data.email_otp,type:'magiclink'});
   }catch(e){console.error(e);}
 }
