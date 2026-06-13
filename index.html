@@ -409,6 +409,9 @@ body.dark .topbar{background:rgba(13,17,23,.92)!important;border-bottom:1px soli
       <div id="home-ob-dots" style="display:flex;justify-content:center;gap:6px;margin-top:10px"></div>
     </div>
 
+    <!-- Umumiy analitika -->
+    <div id="home-stats" class="stats-grid" style="display:none"></div>
+
     <!-- Selected ob details -->
     <div id="home-ob-detail" style="margin:14px 16px 0;display:none"></div>
 
@@ -3030,6 +3033,8 @@ async function renderHome(){
     </div>`;
     dots.innerHTML='';
     document.getElementById('home-ob-detail').style.display='none';
+    const stEl=document.getElementById('home-stats');
+    if(stEl)stEl.style.display='none';
     return;
   }
 
@@ -3059,6 +3064,31 @@ async function renderHome(){
 
   // Dots
   dots.innerHTML=homeObsList.map((_,i)=>`<div id="home-dot-${i}" style="width:${i===0?'20px':'6px'};height:6px;border-radius:3px;background:${i===0?'var(--acc)':'var(--border)'};transition:all .3s;cursor:pointer" onclick="scrollToOb(${i})"></div>`).join('');
+
+  // Umumiy analitika
+  const stats=document.getElementById('home-stats');
+  if(stats){
+    let totalBal=0,totalKirim=0,totalChiqim=0;
+    homeObsList.forEach(({ob,role,myBalance})=>{
+      totalBal+=role==='owner'?(ob.kirim||0)-(ob.chiqim||0):(myBalance||0);
+      totalKirim+=ob.kirim||0;
+      totalChiqim+=ob.chiqim||0;
+    });
+    stats.style.display='grid';
+    stats.innerHTML=`
+      <div class="stat-card">
+        <div class="stat-val" style="color:${totalBal>=0?'#16A34A':'#EF4444'}">${totalBal>=0?'+':''}${fmt(totalBal)}</div>
+        <div class="stat-lbl">${r?'Баланс':'Balans'}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" style="color:#16A34A">+${fmt(totalKirim)}</div>
+        <div class="stat-lbl">${r?'Доход':'Kirim'}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" style="color:#EF4444">-${fmt(totalChiqim)}</div>
+        <div class="stat-lbl">${r?'Расход':'Chiqim'}</div>
+      </div>`;
+  }
 
   // A'zo soni (parallel so'rovlar)
   await Promise.all(homeObsList.map(async(o,i)=>{
