@@ -465,7 +465,6 @@ body.dark .topbar{background:rgba(13,17,23,.92)!important;border-bottom:1px soli
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 16px" id="ob-actions"></div>
-    <div style="padding:0 16px 12px" id="ob-info"></div>
     <div style="padding:0 16px">
       <div class="tabs" id="ob-tabs" style="margin-bottom:12px">
         <button class="tab active" onclick="obTab('txs',this)" id="lbl-operatsiyalar">Operatsiyalar</button>
@@ -960,12 +959,6 @@ body.dark .topbar{background:rgba(13,17,23,.92)!important;border-bottom:1px soli
       <input class="inp" id="editob-enddate" type="date">
     </div>
 
-    <!-- Xonadonlar soni -->
-    <div class="inp-group">
-      <label class="inp-lbl" id="lbl-editob-xonadon">Xonadonlar soni</label>
-      <input class="inp" id="editob-xonadon" type="number">
-    </div>
-
     <!-- Holat -->
     <div class="inp-group">
       <label class="inp-lbl" id="lbl-editob-holat">Holat</label>
@@ -1106,7 +1099,6 @@ body.dark .topbar{background:rgba(13,17,23,.92)!important;border-bottom:1px soli
     <div class="inp-group"><label class="inp-lbl" id="lbl-ob-nom">Obyekt nomi</label><input class="inp" id="new-ob-name" placeholder="Masalan: Yunusobod kvartira"></div>
     <div class="inp-group"><label class="inp-lbl" id="lbl-ob-date">Boshlash sanasi</label><input class="inp" id="new-ob-date" type="date"></div>
     <div class="inp-group"><label class="inp-lbl" id="lbl-ob-days">Muddat (kun)</label><input class="inp" id="new-ob-days" type="number" placeholder="30"></div>
-    <div class="inp-group"><label class="inp-lbl" id="lbl-ob-xonadon">Xonadonlar soni</label><input class="inp" id="new-ob-xonadon" type="number" placeholder="0"></div>
     <button class="btn btn-acc" id="lbl-yaratish" onclick="createOb()">Yaratish</button>
   </div>
 </div>
@@ -1444,7 +1436,7 @@ const I18N={
     'lbl-zaxira':'Zaxira nusxa','lbl-chiqish':'Chiqish','lbl-chiqish2':'Chiqish','lbl-soz-title':'Sozlamalar',
     'lbl-til':'TIL','lbl-ilova-rejimi':'ILOVA REJIMI','lbl-hisob':'HISOB','lbl-profil2':"Profil ma'lumotlari",
     'lbl-rejim2':"Rejimni o'zgartirish",'lbl-yangi-ob-title':'🏗 Yangi obyekt','lbl-ob-nom':'Obyekt nomi',
-    'lbl-ob-date':'Boshlash sanasi','lbl-ob-days':'Muddat (kun)','lbl-ob-xonadon':'Xonadonlar soni','lbl-yaratish':'Yaratish',
+    'lbl-ob-date':'Boshlash sanasi','lbl-ob-days':'Muddat (kun)','lbl-yaratish':'Yaratish',
     'lbl-pul-kirdi':'📥 Pul kirdi','lbl-manba':'Manba','lbl-mijoz':'Mijozdan','lbl-kredit':'Kredit',
     'lbl-boshqa':'Boshqa','lbl-summa':'Summa','lbl-izoh':'Izoh','lbl-sana-vaqt':'Sana va vaqt',
     'lbl-saqlash':'Saqlash','lbl-pul-ber':'💸 Pul berish','lbl-kimga':'Kimga?','lbl-summa2':'Summa',
@@ -1473,7 +1465,7 @@ const I18N={
     'lbl-zaxira':'Резервная копия','lbl-chiqish':'Выйти','lbl-chiqish2':'Выйти','lbl-soz-title':'Настройки',
     'lbl-til':'ЯЗЫК','lbl-ilova-rejimi':'РЕЖИМ ПРИЛОЖЕНИЯ','lbl-hisob':'АККАУНТ','lbl-profil2':'Данные профиля',
     'lbl-rejim2':'Изменить режим','lbl-yangi-ob-title':'🏗 Новый объект','lbl-ob-nom':'Название объекта',
-    'lbl-ob-date':'Дата начала','lbl-ob-days':'Срок (дней)','lbl-ob-xonadon':'Количество квартир','lbl-yaratish':'Создать',
+    'lbl-ob-date':'Дата начала','lbl-ob-days':'Срок (дней)','lbl-yaratish':'Создать',
     'lbl-pul-kirdi':'📥 Приход','lbl-manba':'Источник','lbl-mijoz':'От клиента','lbl-kredit':'Кредит',
     'lbl-boshqa':'Другое','lbl-summa':'Сумма','lbl-izoh':'Комментарий','lbl-sana-vaqt':'Дата и время',
     'lbl-saqlash':'Сохранить','lbl-pul-ber':'💸 Перевод','lbl-kimga':'Кому?','lbl-summa2':'Сумма',
@@ -2560,7 +2552,6 @@ function openNewOb(){
   document.getElementById('new-ob-name').value='';
   document.getElementById('new-ob-date').value=new Date().toISOString().slice(0,10);
   document.getElementById('new-ob-days').value='30';
-  document.getElementById('new-ob-xonadon').value='';
   document.getElementById('new-ob-img-input').value='';
   // Reset preview
   const preview=document.getElementById('ob-img-preview');
@@ -2651,49 +2642,8 @@ async function openOb(obId){
 
   // Actions
   renderObActions();
-  renderObInfo();
   gp('ob');
   obTab('txs',document.querySelector('#ob-tabs .tab'));
-}
-
-function renderObInfo(){
-  const wrap=document.getElementById('ob-info');
-  if(!wrap||!curOb)return;
-  const r=curLang==='ru';
-
-  const start=curOb.boshlanish?new Date(curOb.boshlanish):new Date(curOb.created_at);
-  const end=new Date(start);
-  end.setDate(end.getDate()+(curOb.muddat||30));
-  const today=new Date();
-  const passed=Math.max(0,Math.floor((today-start)/86400000));
-  const left=Math.max(0,(curOb.muddat||30)-passed);
-  const workersCnt=curObMembers.filter(m=>m.role!=='owner').length;
-
-  const items=[
-    {ico:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
-     lbl:r?'Дата начала':'Boshlanish sanasi', val:fmtDate(start)},
-    {ico:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.5"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>`,
-     lbl:r?'Дата завершения':'Tugash sanasi', val:fmtDate(end)},
-    {ico:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A855F7" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
-     lbl:r?'Осталось дней':'Qolgan kun', val:left+' '+(r?'дн.':'kun')},
-    {ico:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>`,
-     lbl:r?'Рабочие':'Ishchilar', val:workersCnt+' '+(r?'чел.':'ta')},
-    {ico:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
-     lbl:r?'Квартиры':'Xonadonlar', val:(curOb.xonadon||0)+' '+(r?'шт.':'ta')},
-  ];
-
-  wrap.innerHTML=`
-    <div style="background:var(--card);border-radius:20px;border:1px solid var(--border);padding:14px;box-shadow:var(--shadow)">
-      <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:12px">${r?'Информация об объекте':"Obyekt haqida ma'lumot"}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-        ${items.map(it=>`
-          <div style="background:var(--bg);border-radius:14px;padding:10px;border:1px solid var(--border)">
-            <div style="margin-bottom:6px">${it.ico}</div>
-            <div style="font-size:10px;color:var(--muted);font-weight:700;margin-bottom:2px">${it.lbl}</div>
-            <div style="font-size:13px;font-weight:800;color:var(--text)">${it.val}</div>
-          </div>`).join('')}
-      </div>
-    </div>`;
 }
 
 function renderObActions(){
@@ -2825,7 +2775,6 @@ function openObEdit(obId){
   const end=new Date(start);
   end.setDate(end.getDate()+(curOb.muddat||30));
   document.getElementById('editob-enddate').value=end.toISOString().slice(0,10);
-  document.getElementById('editob-xonadon').value=curOb.xonadon||0;
 
   // Image preview
   const savedImg=localStorage.getItem('ob-img-'+curObId);
@@ -2857,7 +2806,6 @@ function openObEdit(obId){
   document.getElementById('lbl-editob-yakunlangan').textContent=r?'Завершён':'Yakunlangan';
   document.getElementById('lbl-editob-saqlash').textContent=r?'Сохранить':'Saqlash';
   document.getElementById('lbl-editob-rasm').textContent=r?'Фото':'Rasm';
-  document.getElementById('lbl-editob-xonadon').textContent=r?'Количество квартир':'Xonadonlar soni';
 
   openSheet('editob');
 }
@@ -2913,7 +2861,6 @@ async function saveObEdit(){
   const start=new Date(curOb.boshlanish||curOb.created_at);
   const end=new Date(endDate);
   const muddat=Math.max(1,Math.round((end-start)/(1000*60*60*24)));
-  const xonadon=parseInt(document.getElementById('editob-xonadon').value)||0;
 
   const btn=document.querySelector('#sh-editob .btn');
   btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
@@ -2922,7 +2869,6 @@ async function saveObEdit(){
     await sb.from('obyektlar').update({
       nomi:name,
       muddat:muddat,
-      xonadon:xonadon,
       status:editObStatus
     }).eq('id',curObId);
 
@@ -2935,18 +2881,15 @@ async function saveObEdit(){
     // Update local state
     curOb.nomi=name;
     curOb.muddat=muddat;
-    curOb.xonadon=xonadon;
     curOb.status=editObStatus;
     const found=allObs.find(o=>o.ob.id===curObId);
-    if(found){ found.ob.nomi=name; found.ob.muddat=muddat; found.ob.xonadon=xonadon; found.ob.status=editObStatus; }
+    if(found){ found.ob.nomi=name; found.ob.muddat=muddat; found.ob.status=editObStatus; }
 
     closeSheet('sh-editob');
     toast('✅ '+(r?'Сохранено':'Saqlandi'),'#16A34A');
 
     // Refresh ob header
     document.getElementById('ob-name').textContent=name;
-    document.getElementById('ob-meta').textContent=fmtDate(curOb.boshlanish)+' • '+(curOb.muddat||30)+(curLang==='ru'?' дней':' kun');
-    renderObInfo();
     const imgEl=document.getElementById('ob-header-img');
     const overlayEl=document.getElementById('ob-header-overlay');
     if(editObNewImg&&imgEl){
@@ -3112,7 +3055,6 @@ async function createOb(){
   if(!name){toast(curLang==='ru'?'Введите название':'Nom kiriting','#ef4444');return;}
   const date=document.getElementById('new-ob-date').value||new Date().toISOString().slice(0,10);
   const days=parseInt(document.getElementById('new-ob-days').value)||30;
-  const xonadon=parseInt(document.getElementById('new-ob-xonadon').value)||0;
   const btn=document.querySelector('#sh-newob .btn');
   if(!btn)return;
   btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
@@ -3123,7 +3065,6 @@ async function createOb(){
       owner_id:curUser.id,
       boshlanish:date,
       muddat:days,
-      xonadon:xonadon,
       kirim:0,
       chiqim:0,
       status:'active'

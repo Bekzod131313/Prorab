@@ -18,12 +18,8 @@ CREATE TABLE IF NOT EXISTS obyektlar (
   muddat INT DEFAULT 30,
   kirim NUMERIC DEFAULT 0,
   chiqim NUMERIC DEFAULT 0,
-  xonadon INT DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
-
--- Agar obyektlar jadvali avval yaratilgan bo'lsa, ustun qo'shish:
-ALTER TABLE obyektlar ADD COLUMN IF NOT EXISTS xonadon INT DEFAULT 0;
 
 -- 3. ob_members (project members with balance)
 CREATE TABLE IF NOT EXISTS ob_members (
