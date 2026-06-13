@@ -1309,6 +1309,9 @@ body.dark .topbar{background:rgba(13,17,23,.92)!important;border-bottom:1px soli
       <input class="inp" id="member-kasb" type="text" placeholder="Masalan: Santexnik, Elektrik, Usta...">
     </div>
     <button class="btn btn-acc" id="lbl-qoshish" onclick="doAddMember()">Qo'shish</button>
+    <div id="member-invite-wrap" style="display:none;margin-top:10px">
+      <button class="btn" onclick="genInviteLink()" style="width:100%;background:var(--card);border:1px solid var(--border);color:var(--text)" id="lbl-invite-link">📨 Telegram orqali taklif qilish</button>
+    </div>
   </div>
 </div>
 
@@ -3678,9 +3681,11 @@ function filterWorkers(q){
     const role=w.kasb||(r?'Рабочий':'Ishchi');
     const cnt=w.obs_count||1;
     const last=w.created_at?new Date(w.created_at).toLocaleDateString(r?'ru-RU':'uz-UZ',{day:'2-digit',month:'short'}):'';
+    const avatarUrl=w.profiles?.avatar_url;
+    const avInner=avatarUrl?`<img src="${avatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:15px" onerror="this.remove()">`:av;
     return`<div class="worker-card" data-uid="${w.user_id}" role="button" style="background:var(--card);border-radius:20px;padding:15px 16px;border:1px solid var(--border);margin-bottom:11px;cursor:pointer;display:flex;align-items:center;gap:13px;box-shadow:var(--shadow)">
       <div style="position:relative;flex-shrink:0;pointer-events:none">
-        <div style="width:50px;height:50px;border-radius:15px;background:${bg};display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:900;color:#fff">${av}</div>
+        <div style="width:50px;height:50px;border-radius:15px;background:${bg};display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:900;color:#fff;overflow:hidden">${avInner}</div>
         <div style="position:absolute;bottom:-2px;right:-2px;width:15px;height:15px;border-radius:50%;background:${dot};border:3px solid var(--bg)"></div>
       </div>
       <div style="flex:1;min-width:0;pointer-events:none">
@@ -4159,7 +4164,41 @@ function openAddMember(role){
   const kasbEl=document.getElementById('member-kasb');
   if(kasbEl) kasbEl.value='';
   document.querySelector('#sh-member .sheet-title').textContent="👷 Ishchi qo'shish";
+  const inviteWrap=document.getElementById('member-invite-wrap');
+  if(inviteWrap) inviteWrap.style.display=(window.Telegram&&window.Telegram.WebApp&&window.Telegram.WebApp.initData)?'block':'none';
   openSheet('member');
+}
+
+const TG_BOT_USERNAME='Payework_aibot';
+
+async function genInviteLink(){
+  const btn=document.getElementById('lbl-invite-link');
+  const kasb=(document.getElementById('member-kasb')?.value||'').trim();
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>';
+  try{
+    const {data:{session}}=await sb.auth.getSession();
+    const res=await fetch('/api/create-invite',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ob_id:curObId,kasb,access_token:session.access_token})
+    });
+    const data=await res.json();
+    if(data.error){toast('Xato: '+data.error,'#ef4444');return;}
+    const link=`https://t.me/${TG_BOT_USERNAME}?startapp=${data.token}`;
+    const text=curLang==='ru'?'Вас приглашают в проект Prorab':"Sizni Prorab loyihasiga taklif qilamiz";
+    const tg=window.Telegram&&window.Telegram.WebApp;
+    if(tg&&tg.openTelegramLink){
+      tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
+    }else if(navigator.share){
+      navigator.share({title:'Prorab',text,url:link});
+    }else{
+      await navigator.clipboard.writeText(link);
+      toast('✅ Havola nusxalandi','#22C55E');
+    }
+  }catch(e){
+    toast('Xato: '+e.message,'#ef4444');
+  }finally{
+    btn.disabled=false;btn.innerHTML='📨 Telegram orqali taklif qilish';
+  }
 }
 
 function setRole(role,el){
@@ -4997,13 +5036,36 @@ function tgUpdateBackButton(page){
   }catch(e){}
 }
 
-function initApp(){
+// Telegram taklif havolasi orqali ochilgan bo'lsa — avtomatik a'zo bo'lish
+async function handleTelegramInvite(){
+  try{
+    const tg=window.Telegram&&window.Telegram.WebApp;
+    if(!tg||!tg.initDataUnsafe||!tg.initDataUnsafe.start_param)return;
+    const token=tg.initDataUnsafe.start_param;
+    if(sessionStorage.getItem('invite_done_'+token))return;
+    const {data:{session}}=await sb.auth.getSession();
+    if(session)return; // allaqachon tizimga kirgan
+    const sub=document.getElementById('load-sub');
+    if(sub) sub.textContent=curLang==='ru'?'Приглашение принимается...':'Taklif qabul qilinmoqda...';
+    const res=await fetch('/api/accept-invite',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({token,initData:tg.initData})
+    });
+    const data=await res.json();
+    if(data.error){console.error(data.error);return;}
+    sessionStorage.setItem('invite_done_'+token,'1');
+    await sb.auth.verifyOtp({email:data.email,token:data.email_otp,type:'magiclink'});
+  }catch(e){console.error(e);}
+}
+
+async function initApp(){
   applyTheme(curTheme);
   applyLang();
   initTelegram();
   // Hide nav until logged in
   const nav=document.querySelector('.bnav');
   if(nav) nav.style.display='none';
+  await handleTelegramInvite();
   loadProfile();
 }
 
