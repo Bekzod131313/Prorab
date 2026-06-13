@@ -395,10 +395,43 @@ body.dark .topbar{background:rgba(13,17,23,.92)!important;border-bottom:1px soli
   <!-- DASHBOARD -->
   <div class="page active" id="pg-home">
     <!-- Topbar -->
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px 6px;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px;min-width:0">
+        <div class="dash-av" id="dash-av" onclick="gp('profil')">R</div>
+        <div style="min-width:0">
+          <div style="font-size:12px;color:var(--muted);font-weight:600" id="home-greet-lbl">Salom</div>
+          <div style="font-size:16px;font-weight:900;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46vw" id="home-greet-name">—</div>
+        </div>
+      </div>
       <div class="dash-menu-ico" onclick="openDrawer()"><span></span><span></span><span></span></div>
-      <div style="font-size:17px;font-weight:800;color:var(--text)" id="dash-center-title">Asosiy</div>
-      <div class="dash-av" id="dash-av" onclick="gp('profil')">R</div>
+    </div>
+
+    <!-- Hero balans card -->
+    <div style="padding:6px 16px 26px;position:relative">
+      <div style="background:linear-gradient(135deg,var(--acc),#3B82F6);border-radius:22px;padding:18px 18px 24px;box-shadow:0 10px 30px rgba(29,78,216,.3);position:relative;overflow:hidden">
+        <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,.8);text-transform:uppercase;letter-spacing:.5px" id="home-hero-lbl">Umumiy balans</div>
+        <div style="font-size:30px;font-weight:900;color:#fff;margin-top:6px;letter-spacing:-.5px" id="home-hero-bal">0</div>
+        <div style="display:flex;gap:18px;margin-top:14px">
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="width:24px;height:24px;border-radius:8px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M12 19V5M5 12l7 7 7-7"/></svg></div>
+            <div>
+              <div style="font-size:10px;color:rgba(255,255,255,.7);font-weight:700;text-transform:uppercase" id="home-hero-in-lbl">Kirim</div>
+              <div style="font-size:13px;color:#fff;font-weight:800" id="home-hero-in">0</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="width:24px;height:24px;border-radius:8px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M12 5v14M5 12l7-7 7 7"/></svg></div>
+            <div>
+              <div style="font-size:10px;color:rgba(255,255,255,.7);font-weight:700;text-transform:uppercase" id="home-hero-out-lbl">Chiqim</div>
+              <div style="font-size:13px;color:#fff;font-weight:800" id="home-hero-out">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Floating + tugmasi -->
+      <div onclick="openMainFab()" style="position:absolute;bottom:0;right:28px;width:52px;height:52px;border-radius:50%;background:var(--card);box-shadow:0 6px 18px rgba(10,15,30,.18);display:flex;align-items:center;justify-content:center;cursor:pointer;border:4px solid var(--bg)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>
+      </div>
     </div>
 
     <!-- Swipeable Ob Cards -->
@@ -408,9 +441,6 @@ body.dark .topbar{background:rgba(13,17,23,.92)!important;border-bottom:1px soli
       <!-- Dots -->
       <div id="home-ob-dots" style="display:flex;justify-content:center;gap:6px;margin-top:10px"></div>
     </div>
-
-    <!-- Umumiy analitika -->
-    <div id="home-stats" class="stats-grid" style="display:none"></div>
 
     <!-- Selected ob details -->
     <div id="home-ob-detail" style="margin:14px 16px 0;display:none"></div>
@@ -3012,6 +3042,22 @@ async function saveObEdit(){
 let curObSliderIdx=0;
 let homeObsList=[];
 
+function updateHomeHero(){
+  const balEl=document.getElementById('home-hero-bal');
+  const inEl=document.getElementById('home-hero-in');
+  const outEl=document.getElementById('home-hero-out');
+  if(!balEl)return;
+  let totalBal=0,totalKirim=0,totalChiqim=0;
+  homeObsList.forEach(({ob,role,myBalance})=>{
+    totalBal+=role==='owner'?(ob.kirim||0)-(ob.chiqim||0):(myBalance||0);
+    totalKirim+=ob.kirim||0;
+    totalChiqim+=ob.chiqim||0;
+  });
+  balEl.textContent=(totalBal>=0?'+':'')+fmt(totalBal)+" so'm";
+  inEl.textContent='+'+fmt(totalKirim)+" so'm";
+  outEl.textContent='-'+fmt(totalChiqim)+" so'm";
+}
+
 async function renderHome(){
   await loadAll();
   const r=curLang==='ru';
@@ -3020,8 +3066,23 @@ async function renderHome(){
   const av=document.getElementById('dash-av');
   if(av) av.textContent=(curProfile?.full_name||'U')[0].toUpperCase();
 
+  // Salomlashish
+  const greetLbl=document.getElementById('home-greet-lbl');
+  const greetName=document.getElementById('home-greet-name');
+  if(greetLbl) greetLbl.textContent=r?'Привет':'Salom';
+  if(greetName) greetName.textContent=curProfile?.full_name||curProfile?.phone||(r?'Пользователь':'Foydalanuvchi');
+
+  // Hero kartochka labellari
+  const heroLbl=document.getElementById('home-hero-lbl');
+  const heroInLbl=document.getElementById('home-hero-in-lbl');
+  const heroOutLbl=document.getElementById('home-hero-out-lbl');
+  if(heroLbl) heroLbl.textContent=r?'Общий баланс':'Umumiy balans';
+  if(heroInLbl) heroInLbl.textContent=r?'Доход':'Kirim';
+  if(heroOutLbl) heroOutLbl.textContent=r?'Расход':'Chiqim';
+
   // Faol obyektlar
   homeObsList=allObs.filter(o=>(o.ob.status||'active')!=='done');
+  updateHomeHero();
   const slider=document.getElementById('home-ob-slider');
   const dots=document.getElementById('home-ob-dots');
   if(!slider)return;
@@ -3033,8 +3094,6 @@ async function renderHome(){
     </div>`;
     dots.innerHTML='';
     document.getElementById('home-ob-detail').style.display='none';
-    const stEl=document.getElementById('home-stats');
-    if(stEl)stEl.style.display='none';
     return;
   }
 
@@ -3064,31 +3123,6 @@ async function renderHome(){
 
   // Dots
   dots.innerHTML=homeObsList.map((_,i)=>`<div id="home-dot-${i}" style="width:${i===0?'20px':'6px'};height:6px;border-radius:3px;background:${i===0?'var(--acc)':'var(--border)'};transition:all .3s;cursor:pointer" onclick="scrollToOb(${i})"></div>`).join('');
-
-  // Umumiy analitika
-  const stats=document.getElementById('home-stats');
-  if(stats){
-    let totalBal=0,totalKirim=0,totalChiqim=0;
-    homeObsList.forEach(({ob,role,myBalance})=>{
-      totalBal+=role==='owner'?(ob.kirim||0)-(ob.chiqim||0):(myBalance||0);
-      totalKirim+=ob.kirim||0;
-      totalChiqim+=ob.chiqim||0;
-    });
-    stats.style.display='grid';
-    stats.innerHTML=`
-      <div class="stat-card">
-        <div class="stat-val" style="color:${totalBal>=0?'#16A34A':'#EF4444'}">${totalBal>=0?'+':''}${fmt(totalBal)}</div>
-        <div class="stat-lbl">${r?'Баланс':'Balans'}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-val" style="color:#16A34A">+${fmt(totalKirim)}</div>
-        <div class="stat-lbl">${r?'Доход':'Kirim'}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-val" style="color:#EF4444">-${fmt(totalChiqim)}</div>
-        <div class="stat-lbl">${r?'Расход':'Chiqim'}</div>
-      </div>`;
-  }
 
   // A'zo soni (parallel so'rovlar)
   await Promise.all(homeObsList.map(async(o,i)=>{
@@ -3142,7 +3176,10 @@ async function loadHomeRecentTxs(){
         <div class="tx-title">${title}</div>
         <div class="tx-meta">${obNomi}${obNomi?' • ':''}${fmtDate(dt)}</div>
       </div>
-      <div class="tx-amount" style="color:${color}">${sign}${fmt(tx.summa)}</div>
+      <div style="text-align:right;flex-shrink:0">
+        <div class="tx-amount" style="color:${color}">${sign}${fmt(tx.summa)}</div>
+        <div style="font-size:10px;color:var(--muted);font-weight:700;margin-top:1px">${r?'СУМ':"SO'M"}</div>
+      </div>
     </div>`;
   }).join('');
 }
