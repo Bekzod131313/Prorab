@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - claude/wizardly-pascal-iqx3ic
+  workflow_dispatch:
 
 permissions:
   contents: read
