@@ -3279,6 +3279,7 @@ function setWorkerFilter(f,el){
 
 async function openWorkerDetail(uid){
   if(!uid||uid==='undefined'){toast('Xato: ishchi topilmadi','#ef4444');return;}
+  try{
   const w=allWorkers.find(w=>w.user_id===uid)||{user_id:uid,profiles:{},ishaqi:0,olingan:0,balans:0,kasb:''};
   const name=w.profiles?.full_name||w.profiles?.phone||'?';
   const r=curLang==='ru';
@@ -3345,6 +3346,10 @@ async function openWorkerDetail(uid){
       <button onclick="openAvansSheet('${uid}')" style="flex:1;padding:14px;background:var(--card);color:#F59E0B;border:1.5px solid rgba(245,158,11,.3);border-radius:16px;font-size:14px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7 7 7-7"/></svg>${r?'Аванс':'Avans'}</button>
       <button onclick="openIshHaqiSheet('${uid}')" style="flex:2;padding:14px;background:linear-gradient(135deg,var(--acc),#3B82F6);color:#fff;border:none;border-radius:16px;font-size:14px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 16px rgba(29,78,216,.3)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>${r?'Записать зарплату':'Ish haqi yozish'}</button>
     </div>`;
+  }catch(e){
+    console.error('openWorkerDetail error:',e);
+    toast('Xato: '+e.message,'#ef4444');
+  }
 }
 
 // ═══════════════════════════════════════════
