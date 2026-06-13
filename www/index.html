@@ -27,7 +27,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
-  --sat:calc(env(safe-area-inset-top,0px) + var(--tg-content-safe-area-inset-top,0px) + var(--tg-safe-area-inset-top,0px));
+  --sat:calc(env(safe-area-inset-top,0px) + var(--tg-content-safe-area-inset-top,0px) + var(--tg-safe-area-inset-top,0px) + var(--tg-extra-top,0px));
   --g1:#1E3A5F;--g2:#1D4ED8;--g3:#3B82F6;
   --acc:#1D4ED8;--acc2:#1E40AF;
   --red:#F43F5E;--red-bg:#FFF1F2;
@@ -4972,6 +4972,8 @@ function initTelegram(){
     if(!tg)return;
     tg.ready();
     tg.expand();
+    // Telegram'ning o'z header (Закрыть/menyu) paneli balandligi — content shu ostida qolmasligi uchun
+    document.documentElement.style.setProperty('--tg-extra-top','56px');
     try{tg.disableVerticalSwipes&&tg.disableVerticalSwipes();}catch(e){}
     try{tg.setHeaderColor&&tg.setHeaderColor(document.body.classList.contains('dark')?'#0A0E1A':'#F2F6FA');}catch(e){}
     try{tg.setBackgroundColor&&tg.setBackgroundColor(document.body.classList.contains('dark')?'#0A0E1A':'#F2F6FA');}catch(e){}
