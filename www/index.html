@@ -399,38 +399,45 @@ body.dark .topbar{background:rgba(13,17,23,.92)!important;border-bottom:1px soli
 <!-- APP -->
 <div id="app">
 
-  <!-- DASHBOARD -->
+  <!-- DASHBOARD — loyiha-markazli -->
   <div class="page active" id="pg-home">
     <!-- Topbar -->
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 10px;gap:12px">
       <div class="dash-menu-ico" onclick="openDrawer()"><span></span><span></span><span></span></div>
-      <div style="font-size:17px;font-weight:800;color:var(--text)" id="dash-center-title">Asosiy</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;color:var(--muted);font-weight:700" id="home-greet">Salom</div>
+        <div style="font-size:17px;font-weight:900;color:var(--text);letter-spacing:-.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="home-greet-name">—</div>
+      </div>
       <div class="dash-av" id="dash-av" onclick="gp('profil')">R</div>
     </div>
 
-    <!-- Swipeable Ob Cards -->
-    <div style="padding:0 16px 6px;position:relative">
-      <div id="home-ob-slider" style="display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:4px" onscroll="onObSliderScroll()">
-      </div>
-      <!-- Dots -->
-      <div id="home-ob-dots" style="display:flex;justify-content:center;gap:6px;margin-top:10px"></div>
+    <!-- Section label -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 18px 12px">
+      <div style="font-size:20px;font-weight:900;color:var(--text);letter-spacing:-.4px" id="home-proj-lbl">Loyihalar</div>
+      <div onclick="gp('projects')" style="font-size:13px;font-weight:800;color:var(--acc);cursor:pointer" id="home-proj-all">Barchasi →</div>
     </div>
 
-    <!-- Umumiy analitika -->
-    <div id="home-stats" class="stats-grid" style="display:none"></div>
+    <!-- Full-width hero project carousel -->
+    <div style="position:relative">
+      <div id="home-ob-slider" style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none" onscroll="onObSliderScroll()"></div>
+      <div id="home-ob-dots" style="display:flex;justify-content:center;gap:6px;margin-top:14px"></div>
+    </div>
 
-    <!-- Selected ob details -->
-    <div id="home-ob-detail" style="margin:14px 16px 0;display:none"></div>
+    <!-- Quick stats: Team / Tasks / Materials -->
+    <div id="home-quick-stats" style="display:none;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:18px 16px 0"></div>
 
-    <!-- Last txs -->
-    <div id="home-last-txs-wrap" style="display:none;margin:14px 16px 0">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <div style="font-size:15px;font-weight:800;color:var(--text)" id="lbl-oxirgi-txs">Oxirgi operatsiyalar</div>
-        <div onclick="gp('hisobot')" style="font-size:13px;font-weight:700;color:var(--acc);cursor:pointer">Barchasi →</div>
+    <!-- Project info -->
+    <div id="home-ob-detail" style="margin:18px 16px 0;display:none"></div>
+
+    <!-- Recent activity timeline -->
+    <div id="home-last-txs-wrap" style="display:none;margin:22px 16px 0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="font-size:17px;font-weight:900;color:var(--text);letter-spacing:-.3px" id="lbl-oxirgi-txs">So'nggi faoliyat</div>
+        <div onclick="gp('hisobot')" style="font-size:13px;font-weight:800;color:var(--acc);cursor:pointer">Barchasi →</div>
       </div>
       <div id="home-last-txs"></div>
     </div>
-    <div style="height:20px"></div>
+    <div style="height:24px"></div>
   </div>
 
   <!-- PROJECTS -->
@@ -3019,95 +3026,176 @@ async function saveObEdit(){
 let curObSliderIdx=0;
 let homeObsList=[];
 
+const HERO_IMGS=['https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&q=80','https://images.unsplash.com/photo-1590486803833-1c5dc8ddd4c8?w=800&q=80','https://images.unsplash.com/photo-1517581177682-a085bb7ffb15?w=800&q=80','https://images.unsplash.com/photo-1486325212027-8081e485255e?w=800&q=80','https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=800&q=80'];
+
+function obImg(ob){
+  if(localStorage.getItem('ob-img-'+ob.id)) return localStorage.getItem('ob-img-'+ob.id);
+  if(ob.rasm) return ob.rasm;
+  let h=0;(ob.nomi||'').split('').forEach(c=>h+=c.charCodeAt(0));
+  return HERO_IMGS[h%HERO_IMGS.length];
+}
+
+function daysLeft(ob){
+  if(!ob.boshlanish) return ob.muddat||0;
+  const start=new Date(ob.boshlanish);
+  const end=ob.tugash?new Date(ob.tugash):new Date(start.getTime()+(ob.muddat||30)*864e5);
+  return Math.max(0,Math.round((end-Date.now())/864e5));
+}
+
+function obProgress(ob){
+  if(ob.progress!=null) return Math.max(0,Math.min(100,ob.progress));
+  // boshlanish + muddat asosida vaqt-progress
+  if(!ob.boshlanish||!ob.muddat) return 0;
+  const start=new Date(ob.boshlanish).getTime();
+  const total=(ob.muddat||30)*864e5;
+  return Math.max(0,Math.min(100,Math.round((Date.now()-start)/total*100)));
+}
+
 async function renderHome(){
   await loadAll();
   const r=curLang==='ru';
 
-  // Avatar
+  // Avatar + salom
   const av=document.getElementById('dash-av');
   if(av) av.textContent=(curProfile?.full_name||'U')[0].toUpperCase();
+  const g=document.getElementById('home-greet'); if(g) g.textContent=r?'Здравствуйте':'Assalomu alaykum';
+  const gn=document.getElementById('home-greet-name'); if(gn) gn.textContent=curProfile?.full_name||curProfile?.phone||(r?'Пользователь':'Foydalanuvchi');
+  const pl=document.getElementById('home-proj-lbl'); if(pl) pl.textContent=r?'Проекты':'Loyihalar';
+  const pa=document.getElementById('home-proj-all'); if(pa) pa.textContent=r?'Все →':'Barchasi →';
+  const ll=document.getElementById('lbl-oxirgi-txs'); if(ll) ll.textContent=r?'Активность':'So\'nggi faoliyat';
 
   // Faol obyektlar
   homeObsList=allObs.filter(o=>(o.ob.status||'active')!=='done');
   const slider=document.getElementById('home-ob-slider');
   const dots=document.getElementById('home-ob-dots');
+  const qs=document.getElementById('home-quick-stats');
   if(!slider)return;
 
   if(!homeObsList.length){
-    slider.innerHTML=`<div style="width:100%;min-width:100%;height:170px;background:var(--card);border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed var(--border);gap:10px;cursor:pointer;flex-shrink:0" onclick="openNewOb()">
-      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-4 0v2"/><line x1="12" y1="12" x2="12" y2="17"/><line x1="9.5" y1="14.5" x2="14.5" y2="14.5"/></svg>
-      <div style="font-size:14px;font-weight:700;color:var(--muted)">${r?'Создать объект':"Obyekt qo'shish"}</div>
-    </div>`;
+    slider.innerHTML=`<div style="width:100%;min-width:100%;flex-shrink:0;scroll-snap-align:start;padding:0 16px"><div style="height:200px;background:var(--card);border-radius:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed var(--border);gap:12px;cursor:pointer" onclick="openNewOb()">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-4 0v2"/><line x1="12" y1="12" x2="12" y2="17"/><line x1="9.5" y1="14.5" x2="14.5" y2="14.5"/></svg>
+      <div style="font-size:15px;font-weight:800;color:var(--text)">${r?'Создать проект':"Loyiha qo'shish"}</div>
+    </div></div>`;
     dots.innerHTML='';
     document.getElementById('home-ob-detail').style.display='none';
-    const stEl=document.getElementById('home-stats');
-    if(stEl)stEl.style.display='none';
+    if(qs)qs.style.display='none';
+    const w=document.getElementById('home-last-txs-wrap'); if(w)w.style.display='none';
     return;
   }
 
-  // Slider cards
-  const imgs=['https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=500&q=80','https://images.unsplash.com/photo-1590486803833-1c5dc8ddd4c8?w=500&q=80','https://images.unsplash.com/photo-1517581177682-a085bb7ffb15?w=500&q=80','https://images.unsplash.com/photo-1486325212027-8081e485255e?w=500&q=80','https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=500&q=80'];
-  slider.innerHTML=homeObsList.map(({ob,role,myBalance},i)=>{
-    const bal=role==='owner'?(ob.kirim||0)-(ob.chiqim||0):myBalance;
-    const balCol=bal>=0?'#16A34A':'#EF4444';
-    let h=0;(ob.nomi||'').split('').forEach(c=>h+=c.charCodeAt(0));
-    const img=localStorage.getItem('ob-img-'+ob.id)||imgs[h%imgs.length];
-    const statusTxt=ob.status==='done'?(r?'ЗАВЕРШЁН':'YAKUNLANGAN'):(r?'АКТИВНЫЙ':'FAOL');
-    const statusCol=ob.status==='done'?'#F59E0B':'#16A34A';
-    return`<div style="width:100%;min-width:100%;height:170px;border-radius:18px;overflow:hidden;position:relative;cursor:pointer;flex-shrink:0;scroll-snap-align:start;box-shadow:0 8px 24px rgba(0,0,0,.12)" onclick="openOb('${ob.id}')">
-      <img src="${img}" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.src='';this.parentElement.style.background='#1D4ED8'">
-      <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.1) 0%,rgba(0,0,0,.6) 100%)"></div>
-      <div style="position:absolute;top:10px;left:10px;background:${statusCol};color:#fff;font-size:10px;font-weight:800;padding:4px 10px;border-radius:20px;letter-spacing:.5px">● ${statusTxt}</div>
-      <button onclick="event.stopPropagation();openObEdit('${ob.id}')" style="position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.2);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-      </button>
-      <div style="position:absolute;bottom:10px;left:14px;right:14px">
-        <div style="font-size:17px;font-weight:900;color:#fff;margin-bottom:2px;text-shadow:0 2px 8px rgba(0,0,0,.3)">${ob.nomi}</div>
-        <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,.75)">${r?'Общий баланс':'Jami balans'}</div>
-        <div style="font-size:18px;font-weight:900;color:${balCol};text-shadow:0 2px 8px rgba(0,0,0,.3)">${bal>=0?'+':''}${fmt(bal)}</div>
+  // Hero project carousel — full width, money yashirin
+  slider.innerHTML=homeObsList.map(({ob},i)=>{
+    const img=obImg(ob);
+    const done=ob.status==='done';
+    const statusTxt=done?(r?'ЗАВЕРШЁН':'YAKUNLANGAN'):(r?'АКТИВНЫЙ':'FAOL');
+    const statusCol=done?'#F59E0B':'#22C55E';
+    const pid='#'+String(i+1).padStart(3,'0');
+    const dl=daysLeft(ob);
+    return`<div style="width:100%;min-width:100%;flex-shrink:0;scroll-snap-align:center;padding:0 16px;box-sizing:border-box">
+      <div style="height:210px;border-radius:24px;overflow:hidden;position:relative;cursor:pointer;box-shadow:0 16px 40px rgba(0,0,0,.35)" onclick="openOb('${ob.id}')">
+        <img src="${img}" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.style.display='none';this.parentElement.style.background='linear-gradient(135deg,#1E3A5F,#2563EB)'">
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,11,22,.05) 0%,rgba(8,11,22,.35) 55%,rgba(8,11,22,.88) 100%)"></div>
+        <div style="position:absolute;top:14px;left:14px;right:14px;display:flex;align-items:center;justify-content:space-between">
+          <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.16);backdrop-filter:blur(10px);padding:6px 12px;border-radius:30px;border:1px solid rgba(255,255,255,.18)">
+            <span style="width:7px;height:7px;border-radius:50%;background:${statusCol};box-shadow:0 0 8px ${statusCol}"></span>
+            <span style="font-size:11px;font-weight:800;color:#fff;letter-spacing:.5px">${statusTxt}</span>
+          </div>
+          <div style="font-size:12px;font-weight:800;color:rgba(255,255,255,.85);background:rgba(0,0,0,.25);backdrop-filter:blur(10px);padding:6px 11px;border-radius:30px">${pid}</div>
+        </div>
+        <div style="position:absolute;bottom:0;left:0;right:0;padding:16px 18px">
+          <div style="font-size:22px;font-weight:900;color:#fff;letter-spacing:-.5px;margin-bottom:8px;text-shadow:0 2px 12px rgba(0,0,0,.5)">${ob.nomi}</div>
+          <div style="display:flex;gap:18px">
+            <div style="display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.92);font-size:12px;font-weight:700">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/></svg>
+              <span id="hero-team-${ob.id}">0</span> ${r?'чел.':'ishchi'}
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.92);font-size:12px;font-weight:700">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+              ${dl} ${r?'дн. ост.':'kun qoldi'}
+            </div>
+          </div>
+        </div>
       </div>
     </div>`;
   }).join('');
 
   // Dots
-  dots.innerHTML=homeObsList.map((_,i)=>`<div id="home-dot-${i}" style="width:${i===0?'20px':'6px'};height:6px;border-radius:3px;background:${i===0?'var(--acc)':'var(--border)'};transition:all .3s;cursor:pointer" onclick="scrollToOb(${i})"></div>`).join('');
+  dots.innerHTML=homeObsList.map((_,i)=>`<div id="home-dot-${i}" style="width:${i===0?'22px':'7px'};height:7px;border-radius:4px;background:${i===0?'var(--acc)':'var(--border)'};transition:all .3s;cursor:pointer" onclick="scrollToOb(${i})"></div>`).join('');
 
-  // Umumiy analitika
-  const stats=document.getElementById('home-stats');
-  if(stats){
-    let totalBal=0,totalKirim=0,totalChiqim=0;
-    homeObsList.forEach(({ob,role,myBalance})=>{
-      totalBal+=role==='owner'?(ob.kirim||0)-(ob.chiqim||0):(myBalance||0);
-      totalKirim+=ob.kirim||0;
-      totalChiqim+=ob.chiqim||0;
-    });
-    stats.style.display='grid';
-    stats.innerHTML=`
-      <div class="stat-card">
-        <div class="stat-val" style="color:${totalBal>=0?'#16A34A':'#EF4444'}">${totalBal>=0?'+':''}${fmt(totalBal)}</div>
-        <div class="stat-lbl">${r?'Баланс':'Balans'}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-val" style="color:#16A34A">+${fmt(totalKirim)}</div>
-        <div class="stat-lbl">${r?'Доход':'Kirim'}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-val" style="color:#EF4444">-${fmt(totalChiqim)}</div>
-        <div class="stat-lbl">${r?'Расход':'Chiqim'}</div>
-      </div>`;
-  }
-
-  // A'zo soni (parallel so'rovlar)
+  // A'zo soni (parallel) + hero count yangilash
   await Promise.all(homeObsList.map(async(o,i)=>{
     const {count}=await sb.from('ob_members').select('*',{count:'exact',head:true}).eq('ob_id',o.ob.id).neq('role','owner');
     homeObsList[i]._memberCount=count||0;
+    const he=document.getElementById('hero-team-'+o.ob.id); if(he) he.textContent=count||0;
   }));
 
-  // Birinchi ob details
+  curObSliderIdx=0;
   showObDetail(0);
-
-  // So'nggi operatsiyalar
   loadHomeRecentTxs();
+}
+
+async function renderQuickStats(idx){
+  const qs=document.getElementById('home-quick-stats');
+  if(!qs||!homeObsList[idx])return;
+  const {ob,_memberCount}=homeObsList[idx];
+  const r=curLang==='ru';
+  qs.style.display='grid';
+  // Tasks & materials sonini olish (jadval bo'lmasa 0)
+  let tasks=0,mats=0;
+  try{ const {count}=await sb.from('tasks').select('*',{count:'exact',head:true}).eq('ob_id',ob.id); tasks=count||0; }catch(e){}
+  try{ const {count}=await sb.from('materials').select('*',{count:'exact',head:true}).eq('ob_id',ob.id); mats=count||0; }catch(e){}
+  const card=(icon,val,lbl,col)=>`<div onclick="openOb('${ob.id}')" style="background:var(--card);border:1px solid var(--border);border-radius:18px;padding:14px 10px;text-align:center;cursor:pointer;box-shadow:var(--shadow)">
+    <div style="width:38px;height:38px;border-radius:12px;background:${col}22;display:flex;align-items:center;justify-content:center;margin:0 auto 8px">${icon}</div>
+    <div style="font-size:19px;font-weight:900;color:var(--text);letter-spacing:-.3px">${val}</div>
+    <div style="font-size:10.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-top:2px">${lbl}</div>
+  </div>`;
+  qs.innerHTML=
+    card(`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2.2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>`,_memberCount||0,r?'Команда':'Jamoa','#3B82F6')+
+    card(`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2.2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>`,tasks,r?'Задачи':'Vazifa','#22C55E')+
+    card(`<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2.2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>`,mats,r?'Материалы':'Material','#F59E0B');
+}
+
+async function loadHomeRecentTxs(){
+  const wrap=document.getElementById('home-last-txs-wrap');
+  const cont=document.getElementById('home-last-txs');
+  if(!wrap||!cont)return;
+  if(!homeObsList.length){wrap.style.display='none';return;}
+  const r=curLang==='ru';
+  const obIds=homeObsList.map(o=>o.ob.id);
+  const obMap=Object.fromEntries(homeObsList.map(o=>[o.ob.id,o.ob.nomi]));
+  let txs=[];
+  try{
+    const {data}=await sb.from('transactions').select('*').in('ob_id',obIds).order('tx_date',{ascending:false}).limit(6);
+    txs=data||[];
+  }catch(e){console.error('home txs:',e);}
+  if(!txs.length){wrap.style.display='none';return;}
+  wrap.style.display='block';
+  cont.innerHTML=txs.map((tx,i)=>{
+    const isIn=tx.tur==='income';
+    const dot=isIn?'#22C55E':tx.tur==='ishhaqi'?'#3B82F6':'#F43F5E';
+    let title='';
+    if(tx.tur==='income'){const c=getAllIncomeCats().find(c=>c.id===tx.kategoriya);title=c?(r?c.ru:c.uz):(tx.izoh||(r?'Доход':'Kirim'));}
+    else if(tx.tur==='spend'){const c=getAllCats().find(c=>c.id===tx.kategoriya);title=c?(r?c.ru:c.uz):(tx.izoh||(r?'Расход':'Chiqim'));}
+    else if(tx.tur==='ishhaqi'){title=r?'Зарплата выдана':'Ish haqi berildi';}
+    else if(tx.tur==='send'){title=r?'Перевод':"Pul o'tkazma";}
+    else title=tx.izoh||'';
+    const dt=tx.tx_date||tx.created_at;
+    const obNomi=obMap[tx.ob_id]||'';
+    const isLast=i===txs.length-1;
+    return`<div style="display:flex;gap:14px;cursor:pointer" onclick="openOb('${tx.ob_id}')">
+      <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0">
+        <div style="width:12px;height:12px;border-radius:50%;background:${dot};border:3px solid var(--bg);box-shadow:0 0 0 2px ${dot}55;margin-top:4px"></div>
+        ${isLast?'':`<div style="width:2px;flex:1;background:var(--border);margin:2px 0"></div>`}
+      </div>
+      <div style="flex:1;min-width:0;padding-bottom:${isLast?'0':'16px'}">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <div style="font-size:14px;font-weight:800;color:var(--text)">${title}</div>
+          <div style="font-size:14px;font-weight:900;color:${isIn?'#22C55E':'#F43F5E'};white-space:nowrap">${isIn?'+':'-'}${fmt(tx.summa)}</div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);font-weight:600;margin-top:2px">${obNomi}${obNomi?' • ':''}${fmtDate(dt)}</div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 async function loadHomeRecentTxs(){
@@ -3175,7 +3263,7 @@ function updateObDots(idx){
   homeObsList.forEach((_,i)=>{
     const d=document.getElementById('home-dot-'+i);
     if(d){
-      d.style.width=i===idx?'20px':'6px';
+      d.style.width=i===idx?'22px':'7px';
       d.style.background=i===idx?'var(--acc)':'var(--border)';
     }
   });
@@ -3183,43 +3271,51 @@ function updateObDots(idx){
 
 function showObDetail(idx){
   curObSliderIdx=idx;
+  renderQuickStats(idx);
   const det=document.getElementById('home-ob-detail');
   if(!det||!homeObsList[idx])return;
-  const {ob,_memberCount}=homeObsList[idx];
+  const {ob}=homeObsList[idx];
   const r=curLang==='ru';
+  const prog=obProgress(ob);
+  const startTxt=ob.boshlanish?fmtDate(ob.boshlanish):'—';
+  const endD=ob.tugash?new Date(ob.tugash):(ob.boshlanish?new Date(new Date(ob.boshlanish).getTime()+(ob.muddat||30)*864e5):null);
+  const endTxt=endD?fmtDate(endD.toISOString()):'—';
+  const dash='<span style="color:var(--muted)">—</span>';
+
+  const row=(icon,lbl,val)=>`<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)">
+    <div style="width:34px;height:34px;border-radius:10px;background:rgba(59,130,246,.13);display:flex;align-items:center;justify-content:center;flex-shrink:0">${icon}</div>
+    <div style="font-size:13px;color:var(--muted);font-weight:700;flex-shrink:0">${lbl}</div>
+    <div style="font-size:13.5px;color:var(--text);font-weight:800;margin-left:auto;text-align:right">${val}</div>
+  </div>`;
+  const ic=p=>`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="2">${p}</svg>`;
 
   det.style.display='block';
   det.innerHTML=`
-    <div style="background:var(--card);border-radius:20px;border:1px solid var(--border);overflow:hidden;box-shadow:var(--shadow)">
-
-      <!-- Ob nomi + ochish -->
-      <div onclick="openOb('${ob.id}')" style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;border-bottom:1px solid var(--border)">
-        <div style="display:flex;align-items:center;gap:10px">
-          <div style="width:40px;height:40px;border-radius:12px;overflow:hidden;flex-shrink:0;background:#e2e8f0">
-            <img src="${localStorage.getItem('ob-img-'+ob.id)||''}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">
-          </div>
-          <div>
-            <div style="font-size:15px;font-weight:800;color:var(--text)">${ob.nomi}</div>
-            <div style="font-size:11px;color:var(--muted)">${_memberCount||0} ${r?'рабочих':'ishchi'} · ${ob.muddat||30} ${r?'дн.':'kun'}</div>
-          </div>
-        </div>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+    <div style="background:var(--card);border-radius:22px;border:1px solid var(--border);padding:16px 18px;box-shadow:var(--shadow)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div style="font-size:15px;font-weight:900;color:var(--text);letter-spacing:-.2px">${r?'О проекте':'Loyiha haqida'}</div>
+        <div onclick="openOb('${ob.id}')" style="font-size:12.5px;font-weight:800;color:var(--acc);cursor:pointer">${r?'Открыть →':'Ochish →'}</div>
       </div>
 
-      <!-- Tezkor amallar: Kirim / Chiqim -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 16px">
-        <button onclick="homeQuickAction('kirim')" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:18px 10px;border-radius:16px;border:none;background:#ECFDF5;cursor:pointer">
-          <div style="width:38px;height:38px;border-radius:12px;background:rgba(22,163,74,.15);display:flex;align-items:center;justify-content:center">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.5"><path d="M12 19V5M5 12l7 7 7-7"/></svg>
-          </div>
-          <span style="font-size:14px;font-weight:800;color:#16A34A">${r?'Доход':'Kirim'}</span>
-        </button>
-        <button onclick="homeQuickAction('chiqim')" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:18px 10px;border-radius:16px;border:none;background:#FFF1F2;cursor:pointer">
-          <div style="width:38px;height:38px;border-radius:12px;background:rgba(239,68,68,.15);display:flex;align-items:center;justify-content:center">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5"><path d="M12 5v14M5 12l7-7 7 7"/></svg>
-          </div>
-          <span style="font-size:14px;font-weight:800;color:#EF4444">${r?'Расход':'Chiqim'}</span>
-        </button>
+      <!-- Progress -->
+      <div style="margin:10px 0 6px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
+          <div style="font-size:12px;color:var(--muted);font-weight:700">${r?'Готовность':'Bajarilgan'}</div>
+          <div style="font-size:13px;color:var(--text);font-weight:900">${prog}%</div>
+        </div>
+        <div style="height:8px;background:var(--border);border-radius:6px;overflow:hidden">
+          <div style="height:100%;width:${prog}%;background:linear-gradient(90deg,var(--acc),#4F8DFB);border-radius:6px;transition:width .5s"></div>
+        </div>
+      </div>
+
+      ${row(ic('<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>'),r?'Адрес':'Manzil',ob.manzil||dash)}
+      ${row(ic('<path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>'),r?'Клиент':'Mijoz',ob.mijoz||dash)}
+      ${row(ic('<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>'),r?'Старт':'Boshlanish',startTxt)}
+      ${row(ic('<path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>'),r?'Завершение':'Tugash',endTxt)}
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 0 2px">
+        <div style="width:34px;height:34px;border-radius:10px;background:rgba(59,130,246,.13);display:flex;align-items:center;justify-content:center;flex-shrink:0">${ic('<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>')}</div>
+        <div style="font-size:13px;color:var(--muted);font-weight:700;flex-shrink:0">${r?'Этап':'Bosqich'}</div>
+        <div style="font-size:13.5px;color:var(--text);font-weight:800;margin-left:auto;text-align:right">${ob.bosqich||dash}</div>
       </div>
     </div>`;
 }
