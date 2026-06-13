@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Prorab</string>
+    <string name="title_activity_main">Prorab</string>
+    <string name="package_name">uz.prorab.app</string>
+    <string name="custom_url_scheme">uz.prorab.app</string>
+</resources>
