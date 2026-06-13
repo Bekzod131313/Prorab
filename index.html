@@ -3385,8 +3385,9 @@ function openAvansSheet(uid){
     const w=allWorkers.find(w=>w.user_id===uid);
     const name=w?.profiles?.full_name||w?.profiles?.phone||'?';
     toSel.innerHTML=`<option value="${uid}">${name}</option>`;
-    // Obyektlar ro'yxati
-    obSel.innerHTML=allObs.map(o=>`<option value="${o.ob.id}">${o.ob.nomi}</option>`).join('');
+    // FAQAT ishchi a'zo bo'lgan obyektlar (aks holda balans yozilmaydi)
+    const wObs=(w&&w.obsList&&w.obsList.length)?w.obsList.map(o=>({id:o.ob_id,nomi:o.ob_nomi})):allObs.map(o=>({id:o.ob.id,nomi:o.ob.nomi}));
+    obSel.innerHTML=wObs.map(o=>`<option value="${o.id}">${o.nomi}</option>`).join('');
   } else if(curObId){
     // Obyekt ichidan
     const members=curObMembers.filter(m=>m.user_id!==curUser?.id);
@@ -3407,7 +3408,9 @@ function openIshHaqiSheet(uid){
     const w=allWorkers.find(w=>w.user_id===uid);
     const name=w?.profiles?.full_name||w?.profiles?.phone||'?';
     toSel.innerHTML=`<option value="${uid}">${name}</option>`;
-    obSel.innerHTML=allObs.map(o=>`<option value="${o.ob.id}">${o.ob.nomi}</option>`).join('');
+    // FAQAT ishchi a'zo bo'lgan obyektlar (aks holda balans yozilmaydi)
+    const wObs=(w&&w.obsList&&w.obsList.length)?w.obsList.map(o=>({id:o.ob_id,nomi:o.ob_nomi})):allObs.map(o=>({id:o.ob.id,nomi:o.ob.nomi}));
+    obSel.innerHTML=wObs.map(o=>`<option value="${o.id}">${o.nomi}</option>`).join('');
   } else if(curObId){
     const members=curObMembers.filter(m=>m.user_id!==curUser?.id);
     toSel.innerHTML=members.map(m=>`<option value="${m.user_id}">${m.profiles?.full_name||m.profiles?.phone||'?'}</option>`).join('');
@@ -3447,6 +3450,9 @@ async function doAvans(){
     const {data:mem}=await sb.from('ob_members').select('olingan').eq('ob_id',obId).eq('user_id',toUid).single();
     if(mem){
       await sb.from('ob_members').update({olingan:(mem.olingan||0)+amount}).eq('ob_id',obId).eq('user_id',toUid);
+    } else {
+      // Ishchi bu obyektda a'zo emas — qo'shamiz
+      await sb.from('ob_members').insert({ob_id:obId,user_id:toUid,role:'member',ishaqi:0,olingan:amount,balance:0});
     }
     closeSheet('sh-avans');
     toast('✅ '+(r?'Аванс выдан':'Avans berildi'),'#16A34A');
@@ -3482,6 +3488,9 @@ async function doIshHaqi(){
     const {data:mem}=await sb.from('ob_members').select('ishaqi').eq('ob_id',obId).eq('user_id',toUid).single();
     if(mem){
       await sb.from('ob_members').update({ishaqi:(mem.ishaqi||0)+amount}).eq('ob_id',obId).eq('user_id',toUid);
+    } else {
+      // Ishchi bu obyektda a'zo emas — qo'shamiz
+      await sb.from('ob_members').insert({ob_id:obId,user_id:toUid,role:'member',ishaqi:amount,olingan:0,balance:0});
     }
     closeSheet('sh-ishhaqi');
     toast('✅ '+(r?'Зарплата записана':'Ish haqi yozildi'),'#16A34A');
