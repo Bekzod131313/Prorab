@@ -2745,7 +2745,7 @@ function renderObActions(){
     html+=`<button class="btn" onclick="openSendSheet()" style="padding:12px;font-size:13px;background:#eff6ff;color:#3b82f6">💸 ${curLang==='ru'?'Перевод':'Pul ber'}</button>`;
   }else{
     html+=`<button class="btn" onclick="openSendSheet()" style="padding:12px;font-size:13px;background:#eff6ff;color:#3b82f6">💸 ${curLang==='ru'?'Перевод':'Pul ber'}</button>`;
-    html+=`<button class="btn" onclick="openSpendSheet()" style="padding:12px;font-size:13px;background:#fef2f2;color:#ef4444">💳 ${curLang==='ru'?'Расход':'Sarflash'}</button>`;
+    html+=`<button class="btn" onclick="openSpend('chiqim')" style="padding:12px;font-size:13px;background:#fef2f2;color:#ef4444">💳 ${curLang==='ru'?'Расход':'Sarflash'}</button>`;
   }
   wrap.innerHTML=html;
 }
@@ -3649,7 +3649,7 @@ async function dashObSelected(obId,role,type){
     renderIncomeCats();
     openSheet('income');
   }else{
-    openSpendSheet();
+    openSpend('chiqim');
   }
 }
 
