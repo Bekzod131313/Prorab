@@ -3048,11 +3048,11 @@ async function renderHome(){
   // Dots
   dots.innerHTML=homeObsList.map((_,i)=>`<div id="home-dot-${i}" style="width:${i===0?'20px':'6px'};height:6px;border-radius:3px;background:${i===0?'var(--acc)':'var(--border)'};transition:all .3s;cursor:pointer" onclick="scrollToOb(${i})"></div>`).join('');
 
-  // A'zo soni
-  for(let i=0;i<homeObsList.length;i++){
-    const {count}=await sb.from('ob_members').select('*',{count:'exact',head:true}).eq('ob_id',homeObsList[i].ob.id).neq('role','owner');
+  // A'zo soni (parallel so'rovlar)
+  await Promise.all(homeObsList.map(async(o,i)=>{
+    const {count}=await sb.from('ob_members').select('*',{count:'exact',head:true}).eq('ob_id',o.ob.id).neq('role','owner');
     homeObsList[i]._memberCount=count||0;
-  }
+  }));
 
   // Birinchi ob details
   showObDetail(0);
