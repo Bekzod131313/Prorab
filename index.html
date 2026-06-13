@@ -44,14 +44,16 @@
 #home-ob-slider::-webkit-scrollbar{display:none}
 #home-ob-slider{scroll-behavior:smooth}
 
-/* DARK MODE */
+/* DARK MODE — deep navy luxury */
 body.dark{
-  --text:#F0F4FA;--text2:#B8C4D4;--muted:#5A6A7E;
-  --border:rgba(255,255,255,.08);--bg:#0D1117;--card:rgba(255,255,255,.06);
-  --shadow:0 2px 16px rgba(0,0,0,.3);
-  --shadow-lg:0 8px 32px rgba(0,0,0,.4);
+  --g1:#16244A;--g2:#2563EB;--g3:#4F8DFB;
+  --acc:#3B82F6;--acc2:#2563EB;
+  --text:#EAF1FB;--text2:#AEBBD0;--muted:#71809B;
+  --border:rgba(255,255,255,.08);--bg:#0A0E1A;--card:rgba(255,255,255,.045);
+  --shadow:0 4px 24px rgba(0,0,0,.45);
+  --shadow-lg:0 16px 48px rgba(0,0,0,.55);
 }
-body.dark::before{background:linear-gradient(135deg,#0D1117 0%,#111827 50%,#0F1923 100%)!important}
+body.dark::before{background:radial-gradient(120% 80% at 50% 0%,#13203F 0%,#0C1326 45%,#080B16 100%)!important}
 body.dark .bnav{background:rgba(13,17,23,.92)!important;border-top:1px solid rgba(255,255,255,.07)!important}
 body.dark .topbar{background:rgba(13,17,23,.92)!important;border-bottom:1px solid rgba(255,255,255,.06)!important}
 body.dark .search-wrap{background:rgba(13,17,23,.92)!important;border-bottom:1px solid rgba(255,255,255,.06)!important}
@@ -88,6 +90,7 @@ a{text-decoration:none;color:inherit}
 
 /* LOADING */
 #loading{position:fixed;inset:0;background:linear-gradient(135deg,#EEF4FB 0%,#E8F0FE 50%,#EFF6FF 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999}
+body.dark #loading{background:radial-gradient(120% 80% at 50% 0%,#13203F 0%,#0C1326 45%,#080B16 100%)}
 .load-logo{width:80px;height:80px;background:linear-gradient(135deg,var(--acc),var(--g3));border-radius:24px;display:flex;align-items:center;justify-content:center;margin-bottom:20px;animation:floatPulse 2s ease infinite;box-shadow:0 12px 40px rgba(29,78,216,.35)}
 @keyframes floatPulse{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-6px) scale(1.04)}}
 .load-text{font-size:26px;font-weight:900;color:var(--text);margin-bottom:6px;letter-spacing:-0.5px}
@@ -354,6 +357,10 @@ body.dark .topbar{background:rgba(13,17,23,.92)!important;border-bottom:1px soli
 </style>
 </head>
 <body>
+<script>
+/* Tema bootstrap — sahifa chizilishidan oldin (FOUC oldini olish). Default: dark */
+(function(){try{var t=localStorage.getItem('theme')||'dark';var p=window.matchMedia('(prefers-color-scheme: dark)').matches;if(t==='dark'||(t==='auto'&&p)){document.body.classList.add('dark');var l=document.getElementById('loading');}}catch(e){}})();
+</script>
 
 <!-- LOADING -->
 <div id="loading">
@@ -4501,7 +4508,7 @@ async function doLogout(){
 // ═══════════════════════════════════════════
 // DARK MODE / THEME
 // ═══════════════════════════════════════════
-let curTheme=localStorage.getItem('theme')||'auto';
+let curTheme=localStorage.getItem('theme')||'dark';
 
 function applyTheme(theme){
   const prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;
