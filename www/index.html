@@ -2991,17 +2991,17 @@ async function renderHome(){
     const img=localStorage.getItem('ob-img-'+ob.id)||imgs[h%imgs.length];
     const statusTxt=ob.status==='done'?(r?'ЗАВЕРШЁН':'YAKUNLANGAN'):(r?'АКТИВНЫЙ':'FAOL');
     const statusCol=ob.status==='done'?'#F59E0B':'#16A34A';
-    return`<div style="min-width:calc(100vw - 32px);height:160px;border-radius:20px;overflow:hidden;position:relative;cursor:pointer;flex-shrink:0;scroll-snap-align:start;box-shadow:0 8px 24px rgba(0,0,0,.12)" onclick="openOb('${ob.id}')">
+    return`<div style="min-width:calc(100vw - 32px);height:120px;border-radius:18px;overflow:hidden;position:relative;cursor:pointer;flex-shrink:0;scroll-snap-align:start;box-shadow:0 8px 24px rgba(0,0,0,.12)" onclick="openOb('${ob.id}')">
       <img src="${img}" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.src='';this.parentElement.style.background='#1D4ED8'">
       <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.1) 0%,rgba(0,0,0,.6) 100%)"></div>
-      <div style="position:absolute;top:14px;left:14px;background:${statusCol};color:#fff;font-size:10px;font-weight:800;padding:4px 10px;border-radius:20px;letter-spacing:.5px">● ${statusTxt}</div>
-      <button onclick="event.stopPropagation();openObEdit('${ob.id}')" style="position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.2);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      <div style="position:absolute;top:10px;left:10px;background:${statusCol};color:#fff;font-size:10px;font-weight:800;padding:4px 10px;border-radius:20px;letter-spacing:.5px">● ${statusTxt}</div>
+      <button onclick="event.stopPropagation();openObEdit('${ob.id}')" style="position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.2);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
       </button>
-      <div style="position:absolute;bottom:14px;left:14px;right:14px">
-        <div style="font-size:20px;font-weight:900;color:#fff;margin-bottom:4px;text-shadow:0 2px 8px rgba(0,0,0,.3)">${ob.nomi}</div>
-        <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.75)">${r?'Общий баланс':'Jami balans'}</div>
-        <div style="font-size:24px;font-weight:900;color:${balCol};text-shadow:0 2px 8px rgba(0,0,0,.3)">${bal>=0?'+':''}${fmt(bal)}</div>
+      <div style="position:absolute;bottom:10px;left:14px;right:14px">
+        <div style="font-size:17px;font-weight:900;color:#fff;margin-bottom:2px;text-shadow:0 2px 8px rgba(0,0,0,.3)">${ob.nomi}</div>
+        <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,.75)">${r?'Общий баланс':'Jami balans'}</div>
+        <div style="font-size:18px;font-weight:900;color:${balCol};text-shadow:0 2px 8px rgba(0,0,0,.3)">${bal>=0?'+':''}${fmt(bal)}</div>
       </div>
     </div>`;
   }).join('');
@@ -3580,29 +3580,13 @@ async function homeQuickAction(type){
     document.getElementById('income-dt').value=new Date().toISOString().slice(0,16);
     openSheet('income');
   }else{
-    openSpendSheet();
+    openSpend('chiqim');
   }
 }
 
 // ═══════════════════════════════════════════
 // SPEND
 // ═══════════════════════════════════════════
-function openSpendSheet(){
-  const myBal=allObs.find(o=>o.ob.id===curObId)?.myBalance||0;
-  document.getElementById('spend-mybal').textContent=fmt(myBal);
-  document.getElementById('spend-amount').value='';
-  document.getElementById('spend-note').value='';
-  document.getElementById('spend-dt').value=new Date().toISOString().slice(0,16);
-  // Render cats
-  const spendCats = regime==='pro' ? CATS_ALL : CATS;
-  document.getElementById('spend-cats').innerHTML=spendCats.map((c,i)=>`
-    <div onclick="selCat='${c.id}';renderSpendCats()" data-cat="${c.id}" style="padding:10px 6px;border-radius:10px;border:2px solid ${selCat===c.id?CAT_COLORS[i]:'var(--border)'};background:${selCat===c.id?CAT_COLORS[i]+'15':'var(--bg)'};text-align:center;cursor:pointer">
-      <div style="font-size:20px">${c.emoji}</div>
-      <div style="font-size:10px;font-weight:700;color:${selCat===c.id?CAT_COLORS[i]:'var(--muted)'};margin-top:2px">${curLang==='ru'?c.ru:c.uz}</div>
-    </div>`).join('');
-  openSheet('spend');
-}
-
 async function doSpend(){
   const obId=document.getElementById('spend-ob')?.value||curObId;
   const amount=parseFloat(document.getElementById('spend-amount').value);
