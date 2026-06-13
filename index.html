@@ -421,8 +421,11 @@ body.dark .topbar{background:rgba(13,17,23,.92)!important;border-bottom:1px soli
       <div id="home-ob-dots" style="display:flex;justify-content:center;gap:6px;margin-top:14px"></div>
     </div>
 
+    <!-- Kirim / Chiqim (tanlangan loyiha) -->
+    <div id="home-inout" style="display:none;grid-template-columns:1fr 1fr;gap:12px;padding:16px 16px 0"></div>
+
     <!-- Quick stats: Team / Tasks / Materials -->
-    <div id="home-quick-stats" style="display:none;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:18px 16px 0"></div>
+    <div id="home-quick-stats" style="display:none;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:14px 16px 0"></div>
 
     <!-- Project info -->
     <div id="home-ob-detail" style="margin:18px 16px 0;display:none"></div>
@@ -3077,6 +3080,7 @@ async function renderHome(){
     dots.innerHTML='';
     document.getElementById('home-ob-detail').style.display='none';
     if(qs)qs.style.display='none';
+    const io=document.getElementById('home-inout'); if(io)io.style.display='none';
     const w=document.getElementById('home-last-txs-wrap'); if(w)w.style.display='none';
     return;
   }
@@ -3272,8 +3276,34 @@ function showObDetail(idx){
   renderQuickStats(idx);
   const det=document.getElementById('home-ob-detail');
   if(!det||!homeObsList[idx])return;
-  const {ob}=homeObsList[idx];
+  const {ob,role,myBalance}=homeObsList[idx];
   const r=curLang==='ru';
+
+  // Kirim / Chiqim pillalari
+  const io=document.getElementById('home-inout');
+  if(io){
+    io.style.display='grid';
+    const kirim=ob.kirim||0, chiqim=ob.chiqim||0;
+    io.innerHTML=`
+      <div onclick="openOb('${ob.id}')" style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:16px;cursor:pointer;box-shadow:var(--shadow)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <div style="width:32px;height:32px;border-radius:10px;background:rgba(34,197,94,.16);display:flex;align-items:center;justify-content:center">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2.6"><path d="M12 19V5M5 12l7 7 7-7"/></svg>
+          </div>
+          <div style="font-size:11px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.5px">${r?'Доход':'Kirim'}</div>
+        </div>
+        <div style="font-size:20px;font-weight:900;color:#22C55E;letter-spacing:-.4px">+${fmt(kirim)}</div>
+      </div>
+      <div onclick="openOb('${ob.id}')" style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:16px;cursor:pointer;box-shadow:var(--shadow)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <div style="width:32px;height:32px;border-radius:10px;background:rgba(244,63,94,.16);display:flex;align-items:center;justify-content:center">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F43F5E" stroke-width="2.6"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+          </div>
+          <div style="font-size:11px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.5px">${r?'Расход':'Chiqim'}</div>
+        </div>
+        <div style="font-size:20px;font-weight:900;color:#F43F5E;letter-spacing:-.4px">-${fmt(chiqim)}</div>
+      </div>`;
+  }
   const prog=obProgress(ob);
   const startTxt=ob.boshlanish?fmtDate(ob.boshlanish):'—';
   const endD=ob.tugash?new Date(ob.tugash):(ob.boshlanish?new Date(new Date(ob.boshlanish).getTime()+(ob.muddat||30)*864e5):null);
