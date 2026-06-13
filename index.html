@@ -10,6 +10,18 @@
 <meta name="mobile-web-app-capable" content="yes">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>window.addEventListener("error",function(e){if(e.message==="Script error.")e.preventDefault();});</script>
+<script>window.addEventListener("error",function(e){
+  try{
+    var t=document.createElement('div');
+    t.style.position='fixed';t.style.bottom='90px';t.style.left='12px';t.style.right='12px';
+    t.style.background='#ef4444';t.style.color='#fff';t.style.padding='10px 14px';
+    t.style.borderRadius='12px';t.style.fontSize='12px';t.style.zIndex='99999';t.style.fontWeight='700';
+    t.style.wordBreak='break-word';
+    t.textContent='JS xato: '+e.message+' ('+(e.filename||'')+':'+e.lineno+')';
+    document.body.appendChild(t);
+    setTimeout(function(){t.remove();},6000);
+  }catch(_){}
+});</script>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
