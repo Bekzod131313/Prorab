@@ -2722,15 +2722,38 @@ async function openOb(obId){
   const editBtn=document.getElementById('ob-edit-btn');
   if(editBtn) editBtn.style.display=curObRole==='owner'?'flex':'none';
 
-  // Load txs
-  const {data:txs}=await sb.from('transactions').select('*').eq('ob_id',obId).order('created_at',{ascending:false});
+  // Hero rasm — har doim ko'rinadi
+  const imgEl=document.getElementById('ob-header-img');
+  if(imgEl) imgEl.style.backgroundImage=`url(${obImg(curOb)})`;
+
+  // Use cached txs/members instantly so the screen opens without waiting for network
+  curObTxs=curObTxs&&curOb._cachedFor===obId?curObTxs:[];
+  curObMembers=curObMembers&&curOb._cachedFor===obId?curObMembers:[];
+  renderObStats(found);
+
+  // Actions
+  renderObActions();
+  renderObProgress();
+  renderObInfo();
+  gp('ob');
+  obTab('txs',document.querySelector('#ob-tabs .tab'));
+
+  // Load fresh data in background and refresh
+  const [{data:txs},{data:members}]=await Promise.all([
+    sb.from('transactions').select('*').eq('ob_id',obId).order('created_at',{ascending:false}),
+    sb.from('ob_members').select('*,profiles(*)').eq('ob_id',obId)
+  ]);
+  if(curObId!==obId)return; // user navigated away meanwhile
   curObTxs=txs||[];
-
-  // Load members
-  const {data:members}=await sb.from('ob_members').select('*,profiles(*)').eq('ob_id',obId);
   curObMembers=members||[];
+  curOb._cachedFor=obId;
+  renderObStats(found);
+  const activeTab=document.querySelector('#ob-tabs .tab.active');
+  const m=activeTab&&activeTab.getAttribute('onclick').match(/obTab\('(\w+)'/);
+  obTab(m?m[1]:'txs',activeTab);
+}
 
-  // Stats
+function renderObStats(found){
   if(curObRole==='owner'){
     document.getElementById('ob-in').textContent=fmt(curOb.kirim||0);
     document.getElementById('ob-out').textContent=fmt(curOb.chiqim||0);
@@ -2745,17 +2768,6 @@ async function openOb(obId){
     document.getElementById('ob-bal').textContent=fmt(found.myBalance);
     document.getElementById('ob-bal').style.color=found.myBalance>=0?'#16A34A':'#EF4444';
   }
-
-  // Hero rasm — har doim ko'rinadi
-  const imgEl=document.getElementById('ob-header-img');
-  if(imgEl) imgEl.style.backgroundImage=`url(${obImg(curOb)})`;
-
-  // Actions
-  renderObActions();
-  renderObProgress();
-  renderObInfo();
-  gp('ob');
-  obTab('txs',document.querySelector('#ob-tabs .tab'));
 }
 
 function renderObProgress(){
