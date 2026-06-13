@@ -1008,6 +1008,12 @@ body.dark .topbar{background:rgba(13,17,23,.92)!important;border-bottom:1px soli
       <input class="inp" id="editob-enddate" type="date">
     </div>
 
+    <!-- Manzil / Mijoz / Bosqich -->
+    <div class="inp-group"><label class="inp-lbl" id="lbl-editob-manzil">Manzil</label><input class="inp" id="editob-manzil" type="text" placeholder="Toshkent, ..."></div>
+    <div class="inp-group"><label class="inp-lbl" id="lbl-editob-mijoz">Mijoz</label><input class="inp" id="editob-mijoz" type="text" placeholder="Mijoz ismi"></div>
+    <div class="inp-group"><label class="inp-lbl" id="lbl-editob-bosqich">Bosqich</label><input class="inp" id="editob-bosqich" type="text" placeholder="Masalan: Suvoq"></div>
+    <div class="inp-group"><label class="inp-lbl" id="lbl-editob-progress">Bajarilgan (%)</label><input class="inp" id="editob-progress" type="number" min="0" max="100" placeholder="0"></div>
+
     <!-- Holat -->
     <div class="inp-group">
       <label class="inp-lbl" id="lbl-editob-holat">Holat</label>
@@ -1148,6 +1154,9 @@ body.dark .topbar{background:rgba(13,17,23,.92)!important;border-bottom:1px soli
     <div class="inp-group"><label class="inp-lbl" id="lbl-ob-nom">Obyekt nomi</label><input class="inp" id="new-ob-name" placeholder="Masalan: Yunusobod kvartira"></div>
     <div class="inp-group"><label class="inp-lbl" id="lbl-ob-date">Boshlash sanasi</label><input class="inp" id="new-ob-date" type="date"></div>
     <div class="inp-group"><label class="inp-lbl" id="lbl-ob-days">Muddat (kun)</label><input class="inp" id="new-ob-days" type="number" placeholder="30"></div>
+    <div class="inp-group"><label class="inp-lbl" id="lbl-ob-manzil">Manzil</label><input class="inp" id="new-ob-manzil" placeholder="Toshkent, ..."></div>
+    <div class="inp-group"><label class="inp-lbl" id="lbl-ob-mijoz">Mijoz</label><input class="inp" id="new-ob-mijoz" placeholder="Mijoz ismi"></div>
+    <div class="inp-group"><label class="inp-lbl" id="lbl-ob-bosqich">Bosqich</label><input class="inp" id="new-ob-bosqich" placeholder="Masalan: Poydevor"></div>
     <button class="btn btn-acc" id="lbl-yaratish" onclick="createOb()">Yaratish</button>
   </div>
 </div>
@@ -2640,6 +2649,7 @@ function openNewOb(){
   document.getElementById('new-ob-name').value='';
   document.getElementById('new-ob-date').value=new Date().toISOString().slice(0,10);
   document.getElementById('new-ob-days').value='30';
+  ['new-ob-manzil','new-ob-mijoz','new-ob-bosqich'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   document.getElementById('new-ob-img-input').value='';
   // Reset preview
   const preview=document.getElementById('ob-img-preview');
@@ -3013,6 +3023,13 @@ function openObEdit(obId){
   end.setDate(end.getDate()+(curOb.muddat||30));
   document.getElementById('editob-enddate').value=end.toISOString().slice(0,10);
 
+  // Yangi maydonlar
+  const setv=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v??'';};
+  setv('editob-manzil',curOb.manzil);
+  setv('editob-mijoz',curOb.mijoz);
+  setv('editob-bosqich',curOb.bosqich);
+  setv('editob-progress',curOb.progress!=null?curOb.progress:'');
+
   // Image preview
   const savedImg=localStorage.getItem('ob-img-'+curObId);
   const prev=document.getElementById('editob-img-preview');
@@ -3043,6 +3060,11 @@ function openObEdit(obId){
   document.getElementById('lbl-editob-yakunlangan').textContent=r?'Завершён':'Yakunlangan';
   document.getElementById('lbl-editob-saqlash').textContent=r?'Сохранить':'Saqlash';
   document.getElementById('lbl-editob-rasm').textContent=r?'Фото':'Rasm';
+  const setl=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  setl('lbl-editob-manzil',r?'Адрес':'Manzil');
+  setl('lbl-editob-mijoz',r?'Клиент':'Mijoz');
+  setl('lbl-editob-bosqich',r?'Этап':'Bosqich');
+  setl('lbl-editob-progress',r?'Готовность (%)':'Bajarilgan (%)');
 
   openSheet('editob');
 }
@@ -3099,15 +3121,26 @@ async function saveObEdit(){
   const end=new Date(endDate);
   const muddat=Math.max(1,Math.round((end-start)/(1000*60*60*24)));
 
+  const manzil=(document.getElementById('editob-manzil')?.value||'').trim();
+  const mijoz=(document.getElementById('editob-mijoz')?.value||'').trim();
+  const bosqich=(document.getElementById('editob-bosqich')?.value||'').trim();
+  const progRaw=document.getElementById('editob-progress')?.value;
+  const progress=progRaw===''||progRaw==null?null:Math.max(0,Math.min(100,parseInt(progRaw)||0));
+
   const btn=document.querySelector('#sh-editob .btn');
   btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
 
   try{
-    await sb.from('obyektlar').update({
-      nomi:name,
-      muddat:muddat,
-      status:editObStatus
-    }).eq('id',curObId);
+    const baseU={nomi:name,muddat:muddat,status:editObStatus};
+    const fullU={...baseU,manzil:manzil||null,mijoz:mijoz||null,bosqich:bosqich||null,progress:progress};
+    let {error:upErr}=await sb.from('obyektlar').update(fullU).eq('id',curObId);
+    if(upErr&&/column|schema|progress|manzil|mijoz|bosqich/i.test(upErr.message)){
+      await sb.from('obyektlar').update(baseU).eq('id',curObId);
+    }
+    // Local holatga yangi maydonlarni yozish
+    curOb.manzil=manzil||null; curOb.mijoz=mijoz||null; curOb.bosqich=bosqich||null; if(progress!=null)curOb.progress=progress;
+    const f2=allObs.find(o=>o.ob.id===curObId);
+    if(f2){f2.ob.manzil=curOb.manzil;f2.ob.mijoz=curOb.mijoz;f2.ob.bosqich=curOb.bosqich;if(progress!=null)f2.ob.progress=progress;}
 
     // Save image — compressed, with quota handling
     if(editObNewImg){
@@ -3129,12 +3162,10 @@ async function saveObEdit(){
     document.getElementById('ob-name').textContent=name;
     document.getElementById('ob-meta').textContent=fmtDate(curOb.boshlanish)+' • '+(curOb.muddat||30)+(curLang==='ru'?' дней':' kun');
     renderObInfo();
+    renderObProgress();
     const imgEl=document.getElementById('ob-header-img');
-    const overlayEl=document.getElementById('ob-header-overlay');
     if(editObNewImg&&imgEl){
       imgEl.style.backgroundImage=`url(${editObNewImg})`;
-      imgEl.style.opacity='1';
-      overlayEl.style.opacity='1';
     }
     // Update status badge
     const statusBadge=editObStatus==='done'
@@ -3484,20 +3515,21 @@ async function createOb(){
   if(!name){toast(curLang==='ru'?'Введите название':'Nom kiriting','#ef4444');return;}
   const date=document.getElementById('new-ob-date').value||new Date().toISOString().slice(0,10);
   const days=parseInt(document.getElementById('new-ob-days').value)||30;
+  const manzil=(document.getElementById('new-ob-manzil')?.value||'').trim();
+  const mijoz=(document.getElementById('new-ob-mijoz')?.value||'').trim();
+  const bosqich=(document.getElementById('new-ob-bosqich')?.value||'').trim();
   const btn=document.querySelector('#sh-newob .btn');
   if(!btn)return;
   btn.innerHTML='<span class="spinner"></span>';btn.disabled=true;
   try{
     // 1. Obyekt yaratish
-    const {data:ob,error}=await sb.from('obyektlar').insert({
-      nomi:name,
-      owner_id:curUser.id,
-      boshlanish:date,
-      muddat:days,
-      kirim:0,
-      chiqim:0,
-      status:'active'
-    }).select().single();
+    const base={nomi:name,owner_id:curUser.id,boshlanish:date,muddat:days,kirim:0,chiqim:0,status:'active'};
+    const full={...base,manzil:manzil||null,mijoz:mijoz||null,bosqich:bosqich||null,progress:0};
+    let {data:ob,error}=await sb.from('obyektlar').insert(full).select().single();
+    if(error&&/column|schema|progress|manzil|mijoz|bosqich/i.test(error.message)){
+      // Migratsiya hali ishlamagan — asosiy maydonlar bilan yaratamiz
+      ({data:ob,error}=await sb.from('obyektlar').insert(base).select().single());
+    }
     if(error) throw new Error('Obyekt: '+error.message);
 
     // 2. Rasm saqlash — compress va quota handling
