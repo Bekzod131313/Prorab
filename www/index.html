@@ -2973,7 +2973,7 @@ async function renderHome(){
   if(!slider)return;
 
   if(!homeObsList.length){
-    slider.innerHTML=`<div style="min-width:calc(100vw - 32px);height:180px;background:var(--card);border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed var(--border);gap:10px;cursor:pointer;flex-shrink:0" onclick="openNewOb()">
+    slider.innerHTML=`<div style="width:100%;min-width:100%;height:170px;background:var(--card);border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed var(--border);gap:10px;cursor:pointer;flex-shrink:0" onclick="openNewOb()">
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-4 0v2"/><line x1="12" y1="12" x2="12" y2="17"/><line x1="9.5" y1="14.5" x2="14.5" y2="14.5"/></svg>
       <div style="font-size:14px;font-weight:700;color:var(--muted)">${r?'Создать объект':"Obyekt qo'shish"}</div>
     </div>`;
@@ -2991,7 +2991,7 @@ async function renderHome(){
     const img=localStorage.getItem('ob-img-'+ob.id)||imgs[h%imgs.length];
     const statusTxt=ob.status==='done'?(r?'ЗАВЕРШЁН':'YAKUNLANGAN'):(r?'АКТИВНЫЙ':'FAOL');
     const statusCol=ob.status==='done'?'#F59E0B':'#16A34A';
-    return`<div style="min-width:calc(100vw - 32px);height:120px;border-radius:18px;overflow:hidden;position:relative;cursor:pointer;flex-shrink:0;scroll-snap-align:start;box-shadow:0 8px 24px rgba(0,0,0,.12)" onclick="openOb('${ob.id}')">
+    return`<div style="width:100%;min-width:100%;height:170px;border-radius:18px;overflow:hidden;position:relative;cursor:pointer;flex-shrink:0;scroll-snap-align:start;box-shadow:0 8px 24px rgba(0,0,0,.12)" onclick="openOb('${ob.id}')">
       <img src="${img}" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.src='';this.parentElement.style.background='#1D4ED8'">
       <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.1) 0%,rgba(0,0,0,.6) 100%)"></div>
       <div style="position:absolute;top:10px;left:10px;background:${statusCol};color:#fff;font-size:10px;font-weight:800;padding:4px 10px;border-radius:20px;letter-spacing:.5px">● ${statusTxt}</div>
