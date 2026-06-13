@@ -3269,18 +3269,26 @@ function filterWorkers(q){
   const colors=['#1D4ED8','#ea580c','#16A34A','#7c3aed','#0891b2','#f59e0b'];
   el.innerHTML=list.map((w,i)=>{
     const name=w.profiles?.full_name||w.profiles?.phone||'?';
-    const av=name[0].toUpperCase();
+    const av=(name[0]||'?').toUpperCase();
     const bg=colors[i%colors.length];
     const bal=w.balans||0;
     const bc=bal>0?'#16A34A':bal<0?'#EF4444':'var(--muted)';
     const last=w.created_at?new Date(w.created_at).toLocaleDateString(r?'ru-RU':'uz-UZ',{day:'2-digit',month:'short'}):'';
-    return`<div onclick="openWorkerDetail('${w.user_id}')" style="background:var(--card);border-radius:18px;padding:14px 16px;border:1px solid var(--border);margin-bottom:10px;cursor:pointer;display:flex;align-items:center;gap:12px">
-      <div style="width:48px;height:48px;border-radius:14px;background:${bg};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;flex-shrink:0">${av}</div>
-      <div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:800;color:var(--text)">${name}</div><div style="font-size:12px;color:var(--muted);margin-top:2px">${w.kasb||''}</div></div>
-      <div style="text-align:right;flex-shrink:0"><div style="font-size:16px;font-weight:900;color:${bc}">${bal>=0?'+':''}$${Math.abs(bal).toLocaleString()}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${r?'Активность':'Faoliyat'}: ${last}</div></div>
+    return`<div class="worker-card" data-uid="${w.user_id}" role="button" style="background:var(--card);border-radius:18px;padding:14px 16px;border:1px solid var(--border);margin-bottom:10px;cursor:pointer;display:flex;align-items:center;gap:12px">
+      <div style="width:48px;height:48px;border-radius:14px;background:${bg};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;flex-shrink:0;pointer-events:none">${av}</div>
+      <div style="flex:1;min-width:0;pointer-events:none"><div style="font-size:15px;font-weight:800;color:var(--text)">${name}</div><div style="font-size:12px;color:var(--muted);margin-top:2px">${w.kasb||''}</div></div>
+      <div style="text-align:right;flex-shrink:0;pointer-events:none"><div style="font-size:16px;font-weight:900;color:${bc}">${bal>=0?'+':''}$${Math.abs(bal).toLocaleString()}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${r?'Активность':'Faoliyat'}: ${last}</div></div>
     </div>`;
   }).join('');
 }
+
+// Bulletproof click delegation — har qanday tap document gacha ko'tariladi
+document.addEventListener('click',function(e){
+  const card=e.target.closest&&e.target.closest('.worker-card');
+  if(card&&card.dataset.uid){
+    openWorkerDetail(card.dataset.uid);
+  }
+});
 
 function setWorkerFilter(f,el){
   workerFilter=f;
