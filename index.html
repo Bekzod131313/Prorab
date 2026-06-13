@@ -27,6 +27,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
+  --sat:calc(env(safe-area-inset-top,0px) + var(--tg-content-safe-area-inset-top,0px) + var(--tg-safe-area-inset-top,0px));
   --g1:#1E3A5F;--g2:#1D4ED8;--g3:#3B82F6;
   --acc:#1D4ED8;--acc2:#1E40AF;
   --red:#F43F5E;--red-bg:#FFF1F2;
@@ -131,7 +132,7 @@ body.dark #loading{background:radial-gradient(120% 80% at 50% 0%,#13203F 0%,#0C1
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
 /* APP container */
-#app{display:none;position:fixed;top:0;left:0;right:0;bottom:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-top:calc(env(safe-area-inset-top,0px) + var(--tg-content-safe-area-inset-top,0px) + var(--tg-safe-area-inset-top,0px));padding-bottom:var(--nav-h)}
+#app{display:none;position:fixed;top:0;left:0;right:0;bottom:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-top:var(--sat);padding-bottom:var(--nav-h)}
 
 /* TOPBAR */
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:rgba(242,246,250,.88);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.8)}
@@ -406,9 +407,9 @@ body.dark .topbar{background:rgba(13,17,23,.92)!important;border-bottom:1px soli
   <!-- DASHBOARD — loyiha-markazli -->
   <div class="page active" id="pg-home">
     <!-- Full-bleed hero project carousel -->
-    <div style="position:relative">
+    <div style="position:relative;margin-top:calc(-1 * var(--sat))">
       <!-- Overlay topbar (rasm ustida) -->
-      <div style="position:absolute;top:0;left:0;right:0;z-index:3;display:flex;align-items:flex-start;justify-content:space-between;padding:16px 18px;pointer-events:none">
+      <div style="position:absolute;top:0;left:0;right:0;z-index:3;display:flex;align-items:flex-start;justify-content:space-between;padding:calc(16px + var(--sat)) 18px 16px;pointer-events:none">
         <div onclick="openDrawer()" style="pointer-events:auto;width:42px;height:42px;border-radius:13px;background:rgba(255,255,255,.16);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.22);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer">
           <span style="width:16px;height:2px;background:#fff;border-radius:2px"></span>
           <span style="width:16px;height:2px;background:#fff;border-radius:2px"></span>
@@ -463,8 +464,8 @@ body.dark .topbar{background:rgba(13,17,23,.92)!important;border-bottom:1px soli
   <!-- OB DETAIL -->
   <div class="page" id="pg-ob">
     <!-- Full-bleed hero -->
-    <div style="position:relative">
-      <div style="position:absolute;top:0;left:0;right:0;z-index:3;display:flex;align-items:flex-start;justify-content:space-between;padding:16px 16px;pointer-events:none">
+    <div style="position:relative;margin-top:calc(-1 * var(--sat))">
+      <div style="position:absolute;top:0;left:0;right:0;z-index:3;display:flex;align-items:flex-start;justify-content:space-between;padding:calc(16px + var(--sat)) 16px 16px;pointer-events:none">
         <button onclick="gp('projects')" style="pointer-events:auto;width:42px;height:42px;border-radius:13px;background:rgba(255,255,255,.16);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.22);color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer">←</button>
         <button id="ob-edit-btn" onclick="openObEdit()" style="pointer-events:auto;display:none;align-items:center;gap:6px;background:rgba(255,255,255,.16);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.22);border-radius:13px;color:#fff;font-size:12px;font-weight:800;padding:0 14px;height:42px;cursor:pointer">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
