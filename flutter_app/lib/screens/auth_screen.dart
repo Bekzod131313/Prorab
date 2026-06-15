@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../main.dart';
 import '../theme/app_theme.dart';
+import '../utils/phone_formatter.dart';
 import '../widgets/moliya_logo.dart';
 import 'root_shell.dart';
 
@@ -18,7 +20,7 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _obscurePass = true;
   String? _error;
 
-  final _phoneCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController(text: '+998');
   final _nameCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
 
@@ -115,6 +117,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 TextField(
                   controller: _phoneCtrl,
                   keyboardType: TextInputType.phone,
+                  inputFormatters: [PhoneFormatter()],
                   decoration: const InputDecoration(hintText: 'Telefon raqam'),
                 ),
                 const SizedBox(height: 12),
