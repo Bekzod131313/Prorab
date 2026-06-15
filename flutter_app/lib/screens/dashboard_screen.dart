@@ -73,6 +73,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _openAddProject() async {
     final nameCtrl = TextEditingController();
     final daysCtrl = TextEditingController(text: '30');
+    final manzilCtrl = TextEditingController();
+    final mijozCtrl = TextEditingController();
     DateTime startDate = DateTime.now();
 
     final created = await showModalBottomSheet<bool>(
@@ -127,6 +129,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(hintText: 'Muddat (kun)'),
               ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: manzilCtrl,
+                decoration: const InputDecoration(hintText: 'Manzil (ixtiyoriy)'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: mijozCtrl,
+                decoration: const InputDecoration(hintText: 'Mijoz (ixtiyoriy)'),
+              ),
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
@@ -147,6 +159,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         nomi: nameCtrl.text.trim(),
         boshlanish: startDate,
         muddat: days,
+        manzil: manzilCtrl.text.trim(),
+        mijoz: mijozCtrl.text.trim(),
       );
       _load();
     }

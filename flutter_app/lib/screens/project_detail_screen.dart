@@ -711,9 +711,26 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Text(
-                          project.nomi,
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              project.nomi,
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18),
+                            ),
+                            if (project.manzil?.isNotEmpty == true || project.mijoz?.isNotEmpty == true)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Text(
+                                  [
+                                    if (project.manzil?.isNotEmpty == true) project.manzil,
+                                    if (project.mijoz?.isNotEmpty == true) project.mijoz,
+                                  ].join(' · '),
+                                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                     ],
