@@ -888,6 +888,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                         _InfoTile(label: 'ISHCHILAR', value: '$workersCount ta'),
                         _InfoTile(label: 'MIJOZ', value: project.mijoz?.isNotEmpty == true ? project.mijoz! : '—'),
                         _InfoTile(label: 'BOSQICH', value: project.bosqich?.isNotEmpty == true ? project.bosqich! : '—'),
+                        _InfoTile(label: 'VAZIFALAR', value: '${_tasks.length} ta'),
+                        _InfoTile(label: 'MATERIALLAR', value: '${_materials.length} ta'),
                       ],
                     ),
                     const SizedBox(height: 10),
