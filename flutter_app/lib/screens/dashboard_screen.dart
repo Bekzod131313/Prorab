@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../data/currency_repository.dart';
 import '../data/project_repository.dart';
+import '../models/currency.dart';
 import '../models/project.dart';
 import '../theme/app_theme.dart';
 import '../widgets/moliya_logo.dart';
@@ -129,6 +131,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  Future<void> _openCurrencyRates() async {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.card,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => const _CurrencyRatesSheet(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -142,6 +156,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Text('Moliya'),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.currency_exchange_rounded),
+            onPressed: _openCurrencyRates,
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _openAddProject,
@@ -203,6 +223,120 @@ class _DashboardScreenState extends State<DashboardScreen> {
           },
         );
       },
+    );
+  }
+}
+
+class _CurrencyRatesSheet extends StatefulWidget {
+  const _CurrencyRatesSheet();
+
+  @override
+  State<_CurrencyRatesSheet> createState() => _CurrencyRatesSheetState();
+}
+
+class _CurrencyRatesSheetState extends State<_CurrencyRatesSheet> {
+  final _repo = CurrencyRepository();
+  List<CurrencyRate>? _rates;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final rates = await _repo.loadRates();
+      if (!mounted) return;
+      setState(() {
+        _rates = rates;
+        _error = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = 'Kursni yuklashda xato');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 20,
+        bottom: 20 + MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Valyuta kurslari',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 16),
+          if (_error != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Center(child: Text(_error!, style: const TextStyle(color: AppColors.muted))),
+            )
+          else if (_rates == null)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else
+            ..._rates!.map((c) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: AppColors.bg,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Text(c.code, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.text2)),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(c.nameUz, style: const TextStyle(fontWeight: FontWeight.w700)),
+                            Text(c.nameEn, style: const TextStyle(fontSize: 11, color: AppColors.muted)),
+                          ],
+                        ),
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text("${c.rate.toStringAsFixed(2)} so'm", style: const TextStyle(fontWeight: FontWeight.w900)),
+                          Text(
+                            '${c.diff > 0 ? '▲' : c.diff < 0 ? '▼' : ''} ${c.diff.abs().toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: c.diff > 0
+                                  ? const Color(0xFF16A34A)
+                                  : c.diff < 0
+                                      ? const Color(0xFFEF4444)
+                                      : AppColors.muted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                )),
+          const SizedBox(height: 12),
+        ],
+      ),
     );
   }
 }
