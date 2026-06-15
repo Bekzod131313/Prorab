@@ -16,4 +16,36 @@ class ProjectRepository {
         .map((row) => Project.fromMember(row as Map<String, dynamic>))
         .toList();
   }
+
+  Future<void> createProject({
+    required String nomi,
+    required DateTime boshlanish,
+    required int muddat,
+  }) async {
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) return;
+
+    final ob = await supabase
+        .from('obyektlar')
+        .insert({
+          'nomi': nomi,
+          'owner_id': userId,
+          'boshlanish': boshlanish.toIso8601String().substring(0, 10),
+          'muddat': muddat,
+          'kirim': 0,
+          'chiqim': 0,
+          'status': 'active',
+        })
+        .select()
+        .single();
+
+    await supabase.from('ob_members').insert({
+      'ob_id': ob['id'],
+      'user_id': userId,
+      'role': 'owner',
+      'balance': 0,
+      'ishaqi': 0,
+      'olingan': 0,
+    });
+  }
 }
