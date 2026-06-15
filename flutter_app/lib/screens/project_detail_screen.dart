@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../data/member_repository.dart';
+import '../data/project_repository.dart';
 import '../data/transaction_repository.dart';
 import '../main.dart';
 import '../models/member.dart';
@@ -24,6 +25,8 @@ class ProjectDetailScreen extends StatefulWidget {
 class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   final _repo = TransactionRepository();
   final _memberRepo = MemberRepository();
+  final _projectRepo = ProjectRepository();
+  late Project _project;
   List<ProjectTransaction> _txs = [];
   List<ObMember> _members = [];
   bool _loading = true;
@@ -32,6 +35,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   @override
   void initState() {
     super.initState();
+    _project = widget.project;
     _load();
   }
 
@@ -41,8 +45,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       _error = null;
     });
     try {
-      final txs = await _repo.loadForProject(widget.project.id);
-      final members = await _memberRepo.loadForProject(widget.project.id);
+      final txs = await _repo.loadForProject(_project.id);
+      final members = await _memberRepo.loadForProject(_project.id);
       if (!mounted) return;
       setState(() {
         _txs = txs;
@@ -60,7 +64,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
 
   List<ObMember> get _visibleMembers {
     final userId = supabase.auth.currentUser?.id;
-    if (widget.project.role == 'owner') {
+    if (_project.role == 'owner') {
       return _members.where((m) => m.role == 'member').toList();
     }
     return _members.where((m) => m.addedBy == userId).toList();
@@ -91,7 +95,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     if (result == true) {
       try {
         await _memberRepo.addMember(
-          obId: widget.project.id,
+          obId: _project.id,
           phone: phoneCtrl.text.trim(),
           kasb: kasbCtrl.text.trim(),
         );
@@ -132,7 +136,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
 
     try {
       await _repo.addTransaction(
-        obId: widget.project.id,
+        obId: _project.id,
         isIncome: result['isIncome'] as bool,
         amount: result['amount'] as num,
         kategoriya: result['kategoriya'] as String,
@@ -154,7 +158,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
 
   Future<void> _openTxDetail(ProjectTransaction tx) async {
     final userId = supabase.auth.currentUser?.id;
-    final canDelete = tx.fromUser == userId || widget.project.role == 'owner';
+    final canDelete = tx.fromUser == userId || _project.role == 'owner';
     final isIn = tx.isIncomeFor(userId ?? '');
     final dateStr = DateFormat('dd.MM.yyyy HH:mm').format(tx.date);
 
@@ -226,8 +230,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
 
   Future<void> _openMemberDetail(ObMember member) async {
     final memberTxs = _txs.where((t) => t.fromUser == member.userId || t.toUser == member.userId).toList();
-    final canSend = (widget.project.role == 'owner' && member.role == 'member') ||
-        (widget.project.role == 'member' && member.role == 'worker');
+    final canSend = (_project.role == 'owner' && member.role == 'member') ||
+        (_project.role == 'member' && member.role == 'worker');
 
     final send = await showModalBottomSheet<bool>(
       context: context,
@@ -352,7 +356,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
 
     try {
       await _repo.addTransaction(
-        obId: widget.project.id,
+        obId: _project.id,
         isIncome: false,
         amount: result['amount'] as num,
         kategoriya: 'ishchi',
@@ -372,9 +376,109 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     }
   }
 
+  Future<void> _openEditProject() async {
+    final nameCtrl = TextEditingController(text: _project.nomi);
+    final daysCtrl = TextEditingController(text: _project.muddat.toString());
+    DateTime startDate = _project.boshlanish ?? DateTime.now();
+
+    final saved = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: AppColors.card,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: 20 + MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Obyektni tahrirlash',
+                style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(hintText: 'Obyekt nomi'),
+              ),
+              const SizedBox(height: 12),
+              InkWell(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: ctx,
+                    initialDate: startDate,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2100),
+                  );
+                  if (picked != null) setSheetState(() => startDate = picked);
+                },
+                child: InputDecorator(
+                  decoration: const InputDecoration(labelText: 'Boshlanish sanasi'),
+                  child: Text(
+                    '${startDate.year}-${startDate.month.toString().padLeft(2, '0')}-${startDate.day.toString().padLeft(2, '0')}',
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: daysCtrl,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(hintText: 'Muddat (kun)'),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  if (nameCtrl.text.trim().isEmpty) return;
+                  Navigator.of(ctx).pop(true);
+                },
+                child: const Text('Saqlash'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (saved == true) {
+      final days = int.tryParse(daysCtrl.text.trim()) ?? _project.muddat;
+      final nomi = nameCtrl.text.trim();
+      await _projectRepo.updateProject(
+        id: _project.id,
+        nomi: nomi,
+        boshlanish: startDate,
+        muddat: days,
+      );
+      if (!mounted) return;
+      setState(() {
+        _project = Project(
+          id: _project.id,
+          nomi: nomi,
+          kirim: _project.kirim,
+          chiqim: _project.chiqim,
+          boshlanish: startDate,
+          createdAt: _project.createdAt,
+          muddat: days,
+          role: _project.role,
+          myBalance: _project.myBalance,
+          ishaqi: _project.ishaqi,
+          olingan: _project.olingan,
+          status: _project.status,
+        );
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final project = widget.project;
+    final project = _project;
     final color = colorForProject(project.nomi);
     final bal = project.balance;
     final balColor = bal >= 0 ? const Color(0xFF16A34A) : const Color(0xFFEF4444);
@@ -384,6 +488,13 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.bg,
         title: Text(project.nomi),
+        actions: [
+          if (project.role == 'owner')
+            IconButton(
+              icon: const Icon(Icons.edit_outlined),
+              onPressed: _openEditProject,
+            ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _openAddTransaction,
@@ -493,8 +604,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
             const SizedBox(height: 10),
             ElevatedButton.icon(
               onPressed: _openAddMember,
-              icon: Icon(widget.project.role == 'owner' ? Icons.engineering_rounded : Icons.construction_rounded),
-              label: Text(widget.project.role == 'owner' ? "Usta qo'shish" : "Ishchi qo'shish"),
+              icon: Icon(_project.role == 'owner' ? Icons.engineering_rounded : Icons.construction_rounded),
+              label: Text(_project.role == 'owner' ? "Usta qo'shish" : "Ishchi qo'shish"),
             ),
             const SizedBox(height: 12),
             if (!_loading && _visibleMembers.isEmpty)

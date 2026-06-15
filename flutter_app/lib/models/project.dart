@@ -10,6 +10,7 @@ class Project {
   final num myBalance;
   final num ishaqi;
   final num olingan;
+  final String status;
 
   Project({
     required this.id,
@@ -23,6 +24,7 @@ class Project {
     required this.myBalance,
     required this.ishaqi,
     required this.olingan,
+    required this.status,
   });
 
   num get balance => role == 'owner' ? (kirim - chiqim) : myBalance;
@@ -41,6 +43,7 @@ class Project {
       myBalance: row['balance'] ?? 0,
       ishaqi: row['ishaqi'] ?? 0,
       olingan: row['olingan'] ?? 0,
+      status: ob['status'] ?? 'active',
     );
   }
 
