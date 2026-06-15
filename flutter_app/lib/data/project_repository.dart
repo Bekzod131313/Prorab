@@ -68,6 +68,7 @@ class ProjectRepository {
     required int muddat,
     String? manzil,
     String? mijoz,
+    String? bosqich,
   }) async {
     await supabase.from('obyektlar').update({
       'nomi': nomi,
@@ -75,6 +76,7 @@ class ProjectRepository {
       'muddat': muddat,
       'manzil': manzil?.isNotEmpty == true ? manzil : null,
       'mijoz': mijoz?.isNotEmpty == true ? mijoz : null,
+      'bosqich': bosqich?.isNotEmpty == true ? bosqich : null,
     }).eq('id', id);
   }
 
