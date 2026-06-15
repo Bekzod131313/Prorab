@@ -1,4 +1,4 @@
-package uz.prorab.app;
+package uz.moliya.app;
 
 import com.getcapacitor.BridgeActivity;
 
