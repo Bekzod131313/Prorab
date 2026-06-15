@@ -48,4 +48,21 @@ class ProjectRepository {
       'olingan': 0,
     });
   }
+
+  Future<void> updateProject({
+    required String id,
+    required String nomi,
+    required DateTime boshlanish,
+    required int muddat,
+  }) async {
+    await supabase.from('obyektlar').update({
+      'nomi': nomi,
+      'boshlanish': boshlanish.toIso8601String().substring(0, 10),
+      'muddat': muddat,
+    }).eq('id', id);
+  }
+
+  Future<void> setStatus(String id, String status) async {
+    await supabase.from('obyektlar').update({'status': status}).eq('id', id);
+  }
 }
