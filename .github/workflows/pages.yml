@@ -27,7 +27,6 @@ jobs:
         run: |
           mkdir -p site/vendor
           cp index.html site/index.html
-          curl -sL -o site/vendor/telegram-web-app.js https://telegram.org/js/telegram-web-app.js
           curl -sL -o site/vendor/supabase.min.js https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
