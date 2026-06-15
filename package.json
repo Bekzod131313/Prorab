@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Moliya - loyiha va jamoa moliyasi platformasi",
   "scripts": {
-    "build": "mkdir -p www/vendor && curl -sL -o www/vendor/telegram-web-app.js https://telegram.org/js/telegram-web-app.js && curl -sL -o www/vendor/supabase.min.js https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js && cp index.html www/index.html",
+    "build": "mkdir -p www/vendor && curl -sL -o www/vendor/supabase.min.js https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js && cp index.html www/index.html",
     "sync": "npm run build && cap sync"
   },
   "license": "UNLICENSED",
