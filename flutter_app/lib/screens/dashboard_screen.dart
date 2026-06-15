@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../data/project_repository.dart';
-import '../main.dart';
 import '../models/project.dart';
 import '../theme/app_theme.dart';
 import '../widgets/moliya_logo.dart';
 import '../widgets/project_card.dart';
-import 'auth_screen.dart';
 import 'project_detail_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -49,14 +47,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  Future<void> _signOut() async {
-    await supabase.auth.signOut();
-    if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const AuthScreen()),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -70,9 +60,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Text('Moliya'),
           ],
         ),
-        actions: [
-          IconButton(onPressed: _signOut, icon: const Icon(Icons.logout)),
-        ],
       ),
       body: RefreshIndicator(
         onRefresh: _load,
