@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../data/backup_repository.dart';
@@ -6,7 +7,9 @@ import '../data/profile_repository.dart';
 import '../main.dart';
 import '../models/profile.dart';
 import '../theme/app_theme.dart';
+import '../utils/phone_formatter.dart';
 import '../widgets/moliya_logo.dart';
+import '../widgets/project_card.dart' show formatMoney;
 import 'auth_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -19,6 +22,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final _repo = ProfileRepository();
   Profile? _profile;
+  ProfileStats? _stats;
   bool _loading = true;
 
   @override
@@ -29,59 +33,128 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _load() async {
     final profile = await _repo.loadCurrent();
+    final stats = await _repo.loadStats();
     if (!mounted) return;
     setState(() {
       _profile = profile;
+      _stats = stats;
       _loading = false;
     });
   }
 
-  Future<void> _editName() async {
-    final ctrl = TextEditingController(text: _profile?.fullName ?? '');
+  Future<void> _editProfile() async {
+    final nameCtrl = TextEditingController(text: _profile?.fullName ?? '');
+    final phoneCtrl = TextEditingController(text: _profile?.phone.isNotEmpty == true ? _profile!.phone : '+998');
+    final stajCtrl = TextEditingController(text: _profile?.staj.toString() ?? '');
+    final passCtrl = TextEditingController();
+    final pass2Ctrl = TextEditingController();
+    String? error;
 
-    final result = await showModalBottomSheet<String>(
+    final saved = await showModalBottomSheet<bool>(
       context: context,
       backgroundColor: AppColors.card,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 20,
-          bottom: 20 + MediaQuery.of(ctx).viewInsets.bottom,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Ismni tahrirlash',
-              style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: ctrl,
-              decoration: const InputDecoration(hintText: 'Ismingiz'),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                final name = ctrl.text.trim();
-                if (name.isEmpty) return;
-                Navigator.of(ctx).pop(name);
-              },
-              child: const Text('Saqlash'),
-            ),
-          ],
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: 20 + MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Profilni tahrirlash',
+                style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(hintText: 'Ismingiz'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: phoneCtrl,
+                keyboardType: TextInputType.phone,
+                inputFormatters: [PhoneFormatter()],
+                decoration: const InputDecoration(hintText: 'Telefon raqam'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: stajCtrl,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(hintText: 'Staj (yil)'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: passCtrl,
+                obscureText: true,
+                decoration: const InputDecoration(hintText: 'Yangi parol (ixtiyoriy)'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: pass2Ctrl,
+                obscureText: true,
+                decoration: const InputDecoration(hintText: 'Parolni takrorlang'),
+              ),
+              if (error != null) ...[
+                const SizedBox(height: 10),
+                Text(error!, style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
+              ],
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  final name = nameCtrl.text.trim();
+                  final phone = phoneCtrl.text.trim();
+                  final pass = passCtrl.text;
+                  final pass2 = pass2Ctrl.text;
+
+                  if (name.isEmpty) {
+                    setSheetState(() => error = 'Ism kiritish shart');
+                    return;
+                  }
+                  if (phone.length < 10) {
+                    setSheetState(() => error = "To'g'ri telefon kiriting");
+                    return;
+                  }
+                  if (pass.isNotEmpty) {
+                    if (pass.length < 6) {
+                      setSheetState(() => error = "Parol kamida 6 ta belgi bo'lishi kerak");
+                      return;
+                    }
+                    if (pass != pass2) {
+                      setSheetState(() => error = 'Parollar mos kelmadi');
+                      return;
+                    }
+                  }
+                  Navigator.of(ctx).pop(true);
+                },
+                child: const Text('Saqlash'),
+              ),
+            ],
+          ),
         ),
       ),
     );
 
-    if (result != null) {
-      await _repo.updateFullName(result);
+    if (saved == true) {
+      final name = nameCtrl.text.trim();
+      final phone = phoneCtrl.text.trim();
+      final staj = int.tryParse(stajCtrl.text.trim()) ?? 0;
+      final pass = passCtrl.text;
+
+      await _repo.updateProfile(fullName: name, phone: phone, staj: staj);
+      if (pass.isNotEmpty) {
+        await _repo.updatePassword(pass);
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Saqlandi')));
       _load();
     }
   }
@@ -153,7 +226,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 14),
           Center(
             child: InkWell(
-              onTap: _editName,
+              onTap: _editProfile,
               borderRadius: BorderRadius.circular(8),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -171,10 +244,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (profile?.phone.isNotEmpty == true) ...[
             const SizedBox(height: 4),
             Center(
-              child: Text(profile!.phone, style: const TextStyle(color: AppColors.text2)),
+              child: Text(
+                profile!.phone + (profile.staj > 0 ? ' • Staj: ${profile.staj} yil' : ''),
+                style: const TextStyle(color: AppColors.text2),
+              ),
             ),
           ],
-          const SizedBox(height: 28),
+          const SizedBox(height: 24),
+          if (_stats != null)
+            Row(
+              children: [
+                Expanded(child: _ProfileStat(label: 'Balans', value: formatMoney(_stats!.totalBalance))),
+                const SizedBox(width: 10),
+                Expanded(child: _ProfileStat(label: 'Obyektlar', value: '${_stats!.obsCount}')),
+                const SizedBox(width: 10),
+                Expanded(child: _ProfileStat(label: 'Odamlar', value: '${_stats!.peopleCount}')),
+              ],
+            ),
+          const SizedBox(height: 24),
           _MenuTile(icon: Icons.dark_mode_outlined, label: "Qorong'i rejim", trailingSwitch: true),
           _MenuTile(icon: Icons.language_outlined, label: 'Til / Язык'),
           _MenuTile(icon: Icons.backup_outlined, label: 'Zaxira nusxa', onTap: _doBackup),
@@ -190,6 +277,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             child: const Text('Chiqish'),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileStat extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _ProfileStat({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            value,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.accent),
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 4),
+          Text(label, style: const TextStyle(fontSize: 11, color: AppColors.muted, fontWeight: FontWeight.w700)),
         ],
       ),
     );
