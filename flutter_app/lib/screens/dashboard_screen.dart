@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../data/currency_repository.dart';
 import '../data/project_repository.dart';
+import '../data/transaction_repository.dart';
+import '../main.dart';
 import '../models/currency.dart';
 import '../models/project.dart';
+import '../models/transaction.dart';
 import '../theme/app_theme.dart';
 import '../widgets/moliya_logo.dart';
 import '../widgets/project_card.dart';
@@ -18,7 +22,9 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final _repo = ProjectRepository();
+  final _txRepo = TransactionRepository();
   List<Project> _projects = [];
+  List<ProjectTransaction> _recentTxs = [];
   bool _loading = true;
   String? _error;
 
@@ -35,9 +41,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
     try {
       final projects = await _repo.loadProjects();
+      List<ProjectTransaction> recentTxs = [];
+      try {
+        recentTxs = await _txRepo.loadRecentForProjects(projects.map((p) => p.id).toList());
+      } catch (_) {}
       if (!mounted) return;
       setState(() {
         _projects = projects;
+        _recentTxs = recentTxs;
         _loading = false;
       });
     } catch (e) {
@@ -200,9 +211,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       );
     }
+    final projectNames = {for (final p in _projects) p.id: p.nomi};
+    final showRecent = _recentTxs.isNotEmpty;
+    final headerCount = _projects.length + 1;
+    final itemCount = headerCount + (showRecent ? 1 + _recentTxs.length : 0);
+
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-      itemCount: _projects.length + 1,
+      itemCount: itemCount,
       itemBuilder: (context, index) {
         if (index == 0) {
           return Padding(
@@ -213,16 +229,151 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           );
         }
-        final project = _projects[index - 1];
-        return ProjectCard(
-          project: project,
+        if (index <= _projects.length) {
+          final project = _projects[index - 1];
+          return ProjectCard(
+            project: project,
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: project)),
+              );
+            },
+          );
+        }
+        if (index == headerCount) {
+          return Padding(
+            padding: const EdgeInsets.only(top: 8, bottom: 12, left: 4),
+            child: Text(
+              "So'nggi harakatlar",
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ),
+          );
+        }
+        final tx = _recentTxs[index - headerCount - 1];
+        final isLast = index == itemCount - 1;
+        return _RecentTxTile(
+          tx: tx,
+          obNomi: projectNames[tx.obId] ?? '',
+          isLast: isLast,
           onTap: () {
+            final project = _projects.firstWhere(
+              (p) => p.id == tx.obId,
+              orElse: () => _projects.first,
+            );
             Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: project)),
             );
           },
         );
       },
+    );
+  }
+}
+
+class _RecentTxTile extends StatelessWidget {
+  final ProjectTransaction tx;
+  final String obNomi;
+  final bool isLast;
+  final VoidCallback? onTap;
+
+  const _RecentTxTile({required this.tx, required this.obNomi, required this.isLast, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final userId = supabase.auth.currentUser?.id;
+    final isIn = tx.isIncomeFor(userId ?? '');
+
+    final Color dotColor;
+    final String title;
+    switch (tx.tur) {
+      case 'income':
+        dotColor = const Color(0xFF22C55E);
+        title = tx.izoh?.isNotEmpty == true ? tx.izoh! : 'Kirim';
+        break;
+      case 'ishhaqi':
+        dotColor = const Color(0xFF3B82F6);
+        title = 'Ish haqi berildi';
+        break;
+      case 'send':
+        dotColor = const Color(0xFF3B82F6);
+        title = "Pul o'tkazma";
+        break;
+      case 'spend':
+        dotColor = const Color(0xFFF43F5E);
+        title = tx.kategoriya?.isNotEmpty == true ? tx.kategoriya! : 'Chiqim';
+        break;
+      default:
+        dotColor = const Color(0xFFF43F5E);
+        title = tx.izoh ?? '';
+    }
+
+    final amountColor = isIn ? const Color(0xFF22C55E) : const Color(0xFFF43F5E);
+    final sign = isIn ? '+' : '-';
+    final dateStr = DateFormat('dd.MM.yyyy').format(tx.date);
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Column(
+              children: [
+                const SizedBox(height: 4),
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: dotColor,
+                    border: Border.all(color: AppColors.bg, width: 3),
+                    boxShadow: [BoxShadow(color: dotColor.withOpacity(0.35), blurRadius: 0, spreadRadius: 2)],
+                  ),
+                ),
+                if (!isLast)
+                  Expanded(
+                    child: Container(width: 2, margin: const EdgeInsets.symmetric(vertical: 2), color: AppColors.border),
+                  ),
+              ],
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(bottom: isLast ? 0 : 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '$sign${formatMoney(tx.summa)}',
+                          style: TextStyle(fontWeight: FontWeight.w900, color: amountColor),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      obNomi.isNotEmpty ? '$obNomi • $dateStr' : dateStr,
+                      style: const TextStyle(fontSize: 12, color: AppColors.muted, fontWeight: FontWeight.w600),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -72,6 +72,20 @@ class TransactionRepository {
     }
   }
 
+  Future<List<ProjectTransaction>> loadRecentForProjects(List<String> obIds, {int limit = 6}) async {
+    if (obIds.isEmpty) return [];
+    final data = await supabase
+        .from('transactions')
+        .select('*')
+        .inFilter('ob_id', obIds)
+        .order('tx_date', ascending: false)
+        .limit(limit);
+
+    return (data as List)
+        .map((row) => ProjectTransaction.fromMap(row as Map<String, dynamic>))
+        .toList();
+  }
+
   Future<void> deleteTransaction(String id) async {
     await supabase.from('transactions').delete().eq('id', id);
   }
