@@ -328,6 +328,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const Center(
             child: Text("Hozircha obyektlar yo'q", style: TextStyle(color: AppColors.text2)),
           ),
+          const SizedBox(height: 16),
+          Center(
+            child: ElevatedButton(
+              onPressed: _openAddProject,
+              child: const Text('+ Yaratish'),
+            ),
+          ),
         ],
       );
     }
