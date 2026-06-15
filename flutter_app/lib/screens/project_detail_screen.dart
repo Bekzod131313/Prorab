@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../data/member_repository.dart';
 import '../data/transaction_repository.dart';
+import '../main.dart';
+import '../models/member.dart';
 import '../models/project.dart';
 import '../models/transaction.dart';
 import '../theme/app_theme.dart';
+import '../widgets/member_row.dart';
 import '../widgets/project_card.dart' show colorForProject, formatMoney;
 import '../widgets/transaction_row.dart';
 
@@ -18,7 +22,9 @@ class ProjectDetailScreen extends StatefulWidget {
 
 class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   final _repo = TransactionRepository();
+  final _memberRepo = MemberRepository();
   List<ProjectTransaction> _txs = [];
+  List<ObMember> _members = [];
   bool _loading = true;
   String? _error;
 
@@ -35,9 +41,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     });
     try {
       final txs = await _repo.loadForProject(widget.project.id);
+      final members = await _memberRepo.loadForProject(widget.project.id);
       if (!mounted) return;
       setState(() {
         _txs = txs;
+        _members = members;
         _loading = false;
       });
     } catch (e) {
@@ -46,6 +54,57 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         _error = e.toString();
         _loading = false;
       });
+    }
+  }
+
+  List<ObMember> get _visibleMembers {
+    final userId = supabase.auth.currentUser?.id;
+    if (widget.project.role == 'owner') {
+      return _members.where((m) => m.role == 'member').toList();
+    }
+    return _members.where((m) => m.addedBy == userId).toList();
+  }
+
+  Future<void> _openAddMember() async {
+    final phoneCtrl = TextEditingController(text: '+998');
+    final kasbCtrl = TextEditingController();
+
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: AppColors.card,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: 20 + MediaQuery.of(ctx).viewInsets.bottom,
+        ),
+        child: _AddMemberSheet(phoneCtrl: phoneCtrl, kasbCtrl: kasbCtrl),
+      ),
+    );
+
+    if (result == true) {
+      try {
+        await _memberRepo.addMember(
+          obId: widget.project.id,
+          phone: phoneCtrl.text.trim(),
+          kasb: kasbCtrl.text.trim(),
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Qo'shildi")),
+        );
+        _load();
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
     }
   }
 
@@ -153,9 +212,70 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
               )
             else
               ..._txs.map((tx) => TransactionRow(tx: tx)),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Jamoa',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            ElevatedButton.icon(
+              onPressed: _openAddMember,
+              icon: Icon(widget.project.role == 'owner' ? Icons.engineering_rounded : Icons.construction_rounded),
+              label: Text(widget.project.role == 'owner' ? "Usta qo'shish" : "Ishchi qo'shish"),
+            ),
+            const SizedBox(height: 12),
+            if (!_loading && _visibleMembers.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Center(child: Text("Hali hech kim yo'q", style: TextStyle(color: AppColors.muted))),
+              )
+            else
+              ..._visibleMembers.map((m) => MemberRow(member: m)),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _AddMemberSheet extends StatelessWidget {
+  final TextEditingController phoneCtrl;
+  final TextEditingController kasbCtrl;
+
+  const _AddMemberSheet({required this.phoneCtrl, required this.kasbCtrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          "Jamoaga qo'shish",
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 16),
+        TextField(
+          controller: phoneCtrl,
+          keyboardType: TextInputType.phone,
+          decoration: const InputDecoration(hintText: 'Telefon raqam'),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: kasbCtrl,
+          decoration: const InputDecoration(hintText: "Kasbi (Masalan: Santexnik, Elektrik)"),
+        ),
+        const SizedBox(height: 20),
+        ElevatedButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: const Text("Qo'shish"),
+        ),
+      ],
     );
   }
 }
