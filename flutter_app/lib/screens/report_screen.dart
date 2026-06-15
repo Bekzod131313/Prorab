@@ -168,6 +168,32 @@ class _ReportScreenState extends State<ReportScreen> {
             ],
           ),
         ),
+        if (data.catTotals.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          _SectionCard(
+            title: 'Xarajat kategoriyalari',
+            child: Builder(
+              builder: (context) {
+                final entries = data.catTotals.entries.toList()
+                  ..sort((a, b) => b.value.compareTo(a.value));
+                final maxCat = entries.first.value;
+                return Column(
+                  children: [
+                    for (var i = 0; i < entries.length; i++) ...[
+                      if (i > 0) const SizedBox(height: 14),
+                      _ProgressBar(
+                        label: entries[i].key?.isNotEmpty == true ? entries[i].key! : 'Boshqa',
+                        value: entries[i].value,
+                        max: maxCat,
+                        color: const Color(0xFFF43F5E),
+                      ),
+                    ],
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
         const SizedBox(height: 16),
         _SectionCard(
           title: 'Loyiha foydaliligi',
