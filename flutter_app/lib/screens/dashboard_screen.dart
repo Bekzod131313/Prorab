@@ -31,6 +31,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Profile? _profile;
   bool _loading = true;
   String? _error;
+  String _search = '';
 
   @override
   void initState() {
@@ -259,8 +260,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
     final projectNames = {for (final p in _projects) p.id: p.nomi};
+    final filteredProjects = _search.isEmpty
+        ? _projects
+        : _projects.where((p) => p.nomi.toLowerCase().contains(_search.toLowerCase())).toList();
     final showRecent = _recentTxs.isNotEmpty;
-    final headerCount = _projects.length + 1;
+    final showSearch = _projects.length > 3;
+    final headerOffset = showSearch ? 2 : 1;
+    final headerCount = filteredProjects.length + headerOffset;
     final itemCount = headerCount + (showRecent ? 1 + _recentTxs.length : 0);
 
     return ListView.builder(
@@ -276,8 +282,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           );
         }
-        if (index <= _projects.length) {
-          final project = _projects[index - 1];
+        if (showSearch && index == 1) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: TextField(
+              onChanged: (v) => setState(() => _search = v),
+              decoration: const InputDecoration(
+                hintText: 'Obyekt qidirish...',
+                prefixIcon: Icon(Icons.search_rounded),
+              ),
+            ),
+          );
+        }
+        if (index < headerCount) {
+          final project = filteredProjects[index - headerOffset];
           return ProjectCard(
             project: project,
             onTap: () {
