@@ -1,0 +1,73 @@
+import 'package:flutter/material.dart';
+
+import '../models/task.dart';
+import '../theme/app_theme.dart';
+
+const _statusColors = {
+  'todo': AppColors.muted,
+  'progress': Color(0xFFF59E0B),
+  'done': Color(0xFF22C55E),
+};
+
+class TaskRow extends StatelessWidget {
+  final ObTask task;
+  final VoidCallback? onTap;
+
+  const TaskRow({super.key, required this.task, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final done = task.holat == 'done';
+    final color = _statusColors[task.holat] ?? AppColors.muted;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 24,
+              height: 24,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: done ? const Color(0xFF22C55E) : Colors.transparent,
+                border: Border.all(color: done ? const Color(0xFF22C55E) : AppColors.border, width: 2),
+              ),
+              child: done ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    task.nomi,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      decoration: done ? TextDecoration.lineThrough : null,
+                      color: done ? AppColors.muted : AppColors.text,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    task.statusLabel,
+                    style: TextStyle(fontSize: 11.5, color: color, fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
