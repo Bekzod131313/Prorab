@@ -33,6 +33,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
+  Future<void> _editName() async {
+    final ctrl = TextEditingController(text: _profile?.fullName ?? '');
+
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppColors.card,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: 20 + MediaQuery.of(ctx).viewInsets.bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Ismni tahrirlash',
+              style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: ctrl,
+              decoration: const InputDecoration(hintText: 'Ismingiz'),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                final name = ctrl.text.trim();
+                if (name.isEmpty) return;
+                Navigator.of(ctx).pop(name);
+              },
+              child: const Text('Saqlash'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result != null) {
+      await _repo.updateFullName(result);
+      _load();
+    }
+  }
+
   Future<void> _signOut() async {
     await supabase.auth.signOut();
     if (!mounted) return;
@@ -76,9 +126,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 14),
           Center(
-            child: Text(
-              profile?.displayName ?? '',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+            child: InkWell(
+              onTap: _editName,
+              borderRadius: BorderRadius.circular(8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    profile?.displayName ?? '',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(width: 6),
+                  const Icon(Icons.edit_rounded, size: 16, color: AppColors.muted),
+                ],
+              ),
             ),
           ),
           if (profile?.phone.isNotEmpty == true) ...[
