@@ -23,8 +23,9 @@ Color colorForName(String name) {
 
 class MemberRow extends StatelessWidget {
   final ObMember member;
+  final VoidCallback? onTap;
 
-  const MemberRow({super.key, required this.member});
+  const MemberRow({super.key, required this.member, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +33,10 @@ class MemberRow extends StatelessWidget {
     final color = colorForName(name);
     final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
 
-    return Container(
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
@@ -81,6 +85,7 @@ class MemberRow extends StatelessWidget {
             ],
           ),
         ],
+      ),
       ),
     );
   }

@@ -8,8 +8,9 @@ import 'project_card.dart' show formatMoney;
 
 class TransactionRow extends StatelessWidget {
   final ProjectTransaction tx;
+  final VoidCallback? onTap;
 
-  const TransactionRow({super.key, required this.tx});
+  const TransactionRow({super.key, required this.tx, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +38,10 @@ class TransactionRow extends StatelessWidget {
 
     final dateStr = DateFormat('dd.MM.yyyy HH:mm').format(tx.date);
 
-    return Container(
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
       padding: const EdgeInsets.all(12),
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
@@ -83,6 +87,7 @@ class TransactionRow extends StatelessWidget {
             style: TextStyle(fontWeight: FontWeight.w800, color: color),
           ),
         ],
+      ),
       ),
     );
   }
