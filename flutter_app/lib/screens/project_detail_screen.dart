@@ -108,6 +108,49 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     }
   }
 
+  Future<void> _openAddTransaction() async {
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      backgroundColor: AppColors.card,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: 20 + MediaQuery.of(ctx).viewInsets.bottom,
+        ),
+        child: _AddTransactionSheet(members: _visibleMembers),
+      ),
+    );
+
+    if (result == null) return;
+
+    try {
+      await _repo.addTransaction(
+        obId: widget.project.id,
+        isIncome: result['isIncome'] as bool,
+        amount: result['amount'] as num,
+        kategoriya: result['kategoriya'] as String,
+        izoh: result['izoh'] as String?,
+        toUserId: result['toUserId'] as String?,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Saqlandi')),
+      );
+      _load();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final project = widget.project;
@@ -120,6 +163,10 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.bg,
         title: Text(project.nomi),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _openAddTransaction,
+        child: const Icon(Icons.add_rounded),
       ),
       body: RefreshIndicator(
         onRefresh: _load,
@@ -239,6 +286,111 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _AddTransactionSheet extends StatefulWidget {
+  final List<ObMember> members;
+
+  const _AddTransactionSheet({required this.members});
+
+  @override
+  State<_AddTransactionSheet> createState() => _AddTransactionSheetState();
+}
+
+class _AddTransactionSheetState extends State<_AddTransactionSheet> {
+  static const _incomeCats = {
+    'mijoz': 'Mijozdan',
+    'kredit': 'Kredit',
+    'owner': 'Prorab (avans)',
+    'boshqa': 'Boshqa',
+  };
+  static const _expenseCats = {
+    'ishchi': 'Ishchi',
+    'boshqa': 'Boshqa',
+  };
+
+  bool _isIncome = true;
+  String _category = 'mijoz';
+  String? _workerId;
+  final _amountCtrl = TextEditingController();
+  final _noteCtrl = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    final cats = _isIncome ? _incomeCats : _expenseCats;
+    if (!cats.containsKey(_category)) {
+      _category = cats.keys.first;
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Operatsiya qo\'shish',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 16),
+        SegmentedButton<bool>(
+          segments: const [
+            ButtonSegment(value: true, label: Text('Kirim')),
+            ButtonSegment(value: false, label: Text('Chiqim')),
+          ],
+          selected: {_isIncome},
+          onSelectionChanged: (s) => setState(() {
+            _isIncome = s.first;
+            _workerId = null;
+          }),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _amountCtrl,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(hintText: 'Summa'),
+        ),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<String>(
+          value: _category,
+          decoration: const InputDecoration(labelText: 'Kategoriya'),
+          items: cats.entries
+              .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+              .toList(),
+          onChanged: (v) => setState(() => _category = v ?? _category),
+        ),
+        if (!_isIncome && _category == 'ishchi' && widget.members.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            value: _workerId,
+            decoration: const InputDecoration(labelText: 'Ishchi'),
+            items: widget.members
+                .map((m) => DropdownMenuItem(value: m.userId, child: Text(m.displayName)))
+                .toList(),
+            onChanged: (v) => setState(() => _workerId = v),
+          ),
+        ],
+        const SizedBox(height: 12),
+        TextField(
+          controller: _noteCtrl,
+          decoration: const InputDecoration(hintText: 'Izoh...'),
+        ),
+        const SizedBox(height: 20),
+        ElevatedButton(
+          onPressed: () {
+            final amount = num.tryParse(_amountCtrl.text.trim());
+            if (amount == null || amount <= 0) return;
+            Navigator.of(context).pop({
+              'isIncome': _isIncome,
+              'amount': amount,
+              'kategoriya': _category,
+              'izoh': _noteCtrl.text.trim().isNotEmpty ? _noteCtrl.text.trim() : null,
+              'toUserId': _workerId,
+            });
+          },
+          child: Text(_isIncome ? "Kirim qo'shish" : "Chiqim qo'shish"),
+        ),
+      ],
     );
   }
 }
