@@ -21,23 +21,35 @@ class ProjectRepository {
     required String nomi,
     required DateTime boshlanish,
     required int muddat,
+    String? manzil,
+    String? mijoz,
+    String? bosqich,
   }) async {
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) return;
 
-    final ob = await supabase
-        .from('obyektlar')
-        .insert({
-          'nomi': nomi,
-          'owner_id': userId,
-          'boshlanish': boshlanish.toIso8601String().substring(0, 10),
-          'muddat': muddat,
-          'kirim': 0,
-          'chiqim': 0,
-          'status': 'active',
-        })
-        .select()
-        .single();
+    final base = {
+      'nomi': nomi,
+      'owner_id': userId,
+      'boshlanish': boshlanish.toIso8601String().substring(0, 10),
+      'muddat': muddat,
+      'kirim': 0,
+      'chiqim': 0,
+      'status': 'active',
+    };
+    final full = {
+      ...base,
+      'manzil': manzil?.isNotEmpty == true ? manzil : null,
+      'mijoz': mijoz?.isNotEmpty == true ? mijoz : null,
+      'bosqich': bosqich?.isNotEmpty == true ? bosqich : null,
+    };
+
+    Map<String, dynamic> ob;
+    try {
+      ob = await supabase.from('obyektlar').insert(full).select().single();
+    } catch (_) {
+      ob = await supabase.from('obyektlar').insert(base).select().single();
+    }
 
     await supabase.from('ob_members').insert({
       'ob_id': ob['id'],

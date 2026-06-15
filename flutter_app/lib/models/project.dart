@@ -11,6 +11,9 @@ class Project {
   final num ishaqi;
   final num olingan;
   final String status;
+  final String? manzil;
+  final String? mijoz;
+  final String? bosqich;
 
   Project({
     required this.id,
@@ -25,6 +28,9 @@ class Project {
     required this.ishaqi,
     required this.olingan,
     required this.status,
+    this.manzil,
+    this.mijoz,
+    this.bosqich,
   });
 
   num get balance => role == 'owner' ? (kirim - chiqim) : myBalance;
@@ -44,6 +50,9 @@ class Project {
       ishaqi: row['ishaqi'] ?? 0,
       olingan: row['olingan'] ?? 0,
       status: ob['status'] ?? 'active',
+      manzil: ob['manzil'] as String?,
+      mijoz: ob['mijoz'] as String?,
+      bosqich: ob['bosqich'] as String?,
     );
   }
 
