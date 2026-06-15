@@ -1,6 +1,6 @@
 {
-  "appId": "uz.prorab.app",
-  "appName": "Prorab",
+  "appId": "uz.moliya.app",
+  "appName": "Moliya",
   "webDir": "www",
   "bundledWebRuntime": false,
   "server": {

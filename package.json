@@ -1,7 +1,7 @@
 {
-  "name": "prorab",
+  "name": "moliya",
   "version": "1.0.0",
-  "description": "Prorab - qurilish loyihalarini boshqarish",
+  "description": "Moliya - loyiha va jamoa moliyasi platformasi",
   "scripts": {
     "build": "cp index.html www/index.html",
     "sync": "npm run build && cap sync"
