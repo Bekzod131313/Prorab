@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../data/project_repository.dart';
 import '../data/report_repository.dart';
@@ -56,6 +58,27 @@ class _ReportScreenState extends State<ReportScreen> {
     _load();
   }
 
+  Future<void> _exportCsv() async {
+    final data = _data;
+    if (data == null) return;
+
+    final buf = StringBuffer();
+    buf.writeln('Sana,Obyekt,Tur,Izoh,Summa');
+    for (final tx in data.txs) {
+      final dateStr = DateFormat('dd.MM.yyyy HH:mm').format(tx.date);
+      final obNomi = data.obNames[tx.obId] ?? '';
+      final izoh = (tx.izoh ?? '').replaceAll(',', ' ').replaceAll('\n', ' ');
+      buf.writeln('$dateStr,$obNomi,${tx.tur},$izoh,${tx.summa}');
+    }
+    buf.writeln();
+    buf.writeln('KIRIM,${data.totalIn}');
+    buf.writeln('CHIQIM,${data.totalOut}');
+    buf.writeln('FOYDA,${data.foyda}');
+
+    final date = DateTime.now().toIso8601String().substring(0, 10);
+    await Share.share(buf.toString(), subject: 'moliya-hisobot-$date.csv');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -63,6 +86,12 @@ class _ReportScreenState extends State<ReportScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.bg,
         title: const Text('Hisobot'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.ios_share_rounded),
+            onPressed: _data == null ? null : _exportCsv,
+          ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: _load,
