@@ -528,6 +528,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     final nameCtrl = TextEditingController(text: _project.nomi);
     final daysCtrl = TextEditingController(text: _project.muddat.toString());
     DateTime startDate = _project.boshlanish ?? DateTime.now();
+    bool isDone = _project.status == 'done';
 
     final saved = await showModalBottomSheet<bool>(
       context: context,
@@ -581,7 +582,15 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(hintText: 'Muddat (kun)'),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Loyiha yakunlandi'),
+                value: isDone,
+                activeColor: AppColors.accent,
+                onChanged: (v) => setSheetState(() => isDone = v),
+              ),
+              const SizedBox(height: 8),
               ElevatedButton(
                 onPressed: () {
                   if (nameCtrl.text.trim().isEmpty) return;
@@ -598,12 +607,16 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     if (saved == true) {
       final days = int.tryParse(daysCtrl.text.trim()) ?? _project.muddat;
       final nomi = nameCtrl.text.trim();
+      final status = isDone ? 'done' : 'active';
       await _projectRepo.updateProject(
         id: _project.id,
         nomi: nomi,
         boshlanish: startDate,
         muddat: days,
       );
+      if (status != _project.status) {
+        await _projectRepo.setStatus(_project.id, status);
+      }
       if (!mounted) return;
       setState(() {
         _project = Project(
@@ -618,7 +631,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
           myBalance: _project.myBalance,
           ishaqi: _project.ishaqi,
           olingan: _project.olingan,
-          status: _project.status,
+          status: status,
         );
       });
     }
