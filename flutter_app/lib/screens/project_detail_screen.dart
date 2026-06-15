@@ -188,12 +188,14 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         izoh: result['izoh'] as String?,
         toUserId: result['toUserId'] as String?,
       );
+      HapticFeedback.mediumImpact();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Saqlandi')),
       );
       _load();
     } catch (e) {
+      HapticFeedback.heavyImpact();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString())),
