@@ -9,6 +9,7 @@ import '../data/project_repository.dart';
 import '../data/task_repository.dart';
 import '../data/transaction_repository.dart';
 import '../main.dart';
+import '../utils/phone_formatter.dart';
 import '../models/material.dart';
 import '../models/member.dart';
 import '../models/project.dart';
@@ -1077,6 +1078,7 @@ class _AddMemberSheet extends StatelessWidget {
         TextField(
           controller: phoneCtrl,
           keyboardType: TextInputType.phone,
+          inputFormatters: [PhoneFormatter()],
           decoration: const InputDecoration(hintText: 'Telefon raqam'),
         ),
         const SizedBox(height: 12),
