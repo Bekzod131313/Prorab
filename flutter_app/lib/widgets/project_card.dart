@@ -85,7 +85,15 @@ class ProjectCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
-                      _RoleBadge(label: _roleLabels[project.role] ?? project.role),
+                      Row(
+                        children: [
+                          _RoleBadge(label: _roleLabels[project.role] ?? project.role),
+                          if (project.status == 'done') ...[
+                            const SizedBox(width: 6),
+                            const _RoleBadge(label: 'Yakunlandi', color: Color(0xFF22C55E)),
+                          ],
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -128,19 +136,20 @@ class ProjectCard extends StatelessWidget {
 
 class _RoleBadge extends StatelessWidget {
   final String label;
-  const _RoleBadge({required this.label});
+  final Color color;
+  const _RoleBadge({required this.label, this.color = AppColors.accent});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: AppColors.accent.withOpacity(0.15),
+        color: color.withOpacity(0.15),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
         label,
-        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.accent),
+        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color),
       ),
     );
   }
