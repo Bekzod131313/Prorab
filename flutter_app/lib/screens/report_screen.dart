@@ -4,6 +4,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../data/project_repository.dart';
 import '../data/report_repository.dart';
+import '../main.dart';
 import '../models/project.dart';
 import '../theme/app_theme.dart';
 import '../widgets/project_card.dart' show formatMoney;
@@ -62,9 +63,11 @@ class _ReportScreenState extends State<ReportScreen> {
     final data = _data;
     if (data == null) return;
 
+    final userId = supabase.auth.currentUser?.id ?? '';
     final buf = StringBuffer();
     buf.writeln('Sana,Obyekt,Tur,Izoh,Summa');
     for (final tx in data.txs) {
+      if (!tx.isIncomeFor(userId) && !tx.isExpenseFor(userId)) continue;
       final dateStr = DateFormat('dd.MM.yyyy HH:mm').format(tx.date);
       final obNomi = data.obNames[tx.obId] ?? '';
       final izoh = (tx.izoh ?? '').replaceAll(',', ' ').replaceAll('\n', ' ');
