@@ -1,0 +1,43 @@
+name: Build Flutter APK
+
+on:
+  push:
+    branches:
+      - main
+      - claude/wizardly-pascal-iqx3ic
+    paths:
+      - 'flutter_app/**'
+      - '.github/workflows/flutter-build.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Scaffold platform projects if missing
+        working-directory: flutter_app
+        run: |
+          if [ ! -d android ] || [ ! -d ios ]; then
+            flutter create --platforms=android,ios --org uz.moliya --project-name app .
+          fi
+
+      - name: Install dependencies
+        working-directory: flutter_app
+        run: flutter pub get
+
+      - name: Build debug APK
+        working-directory: flutter_app
+        run: flutter build apk --debug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: moliya-flutter-debug-apk
+          path: flutter_app/build/app/outputs/flutter-apk/app-debug.apk
