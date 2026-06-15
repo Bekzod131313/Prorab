@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../data/material_repository.dart';
 import '../data/member_repository.dart';
 import '../data/project_repository.dart';
+import '../data/task_repository.dart';
 import '../data/transaction_repository.dart';
 import '../main.dart';
+import '../models/material.dart';
 import '../models/member.dart';
 import '../models/project.dart';
+import '../models/task.dart';
 import '../models/transaction.dart';
 import '../theme/app_theme.dart';
+import '../widgets/material_row.dart';
 import '../widgets/member_row.dart' show MemberRow, colorForName;
 import '../widgets/project_card.dart' show colorForProject, formatMoney;
+import '../widgets/task_row.dart';
 import '../widgets/transaction_row.dart';
 
 class ProjectDetailScreen extends StatefulWidget {
@@ -26,9 +32,15 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   final _repo = TransactionRepository();
   final _memberRepo = MemberRepository();
   final _projectRepo = ProjectRepository();
+  final _taskRepo = TaskRepository();
+  final _materialRepo = MaterialRepository();
   late Project _project;
   List<ProjectTransaction> _txs = [];
   List<ObMember> _members = [];
+  List<ObTask> _tasks = [];
+  List<ObMaterial> _materials = [];
+  String? _tasksError;
+  String? _materialsError;
   bool _loading = true;
   String? _error;
 
@@ -60,6 +72,20 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         _loading = false;
       });
     }
+
+    try {
+      _tasks = await _taskRepo.loadForProject(_project.id);
+      _tasksError = null;
+    } catch (e) {
+      _tasksError = e.toString();
+    }
+    try {
+      _materials = await _materialRepo.loadForProject(_project.id);
+      _materialsError = null;
+    } catch (e) {
+      _materialsError = e.toString();
+    }
+    if (mounted) setState(() {});
   }
 
   List<ObMember> get _visibleMembers {
@@ -376,6 +402,128 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     }
   }
 
+  Future<void> _openAddTask() async {
+    final ctrl = TextEditingController();
+
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppColors.card,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: 20 + MediaQuery.of(ctx).viewInsets.bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              "Yangi vazifa",
+              style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: ctrl,
+              decoration: const InputDecoration(hintText: 'Vazifa nomi'),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                final name = ctrl.text.trim();
+                if (name.isEmpty) return;
+                Navigator.of(ctx).pop(name);
+              },
+              child: const Text("Qo'shish"),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result != null) {
+      await _taskRepo.addTask(_project.id, result);
+      _load();
+    }
+  }
+
+  Future<void> _toggleTask(ObTask task) async {
+    await _taskRepo.toggleTask(task.id, task.holat);
+    _load();
+  }
+
+  Future<void> _openAddMaterial() async {
+    final nameCtrl = TextEditingController();
+    final qtyCtrl = TextEditingController();
+    final unitCtrl = TextEditingController();
+
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: AppColors.card,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: 20 + MediaQuery.of(ctx).viewInsets.bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Yangi material',
+              style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: nameCtrl,
+              decoration: const InputDecoration(hintText: 'Material nomi'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: qtyCtrl,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(hintText: 'Miqdor'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: unitCtrl,
+              decoration: const InputDecoration(hintText: 'Birlik (kg, dona...)'),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                if (nameCtrl.text.trim().isEmpty) return;
+                Navigator.of(ctx).pop(true);
+              },
+              child: const Text("Qo'shish"),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result == true) {
+      await _materialRepo.addMaterial(
+        obId: _project.id,
+        nomi: nameCtrl.text.trim(),
+        miqdor: num.tryParse(qtyCtrl.text.trim()) ?? 0,
+        birlik: unitCtrl.text.trim(),
+      );
+      _load();
+    }
+  }
+
   Future<void> _openEditProject() async {
     final nameCtrl = TextEditingController(text: _project.nomi);
     final daysCtrl = TextEditingController(text: _project.muddat.toString());
@@ -615,6 +763,64 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
               )
             else
               ..._visibleMembers.map((m) => MemberRow(member: m, onTap: () => _openMemberDetail(m))),
+            const SizedBox(height: 24),
+            Text(
+              'Vazifalar',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: _openAddTask,
+              icon: const Icon(Icons.add_task_rounded),
+              label: const Text('Vazifa qo\'shish'),
+            ),
+            const SizedBox(height: 12),
+            if (_tasksError != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Center(
+                  child: Text(
+                    "Vazifalar jadvali sozlanmagan",
+                    style: const TextStyle(color: AppColors.muted),
+                  ),
+                ),
+              )
+            else if (_tasks.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Center(child: Text("Vazifalar yo'q", style: TextStyle(color: AppColors.muted))),
+              )
+            else
+              ..._tasks.map((t) => TaskRow(task: t, onTap: () => _toggleTask(t))),
+            const SizedBox(height: 24),
+            Text(
+              'Materiallar',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: _openAddMaterial,
+              icon: const Icon(Icons.inventory_2_outlined),
+              label: const Text('Material qo\'shish'),
+            ),
+            const SizedBox(height: 12),
+            if (_materialsError != null)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Center(
+                  child: Text(
+                    "Materiallar jadvali sozlanmagan",
+                    style: TextStyle(color: AppColors.muted),
+                  ),
+                ),
+              )
+            else if (_materials.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Center(child: Text("Materiallar yo'q", style: TextStyle(color: AppColors.muted))),
+              )
+            else
+              ..._materials.map((m) => MaterialRow(material: m)),
           ],
         ),
       ),
