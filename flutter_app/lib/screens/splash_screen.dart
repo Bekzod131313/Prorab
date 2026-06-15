@@ -4,7 +4,7 @@ import '../main.dart';
 import '../theme/app_theme.dart';
 import '../widgets/moliya_logo.dart';
 import 'auth_screen.dart';
-import 'home_screen.dart';
+import 'dashboard_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -26,7 +26,7 @@ class _SplashScreenState extends State<SplashScreen> {
     final session = supabase.auth.currentSession;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (_) => session == null ? const AuthScreen() : const HomeScreen(),
+        builder: (_) => session == null ? const AuthScreen() : const DashboardScreen(),
       ),
     );
   }
