@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../data/currency_repository.dart';
+import '../data/profile_repository.dart';
 import '../data/project_repository.dart';
 import '../data/transaction_repository.dart';
 import '../main.dart';
 import '../models/currency.dart';
+import '../models/profile.dart';
 import '../models/project.dart';
 import '../models/transaction.dart';
 import '../theme/app_theme.dart';
@@ -23,8 +25,10 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   final _repo = ProjectRepository();
   final _txRepo = TransactionRepository();
+  final _profileRepo = ProfileRepository();
   List<Project> _projects = [];
   List<ProjectTransaction> _recentTxs = [];
+  Profile? _profile;
   bool _loading = true;
   String? _error;
 
@@ -45,10 +49,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
       try {
         recentTxs = await _txRepo.loadRecentForProjects(projects.map((p) => p.id).toList());
       } catch (_) {}
+      Profile? profile;
+      try {
+        profile = await _profileRepo.loadCurrent();
+      } catch (_) {}
       if (!mounted) return;
       setState(() {
         _projects = projects;
         _recentTxs = recentTxs;
+        _profile = profile;
         _loading = false;
       });
     } catch (e) {
@@ -178,9 +187,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
         onPressed: _openAddProject,
         child: const Icon(Icons.add_rounded),
       ),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: _buildBody(),
+      body: Column(
+        children: [
+          if (_profile != null) _buildGreeting(),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _load,
+              child: _buildBody(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGreeting() {
+    final hour = DateTime.now().hour;
+    final greeting = hour < 12
+        ? 'Xayrli tong'
+        : hour < 18
+            ? 'Assalomu alaykum'
+            : 'Xayrli kech';
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(greeting, style: const TextStyle(fontSize: 12, color: AppColors.muted, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 2),
+                Text(
+                  _profile!.displayName,
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
