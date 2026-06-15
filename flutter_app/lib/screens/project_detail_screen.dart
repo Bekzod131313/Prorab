@@ -769,6 +769,51 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: 16),
+            Builder(builder: (context) {
+              final (_, left, progress) = project.schedule;
+              return Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.card,
+                  border: Border.all(color: AppColors.border),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Loyiha progress',
+                          style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800, fontSize: 15),
+                        ),
+                        Text(
+                          '$progress%',
+                          style: const TextStyle(color: AppColors.accent, fontWeight: FontWeight.w800, fontSize: 15),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: LinearProgressIndicator(
+                        value: progress / 100,
+                        minHeight: 10,
+                        backgroundColor: AppColors.border,
+                        valueColor: const AlwaysStoppedAnimation(AppColors.accent),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      '$left kun qoldi',
+                      style: const TextStyle(color: AppColors.muted, fontWeight: FontWeight.w700, fontSize: 12),
+                    ),
+                  ],
+                ),
+              );
+            }),
             const SizedBox(height: 20),
             Text(
               'Operatsiyalar',
