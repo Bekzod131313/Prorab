@@ -552,6 +552,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     final daysCtrl = TextEditingController(text: _project.muddat.toString());
     final manzilCtrl = TextEditingController(text: _project.manzil ?? '');
     final mijozCtrl = TextEditingController(text: _project.mijoz ?? '');
+    final bosqichCtrl = TextEditingController(text: _project.bosqich ?? '');
     DateTime startDate = _project.boshlanish ?? DateTime.now();
     bool isDone = _project.status == 'done';
 
@@ -618,6 +619,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 decoration: const InputDecoration(hintText: 'Mijoz (ixtiyoriy)'),
               ),
               const SizedBox(height: 12),
+              TextField(
+                controller: bosqichCtrl,
+                decoration: const InputDecoration(hintText: 'Bosqich (ixtiyoriy, masalan: Poydevor)'),
+              ),
+              const SizedBox(height: 12),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Loyiha yakunlandi'),
@@ -644,6 +650,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       final nomi = nameCtrl.text.trim();
       final manzil = manzilCtrl.text.trim();
       final mijoz = mijozCtrl.text.trim();
+      final bosqich = bosqichCtrl.text.trim();
       final status = isDone ? 'done' : 'active';
       await _projectRepo.updateProject(
         id: _project.id,
@@ -652,6 +659,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         muddat: days,
         manzil: manzil,
         mijoz: mijoz,
+        bosqich: bosqich,
       );
       if (status != _project.status) {
         await _projectRepo.setStatus(_project.id, status);
@@ -673,7 +681,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
           status: status,
           manzil: manzil.isEmpty ? null : manzil,
           mijoz: mijoz.isEmpty ? null : mijoz,
-          bosqich: _project.bosqich,
+          bosqich: bosqich.isEmpty ? null : bosqich,
         );
       });
     }
@@ -825,9 +833,19 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    Text(
-                      '$left kun qoldi',
-                      style: const TextStyle(color: AppColors.muted, fontWeight: FontWeight.w700, fontSize: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '$left kun qoldi',
+                          style: const TextStyle(color: AppColors.muted, fontWeight: FontWeight.w700, fontSize: 12),
+                        ),
+                        if (project.bosqich?.isNotEmpty == true)
+                          Text(
+                            project.bosqich!,
+                            style: const TextStyle(color: AppColors.accentTeal, fontWeight: FontWeight.w800, fontSize: 12),
+                          ),
+                      ],
                     ),
                   ],
                 ),
