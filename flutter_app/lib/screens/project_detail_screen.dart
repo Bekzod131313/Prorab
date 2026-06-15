@@ -851,6 +851,51 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 ),
               );
             }),
+            const SizedBox(height: 16),
+            Builder(builder: (context) {
+              final start = project.boshlanish ?? project.createdAt;
+              final end = start.add(Duration(days: project.muddat == 0 ? 30 : project.muddat));
+              final (_, left, _) = project.schedule;
+              final workersCount = _members.where((m) => m.role != 'owner').length;
+              final df = DateFormat('dd.MM.yyyy');
+
+              return Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.card,
+                  border: Border.all(color: AppColors.border),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Loyiha ma'lumotlari",
+                      style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800, fontSize: 15),
+                    ),
+                    const SizedBox(height: 12),
+                    GridView.count(
+                      crossAxisCount: 2,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      mainAxisSpacing: 10,
+                      crossAxisSpacing: 10,
+                      childAspectRatio: 2.4,
+                      children: [
+                        _InfoTile(label: 'BOSHLANISH', value: df.format(start)),
+                        _InfoTile(label: 'TUGASH', value: df.format(end)),
+                        _InfoTile(label: 'QOLGAN', value: '$left kun'),
+                        _InfoTile(label: 'ISHCHILAR', value: '$workersCount ta'),
+                        _InfoTile(label: 'MIJOZ', value: project.mijoz?.isNotEmpty == true ? project.mijoz! : '—'),
+                        _InfoTile(label: 'BOSQICH', value: project.bosqich?.isNotEmpty == true ? project.bosqich! : '—'),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    _InfoTile(label: 'MANZIL', value: project.manzil?.isNotEmpty == true ? project.manzil! : '—'),
+                  ],
+                ),
+              );
+            }),
             const SizedBox(height: 20),
             Text(
               'Operatsiyalar',
@@ -1162,6 +1207,41 @@ class _InfoBox extends StatelessWidget {
           Text(label, style: const TextStyle(fontSize: 11, color: AppColors.muted, letterSpacing: 0.5)),
           const SizedBox(height: 4),
           Text(value, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: color)),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoTile extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _InfoTile({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.bg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontSize: 10, color: AppColors.muted, fontWeight: FontWeight.w800, letterSpacing: 0.4),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800, color: AppColors.text),
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
       ),
     );
