@@ -15,6 +15,7 @@ class AuthScreen extends StatefulWidget {
 class _AuthScreenState extends State<AuthScreen> {
   bool _isLogin = true;
   bool _loading = false;
+  bool _obscurePass = true;
   String? _error;
 
   final _phoneCtrl = TextEditingController();
@@ -119,8 +120,17 @@ class _AuthScreenState extends State<AuthScreen> {
                 const SizedBox(height: 12),
                 TextField(
                   controller: _passCtrl,
-                  obscureText: true,
-                  decoration: const InputDecoration(hintText: 'Parol'),
+                  obscureText: _obscurePass,
+                  decoration: InputDecoration(
+                    hintText: 'Parol',
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePass ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        color: AppColors.muted,
+                      ),
+                      onPressed: () => setState(() => _obscurePass = !_obscurePass),
+                    ),
+                  ),
                 ),
                 if (_error != null) ...[
                   const SizedBox(height: 12),
