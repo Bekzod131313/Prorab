@@ -97,6 +97,18 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     return _members.where((m) => m.addedBy == userId).toList();
   }
 
+  List<ProjectTransaction> get _visibleTxs {
+    final userId = supabase.auth.currentUser?.id;
+    if (_project.role == 'owner') {
+      return _txs
+          .where((tx) =>
+              tx.tur == 'income' ||
+              ((tx.tur == 'send' || tx.tur == 'spend') && tx.fromUser == userId))
+          .toList();
+    }
+    return _txs.where((tx) => tx.fromUser == userId || tx.toUser == userId).toList();
+  }
+
   Future<void> _openAddMember() async {
     final phoneCtrl = TextEditingController(text: '+998');
     final kasbCtrl = TextEditingController();
@@ -746,13 +758,13 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 padding: const EdgeInsets.only(top: 40),
                 child: Center(child: Text('Xatolik: $_error', style: const TextStyle(color: Colors.redAccent))),
               )
-            else if (_txs.isEmpty)
+            else if (_visibleTxs.isEmpty)
               const Padding(
                 padding: EdgeInsets.only(top: 40),
                 child: Center(child: Text("Operatsiyalar yo'q", style: TextStyle(color: AppColors.muted))),
               )
             else
-              ..._txs.map((tx) => TransactionRow(tx: tx, onTap: () => _openTxDetail(tx))),
+              ..._visibleTxs.map((tx) => TransactionRow(tx: tx, onTap: () => _openTxDetail(tx))),
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
