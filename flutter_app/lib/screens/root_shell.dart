@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import 'dashboard_screen.dart';
 import 'profile_screen.dart';
+import 'workers_screen.dart';
 
 class RootShell extends StatefulWidget {
   const RootShell({super.key});
@@ -16,6 +17,7 @@ class _RootShellState extends State<RootShell> {
 
   static const _screens = [
     DashboardScreen(),
+    WorkersScreen(),
     ProfileScreen(),
   ];
 
@@ -30,6 +32,7 @@ class _RootShellState extends State<RootShell> {
         onDestinationSelected: (i) => setState(() => _index = i),
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'Asosiy'),
+          NavigationDestination(icon: Icon(Icons.engineering_outlined), selectedIcon: Icon(Icons.engineering_rounded), label: 'Ishchilar'),
           NavigationDestination(icon: Icon(Icons.person_outline_rounded), selectedIcon: Icon(Icons.person_rounded), label: 'Profil'),
         ],
       ),
