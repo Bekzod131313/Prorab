@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../data/member_repository.dart';
 import '../data/transaction_repository.dart';
@@ -7,7 +8,7 @@ import '../models/member.dart';
 import '../models/project.dart';
 import '../models/transaction.dart';
 import '../theme/app_theme.dart';
-import '../widgets/member_row.dart';
+import '../widgets/member_row.dart' show MemberRow, colorForName;
 import '../widgets/project_card.dart' show colorForProject, formatMoney;
 import '../widgets/transaction_row.dart';
 
@@ -151,6 +152,226 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     }
   }
 
+  Future<void> _openTxDetail(ProjectTransaction tx) async {
+    final userId = supabase.auth.currentUser?.id;
+    final canDelete = tx.fromUser == userId || widget.project.role == 'owner';
+    final isIn = tx.isIncomeFor(userId ?? '');
+    final dateStr = DateFormat('dd.MM.yyyy HH:mm').format(tx.date);
+
+    final delete = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: AppColors.card,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Text(
+                '${isIn ? '+' : '-'}${formatMoney(tx.summa)} so\'m',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  color: isIn ? const Color(0xFF16A34A) : const Color(0xFFEF4444),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Center(child: Text(dateStr, style: const TextStyle(color: AppColors.muted))),
+            if (tx.izoh?.isNotEmpty == true) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.bg,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Izoh', style: TextStyle(color: AppColors.muted)),
+                    Text(tx.izoh!, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  ],
+                ),
+              ),
+            ],
+            if (canDelete) ...[
+              const SizedBox(height: 20),
+              OutlinedButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.redAccent,
+                  side: const BorderSide(color: Colors.redAccent),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                child: const Text("O'chirish"),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+
+    if (delete == true) {
+      await _repo.deleteTransaction(tx.id);
+      _load();
+    }
+  }
+
+  Future<void> _openMemberDetail(ObMember member) async {
+    final memberTxs = _txs.where((t) => t.fromUser == member.userId || t.toUser == member.userId).toList();
+    final canSend = (widget.project.role == 'owner' && member.role == 'member') ||
+        (widget.project.role == 'member' && member.role == 'worker');
+
+    final send = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: AppColors.card,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (ctx, scrollCtrl) => ListView(
+          controller: scrollCtrl,
+          padding: const EdgeInsets.all(20),
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: colorForName(member.displayName),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(
+                    member.displayName.isNotEmpty ? member.displayName[0].toUpperCase() : '?',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 22),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(member.displayName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 4),
+                    Text(
+                      member.kasb?.isNotEmpty == true ? member.kasb! : member.roleLabel,
+                      style: const TextStyle(color: AppColors.text2),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.bg,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                children: [
+                  const Text("Qo'lida", style: TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 4),
+                  Text(
+                    formatMoney(member.balance),
+                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF16A34A)),
+                  ),
+                ],
+              ),
+            ),
+            if (canSend) ...[
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                icon: const Icon(Icons.send_rounded),
+                label: const Text('Pul yuborish'),
+              ),
+            ],
+            const SizedBox(height: 20),
+            Text(
+              'Operatsiyalar',
+              style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 10),
+            if (memberTxs.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Center(child: Text("Operatsiyalar yo'q", style: TextStyle(color: AppColors.muted))),
+              )
+            else
+              ...memberTxs.map((tx) => TransactionRow(
+                    tx: tx,
+                    onTap: () {
+                      Navigator.of(ctx).pop(false);
+                      _openTxDetail(tx);
+                    },
+                  )),
+          ],
+        ),
+      ),
+    );
+
+    if (send == true) {
+      await _openSendMoney(member);
+    }
+  }
+
+  Future<void> _openSendMoney(ObMember member) async {
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      backgroundColor: AppColors.card,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: 20 + MediaQuery.of(ctx).viewInsets.bottom,
+        ),
+        child: _SendMoneySheet(member: member),
+      ),
+    );
+
+    if (result == null) return;
+
+    try {
+      await _repo.addTransaction(
+        obId: widget.project.id,
+        isIncome: false,
+        amount: result['amount'] as num,
+        kategoriya: 'ishchi',
+        izoh: result['izoh'] as String?,
+        toUserId: member.userId,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Saqlandi')),
+      );
+      _load();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final project = widget.project;
@@ -258,7 +479,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 child: Center(child: Text("Operatsiyalar yo'q", style: TextStyle(color: AppColors.muted))),
               )
             else
-              ..._txs.map((tx) => TransactionRow(tx: tx)),
+              ..._txs.map((tx) => TransactionRow(tx: tx, onTap: () => _openTxDetail(tx))),
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -282,7 +503,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 child: Center(child: Text("Hali hech kim yo'q", style: TextStyle(color: AppColors.muted))),
               )
             else
-              ..._visibleMembers.map((m) => MemberRow(member: m)),
+              ..._visibleMembers.map((m) => MemberRow(member: m, onTap: () => _openMemberDetail(m))),
           ],
         ),
       ),
@@ -456,6 +677,57 @@ class _InfoBox extends StatelessWidget {
           Text(value, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: color)),
         ],
       ),
+    );
+  }
+}
+
+class _SendMoneySheet extends StatefulWidget {
+  final ObMember member;
+
+  const _SendMoneySheet({required this.member});
+
+  @override
+  State<_SendMoneySheet> createState() => _SendMoneySheetState();
+}
+
+class _SendMoneySheetState extends State<_SendMoneySheet> {
+  final _amountCtrl = TextEditingController();
+  final _noteCtrl = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          '${widget.member.displayName}ga pul yuborish',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 16),
+        TextField(
+          controller: _amountCtrl,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(hintText: 'Summa'),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _noteCtrl,
+          decoration: const InputDecoration(hintText: 'Izoh...'),
+        ),
+        const SizedBox(height: 20),
+        ElevatedButton(
+          onPressed: () {
+            final amount = num.tryParse(_amountCtrl.text.trim());
+            if (amount == null || amount <= 0) return;
+            Navigator.of(context).pop({
+              'amount': amount,
+              'izoh': _noteCtrl.text.trim().isNotEmpty ? _noteCtrl.text.trim() : null,
+            });
+          },
+          child: const Text('Yuborish'),
+        ),
+      ],
     );
   }
 }

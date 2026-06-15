@@ -71,4 +71,8 @@ class TransactionRepository {
       await supabase.from('obyektlar').update({'chiqim': (ob['chiqim'] ?? 0) + amount}).eq('id', obId);
     }
   }
+
+  Future<void> deleteTransaction(String id) async {
+    await supabase.from('transactions').delete().eq('id', id);
+  }
 }
