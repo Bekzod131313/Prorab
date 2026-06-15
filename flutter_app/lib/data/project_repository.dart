@@ -66,11 +66,15 @@ class ProjectRepository {
     required String nomi,
     required DateTime boshlanish,
     required int muddat,
+    String? manzil,
+    String? mijoz,
   }) async {
     await supabase.from('obyektlar').update({
       'nomi': nomi,
       'boshlanish': boshlanish.toIso8601String().substring(0, 10),
       'muddat': muddat,
+      'manzil': manzil?.isNotEmpty == true ? manzil : null,
+      'mijoz': mijoz?.isNotEmpty == true ? mijoz : null,
     }).eq('id', id);
   }
 

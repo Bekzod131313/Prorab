@@ -550,6 +550,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   Future<void> _openEditProject() async {
     final nameCtrl = TextEditingController(text: _project.nomi);
     final daysCtrl = TextEditingController(text: _project.muddat.toString());
+    final manzilCtrl = TextEditingController(text: _project.manzil ?? '');
+    final mijozCtrl = TextEditingController(text: _project.mijoz ?? '');
     DateTime startDate = _project.boshlanish ?? DateTime.now();
     bool isDone = _project.status == 'done';
 
@@ -606,6 +608,16 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 decoration: const InputDecoration(hintText: 'Muddat (kun)'),
               ),
               const SizedBox(height: 12),
+              TextField(
+                controller: manzilCtrl,
+                decoration: const InputDecoration(hintText: 'Manzil (ixtiyoriy)'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: mijozCtrl,
+                decoration: const InputDecoration(hintText: 'Mijoz (ixtiyoriy)'),
+              ),
+              const SizedBox(height: 12),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Loyiha yakunlandi'),
@@ -630,12 +642,16 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     if (saved == true) {
       final days = int.tryParse(daysCtrl.text.trim()) ?? _project.muddat;
       final nomi = nameCtrl.text.trim();
+      final manzil = manzilCtrl.text.trim();
+      final mijoz = mijozCtrl.text.trim();
       final status = isDone ? 'done' : 'active';
       await _projectRepo.updateProject(
         id: _project.id,
         nomi: nomi,
         boshlanish: startDate,
         muddat: days,
+        manzil: manzil,
+        mijoz: mijoz,
       );
       if (status != _project.status) {
         await _projectRepo.setStatus(_project.id, status);
@@ -655,6 +671,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
           ishaqi: _project.ishaqi,
           olingan: _project.olingan,
           status: status,
+          manzil: manzil.isEmpty ? null : manzil,
+          mijoz: mijoz.isEmpty ? null : mijoz,
+          bosqich: _project.bosqich,
         );
       });
     }
