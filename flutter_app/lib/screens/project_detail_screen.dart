@@ -22,8 +22,9 @@ import '../widgets/transaction_row.dart';
 
 class ProjectDetailScreen extends StatefulWidget {
   final Project project;
+  final bool? quickAddIncome;
 
-  const ProjectDetailScreen({super.key, required this.project});
+  const ProjectDetailScreen({super.key, required this.project, this.quickAddIncome});
 
   @override
   State<ProjectDetailScreen> createState() => _ProjectDetailScreenState();
@@ -50,6 +51,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     super.initState();
     _project = widget.project;
     _load();
+    if (widget.quickAddIncome != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _openAddTransaction(initialIsIncome: widget.quickAddIncome!);
+      });
+    }
   }
 
   Future<void> _load() async {
@@ -152,7 +158,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     }
   }
 
-  Future<void> _openAddTransaction() async {
+  Future<void> _openAddTransaction({bool initialIsIncome = true}) async {
     final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       backgroundColor: AppColors.card,
@@ -167,7 +173,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
           top: 20,
           bottom: 20 + MediaQuery.of(ctx).viewInsets.bottom,
         ),
-        child: _AddTransactionSheet(members: _visibleMembers),
+        child: _AddTransactionSheet(members: _visibleMembers, initialIsIncome: initialIsIncome),
       ),
     );
 
@@ -856,8 +862,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
 
 class _AddTransactionSheet extends StatefulWidget {
   final List<ObMember> members;
+  final bool initialIsIncome;
 
-  const _AddTransactionSheet({required this.members});
+  const _AddTransactionSheet({required this.members, this.initialIsIncome = true});
 
   @override
   State<_AddTransactionSheet> createState() => _AddTransactionSheetState();
@@ -890,6 +897,7 @@ class _AddTransactionSheetState extends State<_AddTransactionSheet> {
   @override
   void initState() {
     super.initState();
+    _isIncome = widget.initialIsIncome;
     _loadCustomCats();
   }
 

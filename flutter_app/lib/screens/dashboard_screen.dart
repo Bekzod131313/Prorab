@@ -228,9 +228,67 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ],
             ),
           ),
+          if (_projects.isNotEmpty) ...[
+            _QuickActionButton(
+              icon: Icons.arrow_downward_rounded,
+              color: const Color(0xFF22C55E),
+              label: 'Kirim',
+              onTap: () => _openQuickAdd(isIncome: true),
+            ),
+            const SizedBox(width: 8),
+            _QuickActionButton(
+              icon: Icons.arrow_upward_rounded,
+              color: const Color(0xFFF43F5E),
+              label: 'Chiqim',
+              onTap: () => _openQuickAdd(isIncome: false),
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  Future<void> _openQuickAdd({required bool isIncome}) async {
+    Project? target;
+    if (_projects.length == 1) {
+      target = _projects.first;
+    } else {
+      target = await showModalBottomSheet<Project>(
+        context: context,
+        backgroundColor: AppColors.card,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (ctx) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Obyekt tanlang',
+                  style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 12),
+                for (final p in _projects)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(p.nomi),
+                    trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
+                    onTap: () => Navigator.of(ctx).pop(p),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    if (target == null || !mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: target!, quickAddIncome: isIncome)),
+    );
+    _load();
   }
 
   Widget _buildBody() {
@@ -331,6 +389,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
           },
         );
       },
+    );
+  }
+}
+
+class _QuickActionButton extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String label;
+  final VoidCallback onTap;
+
+  const _QuickActionButton({required this.icon, required this.color, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.14),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 16, color: color),
+            const SizedBox(height: 2),
+            Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: color)),
+          ],
+        ),
+      ),
     );
   }
 }
