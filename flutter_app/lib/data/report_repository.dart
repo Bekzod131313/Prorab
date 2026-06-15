@@ -28,6 +28,8 @@ class ReportData {
   final Map<String?, num> catTotals;
   final List<ProjectProfit> projects;
   final List<TopWorker> topWorkers;
+  final List<ProjectTransaction> txs;
+  final Map<String, String> obNames;
 
   ReportData({
     required this.totalIn,
@@ -35,6 +37,8 @@ class ReportData {
     required this.catTotals,
     required this.projects,
     required this.topWorkers,
+    required this.txs,
+    required this.obNames,
   });
 
   num get foyda => totalIn - totalOut;
@@ -109,6 +113,8 @@ class ReportRepository {
       catTotals: catTotals,
       projects: projectProfits,
       topWorkers: topWorkers,
+      txs: txs,
+      obNames: {for (final p in projects) p.id: p.nomi},
     );
   }
 }
