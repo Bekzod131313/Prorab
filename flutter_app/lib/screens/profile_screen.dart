@@ -4,6 +4,7 @@ import '../data/profile_repository.dart';
 import '../main.dart';
 import '../models/profile.dart';
 import '../theme/app_theme.dart';
+import '../widgets/moliya_logo.dart';
 import 'auth_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -83,6 +84,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _showAbout() async {
+    showAboutDialog(
+      context: context,
+      applicationName: 'Moliya',
+      applicationVersion: '1.0.0',
+      applicationIcon: const MoliyaLogo(size: 40),
+      applicationLegalese: 'Qurilish loyihalari uchun moliya boshqaruvi',
+    );
+  }
+
   Future<void> _signOut() async {
     await supabase.auth.signOut();
     if (!mounted) return;
@@ -151,7 +162,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 28),
           _MenuTile(icon: Icons.dark_mode_outlined, label: "Qorong'i rejim", trailingSwitch: true),
           _MenuTile(icon: Icons.language_outlined, label: 'Til / Язык'),
-          _MenuTile(icon: Icons.info_outline_rounded, label: 'Ilova haqida'),
+          _MenuTile(icon: Icons.info_outline_rounded, label: 'Ilova haqida', onTap: _showAbout),
           const SizedBox(height: 20),
           OutlinedButton(
             onPressed: _signOut,
@@ -173,12 +184,16 @@ class _MenuTile extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool trailingSwitch;
+  final VoidCallback? onTap;
 
-  const _MenuTile({required this.icon, required this.label, this.trailingSwitch = false});
+  const _MenuTile({required this.icon, required this.label, this.trailingSwitch = false, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
@@ -196,6 +211,7 @@ class _MenuTile extends StatelessWidget {
           else
             const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
         ],
+      ),
       ),
     );
   }
