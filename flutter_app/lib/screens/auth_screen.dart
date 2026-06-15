@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../main.dart';
 import '../theme/app_theme.dart';
 import '../widgets/moliya_logo.dart';
-import 'dashboard_screen.dart';
+import 'root_shell.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -65,7 +65,7 @@ class _AuthScreenState extends State<AuthScreen> {
       }
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const DashboardScreen()),
+        MaterialPageRoute(builder: (_) => const RootShell()),
       );
     } catch (e) {
       setState(() => _error = "Xatolik: ${e.toString()}");
