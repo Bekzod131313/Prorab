@@ -332,14 +332,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
     final projectNames = {for (final p in _projects) p.id: p.nomi};
+    final activeProjects = _projects.where((p) => p.status != 'done').toList();
     final filteredProjects = _search.isEmpty
-        ? _projects
-        : _projects.where((p) => p.nomi.toLowerCase().contains(_search.toLowerCase())).toList();
+        ? activeProjects
+        : activeProjects.where((p) => p.nomi.toLowerCase().contains(_search.toLowerCase())).toList();
+    final doneProjects = _projects.where((p) => p.status == 'done').toList();
     final showRecent = _recentTxs.isNotEmpty;
-    final showSearch = _projects.length > 3;
+    final showSearch = activeProjects.length > 3;
     final headerOffset = showSearch ? 2 : 1;
     final headerCount = filteredProjects.length + headerOffset;
-    final itemCount = headerCount + (showRecent ? 1 + _recentTxs.length : 0);
+    final doneStart = headerCount + (showRecent ? 1 + _recentTxs.length : 0);
+    final itemCount = doneStart + (doneProjects.isNotEmpty ? 1 + doneProjects.length : 0);
 
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -377,26 +380,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
             },
           );
         }
-        if (index == headerCount) {
+        if (showRecent && index < doneStart) {
+          if (index == headerCount) {
+            return Padding(
+              padding: const EdgeInsets.only(top: 8, bottom: 12, left: 4),
+              child: Text(
+                "So'nggi harakatlar",
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              ),
+            );
+          }
+          final tx = _recentTxs[index - headerCount - 1];
+          final isLast = index == doneStart - 1;
+          return _RecentTxTile(
+            tx: tx,
+            obNomi: projectNames[tx.obId] ?? '',
+            isLast: isLast,
+            onTap: () {
+              final project = _projects.firstWhere(
+                (p) => p.id == tx.obId,
+                orElse: () => _projects.first,
+              );
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: project)),
+              );
+            },
+          );
+        }
+        if (index == doneStart) {
           return Padding(
             padding: const EdgeInsets.only(top: 8, bottom: 12, left: 4),
             child: Text(
-              "So'nggi harakatlar",
+              'Yakunlangan obyektlar',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
             ),
           );
         }
-        final tx = _recentTxs[index - headerCount - 1];
-        final isLast = index == itemCount - 1;
-        return _RecentTxTile(
-          tx: tx,
-          obNomi: projectNames[tx.obId] ?? '',
-          isLast: isLast,
+        final project = doneProjects[index - doneStart - 1];
+        return ProjectCard(
+          project: project,
           onTap: () {
-            final project = _projects.firstWhere(
-              (p) => p.id == tx.obId,
-              orElse: () => _projects.first,
-            );
             Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: project)),
             );
