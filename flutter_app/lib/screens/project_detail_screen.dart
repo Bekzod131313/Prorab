@@ -9,7 +9,7 @@ import '../data/project_repository.dart';
 import '../data/task_repository.dart';
 import '../data/transaction_repository.dart';
 import '../main.dart';
-import '../utils/phone_formatter.dart';
+import '../widgets/add_member_sheet.dart';
 import '../models/material.dart';
 import '../models/member.dart';
 import '../models/project.dart';
@@ -135,7 +135,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
           top: 20,
           bottom: 20 + MediaQuery.of(ctx).viewInsets.bottom,
         ),
-        child: _AddMemberSheet(phoneCtrl: phoneCtrl, kasbCtrl: kasbCtrl),
+        child: AddMemberSheet(phoneCtrl: phoneCtrl, kasbCtrl: kasbCtrl),
       ),
     );
 
@@ -1097,44 +1097,6 @@ class _AddTransactionSheetState extends State<_AddTransactionSheet> {
             });
           },
           child: Text(_isIncome ? "Kirim qo'shish" : "Chiqim qo'shish"),
-        ),
-      ],
-    );
-  }
-}
-
-class _AddMemberSheet extends StatelessWidget {
-  final TextEditingController phoneCtrl;
-  final TextEditingController kasbCtrl;
-
-  const _AddMemberSheet({required this.phoneCtrl, required this.kasbCtrl});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          "Jamoaga qo'shish",
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: phoneCtrl,
-          keyboardType: TextInputType.phone,
-          inputFormatters: [PhoneFormatter()],
-          decoration: const InputDecoration(hintText: 'Telefon raqam'),
-        ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: kasbCtrl,
-          decoration: const InputDecoration(hintText: "Kasbi (Masalan: Santexnik, Elektrik)"),
-        ),
-        const SizedBox(height: 20),
-        ElevatedButton(
-          onPressed: () => Navigator.of(context).pop(true),
-          child: const Text("Qo'shish"),
         ),
       ],
     );

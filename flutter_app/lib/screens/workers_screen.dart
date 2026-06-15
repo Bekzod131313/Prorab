@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../data/member_repository.dart';
+import '../data/project_repository.dart';
 import '../data/worker_repository.dart';
 import '../models/worker.dart';
 import '../theme/app_theme.dart';
+import '../widgets/add_member_sheet.dart';
 import '../widgets/member_row.dart' show colorForName;
 import '../widgets/project_card.dart' show formatMoney;
 
@@ -15,6 +18,8 @@ class WorkersScreen extends StatefulWidget {
 
 class _WorkersScreenState extends State<WorkersScreen> {
   final _repo = WorkerRepository();
+  final _projectRepo = ProjectRepository();
+  final _memberRepo = MemberRepository();
   List<Worker> _workers = [];
   bool _loading = true;
   String _filter = 'all';
@@ -54,6 +59,60 @@ class _WorkersScreenState extends State<WorkersScreen> {
     }
   }
 
+  Future<void> _openAddWorker() async {
+    final projects = await _projectRepo.loadProjects();
+    final ownedProjects = projects.where((p) => p.role == 'owner').toList();
+    final ownedProject = ownedProjects.isEmpty ? null : ownedProjects.first;
+    if (ownedProject == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Sizda obyekt yo'q")),
+      );
+      return;
+    }
+
+    final phoneCtrl = TextEditingController(text: '+998');
+    final kasbCtrl = TextEditingController();
+
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: AppColors.card,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: 20 + MediaQuery.of(ctx).viewInsets.bottom,
+        ),
+        child: AddMemberSheet(phoneCtrl: phoneCtrl, kasbCtrl: kasbCtrl),
+      ),
+    );
+
+    if (result == true) {
+      try {
+        await _memberRepo.addMember(
+          obId: ownedProject.id,
+          phone: phoneCtrl.text.trim(),
+          kasb: kasbCtrl.text.trim(),
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Qo'shildi")),
+        );
+        _load();
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      }
+    }
+  }
+
   Future<void> _openWorkerDetail(Worker worker) async {
     await showModalBottomSheet<void>(
       context: context,
@@ -86,6 +145,10 @@ class _WorkersScreenState extends State<WorkersScreen> {
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(backgroundColor: AppColors.bg, title: const Text('Ishchilar')),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _openAddWorker,
+        child: const Icon(Icons.person_add_alt_1_rounded),
+      ),
       body: RefreshIndicator(
         onRefresh: _load,
         child: ListView(
