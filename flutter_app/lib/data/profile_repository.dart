@@ -10,4 +10,10 @@ class ProfileRepository {
     if (data == null) return null;
     return Profile.fromMap(data);
   }
+
+  Future<void> updateFullName(String fullName) async {
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) return;
+    await supabase.from('profiles').update({'full_name': fullName}).eq('id', userId);
+  }
 }
