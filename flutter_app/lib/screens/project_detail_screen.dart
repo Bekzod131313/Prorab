@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../data/category_repository.dart';
 import '../data/material_repository.dart';
 import '../data/member_repository.dart';
 import '../data/project_repository.dart';
@@ -851,16 +852,22 @@ class _AddTransactionSheet extends StatefulWidget {
 }
 
 class _AddTransactionSheetState extends State<_AddTransactionSheet> {
-  static const _incomeCats = {
+  static const _defaultIncomeCats = {
     'mijoz': 'Mijozdan',
     'kredit': 'Kredit',
     'owner': 'Prorab (avans)',
     'boshqa': 'Boshqa',
   };
-  static const _expenseCats = {
+  static const _defaultExpenseCats = {
     'ishchi': 'Ishchi',
     'boshqa': 'Boshqa',
   };
+
+  static const _addNewValue = '__add_new__';
+
+  final _categoryRepo = CategoryRepository();
+  List<String> _customIncomeCats = [];
+  List<String> _customExpenseCats = [];
 
   bool _isIncome = true;
   String _category = 'mijoz';
@@ -869,8 +876,65 @@ class _AddTransactionSheetState extends State<_AddTransactionSheet> {
   final _noteCtrl = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    _loadCustomCats();
+  }
+
+  Future<void> _loadCustomCats() async {
+    final income = await _categoryRepo.loadCustomIncomeCats();
+    final expense = await _categoryRepo.loadCustomExpenseCats();
+    if (!mounted) return;
+    setState(() {
+      _customIncomeCats = income;
+      _customExpenseCats = expense;
+    });
+  }
+
+  Future<void> _addCustomCategory() async {
+    final ctrl = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Yangi kategoriya'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: 'Kategoriya nomi'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Bekor qilish')),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(ctrl.text.trim()),
+            child: const Text('Qoshish'),
+          ),
+        ],
+      ),
+    );
+    if (name == null || name.isEmpty) return;
+
+    if (_isIncome) {
+      await _categoryRepo.addIncomeCat(name);
+    } else {
+      await _categoryRepo.addExpenseCat(name);
+    }
+    if (!mounted) return;
+    setState(() {
+      if (_isIncome) {
+        _customIncomeCats = [..._customIncomeCats, name];
+      } else {
+        _customExpenseCats = [..._customExpenseCats, name];
+      }
+      _category = name;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final cats = _isIncome ? _incomeCats : _expenseCats;
+    final cats = {
+      ...(_isIncome ? _defaultIncomeCats : _defaultExpenseCats),
+      for (final c in (_isIncome ? _customIncomeCats : _customExpenseCats)) c: c,
+    };
     if (!cats.containsKey(_category)) {
       _category = cats.keys.first;
     }
@@ -905,10 +969,17 @@ class _AddTransactionSheetState extends State<_AddTransactionSheet> {
         DropdownButtonFormField<String>(
           value: _category,
           decoration: const InputDecoration(labelText: 'Kategoriya'),
-          items: cats.entries
-              .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
-              .toList(),
-          onChanged: (v) => setState(() => _category = v ?? _category),
+          items: [
+            ...cats.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value))),
+            const DropdownMenuItem(value: _addNewValue, child: Text('+ Yangi kategoriya')),
+          ],
+          onChanged: (v) {
+            if (v == _addNewValue) {
+              _addCustomCategory();
+              return;
+            }
+            setState(() => _category = v ?? _category);
+          },
         ),
         if (!_isIncome && _category == 'ishchi' && widget.members.isNotEmpty) ...[
           const SizedBox(height: 12),
