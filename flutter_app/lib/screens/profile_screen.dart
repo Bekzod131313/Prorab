@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 
+import '../data/backup_repository.dart';
 import '../data/profile_repository.dart';
 import '../main.dart';
 import '../models/profile.dart';
@@ -94,6 +96,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Future<void> _doBackup() async {
+    try {
+      final json = await BackupRepository().buildBackupJson();
+      final date = DateTime.now().toIso8601String().substring(0, 10);
+      await Share.share(json, subject: 'moliya-backup-$date.json');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Xatolik: $e')),
+      );
+    }
+  }
+
   Future<void> _signOut() async {
     await supabase.auth.signOut();
     if (!mounted) return;
@@ -162,6 +177,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 28),
           _MenuTile(icon: Icons.dark_mode_outlined, label: "Qorong'i rejim", trailingSwitch: true),
           _MenuTile(icon: Icons.language_outlined, label: 'Til / Язык'),
+          _MenuTile(icon: Icons.backup_outlined, label: 'Zaxira nusxa', onTap: _doBackup),
           _MenuTile(icon: Icons.info_outline_rounded, label: 'Ilova haqida', onTap: _showAbout),
           const SizedBox(height: 20),
           OutlinedButton(
