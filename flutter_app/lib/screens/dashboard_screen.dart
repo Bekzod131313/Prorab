@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../widgets/moliya_logo.dart';
 import '../widgets/project_card.dart';
 import 'auth_screen.dart';
+import 'project_detail_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -120,7 +121,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
           );
         }
         final project = _projects[index - 1];
-        return ProjectCard(project: project, onTap: () {});
+        return ProjectCard(
+          project: project,
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: project)),
+            );
+          },
+        );
       },
     );
   }
