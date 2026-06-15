@@ -136,6 +136,18 @@ class _ReportScreenState extends State<ReportScreen> {
         const SizedBox(height: 16),
         Row(
           children: [
+            Expanded(
+              child: _StatCard(label: "O'rtacha kunlik", value: data.avgDaily, color: const Color(0xFFA855F7)),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _ActiveDayCard(day: data.activeDay),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
             Expanded(child: _StatCard(label: 'Kirim', value: data.totalIn, color: const Color(0xFF22C55E))),
             const SizedBox(width: 10),
             Expanded(child: _StatCard(label: 'Chiqim', value: data.totalOut, color: const Color(0xFFF43F5E))),
@@ -259,6 +271,37 @@ class _PeriodChip extends StatelessWidget {
             color: selected ? AppColors.accent : AppColors.text2,
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ActiveDayCard extends StatelessWidget {
+  final int? day;
+
+  const _ActiveDayCard({required this.day});
+
+  @override
+  Widget build(BuildContext context) {
+    final label = day == null ? '—' : '$day-kun';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.accentTeal),
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 4),
+          const Text('Eng faol kun', style: TextStyle(fontSize: 11, color: AppColors.muted, fontWeight: FontWeight.w700)),
+        ],
       ),
     );
   }

@@ -30,6 +30,8 @@ class ReportData {
   final List<TopWorker> topWorkers;
   final List<ProjectTransaction> txs;
   final Map<String, String> obNames;
+  final num avgDaily;
+  final int? activeDay;
 
   ReportData({
     required this.totalIn,
@@ -39,6 +41,8 @@ class ReportData {
     required this.topWorkers,
     required this.txs,
     required this.obNames,
+    required this.avgDaily,
+    required this.activeDay,
   });
 
   num get foyda => totalIn - totalOut;
@@ -67,6 +71,7 @@ class ReportRepository {
     num totalIn = 0;
     num totalOut = 0;
     final catTotals = <String?, num>{};
+    final dayTotals = <int, num>{};
     for (final tx in txs) {
       final isIn = tx.isIncomeFor(userId ?? '');
       final isOut = tx.isExpenseFor(userId ?? '');
@@ -75,6 +80,13 @@ class ReportRepository {
         totalOut += tx.summa;
         catTotals[tx.kategoriya] = (catTotals[tx.kategoriya] ?? 0) + tx.summa;
       }
+      dayTotals[tx.date.day] = (dayTotals[tx.date.day] ?? 0) + tx.summa;
+    }
+
+    final avgDaily = dayTotals.isEmpty ? 0 : (totalIn / dayTotals.length).round();
+    int? activeDay;
+    if (dayTotals.isNotEmpty) {
+      activeDay = dayTotals.entries.reduce((a, b) => b.value > a.value ? b : a).key;
     }
 
     final projectProfits = projects
@@ -115,6 +127,8 @@ class ReportRepository {
       topWorkers: topWorkers,
       txs: txs,
       obNames: {for (final p in projects) p.id: p.nomi},
+      avgDaily: avgDaily,
+      activeDay: activeDay,
     );
   }
 }
