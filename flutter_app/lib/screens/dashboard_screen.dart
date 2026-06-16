@@ -39,6 +39,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _loading = true;
   String? _error;
   String _search = '';
+  bool _fabOpen = false;
 
   @override
   void initState() {
@@ -84,6 +85,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _error = e.toString();
         _loading = false;
       });
+    }
+  }
+
+  Future<void> _openQuickTransaction({required bool isIncome}) async {
+    final ownedProjects = _projects.where((p) => p.role == 'owner' && p.status != 'done').toList();
+    if (ownedProjects.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Faol loyiha yo'q")));
+      return;
+    }
+    setState(() => _fabOpen = false);
+    Project? selectedProject;
+    if (ownedProjects.length == 1) {
+      selectedProject = ownedProjects.first;
+    } else {
+      selectedProject = await showModalBottomSheet<Project>(
+        context: context,
+        backgroundColor: AppColors.card,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        builder: (_) => Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(isIncome ? 'Kirim qo\'shish' : 'Chiqim qo\'shish', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+              const SizedBox(height: 4),
+              const Text('Loyihani tanlang', style: TextStyle(color: AppColors.muted, fontSize: 13)),
+              const SizedBox(height: 16),
+              for (final p in ownedProjects) ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(p.nomi, overflow: TextOverflow.ellipsis),
+                subtitle: Text('${formatMoney(p.balance)} so\'m', style: const TextStyle(fontSize: 12)),
+                onTap: () => Navigator.pop(context, p),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    if (selectedProject != null && mounted) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: selectedProject!, quickAddIncome: isIncome)),
+      );
+      _load();
     }
   }
 
@@ -229,9 +275,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _openAddProject,
-        child: const Icon(Icons.add_rounded),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (_fabOpen) ...[
+            _SpeedDialItem(
+              icon: Icons.arrow_downward_rounded,
+              label: 'Kirim',
+              color: const Color(0xFF22C55E),
+              onTap: () => _openQuickTransaction(isIncome: true),
+            ),
+            const SizedBox(height: 8),
+            _SpeedDialItem(
+              icon: Icons.arrow_upward_rounded,
+              label: 'Chiqim',
+              color: const Color(0xFFF43F5E),
+              onTap: () => _openQuickTransaction(isIncome: false),
+            ),
+            const SizedBox(height: 8),
+            _SpeedDialItem(
+              icon: Icons.folder_open_rounded,
+              label: 'Loyiha',
+              color: AppColors.accent,
+              onTap: () {
+                setState(() => _fabOpen = false);
+                _openAddProject();
+              },
+            ),
+            const SizedBox(height: 12),
+          ],
+          FloatingActionButton(
+            onPressed: () => setState(() => _fabOpen = !_fabOpen),
+            child: AnimatedRotation(
+              turns: _fabOpen ? 0.125 : 0,
+              duration: const Duration(milliseconds: 200),
+              child: const Icon(Icons.add_rounded),
+            ),
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -898,6 +980,41 @@ class _CurrencyRatesSheetState extends State<_CurrencyRatesSheet> {
           const SizedBox(height: 12),
         ],
       ),
+    );
+  }
+}
+
+class _SpeedDialItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _SpeedDialItem({required this.icon, required this.label, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+        ),
+        const SizedBox(width: 10),
+        FloatingActionButton.small(
+          heroTag: label,
+          onPressed: onTap,
+          backgroundColor: color.withOpacity(0.15),
+          elevation: 0,
+          child: Icon(icon, color: color, size: 20),
+        ),
+      ],
     );
   }
 }
