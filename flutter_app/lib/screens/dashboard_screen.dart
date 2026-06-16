@@ -17,6 +17,7 @@ import '../widgets/moliya_logo.dart';
 import '../widgets/project_card.dart';
 import 'project_detail_screen.dart';
 import 'search_screen.dart';
+import 'calendar_screen.dart';
 import 'tasks_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -263,6 +264,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.calendar_month_outlined),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => CalendarScreen(projects: _projects)),
+            ).then((_) => _load()),
+          ),
           IconButton(
             icon: const Icon(Icons.search_rounded),
             onPressed: () => Navigator.push(
