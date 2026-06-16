@@ -58,7 +58,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       await supabase.storage.from('project-images').uploadBinary(
         path,
         bytes,
-        fileOptions: const FileOptions(contentType: 'image/jpeg', upsert: true),
+        fileOptions: FileOptions(contentType: 'image/jpeg', upsert: true),
       );
       final publicUrl = supabase.storage.from('project-images').getPublicUrl(path);
       await _projectRepo.updateImage(_project.id, publicUrl);
