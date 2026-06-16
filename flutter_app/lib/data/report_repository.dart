@@ -59,12 +59,12 @@ class ReportRepository {
       final now = DateTime.now();
       if (period == 'month') {
         final start = DateTime(now.year, now.month, 1);
-        query = query.gte('created_at', start.toIso8601String());
+        query = query.gte('tx_date', start.toIso8601String());
       } else if (period == 'week') {
         final start = now.subtract(const Duration(days: 7));
-        query = query.gte('created_at', start.toIso8601String());
+        query = query.gte('tx_date', start.toIso8601String());
       }
-      final data = await query.order('created_at', ascending: true);
+      final data = await query.order('tx_date', ascending: true);
       txs = (data as List).map((row) => ProjectTransaction.fromMap(row as Map<String, dynamic>)).toList();
     }
 
