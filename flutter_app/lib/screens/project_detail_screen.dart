@@ -3330,15 +3330,32 @@ class _AddTransactionSheetState extends State<_AddTransactionSheet> {
             setState(() => _category = v ?? _category);
           },
         ),
-        if (!_isIncome && _category == 'ishchi' && widget.members.isNotEmpty) ...[
+        if (!_isIncome && widget.members.isNotEmpty) ...[
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             value: _workerId,
-            decoration: const InputDecoration(labelText: 'Ishchi'),
-            items: widget.members
-                .map((m) => DropdownMenuItem(value: m.userId, child: Text(m.displayName)))
-                .toList(),
-            onChanged: (v) => setState(() => _workerId = v),
+            decoration: InputDecoration(
+              labelText: 'Kimga (ixtiyoriy)',
+              prefixIcon: const Icon(Icons.person_outline_rounded, size: 18),
+              suffixIcon: _workerId != null
+                  ? IconButton(
+                      icon: const Icon(Icons.clear_rounded, size: 18),
+                      onPressed: () => setState(() => _workerId = null),
+                    )
+                  : null,
+            ),
+            items: [
+              const DropdownMenuItem<String>(value: null, child: Text('Tanlang...')),
+              ...widget.members
+                  .where((m) => m.role != 'owner')
+                  .map((m) => DropdownMenuItem(value: m.userId, child: Text(m.displayName))),
+            ],
+            onChanged: (v) => setState(() {
+              _workerId = v;
+              if (v != null && _category != 'ishchi') {
+                _category = 'ishchi';
+              }
+            }),
           ),
         ],
         const SizedBox(height: 12),
