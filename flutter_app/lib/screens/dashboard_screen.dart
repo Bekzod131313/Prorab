@@ -16,6 +16,7 @@ import '../theme/app_theme.dart';
 import '../widgets/moliya_logo.dart';
 import '../widgets/project_card.dart';
 import 'project_detail_screen.dart';
+import 'search_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -215,6 +216,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.search_rounded),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => SearchScreen(projects: _projects)),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.currency_exchange_rounded),
             onPressed: _openCurrencyRates,
