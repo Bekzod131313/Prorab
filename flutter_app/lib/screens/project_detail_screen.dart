@@ -938,6 +938,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
               );
             }),
             const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.of(ctx).pop('__edit__'),
+              icon: const Icon(Icons.edit_outlined, size: 16),
+              label: const Text("Tahrirlash"),
+            ),
+            const SizedBox(height: 8),
             OutlinedButton(
               onPressed: () => Navigator.of(ctx).pop('__delete__'),
               style: OutlinedButton.styleFrom(
@@ -954,10 +960,56 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     if (action == null) return;
     if (action == '__delete__') {
       await _materialRepo.deleteMaterial(material.id);
+      _load();
+    } else if (action == '__edit__') {
+      final nameCtrl = TextEditingController(text: material.nomi);
+      final qtyCtrl = TextEditingController(text: material.miqdor.toString());
+      final unitCtrl = TextEditingController(text: material.birlik);
+      final narxCtrl = TextEditingController(text: material.narx != null ? material.narx.toString() : '');
+
+      final saved = await showModalBottomSheet<bool>(
+        context: context,
+        backgroundColor: AppColors.card,
+        isScrollControlled: true,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        builder: (ctx) => Padding(
+          padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 20 + MediaQuery.of(ctx).viewInsets.bottom),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Materialni tahrirlash', style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+              const SizedBox(height: 16),
+              TextField(controller: nameCtrl, decoration: const InputDecoration(hintText: 'Material nomi')),
+              const SizedBox(height: 12),
+              TextField(controller: qtyCtrl, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(hintText: 'Miqdor')),
+              const SizedBox(height: 12),
+              TextField(controller: unitCtrl, decoration: const InputDecoration(hintText: 'Birlik (kg, dona...)')),
+              const SizedBox(height: 12),
+              TextField(controller: narxCtrl, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(hintText: 'Narx (ixtiyoriy)')),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () { if (nameCtrl.text.trim().isEmpty) return; Navigator.of(ctx).pop(true); },
+                child: const Text('Saqlash'),
+              ),
+            ],
+          ),
+        ),
+      );
+      if (saved == true) {
+        await _materialRepo.updateMaterial(
+          material.id,
+          nomi: nameCtrl.text.trim(),
+          miqdor: num.tryParse(qtyCtrl.text.trim()) ?? material.miqdor,
+          birlik: unitCtrl.text.trim().isNotEmpty ? unitCtrl.text.trim() : material.birlik,
+          narx: num.tryParse(narxCtrl.text.trim()),
+        );
+        _load();
+      }
     } else if (action != material.holat) {
       await _materialRepo.updateStatus(material.id, action);
+      _load();
     }
-    _load();
   }
 
   Future<void> _openAddMaterial() async {
