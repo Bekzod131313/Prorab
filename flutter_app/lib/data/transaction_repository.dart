@@ -88,6 +88,70 @@ class TransactionRepository {
   }
 
   Future<void> deleteTransaction(String id) async {
+    final row = await supabase.from('transactions').select('*').eq('id', id).single();
+    final tx = ProjectTransaction.fromMap(row as Map<String, dynamic>);
+
     await supabase.from('transactions').delete().eq('id', id);
+
+    if (tx.tur == 'income') {
+      final ob = await supabase.from('obyektlar').select('kirim').eq('id', tx.obId).single();
+      final newVal = ((ob['kirim'] as num?) ?? 0) - tx.summa;
+      await supabase.from('obyektlar').update({'kirim': newVal < 0 ? 0 : newVal}).eq('id', tx.obId);
+    } else if (tx.tur == 'spend') {
+      final ob = await supabase.from('obyektlar').select('chiqim').eq('id', tx.obId).single();
+      final newVal = ((ob['chiqim'] as num?) ?? 0) - tx.summa;
+      await supabase.from('obyektlar').update({'chiqim': newVal < 0 ? 0 : newVal}).eq('id', tx.obId);
+
+      if (tx.toUser != null) {
+        final mem = await supabase
+            .from('ob_members')
+            .select('olingan')
+            .eq('ob_id', tx.obId)
+            .eq('user_id', tx.toUser!)
+            .maybeSingle();
+        if (mem != null) {
+          final newO = ((mem['olingan'] as num?) ?? 0) - tx.summa;
+          await supabase
+              .from('ob_members')
+              .update({'olingan': newO < 0 ? 0 : newO})
+              .eq('ob_id', tx.obId)
+              .eq('user_id', tx.toUser!);
+        }
+      }
+    } else if (tx.tur == 'send') {
+      if (tx.toUser != null) {
+        final mem = await supabase
+            .from('ob_members')
+            .select('olingan')
+            .eq('ob_id', tx.obId)
+            .eq('user_id', tx.toUser!)
+            .maybeSingle();
+        if (mem != null) {
+          final newO = ((mem['olingan'] as num?) ?? 0) - tx.summa;
+          await supabase
+              .from('ob_members')
+              .update({'olingan': newO < 0 ? 0 : newO})
+              .eq('ob_id', tx.obId)
+              .eq('user_id', tx.toUser!);
+        }
+      }
+    } else if (tx.tur == 'ishhaqi') {
+      if (tx.toUser != null) {
+        final mem = await supabase
+            .from('ob_members')
+            .select('ishaqi')
+            .eq('ob_id', tx.obId)
+            .eq('user_id', tx.toUser!)
+            .maybeSingle();
+        if (mem != null) {
+          final newI = ((mem['ishaqi'] as num?) ?? 0) - tx.summa;
+          await supabase
+              .from('ob_members')
+              .update({'ishaqi': newI < 0 ? 0 : newI})
+              .eq('ob_id', tx.obId)
+              .eq('user_id', tx.toUser!);
+        }
+      }
+    }
   }
 }
