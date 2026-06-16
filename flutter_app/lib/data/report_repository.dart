@@ -117,7 +117,7 @@ class ReportRepository {
           olingan: (existing?.olingan ?? 0) + ((m['olingan'] as num?) ?? 0),
         );
       }
-      topWorkers = agg.values.toList()..sort((a, b) => b.olingan.compareTo(a.olingan));
+      topWorkers = agg.values.toList()..sort((a, b) => b.balans.compareTo(a.balans));
       if (topWorkers.length > 5) topWorkers = topWorkers.sublist(0, 5);
     }
 
