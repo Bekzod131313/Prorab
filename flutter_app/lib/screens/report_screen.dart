@@ -346,6 +346,50 @@ class _ReportScreenState extends State<ReportScreen> {
             ),
           ),
         ],
+        if (data.foyda > 0 && data.avgDaily > 0) ...[
+          const SizedBox(height: 16),
+          Builder(builder: (_) {
+            final daysLeft = (data.foyda / data.avgDaily).floor();
+            final runOutDate = DateTime.now().add(Duration(days: daysLeft));
+            final df = DateFormat('dd.MM.yyyy');
+            return Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.card,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFA855F7).withOpacity(0.14),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(Icons.trending_down_rounded, color: Color(0xFFA855F7), size: 22),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Balans prognozi', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Joriy sur\'atda $daysLeft kun yetadi (${df.format(runOutDate)})',
+                          style: const TextStyle(fontSize: 12, color: AppColors.muted, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
         const SizedBox(height: 16),
         _SectionCard(
           title: 'Loyiha foydaliligi',
