@@ -11,6 +11,7 @@ import '../models/project.dart';
 import '../theme/app_theme.dart';
 import '../widgets/project_card.dart' show formatMoney;
 import 'materials_screen.dart';
+import 'compare_screen.dart';
 
 class ReportScreen extends StatefulWidget {
   const ReportScreen({super.key});
@@ -95,6 +96,14 @@ class _ReportScreenState extends State<ReportScreen> {
         backgroundColor: AppColors.bg,
         title: const Text('Hisobot'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.compare_arrows_rounded),
+            tooltip: 'Taqqoslash',
+            onPressed: _projects.length >= 2 ? () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => CompareScreen(projects: _projects)),
+            ) : null,
+          ),
           IconButton(
             icon: const Icon(Icons.inventory_2_outlined),
             tooltip: 'Materiallar',
