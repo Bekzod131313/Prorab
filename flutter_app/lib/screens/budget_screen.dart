@@ -59,7 +59,8 @@ class _BudgetScreenState extends State<BudgetScreen> {
     final map = <String, num>{};
     for (final tx in _txs) {
       if (tx.tur == 'spend') {
-        map[tx.kategoriya] = (map[tx.kategoriya] ?? 0) + tx.summa;
+        final cat = tx.kategoriya ?? 'Boshqa';
+        map[cat] = (map[cat] ?? 0) + tx.summa;
       }
     }
     return map;

@@ -105,8 +105,8 @@ class _KanbanScreenState extends State<KanbanScreen> {
 
     if (saved == true && ctrl.text.trim().isNotEmpty) {
       await _taskRepo.addTask(
-        obId: widget.project.id,
-        nomi: ctrl.text.trim(),
+        widget.project.id,
+        ctrl.text.trim(),
         holat: status,
         muddat: deadline,
       );
