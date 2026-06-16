@@ -51,6 +51,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   bool _loading = true;
   String? _error;
   String _txFilter = 'all';
+  String _txSearch = '';
+  bool _showTxSearch = false;
 
   @override
   void initState() {
@@ -128,14 +130,25 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     } else {
       base = _txs.where((tx) => tx.fromUser == userId || tx.toUser == userId).toList();
     }
+    List<ProjectTransaction> filtered;
     switch (_txFilter) {
       case 'income':
-        return base.where((tx) => tx.isIncomeFor(userId ?? '')).toList();
+        filtered = base.where((tx) => tx.isIncomeFor(userId ?? '')).toList();
+        break;
       case 'expense':
-        return base.where((tx) => tx.isExpenseFor(userId ?? '')).toList();
+        filtered = base.where((tx) => tx.isExpenseFor(userId ?? '')).toList();
+        break;
       default:
-        return base;
+        filtered = base;
     }
+    if (_txSearch.isNotEmpty) {
+      final q = _txSearch.toLowerCase();
+      filtered = filtered.where((tx) =>
+          (tx.izoh ?? '').toLowerCase().contains(q) ||
+          (tx.kategoriya ?? '').toLowerCase().contains(q) ||
+          tx.summa.toString().contains(q)).toList();
+    }
+    return filtered;
   }
 
   Future<void> _openAddMember() async {
@@ -1577,9 +1590,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                     'Operatsiyalar',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
                   ),
-                  if (_visibleTxs.isNotEmpty)
-                    Row(
-                      children: [
+                  Row(
+                    children: [
+                      if (_visibleTxs.isNotEmpty) ...[
                         Text(
                           '+${formatMoney(totalIn)}',
                           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF16A34A)),
@@ -1589,12 +1602,31 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                           '-${formatMoney(totalOut)}',
                           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFFEF4444)),
                         ),
+                        const SizedBox(width: 8),
                       ],
-                    ),
+                      IconButton(
+                        icon: Icon(_showTxSearch ? Icons.search_off_rounded : Icons.search_rounded, size: 20, color: AppColors.muted),
+                        onPressed: () => setState(() { _showTxSearch = !_showTxSearch; if (!_showTxSearch) _txSearch = ''; }),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
                 ],
               );
             }),
             const SizedBox(height: 10),
+            if (_showTxSearch) ...[
+              TextField(
+                onChanged: (v) => setState(() => _txSearch = v),
+                decoration: const InputDecoration(
+                  hintText: 'Izoh, kategoriya, summa...',
+                  prefixIcon: Icon(Icons.search_rounded),
+                  isDense: true,
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
