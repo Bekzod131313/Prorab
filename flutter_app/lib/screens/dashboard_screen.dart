@@ -654,6 +654,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ],
                   ),
                 ],
+                Builder(builder: (ctx) {
+                  // 7-day sparkline
+                  final days = List.generate(7, (i) => today.subtract(Duration(days: 6 - i)));
+                  final dayTotals = <double>[];
+                  for (final day in days) {
+                    final end = day.add(const Duration(days: 1));
+                    final netIn = _recentTxs
+                        .where((tx) => tx.date.isAfter(day) && tx.date.isBefore(end) && tx.isIncomeFor(userId))
+                        .fold<num>(0, (s, tx) => s + tx.summa);
+                    final netOut = _recentTxs
+                        .where((tx) => tx.date.isAfter(day) && tx.date.isBefore(end) && tx.isExpenseFor(userId))
+                        .fold<num>(0, (s, tx) => s + tx.summa);
+                    dayTotals.add((netIn - netOut).toDouble());
+                  }
+                  final hasData = dayTotals.any((v) => v != 0);
+                  if (!hasData) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Divider(color: AppColors.border, height: 1),
+                        const SizedBox(height: 10),
+                        const Text('7 KUNLIK TREND', style: TextStyle(fontSize: 10, color: AppColors.muted, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                        const SizedBox(height: 8),
+                        _SparklineChart(values: dayTotals),
+                      ],
+                    ),
+                  );
+                }),
               ],
             ),
           );
@@ -1104,4 +1134,89 @@ class _SpeedDialItem extends StatelessWidget {
       ],
     );
   }
+}
+
+class _SparklineChart extends StatelessWidget {
+  final List<double> values;
+
+  const _SparklineChart({required this.values});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: CustomPaint(
+        painter: _SparklinePainter(values: values),
+        size: Size.infinite,
+      ),
+    );
+  }
+}
+
+class _SparklinePainter extends CustomPainter {
+  final List<double> values;
+
+  _SparklinePainter({required this.values});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (values.isEmpty) return;
+    final maxAbs = values.map((v) => v.abs()).reduce((a, b) => a > b ? a : b);
+    if (maxAbs == 0) return;
+
+    final midY = size.height / 2;
+    final scaleY = (size.height / 2 - 4) / maxAbs;
+    final stepX = size.width / (values.length - 1).clamp(1, double.infinity);
+
+    final posPath = Path();
+    final negPath = Path();
+    bool posStarted = false;
+    bool negStarted = false;
+
+    for (int i = 0; i < values.length; i++) {
+      final x = i * stepX;
+      final y = midY - values[i] * scaleY;
+      if (values[i] >= 0) {
+        if (!posStarted) { posPath.moveTo(x, y); posStarted = true; }
+        else posPath.lineTo(x, y);
+        if (negStarted) { negPath.lineTo(x, midY); negStarted = false; }
+      } else {
+        if (!negStarted) { negPath.moveTo(x, y); negStarted = true; }
+        else negPath.lineTo(x, y);
+        if (posStarted) { posPath.lineTo(x, midY); posStarted = false; }
+      }
+    }
+
+    final posPaint = Paint()
+      ..color = const Color(0xFF22C55E).withOpacity(0.8)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    final negPaint = Paint()
+      ..color = const Color(0xFFEF4444).withOpacity(0.8)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    canvas.drawLine(Offset(0, midY), Offset(size.width, midY),
+      Paint()..color = const Color(0x14FFFFFF)..strokeWidth = 1);
+
+    canvas.drawPath(posPath, posPaint);
+    canvas.drawPath(negPath, negPaint);
+
+    // Draw dot at last point
+    final lastX = (values.length - 1) * stepX;
+    final lastY = midY - values.last * scaleY;
+    canvas.drawCircle(
+      Offset(lastX, lastY),
+      3,
+      Paint()..color = values.last >= 0 ? const Color(0xFF22C55E) : const Color(0xFFEF4444),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_SparklinePainter old) => old.values != values;
 }
