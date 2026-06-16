@@ -110,8 +110,10 @@ class ProjectCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 10),
-                const Expanded(
-                  child: _StatItem(label: 'OPERATSIYA', value: '...'),
+                Expanded(
+                  child: project.role == 'owner'
+                      ? _StatItem(label: 'KIRIM', value: formatMoney(project.kirim), color: const Color(0xFF16A34A))
+                      : _StatItem(label: 'ISHHAQI', value: formatMoney(project.ishaqi), color: AppColors.accentTeal),
                 ),
               ],
             ),
