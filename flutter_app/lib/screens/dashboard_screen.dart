@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../data/currency_repository.dart';
 import '../data/profile_repository.dart';
 import '../data/project_repository.dart';
+import '../data/task_repository.dart';
 import '../data/transaction_repository.dart';
 import '../main.dart';
 import '../models/currency.dart';
@@ -26,8 +27,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final _repo = ProjectRepository();
   final _txRepo = TransactionRepository();
   final _profileRepo = ProfileRepository();
+  final _taskRepo = TaskRepository();
   List<Project> _projects = [];
   List<ProjectTransaction> _recentTxs = [];
+  List<UpcomingTask> _upcomingTasks = [];
   Profile? _profile;
   bool _loading = true;
   String? _error;
@@ -54,10 +57,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
       try {
         profile = await _profileRepo.loadCurrent();
       } catch (_) {}
+      List<UpcomingTask> upcomingTasks = [];
+      try {
+        upcomingTasks = await _taskRepo.loadUpcoming(projects);
+      } catch (_) {}
       if (!mounted) return;
       setState(() {
         _projects = projects;
         _recentTxs = recentTxs;
+        _upcomingTasks = upcomingTasks;
         _profile = profile;
         _loading = false;
       });
@@ -356,9 +364,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final totalOut = _projects.fold<num>(0, (s, p) => s + p.chiqim);
     final showRecent = _recentTxs.isNotEmpty;
     final showSearch = activeProjects.length > 3;
+    final showUpcoming = _upcomingTasks.isNotEmpty;
     final headerOffset = showSearch ? 3 : 2;
     final headerCount = filteredProjects.length + headerOffset;
-    final doneStart = headerCount + (showRecent ? 1 + _recentTxs.length : 0);
+    final recentEnd = headerCount + (showRecent ? 1 + _recentTxs.length : 0);
+    final upcomingEnd = recentEnd + (showUpcoming ? 1 + _upcomingTasks.length : 0);
+    final doneStart = upcomingEnd;
     final itemCount = doneStart + (doneProjects.isNotEmpty ? 1 + doneProjects.length : 0);
 
     return ListView.builder(
@@ -432,7 +443,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             },
           );
         }
-        if (showRecent && index < doneStart) {
+        if (showRecent && index < recentEnd) {
           if (index == headerCount) {
             return Padding(
               padding: const EdgeInsets.only(top: 8, bottom: 12, left: 4),
@@ -443,7 +454,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             );
           }
           final tx = _recentTxs[index - headerCount - 1];
-          final isLast = index == doneStart - 1;
+          final isLast = index == recentEnd - 1;
           return _RecentTxTile(
             tx: tx,
             obNomi: projectNames[tx.obId] ?? '',
@@ -457,6 +468,74 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: project)),
               );
             },
+          );
+        }
+        if (showUpcoming && index < upcomingEnd) {
+          if (index == recentEnd) {
+            return Padding(
+              padding: const EdgeInsets.only(top: 8, bottom: 12, left: 4),
+              child: Row(
+                children: [
+                  Text(
+                    "Yaqinlashgan muddatlar",
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent.withOpacity(0.14),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '${_upcomingTasks.length}',
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.redAccent),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+          final ut = _upcomingTasks[index - recentEnd - 1];
+          final isOverdue = ut.task.muddat!.isBefore(DateTime.now());
+          final dateStr = DateFormat('dd.MM').format(ut.task.muddat!);
+          return Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: isOverdue ? Colors.redAccent.withOpacity(0.4) : AppColors.border),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 8, height: 8,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isOverdue ? Colors.redAccent : const Color(0xFFF59E0B),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(ut.task.nomi, style: const TextStyle(fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis),
+                      Text(ut.obNomi, style: const TextStyle(fontSize: 12, color: AppColors.muted, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+                Text(
+                  isOverdue ? 'Kechikkan' : dateStr,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: isOverdue ? Colors.redAccent : const Color(0xFFF59E0B),
+                  ),
+                ),
+              ],
+            ),
           );
         }
         if (index == doneStart) {
