@@ -704,25 +704,60 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     _load();
   }
 
-  Future<void> _deleteTask(ObTask task) async {
-    final confirm = await showDialog<bool>(
+  Future<void> _openTaskMenu(ObTask task) async {
+    final action = await showModalBottomSheet<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Vazifani o'chirish"),
-        content: Text("'${task.nomi}' vazifasini o'chirasizmi?"),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text("Yo'q")),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
-            child: const Text("Ha, o'chir"),
-          ),
-        ],
+      backgroundColor: AppColors.card,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(task.nomi, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 2),
+            Text(task.statusLabel, style: const TextStyle(color: AppColors.muted, fontSize: 13)),
+            const SizedBox(height: 16),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.refresh_rounded, color: AppColors.accentTeal),
+              title: const Text('Holatini o\'zgartirish'),
+              onTap: () => Navigator.of(ctx).pop('toggle'),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+              title: const Text('O\'chirish', style: TextStyle(color: Colors.redAccent)),
+              onTap: () => Navigator.of(ctx).pop('delete'),
+            ),
+          ],
+        ),
       ),
     );
-    if (confirm == true) {
-      await _taskRepo.deleteTask(task.id);
-      _load();
+
+    if (action == 'toggle') {
+      await _toggleTask(task);
+    } else if (action == 'delete') {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text("Vazifani o'chirish"),
+          content: Text("'${task.nomi}' vazifasini o'chirasizmi?"),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text("Yo'q")),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+              child: const Text("Ha, o'chir"),
+            ),
+          ],
+        ),
+      );
+      if (confirm == true) {
+        await _taskRepo.deleteTask(task.id);
+        _load();
+      }
     }
   }
 
@@ -1405,7 +1440,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                     const order = {'todo': 0, 'progress': 1, 'done': 2};
                     return (order[a.holat] ?? 0).compareTo(order[b.holat] ?? 0);
                   }))
-                  .map((t) => TaskRow(task: t, onTap: () => _toggleTask(t), onLongPress: () => _deleteTask(t))),
+                  .map((t) => TaskRow(task: t, onTap: () => _toggleTask(t), onLongPress: () => _openTaskMenu(t))),
             const SizedBox(height: 24),
             Text(
               'Materiallar',
