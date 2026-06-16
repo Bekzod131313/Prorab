@@ -455,6 +455,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               title: const Text('Chiqim qo\'shish'),
               onTap: () => Navigator.of(ctx).pop('expense'),
             ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.copy_rounded, color: AppColors.muted),
+              title: const Text('Nusxa ko\'chirish'),
+              onTap: () => Navigator.of(ctx).pop('duplicate'),
+            ),
           ],
         ),
       ),
@@ -478,6 +484,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
         MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: project, quickAddIncome: false)),
       );
       _load();
+    } else if (action == 'duplicate') {
+      await _repo.createProject(
+        nomi: '${project.nomi} (nusxa)',
+        muddat: project.muddat,
+        manzil: project.manzil,
+        mijoz: project.mijoz,
+        bosqich: project.bosqich,
+        boshlanish: DateTime.now(),
+      );
+      _load();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nusxa yaratildi')));
+      }
     }
   }
 
