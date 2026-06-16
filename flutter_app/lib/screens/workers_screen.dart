@@ -46,6 +46,38 @@ class _WorkersScreenState extends State<WorkersScreen> {
     });
   }
 
+  Future<void> _payAllWorkers() async {
+    final owing = _workers.where((w) => w.balans > 0 && w.obsList.isNotEmpty).toList();
+    if (owing.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("To'lanadigan ishchi yo'q")));
+      return;
+    }
+    final total = owing.fold<num>(0, (s, w) => s + w.balans);
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Hammaga avans berish"),
+        content: Text("${owing.length} ta ishchiga jami ${formatMoney(total)} so'm avans beriladi. Davom etasizmi?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Bekor')),
+          ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text("Ha, berish")),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    int success = 0;
+    for (final w in owing) {
+      try {
+        final ob = w.obsList.first;
+        await _repo.giveAvans(obId: ob.obId, toUserId: w.userId, amount: w.balans, izoh: 'Hammaga avans');
+        success++;
+      } catch (_) {}
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$success ta ishchiga avans berildi")));
+    _load();
+  }
+
   Future<void> _exportWorkers() async {
     final date = DateFormat('dd.MM.yyyy').format(DateTime.now());
     final buf = StringBuffer();
@@ -180,6 +212,12 @@ class _WorkersScreenState extends State<WorkersScreen> {
         backgroundColor: AppColors.bg,
         title: const Text('Ishchilar'),
         actions: [
+          if (_workers.any((w) => w.balans > 0))
+            IconButton(
+              icon: const Icon(Icons.payments_rounded),
+              tooltip: 'Hammaga avans',
+              onPressed: _payAllWorkers,
+            ),
           if (_workers.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.ios_share_rounded),
