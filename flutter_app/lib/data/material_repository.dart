@@ -17,6 +17,7 @@ class MaterialRepository {
     required String nomi,
     required num miqdor,
     required String birlik,
+    num? narx,
   }) async {
     await supabase.from('materials').insert({
       'ob_id': obId,
@@ -24,6 +25,7 @@ class MaterialRepository {
       'miqdor': miqdor,
       'birlik': birlik,
       'holat': 'kerak',
+      if (narx != null && narx > 0) 'narx': narx,
     });
   }
 
