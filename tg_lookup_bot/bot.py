@@ -1,82 +1,140 @@
 """
-Telegram Contact Info Bot
-Kimdir yozsa - username va ID sini qaytaradi.
-Telefon raqam uchun "Kontakt ulash" tugmasi chiqaradi.
+Telegram Phone Number Lookup Bot
+Raqam orqali Telegram profilini topadi.
+Python 3.7 uchun moslangan.
 """
 
-from telegram import Update, KeyboardButton, ReplyKeyboardMarkup
+import asyncio
+import threading
+import logging
+from telethon.sync import TelegramClient
+from telethon.tl.functions.contacts import ImportContactsRequest, DeleteContactsRequest
+from telethon.tl.types import InputPhoneContact
+from telegram import Update
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 
-BOT_TOKEN = ""  # @BotFather dan olgan token
+logging.basicConfig(level=logging.INFO)
+
+# === BU YERGA O'Z MA'LUMOTLARINGIZNI YOZING ===
+API_ID = 0                    # my.telegram.org dan
+API_HASH = ""                 # my.telegram.org dan
+BOT_TOKEN = ""                # @BotFather dan
+PHONE_NUMBER = ""             # Sizning raqamingiz: +998901234567
+# ===============================================
+
+SESSION_NAME = "lookup_session"
+client = None
+loop = None
+
+
+def start_telethon_thread():
+    global client, loop
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    client = TelegramClient(SESSION_NAME, API_ID, API_HASH, loop=loop)
+    client.start(phone=PHONE_NUMBER)
+    print("Telethon ulandi!")
+    loop.run_forever()
+
+
+def lookup_phone_sync(phone):
+    phone = phone.strip().replace(" ", "").replace("-", "")
+    if not phone.startswith("+"):
+        phone = "+" + phone
+
+    async def _lookup():
+        contact = InputPhoneContact(client_id=0, phone=phone, first_name="lookup", last_name="")
+        try:
+            result = await client(ImportContactsRequest([contact]))
+            users = result.users
+            if not users:
+                # username orqali ham sinab ko'ramiz
+                try:
+                    entity = await client.get_entity(phone)
+                    return {
+                        "id": entity.id,
+                        "first_name": getattr(entity, "first_name", "") or "",
+                        "last_name": getattr(entity, "last_name", "") or "",
+                        "username": getattr(entity, "username", None),
+                        "phone": getattr(entity, "phone", None),
+                    }
+                except:
+                    return None
+            user = users[0]
+            await client(DeleteContactsRequest(id=[user]))
+            return {
+                "id": user.id,
+                "first_name": user.first_name or "",
+                "last_name": user.last_name or "",
+                "username": user.username,
+                "phone": getattr(user, "phone", None),
+            }
+        except Exception as e:
+            logging.error("Lookup xatosi: %s", e)
+            return None
+
+    future = asyncio.run_coroutine_threadsafe(_lookup(), loop)
+    try:
+        return future.result(timeout=15)
+    except Exception as e:
+        logging.error("Timeout: %s", e)
+        return None
+
 
 def cmd_start(update: Update, context: CallbackContext):
-    user = update.effective_user
-    name = (user.first_name or "") + " " + (user.last_name or "")
-    username = "@" + user.username if user.username else "username yoq"
-
-    # Telefon raqam so'rash tugmasi
-    button = KeyboardButton("📞 Raqamimni yuborish", request_contact=True)
-    keyboard = ReplyKeyboardMarkup([[button]], resize_keyboard=True, one_time_keyboard=True)
-
     update.message.reply_text(
-        "Salom, {}!\n\n"
-        "Sizning ma'lumotlaringiz:\n"
-        "👤 Ism: {}\n"
-        "🔗 Username: {}\n"
-        "🆔 ID: {}\n\n"
-        "Telefon raqamingizni ham ko'rish uchun quyidagi tugmani bosing:".format(
-            user.first_name, name.strip(), username, user.id
-        ),
-        reply_markup=keyboard
-    )
-
-
-def handle_contact(update: Update, context: CallbackContext):
-    contact = update.message.contact
-    user = update.effective_user
-    username = "@" + user.username if user.username else "username yoq"
-
-    update.message.reply_text(
-        "✅ To'liq ma'lumot:\n\n"
-        "👤 Ism: {} {}\n"
-        "🔗 Username: {}\n"
-        "🆔 ID: {}\n"
-        "📞 Raqam: {}".format(
-            contact.first_name or "",
-            contact.last_name or "",
-            username,
-            user.id,
-            contact.phone_number
-        )
+        "Telefon Lookup Bot\n\n"
+        "Menga telefon raqam yuboring — Telegram profilini topib beraman.\n\n"
+        "Format: +998901234567"
     )
 
 
 def handle_message(update: Update, context: CallbackContext):
-    user = update.effective_user
-    username = "@" + user.username if user.username else "username yoq"
-    name = (user.first_name or "") + " " + (user.last_name or "")
+    text = update.message.text.strip()
+    digits = text.replace("+", "").replace(" ", "").replace("-", "")
 
-    button = KeyboardButton("📞 Raqamimni yuborish", request_contact=True)
-    keyboard = ReplyKeyboardMarkup([[button]], resize_keyboard=True, one_time_keyboard=True)
+    if not digits.isdigit() or len(digits) < 7:
+        update.message.reply_text("Telefon raqam yuboring.\nMasalan: +998901234567")
+        return
 
-    update.message.reply_text(
-        "Siz haqingizda:\n\n"
-        "👤 Ism: {}\n"
-        "🔗 Username: {}\n"
-        "🆔 ID: {}\n\n"
-        "Raqamingizni ko'rish uchun tugmani bosing:".format(
-            name.strip(), username, user.id
-        ),
-        reply_markup=keyboard
+    msg = update.message.reply_text("Qidirilmoqda...")
+
+    try:
+        result = lookup_phone_sync(text)
+    except Exception as e:
+        msg.edit_text("Xato: {}".format(str(e)))
+        return
+
+    if result is None:
+        msg.edit_text(
+            "Topilmadi.\n\n"
+            "Sabab: Bu raqam Telegram'da yoq yoki foydalanuvchi "
+            "raqamini yashirgan (privacy sozlamasi)."
+        )
+        return
+
+    name = "{} {}".format(result["first_name"], result["last_name"]).strip()
+    username_line = "Username: @{}\n".format(result["username"]) if result["username"] else ""
+    profile_link = "tg://user?id={}".format(result["id"])
+
+    msg.edit_text(
+        "Topildi!\n\n"
+        "Ism: {}\n"
+        "{}ID: {}\n"
+        "Profil: {}".format(name, username_line, result["id"], profile_link)
     )
 
 
 def main():
+    t = threading.Thread(target=start_telethon_thread, daemon=True)
+    t.start()
+
+    import time
+    time.sleep(5)
+
     updater = Updater(BOT_TOKEN)
     dp = updater.dispatcher
-
     dp.add_handler(CommandHandler("start", cmd_start))
-    dp.add_handler(MessageHandler(Filters.contact, handle_contact))
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
 
     print("Bot ishlamoqda...")
