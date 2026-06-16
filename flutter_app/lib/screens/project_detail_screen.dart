@@ -412,6 +412,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         kategoriya: 'ishchi',
         izoh: result['izoh'] as String?,
         toUserId: member.userId,
+        txDate: result['txDate'] as DateTime?,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1296,6 +1297,7 @@ class _SendMoneySheet extends StatefulWidget {
 class _SendMoneySheetState extends State<_SendMoneySheet> {
   final _amountCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
+  DateTime _txDate = DateTime.now();
 
   @override
   Widget build(BuildContext context) {
@@ -1318,6 +1320,35 @@ class _SendMoneySheetState extends State<_SendMoneySheet> {
           controller: _noteCtrl,
           decoration: const InputDecoration(hintText: 'Izoh...'),
         ),
+        const SizedBox(height: 12),
+        InkWell(
+          onTap: () async {
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: _txDate,
+              firstDate: DateTime(2020),
+              lastDate: DateTime.now().add(const Duration(days: 1)),
+            );
+            if (picked != null) setState(() => _txDate = picked);
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.border),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.muted),
+                const SizedBox(width: 10),
+                Text(
+                  DateFormat('dd.MM.yyyy').format(_txDate),
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+        ),
         const SizedBox(height: 20),
         ElevatedButton(
           onPressed: () {
@@ -1326,6 +1357,7 @@ class _SendMoneySheetState extends State<_SendMoneySheet> {
             Navigator.of(context).pop({
               'amount': amount,
               'izoh': _noteCtrl.text.trim().isNotEmpty ? _noteCtrl.text.trim() : null,
+              'txDate': _txDate,
             });
           },
           child: const Text('Yuborish'),
