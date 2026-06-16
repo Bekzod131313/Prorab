@@ -33,6 +33,15 @@ class MaterialRepository {
     await supabase.from('materials').update({'holat': holat}).eq('id', id);
   }
 
+  Future<void> updateMaterial(String id, {required String nomi, required num miqdor, required String birlik, num? narx}) async {
+    await supabase.from('materials').update({
+      'nomi': nomi,
+      'miqdor': miqdor,
+      'birlik': birlik,
+      'narx': (narx != null && narx > 0) ? narx : null,
+    }).eq('id', id);
+  }
+
   Future<void> deleteMaterial(String id) async {
     await supabase.from('materials').delete().eq('id', id);
   }
