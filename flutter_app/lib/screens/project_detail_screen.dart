@@ -1578,6 +1578,69 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 ),
               );
             }),
+            if (_project.role == 'owner' && _txs.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Builder(builder: (context) {
+                final userId = supabase.auth.currentUser?.id ?? '';
+                final catMap = <String, num>{};
+                for (final tx in _txs) {
+                  if (tx.isExpenseFor(userId)) {
+                    final cat = tx.kategoriya?.isNotEmpty == true ? tx.kategoriya! : 'Boshqa';
+                    catMap[cat] = (catMap[cat] ?? 0) + tx.summa;
+                  }
+                }
+                if (catMap.isEmpty) return const SizedBox.shrink();
+                final entries = catMap.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+                final maxVal = entries.first.value;
+                const catColors = [Color(0xFF3B82F6), Color(0xFFF59E0B), Color(0xFFF43F5E), Color(0xFFA855F7), Color(0xFF22C55E), Color(0xFF0891B2)];
+                return Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Xarajat taqsimoti', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                      const SizedBox(height: 12),
+                      for (var i = 0; i < entries.length && i < 5; i++) ...[
+                        if (i > 0) const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(entries[i].key, style: const TextStyle(fontSize: 12, color: AppColors.muted, fontWeight: FontWeight.w700)),
+                                      Text(formatMoney(entries[i].value), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: catColors[i % catColors.length])),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: LinearProgressIndicator(
+                                      value: maxVal > 0 ? (entries[i].value / maxVal).clamp(0.0, 1.0) : 0,
+                                      minHeight: 7,
+                                      backgroundColor: AppColors.border,
+                                      valueColor: AlwaysStoppedAnimation(catColors[i % catColors.length]),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              }),
+            ],
             const SizedBox(height: 20),
             Builder(builder: (context) {
               final userId = supabase.auth.currentUser?.id ?? '';
