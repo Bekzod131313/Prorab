@@ -12,6 +12,7 @@ import '../theme/app_theme.dart';
 import '../widgets/add_member_sheet.dart';
 import '../widgets/member_row.dart' show colorForName;
 import '../widgets/project_card.dart' show formatMoney;
+import 'worker_detail_screen.dart';
 
 class WorkersScreen extends StatefulWidget {
   const WorkersScreen({super.key});
@@ -720,6 +721,14 @@ class _WorkerDetailSheetState extends State<_WorkerDetailSheet> {
                     style: const TextStyle(fontSize: 13, color: AppColors.muted),
                   ),
                 ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.open_in_new_rounded, color: AppColors.muted),
+              tooltip: 'To\'liq sahifa',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => WorkerDetailScreen(worker: worker)),
               ),
             ),
           ],
