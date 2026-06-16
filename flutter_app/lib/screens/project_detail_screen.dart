@@ -232,7 +232,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     final isIn = tx.isIncomeFor(userId ?? '');
     final dateStr = DateFormat('dd.MM.yyyy HH:mm').format(tx.date);
 
-    final delete = await showModalBottomSheet<bool>(
+    final delete = await showModalBottomSheet<dynamic>(
       context: context,
       backgroundColor: AppColors.card,
       isScrollControlled: true,
@@ -278,8 +278,18 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
               _TxDetailRow(label: 'Izoh', value: tx.izoh!),
             if (canDelete) ...[
               const SizedBox(height: 20),
+              OutlinedButton.icon(
+                onPressed: () => Navigator.of(ctx).pop('edit'),
+                icon: const Icon(Icons.edit_outlined, size: 16),
+                label: const Text("Tahrirlash"),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+              ),
+              const SizedBox(height: 8),
               OutlinedButton(
-                onPressed: () => Navigator.of(ctx).pop(true),
+                onPressed: () => Navigator.of(ctx).pop('delete'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.redAccent,
                   side: const BorderSide(color: Colors.redAccent),
@@ -294,7 +304,57 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       ),
     );
 
-    if (delete == true) {
+    if (delete == 'edit') {
+      final noteCtrl = TextEditingController(text: tx.izoh ?? '');
+      DateTime editDate = tx.date;
+
+      final saved = await showModalBottomSheet<bool>(
+        context: context,
+        backgroundColor: AppColors.card,
+        isScrollControlled: true,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        builder: (ctx) => StatefulBuilder(
+          builder: (ctx, setSS) => Padding(
+            padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 20 + MediaQuery.of(ctx).viewInsets.bottom),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Operatsiyani tahrirlash', style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                const SizedBox(height: 4),
+                Text('Faqat izoh va sana o\'zgartiriladi', style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+                const SizedBox(height: 16),
+                TextField(controller: noteCtrl, decoration: const InputDecoration(hintText: 'Izoh...')),
+                const SizedBox(height: 12),
+                InkWell(
+                  onTap: () async {
+                    final picked = await showDatePicker(context: ctx, initialDate: editDate, firstDate: DateTime(2020), lastDate: DateTime.now().add(const Duration(days: 1)));
+                    if (picked != null) setSS(() => editDate = picked);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                    decoration: BoxDecoration(border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(14)),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.muted),
+                        const SizedBox(width: 10),
+                        Text(DateFormat('dd.MM.yyyy').format(editDate), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Saqlash')),
+              ],
+            ),
+          ),
+        ),
+      );
+      if (saved == true) {
+        await _repo.updateTransactionNote(tx.id, izoh: noteCtrl.text.trim(), txDate: editDate);
+        _load();
+      }
+    } else if (delete == 'delete') {
       final confirm = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
