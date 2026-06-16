@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../data/budget_repository.dart';
 import '../data/category_repository.dart';
+import '../data/client_schedule_repository.dart';
 import '../data/contract_repository.dart';
 import '../data/goal_repository.dart';
 import '../data/notes_repository.dart';
@@ -50,6 +51,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   final _notesRepo = NotesRepository();
   final _contractRepo = ContractRepository();
   final _goalRepo = GoalRepository();
+  final _clientScheduleRepo = ClientScheduleRepository();
   late Project _project;
   List<ProjectTransaction> _txs = [];
   List<ObMember> _members = [];
@@ -59,6 +61,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   Map<String, num> _budgets = {};
   ProjectContract? _contract;
   ProjectGoal? _goal;
+  ClientSchedule? _clientSchedule;
   String? _tasksError;
   String? _materialsError;
   bool _loading = true;
@@ -132,6 +135,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     } catch (_) {}
     try {
       _goal = await _goalRepo.load(_project.id);
+    } catch (_) {}
+    try {
+      _clientSchedule = await _clientScheduleRepo.load(_project.id);
     } catch (_) {}
     if (mounted) setState(() {});
   }
@@ -1570,6 +1576,75 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     profitCtrl.dispose(); kirimCtrl.dispose(); noteCtrl.dispose();
   }
 
+  Future<void> _addClientPayment() async {
+    final amountCtrl = TextEditingController();
+    final noteCtrl = TextEditingController();
+    var date = DateTime.now().add(const Duration(days: 30));
+
+    final saved = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: AppColors.card,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) => Padding(
+          padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 20 + MediaQuery.of(ctx).viewInsets.bottom),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text("To'lov qo'shish", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+              const SizedBox(height: 14),
+              TextField(controller: amountCtrl, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(hintText: "Summa (so'm)")),
+              const SizedBox(height: 10),
+              TextField(controller: noteCtrl, decoration: const InputDecoration(hintText: 'Izoh (ixtiyoriy)')),
+              const SizedBox(height: 10),
+              InkWell(
+                onTap: () async {
+                  final picked = await showDatePicker(context: ctx, initialDate: date, firstDate: DateTime.now(), lastDate: DateTime(2100));
+                  if (picked != null) setSheet(() => date = picked);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                  decoration: BoxDecoration(border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(14)),
+                  child: Row(children: [
+                    const Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.muted),
+                    const SizedBox(width: 10),
+                    Text(DateFormat('dd.MM.yyyy').format(date), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                  ]),
+                ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  if (num.tryParse(amountCtrl.text.trim()) == null) return;
+                  Navigator.pop(ctx, true);
+                },
+                child: const Text('Saqlash'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (saved == true) {
+      final amount = num.parse(amountCtrl.text.trim());
+      await _clientScheduleRepo.addPayment(
+        _project.id,
+        ClientPayment(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          amount: amount,
+          date: date,
+          izoh: noteCtrl.text.trim().isNotEmpty ? noteCtrl.text.trim() : null,
+        ),
+      );
+      _clientSchedule = await _clientScheduleRepo.load(_project.id);
+      if (mounted) setState(() {});
+    }
+    amountCtrl.dispose(); noteCtrl.dispose();
+  }
+
   Future<void> _openAddNote() async {
     final ctrl = TextEditingController();
     final saved = await showModalBottomSheet<bool>(
@@ -2032,6 +2107,101 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                         _ContractRow(label: 'Shartnoma sanasi', value: DateFormat('dd.MM.yyyy').format(_contract!.shartnomaSana!)),
                       if (_contract!.izoh?.isNotEmpty == true)
                         _ContractRow(label: 'Izoh', value: _contract!.izoh!),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+            if (_project.role == 'owner') ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(18), border: Border.all(color: AppColors.border)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Expanded(child: Text("Mijoz to'lov jadvali", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14))),
+                        TextButton.icon(
+                          onPressed: _addClientPayment,
+                          icon: const Icon(Icons.add_rounded, size: 16),
+                          label: const Text("Qo'shish"),
+                          style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
+                        ),
+                      ],
+                    ),
+                    if (_clientSchedule == null || _clientSchedule!.payments.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: Text("To'lov jadvali yo'q", style: TextStyle(color: AppColors.muted, fontSize: 13)),
+                      )
+                    else ...[
+                      const SizedBox(height: 8),
+                      // Progress bar
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: LinearProgressIndicator(
+                          value: _clientSchedule!.contractTotal > 0
+                              ? (_clientSchedule!.totalReceived / _clientSchedule!.contractTotal).clamp(0, 1).toDouble()
+                              : 0,
+                          minHeight: 8,
+                          backgroundColor: AppColors.border,
+                          valueColor: const AlwaysStoppedAnimation(Color(0xFF22C55E)),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text("Jami: ${formatMoney(_clientSchedule!.totalScheduled)} so'm", style: const TextStyle(fontSize: 11, color: AppColors.muted)),
+                          Text("Olindi: ${formatMoney(_clientSchedule!.totalReceived)} so'm", style: const TextStyle(fontSize: 11, color: Color(0xFF22C55E), fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      for (final p in _clientSchedule!.payments) ...[
+                        GestureDetector(
+                          onTap: p.isReceived ? null : () async {
+                            await _clientScheduleRepo.markPaymentReceived(_project.id, p.id);
+                            _clientSchedule = await _clientScheduleRepo.load(_project.id);
+                            if (mounted) setState(() {});
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: p.isReceived ? const Color(0xFF22C55E).withOpacity(0.08) : AppColors.bg,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: p.isReceived ? const Color(0xFF22C55E).withOpacity(0.3) : AppColors.border),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  p.isReceived ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                                  size: 18,
+                                  color: p.isReceived ? const Color(0xFF22C55E) : AppColors.muted,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(DateFormat('dd.MM.yyyy').format(p.date),
+                                        style: TextStyle(fontSize: 12, color: p.isReceived ? AppColors.muted : AppColors.text2, fontWeight: FontWeight.w600)),
+                                      if (p.izoh?.isNotEmpty == true)
+                                        Text(p.izoh!, style: const TextStyle(fontSize: 11, color: AppColors.muted)),
+                                    ],
+                                  ),
+                                ),
+                                Text("${formatMoney(p.amount)} so'm",
+                                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13,
+                                    color: p.isReceived ? const Color(0xFF22C55E) : AppColors.text,
+                                    decoration: p.isReceived ? TextDecoration.lineThrough : null)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ],
                 ),
