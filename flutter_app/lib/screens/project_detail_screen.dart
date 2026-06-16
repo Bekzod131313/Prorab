@@ -1332,6 +1332,36 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
               style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 10),
+            if (_tasks.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Builder(builder: (context) {
+                  final done = _tasks.where((t) => t.holat == 'done').length;
+                  final pct = _tasks.isEmpty ? 0.0 : done / _tasks.length;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('$done / ${_tasks.length} bajarildi', style: const TextStyle(fontSize: 12, color: AppColors.muted, fontWeight: FontWeight.w700)),
+                          Text('${(pct * 100).round()}%', style: const TextStyle(fontSize: 12, color: AppColors.accentTeal, fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: LinearProgressIndicator(
+                          value: pct,
+                          minHeight: 6,
+                          backgroundColor: AppColors.border,
+                          valueColor: const AlwaysStoppedAnimation(AppColors.accentTeal),
+                        ),
+                      ),
+                    ],
+                  );
+                }),
+              ),
             OutlinedButton.icon(
               onPressed: _openAddTask,
               icon: const Icon(Icons.add_task_rounded),
