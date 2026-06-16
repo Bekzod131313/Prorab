@@ -1359,6 +1359,30 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     }
   }
 
+  Future<void> _shareProjectSummary() async {
+    final df = DateFormat('dd.MM.yyyy');
+    final start = _project.boshlanish ?? _project.createdAt;
+    final done = _tasks.where((t) => t.holat == 'done').length;
+    final lines = [
+      '📊 Loyiha hisoboti',
+      '🏗 ${_project.nomi}',
+      if (_project.manzil?.isNotEmpty == true) '📍 ${_project.manzil}',
+      if (_project.mijoz?.isNotEmpty == true) '👤 Mijoz: ${_project.mijoz}',
+      '📅 ${df.format(start)}',
+      if (_project.bosqich?.isNotEmpty == true) '🔖 Bosqich: ${_project.bosqich}',
+      '',
+      '💰 Kirim: +${formatMoney(_project.kirim)} so\'m',
+      '💸 Chiqim: -${formatMoney(_project.chiqim)} so\'m',
+      '📈 Foyda: ${_project.balance >= 0 ? '+' : ''}${formatMoney(_project.balance)} so\'m',
+      '',
+      if (_tasks.isNotEmpty) '✅ Vazifalar: $done/${_tasks.length} bajarildi',
+      if (_members.isNotEmpty) '👷 Ishchilar: ${_members.where((m) => m.role != 'owner').length} kishi',
+      '',
+      '#moliya #hisobot',
+    ];
+    await Share.share(lines.join('\n'), subject: '${_project.nomi} hisoboti');
+  }
+
   @override
   Widget build(BuildContext context) {
     final project = _project;
@@ -1372,6 +1396,10 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         backgroundColor: AppColors.bg,
         title: Text(project.nomi),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.ios_share_rounded),
+            onPressed: _shareProjectSummary,
+          ),
           if (project.role == 'owner')
             IconButton(
               icon: const Icon(Icons.edit_outlined),
