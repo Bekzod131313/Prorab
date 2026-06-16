@@ -35,6 +35,7 @@ import 'checklist_screen.dart';
 import 'budget_screen.dart';
 import 'notes_screen.dart';
 import 'analytics_screen.dart';
+import 'kanban_screen.dart';
 
 class ProjectDetailScreen extends StatefulWidget {
   final Project project;
@@ -1793,6 +1794,14 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         backgroundColor: AppColors.bg,
         title: Text(project.nomi),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.view_kanban_rounded),
+            tooltip: 'Kanban',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => KanbanScreen(project: _project)),
+            ).then((_) => _load()),
+          ),
           IconButton(
             icon: const Icon(Icons.bar_chart_rounded),
             tooltip: 'Tahlil',
