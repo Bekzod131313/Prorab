@@ -8,6 +8,7 @@ import '../data/member_repository.dart';
 import '../data/project_repository.dart';
 import '../data/task_repository.dart';
 import '../data/transaction_repository.dart';
+import '../data/worker_repository.dart';
 import '../main.dart';
 import '../widgets/add_member_sheet.dart';
 import '../models/material.dart';
@@ -38,6 +39,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   final _projectRepo = ProjectRepository();
   final _taskRepo = TaskRepository();
   final _materialRepo = MaterialRepository();
+  final _workerRepo = WorkerRepository();
   late Project _project;
   List<ProjectTransaction> _txs = [];
   List<ObMember> _members = [];
@@ -418,10 +420,24 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
             ),
             if (canSend) ...[
               const SizedBox(height: 12),
-              ElevatedButton.icon(
-                onPressed: () => Navigator.of(ctx).pop('send'),
-                icon: const Icon(Icons.send_rounded),
-                label: const Text('Pul yuborish'),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => Navigator.of(ctx).pop('send'),
+                      icon: const Icon(Icons.send_rounded, size: 18),
+                      label: const Text('Avans'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.of(ctx).pop('ishhaqi'),
+                      icon: const Icon(Icons.payments_outlined, size: 18),
+                      label: const Text('Ish haqi'),
+                    ),
+                  ),
+                ],
               ),
             ],
             if (_project.role == 'owner') ...[
@@ -461,6 +477,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
 
     if (action == 'send') {
       await _openSendMoney(member);
+    } else if (action == 'ishhaqi') {
+      await _openRecordIshHaqi(member);
     } else if (action == 'remove') {
       final confirm = await showDialog<bool>(
         context: context,
@@ -513,6 +531,48 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         kategoriya: 'ishchi',
         izoh: result['izoh'] as String?,
         toUserId: member.userId,
+        txDate: result['txDate'] as DateTime?,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Saqlandi')),
+      );
+      _load();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
+  }
+
+  Future<void> _openRecordIshHaqi(ObMember member) async {
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      backgroundColor: AppColors.card,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: 20 + MediaQuery.of(ctx).viewInsets.bottom,
+        ),
+        child: _SendMoneySheet(member: member, title: 'Ish haqi yozish'),
+      ),
+    );
+
+    if (result == null) return;
+
+    try {
+      await _workerRepo.giveIshHaqi(
+        obId: _project.id,
+        toUserId: member.userId,
+        amount: result['amount'] as num,
+        izoh: result['izoh'] as String?,
         txDate: result['txDate'] as DateTime?,
       );
       if (!mounted) return;
@@ -1572,8 +1632,9 @@ class _InfoTile extends StatelessWidget {
 
 class _SendMoneySheet extends StatefulWidget {
   final ObMember member;
+  final String title;
 
-  const _SendMoneySheet({required this.member});
+  const _SendMoneySheet({required this.member, this.title = 'Pul yuborish'});
 
   @override
   State<_SendMoneySheet> createState() => _SendMoneySheetState();
@@ -1591,7 +1652,7 @@ class _SendMoneySheetState extends State<_SendMoneySheet> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          '${widget.member.displayName}ga pul yuborish',
+          '${widget.member.displayName}: ${widget.title}',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 16),
