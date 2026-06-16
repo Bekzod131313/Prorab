@@ -1,4 +1,5 @@
 import '../main.dart';
+import '../models/project.dart';
 import '../models/task.dart';
 
 class TaskRepository {
@@ -38,4 +39,29 @@ class TaskRepository {
   Future<void> deleteTask(String id) async {
     await supabase.from('tasks').delete().eq('id', id);
   }
+
+  Future<List<UpcomingTask>> loadUpcoming(List<Project> projects) async {
+    final obIds = projects.map((p) => p.id).toList();
+    if (obIds.isEmpty) return [];
+    final cutoff = DateTime.now().add(const Duration(days: 7)).toIso8601String().substring(0, 10);
+    final data = await supabase
+        .from('tasks')
+        .select('*')
+        .inFilter('ob_id', obIds)
+        .neq('holat', 'done')
+        .lte('muddat', cutoff)
+        .order('muddat', ascending: true)
+        .limit(10);
+    final obNames = {for (final p in projects) p.id: p.nomi};
+    return (data as List).map((row) {
+      final task = ObTask.fromMap(row as Map<String, dynamic>);
+      return UpcomingTask(task: task, obNomi: obNames[task.obId] ?? '');
+    }).where((t) => t.task.muddat != null).toList();
+  }
+}
+
+class UpcomingTask {
+  final ObTask task;
+  final String obNomi;
+  UpcomingTask({required this.task, required this.obNomi});
 }
