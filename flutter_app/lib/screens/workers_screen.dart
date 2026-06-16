@@ -46,6 +46,32 @@ class _WorkersScreenState extends State<WorkersScreen> {
     });
   }
 
+  Future<void> _quickPayWorker(Worker worker) async {
+    if (worker.balans <= 0 || worker.obsList.isEmpty) return;
+    final ob = worker.obsList.first;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('${worker.displayName}ga to\'lash'),
+        content: Text("${formatMoney(worker.balans)} so'm avans berilsinmi?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Bekor')),
+          ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text("Ha, berish")),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    try {
+      await _repo.giveAvans(obId: ob.obId, toUserId: worker.userId, amount: worker.balans, izoh: 'Tez to\'lov');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("${worker.displayName}ga ${formatMoney(worker.balans)} so'm berildi")));
+      _load();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+  }
+
   Future<void> _payAllWorkers() async {
     final owing = _workers.where((w) => w.balans > 0 && w.obsList.isNotEmpty).toList();
     if (owing.isEmpty) {
@@ -343,7 +369,11 @@ class _WorkersScreenState extends State<WorkersScreen> {
                 child: Center(child: Text("Ishchilar yo'q", style: TextStyle(color: AppColors.muted))),
               )
             else
-              ..._filtered.map((w) => _WorkerCard(worker: w, onTap: () => _openWorkerDetail(w))),
+              ..._filtered.map((w) => _WorkerCard(
+                    worker: w,
+                    onTap: () => _openWorkerDetail(w),
+                    onQuickPay: w.balans > 0 && w.obsList.isNotEmpty ? () => _quickPayWorker(w) : null,
+                  )),
           ],
         ),
       ),
@@ -413,8 +443,9 @@ class _FilterChip extends StatelessWidget {
 class _WorkerCard extends StatelessWidget {
   final Worker worker;
   final VoidCallback onTap;
+  final VoidCallback? onQuickPay;
 
-  const _WorkerCard({required this.worker, required this.onTap});
+  const _WorkerCard({required this.worker, required this.onTap, this.onQuickPay});
 
   @override
   Widget build(BuildContext context) {
@@ -462,9 +493,29 @@ class _WorkerCard extends StatelessWidget {
                 ],
               ),
             ),
-            Text(
-              '${bal >= 0 ? '+' : '-'}${formatMoney(bal.abs())}',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: balColor),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${bal >= 0 ? '+' : '-'}${formatMoney(bal.abs())}',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: balColor),
+                ),
+                if (bal > 0 && onQuickPay != null) ...[
+                  const SizedBox(height: 4),
+                  GestureDetector(
+                    onTap: onQuickPay,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF16A34A).withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFF16A34A).withOpacity(0.3)),
+                      ),
+                      child: const Text('To\'lash', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF16A34A))),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ],
         ),

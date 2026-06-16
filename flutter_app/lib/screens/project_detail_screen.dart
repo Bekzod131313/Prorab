@@ -1974,6 +1974,15 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 ),
               );
             }),
+            const SizedBox(height: 16),
+            _StageStepper(
+              current: _project.bosqich,
+              enabled: _project.role == 'owner',
+              onChanged: (stage) async {
+                await _projectRepo.setBosqich(_project.id, stage);
+                _load();
+              },
+            ),
             if (_project.role == 'owner') ...[
               const SizedBox(height: 16),
               Container(
@@ -3302,6 +3311,111 @@ class _TxFilterChip extends StatelessWidget {
             color: selected ? AppColors.accent : AppColors.text2,
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _StageStepper extends StatelessWidget {
+  static const stages = ['Loyiha', 'Tayyorlov', 'Qurilish', 'Pardozlash', 'Yakunlandi'];
+
+  final String? current;
+  final bool enabled;
+  final ValueChanged<String?> onChanged;
+
+  const _StageStepper({this.current, required this.enabled, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final currentIdx = stages.indexOf(current ?? '');
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text('Bosqich', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+              const Spacer(),
+              if (current != null && enabled)
+                GestureDetector(
+                  onTap: () => onChanged(null),
+                  child: const Text('Tozalash', style: TextStyle(fontSize: 11, color: AppColors.muted)),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: List.generate(stages.length * 2 - 1, (i) {
+              if (i.isOdd) {
+                final stageIdx = i ~/ 2;
+                final passed = currentIdx >= stageIdx + 1;
+                return Expanded(
+                  child: Container(
+                    height: 2,
+                    color: passed ? AppColors.accentTeal : AppColors.border,
+                  ),
+                );
+              }
+              final stageIdx = i ~/ 2;
+              final isActive = currentIdx == stageIdx;
+              final isPassed = currentIdx > stageIdx;
+              return GestureDetector(
+                onTap: enabled ? () => onChanged(stages[stageIdx]) : null,
+                child: Container(
+                  width: 28,
+                  height: 28,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isPassed
+                        ? AppColors.accentTeal
+                        : isActive
+                            ? AppColors.accent
+                            : AppColors.bg,
+                    border: Border.all(
+                      color: isPassed || isActive ? Colors.transparent : AppColors.border,
+                      width: 2,
+                    ),
+                  ),
+                  child: isPassed
+                      ? const Icon(Icons.check, size: 14, color: Colors.white)
+                      : isActive
+                          ? const Icon(Icons.circle, size: 8, color: Colors.white)
+                          : Text('${stageIdx + 1}', style: const TextStyle(fontSize: 10, color: AppColors.muted, fontWeight: FontWeight.w700)),
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: List.generate(stages.length, (i) {
+              final isActive = currentIdx == i;
+              final isPassed = currentIdx > i;
+              return Expanded(
+                child: Text(
+                  stages[i],
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    color: isPassed
+                        ? AppColors.accentTeal
+                        : isActive
+                            ? AppColors.accent
+                            : AppColors.muted,
+                  ),
+                ),
+              );
+            }),
+          ),
+        ],
       ),
     );
   }

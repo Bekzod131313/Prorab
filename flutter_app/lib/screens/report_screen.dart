@@ -27,6 +27,7 @@ class _ReportScreenState extends State<ReportScreen> {
   bool _loading = true;
   String? _error;
   ReportData? _data;
+  List<Project> _projects = [];
 
   @override
   void initState() {
@@ -44,6 +45,7 @@ class _ReportScreenState extends State<ReportScreen> {
       final data = await _reportRepo.load(projects, period: _period);
       if (!mounted) return;
       setState(() {
+        _projects = projects;
         _data = data;
         _loading = false;
       });
@@ -93,6 +95,14 @@ class _ReportScreenState extends State<ReportScreen> {
         backgroundColor: AppColors.bg,
         title: const Text('Hisobot'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.inventory_2_outlined),
+            tooltip: 'Materiallar',
+            onPressed: _projects.isEmpty ? null : () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => MaterialsScreen(projects: _projects)),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.ios_share_rounded),
             onPressed: _data == null ? null : _exportCsv,
