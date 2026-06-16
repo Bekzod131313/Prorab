@@ -295,8 +295,25 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     );
 
     if (delete == true) {
-      await _repo.deleteTransaction(tx.id);
-      _load();
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text("O'chirishni tasdiqlang"),
+          content: const Text("Bu amal moliyaviy hisobotlarga ta'sir qiladi. Davom etasizmi?"),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text("Bekor")),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+              child: const Text("O'chir"),
+            ),
+          ],
+        ),
+      );
+      if (confirm == true) {
+        await _repo.deleteTransaction(tx.id);
+        _load();
+      }
     }
   }
 
