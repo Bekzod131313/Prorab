@@ -20,6 +20,7 @@ import 'project_detail_screen.dart';
 import 'search_screen.dart';
 import 'calendar_screen.dart';
 import 'tasks_screen.dart';
+import 'archive_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -323,6 +324,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => SearchScreen(projects: _projects)),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.archive_outlined),
+            tooltip: 'Arxiv',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ArchiveScreen()),
             ),
           ),
           IconButton(
