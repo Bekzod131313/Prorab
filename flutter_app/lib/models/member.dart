@@ -4,7 +4,8 @@ class ObMember {
   final String obId;
   final String userId;
   final String role;
-  final num balance;
+  final num ishaqi;
+  final num olingan;
   final String? kasb;
   final String? addedBy;
   final Profile? profile;
@@ -13,11 +14,14 @@ class ObMember {
     required this.obId,
     required this.userId,
     required this.role,
-    required this.balance,
+    required this.ishaqi,
+    required this.olingan,
     required this.kasb,
     required this.addedBy,
     required this.profile,
   });
+
+  num get balance => ishaqi - olingan;
 
   factory ObMember.fromMap(Map<String, dynamic> row) {
     final profileRow = row['profiles'] as Map<String, dynamic>?;
@@ -25,7 +29,8 @@ class ObMember {
       obId: row['ob_id'].toString(),
       userId: row['user_id'].toString(),
       role: row['role'] ?? 'member',
-      balance: row['balance'] ?? 0,
+      ishaqi: (row['ishaqi'] as num?) ?? 0,
+      olingan: (row['olingan'] as num?) ?? 0,
       kasb: row['kasb'],
       addedBy: row['added_by']?.toString(),
       profile: profileRow != null ? Profile.fromMap(profileRow) : null,
