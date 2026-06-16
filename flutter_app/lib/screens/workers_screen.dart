@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../data/member_repository.dart';
 import '../data/project_repository.dart';
@@ -637,6 +638,29 @@ class _WorkerDetailSheetState extends State<_WorkerDetailSheet> {
             ),
           ),
         ],
+        const SizedBox(height: 20),
+        OutlinedButton.icon(
+          onPressed: () {
+            final w = widget.worker;
+            final date = DateFormat('dd.MM.yyyy').format(DateTime.now());
+            final lines = [
+              '📋 Ishchi hisoboti — $date',
+              '👤 ${w.displayName}${w.kasb?.isNotEmpty == true ? ' (${w.kasb})' : ''}',
+              '',
+              '💰 Jami ish haqi: ${formatMoney(w.ishaqi)} so\'m',
+              '📤 Olingan: ${formatMoney(w.olingan)} so\'m',
+              '💵 Qoldiq: ${w.balans >= 0 ? '+' : ''}${formatMoney(w.balans)} so\'m',
+              '',
+              if (w.obsList.isNotEmpty) 'Loyihalar:',
+              for (final o in w.obsList) '  • ${o.obNomi}: ${o.balans >= 0 ? '+' : ''}${formatMoney(o.balans.abs())}',
+              '',
+              '#moliya #hisobot',
+            ];
+            Share.share(lines.join('\n'));
+          },
+          icon: const Icon(Icons.ios_share_rounded, size: 16),
+          label: const Text('Hisobot ulashish'),
+        ),
       ],
     );
   }
