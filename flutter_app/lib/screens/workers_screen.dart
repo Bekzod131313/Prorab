@@ -46,6 +46,20 @@ class _WorkersScreenState extends State<WorkersScreen> {
     });
   }
 
+  Future<void> _exportWorkers() async {
+    final date = DateFormat('dd.MM.yyyy').format(DateTime.now());
+    final buf = StringBuffer();
+    buf.writeln('📋 Ishchilar hisoboti — $date');
+    buf.writeln('Jami: ${_workers.length} kishi');
+    buf.writeln('');
+    final sorted = List<Worker>.from(_workers)..sort((a, b) => a.displayName.compareTo(b.displayName));
+    for (final w in sorted) {
+      buf.writeln('👤 ${w.displayName}${w.kasb?.isNotEmpty == true ? ' (${w.kasb})' : ''}');
+      buf.writeln('   Ish haqi: ${formatMoney(w.ishaqi)} | Olingan: ${formatMoney(w.olingan)} | Qoldiq: ${w.balans >= 0 ? '+' : ''}${formatMoney(w.balans)}');
+    }
+    await Share.share(buf.toString(), subject: 'ishchilar-$date');
+  }
+
   List<Worker> get _filtered {
     var list = _workers;
     if (_search.isNotEmpty) {
@@ -162,7 +176,17 @@ class _WorkersScreenState extends State<WorkersScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(backgroundColor: AppColors.bg, title: const Text('Ishchilar')),
+      appBar: AppBar(
+        backgroundColor: AppColors.bg,
+        title: const Text('Ishchilar'),
+        actions: [
+          if (_workers.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.ios_share_rounded),
+              onPressed: _exportWorkers,
+            ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: _openAddWorker,
         child: const Icon(Icons.person_add_alt_1_rounded),
