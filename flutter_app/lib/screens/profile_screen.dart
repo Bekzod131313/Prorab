@@ -4,6 +4,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../data/backup_repository.dart';
 import '../data/profile_repository.dart';
+import '../data/settings_repository.dart';
 import '../main.dart';
 import '../models/profile.dart';
 import '../theme/app_theme.dart';
@@ -21,8 +22,10 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final _repo = ProfileRepository();
+  final _settingsRepo = SettingsRepository();
   Profile? _profile;
   ProfileStats? _stats;
+  AppSettings _settings = const AppSettings(currency: 'UZS', compactNumbers: false, notifications: true);
   bool _loading = true;
 
   @override
@@ -32,14 +35,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _load() async {
-    final profile = await _repo.loadCurrent();
-    final stats = await _repo.loadStats();
+    final results = await Future.wait([
+      _repo.loadCurrent(),
+      _repo.loadStats(),
+      _settingsRepo.load(),
+    ]);
     if (!mounted) return;
     setState(() {
-      _profile = profile;
-      _stats = stats;
+      _profile = results[0] as Profile?;
+      _stats = results[1] as ProfileStats?;
+      _settings = results[2] as AppSettings;
       _loading = false;
     });
+  }
+
+  Future<void> _saveSettings(AppSettings s) async {
+    await _settingsRepo.save(s);
+    setState(() => _settings = s);
   }
 
   Future<void> _editProfile() async {
@@ -159,6 +171,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _openCurrencyPicker() async {
+    const currencies = ['UZS', 'USD', 'RUB', 'EUR'];
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppColors.card,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Valyutani tanlang', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+            const SizedBox(height: 16),
+            for (final c in currencies) ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(c),
+              trailing: _settings.currency == c ? const Icon(Icons.check_rounded, color: AppColors.accent) : null,
+              onTap: () => Navigator.pop(context, c),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (picked != null) await _saveSettings(_settings.copyWith(currency: picked));
+  }
+
   Future<void> _showAbout() async {
     showAboutDialog(
       context: context,
@@ -262,8 +301,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
             ),
           const SizedBox(height: 24),
-          _MenuTile(icon: Icons.dark_mode_outlined, label: "Qorong'i rejim", trailingSwitch: true),
-          _MenuTile(icon: Icons.language_outlined, label: 'Til / Язык'),
+          const Padding(
+            padding: EdgeInsets.only(left: 4, bottom: 10),
+            child: Text('Sozlamalar', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.muted, letterSpacing: 0.5)),
+          ),
+          _MenuTile(
+            icon: Icons.compress_rounded,
+            label: "Qisqa son formati",
+            trailingSwitch: true,
+            switchValue: _settings.compactNumbers,
+            onSwitchChanged: (v) => _saveSettings(_settings.copyWith(compactNumbers: v)),
+          ),
+          _MenuTile(
+            icon: Icons.currency_exchange_rounded,
+            label: 'Valyuta: ${_settings.currency}',
+            onTap: _openCurrencyPicker,
+          ),
+          const SizedBox(height: 20),
+          const Padding(
+            padding: EdgeInsets.only(left: 4, bottom: 10),
+            child: Text('Ilova', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.muted, letterSpacing: 0.5)),
+          ),
           _MenuTile(icon: Icons.backup_outlined, label: 'Zaxira nusxa', onTap: _doBackup),
           _MenuTile(icon: Icons.info_outline_rounded, label: 'Ilova haqida', onTap: _showAbout),
           const SizedBox(height: 20),
@@ -318,34 +376,43 @@ class _MenuTile extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool trailingSwitch;
+  final bool switchValue;
+  final ValueChanged<bool>? onSwitchChanged;
   final VoidCallback? onTap;
 
-  const _MenuTile({required this.icon, required this.label, this.trailingSwitch = false, this.onTap});
+  const _MenuTile({
+    required this.icon,
+    required this.label,
+    this.trailingSwitch = false,
+    this.switchValue = false,
+    this.onSwitchChanged,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: onTap,
+      onTap: trailingSwitch ? () => onSwitchChanged?.call(!switchValue) : onTap,
       borderRadius: BorderRadius.circular(14),
       child: Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.accent, size: 20),
-          const SizedBox(width: 12),
-          Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600))),
-          if (trailingSwitch)
-            Switch(value: true, onChanged: (_) {}, activeColor: AppColors.accent)
-          else
-            const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
-        ],
-      ),
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: AppColors.accent, size: 20),
+            const SizedBox(width: 12),
+            Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600))),
+            if (trailingSwitch)
+              Switch(value: switchValue, onChanged: onSwitchChanged, activeColor: AppColors.accent)
+            else
+              const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
+          ],
+        ),
       ),
     );
   }
