@@ -36,6 +36,10 @@ class ProjectTransaction {
     );
   }
 
-  bool isIncomeFor(String userId) => tur == 'income' || (tur == 'send' && toUser == userId);
-  bool isExpenseFor(String userId) => tur == 'spend' || (tur == 'send' && fromUser == userId);
+  bool isIncomeFor(String userId) =>
+      tur == 'income' ||
+      ((tur == 'send' || tur == 'ishhaqi') && toUser == userId);
+  bool isExpenseFor(String userId) =>
+      tur == 'spend' ||
+      ((tur == 'send' || tur == 'ishhaqi') && fromUser == userId);
 }
