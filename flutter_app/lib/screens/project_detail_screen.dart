@@ -34,6 +34,7 @@ import 'time_log_screen.dart';
 import 'checklist_screen.dart';
 import 'budget_screen.dart';
 import 'notes_screen.dart';
+import 'analytics_screen.dart';
 
 class ProjectDetailScreen extends StatefulWidget {
   final Project project;
@@ -1792,6 +1793,14 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         backgroundColor: AppColors.bg,
         title: Text(project.nomi),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.bar_chart_rounded),
+            tooltip: 'Tahlil',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => AnalyticsScreen(project: _project)),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.timer_outlined),
             tooltip: 'Vaqt hisobi',
