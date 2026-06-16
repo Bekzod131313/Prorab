@@ -53,4 +53,8 @@ class MemberRepository {
       'kasb': kasb?.isNotEmpty == true ? kasb : null,
     });
   }
+
+  Future<void> removeMember({required String obId, required String userId}) async {
+    await supabase.from('ob_members').delete().eq('ob_id', obId).eq('user_id', userId);
+  }
 }

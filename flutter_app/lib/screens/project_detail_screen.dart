@@ -292,7 +292,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     final canSend = (_project.role == 'owner' && member.role == 'member') ||
         (_project.role == 'member' && member.role == 'worker');
 
-    final send = await showModalBottomSheet<bool>(
+    final action = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: AppColors.card,
       isScrollControlled: true,
@@ -408,9 +408,20 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
             if (canSend) ...[
               const SizedBox(height: 12),
               ElevatedButton.icon(
-                onPressed: () => Navigator.of(ctx).pop(true),
+                onPressed: () => Navigator.of(ctx).pop('send'),
                 icon: const Icon(Icons.send_rounded),
                 label: const Text('Pul yuborish'),
+              ),
+            ],
+            if (_project.role == 'owner') ...[
+              const SizedBox(height: 8),
+              OutlinedButton(
+                onPressed: () => Navigator.of(ctx).pop('remove'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.redAccent,
+                  side: const BorderSide(color: Colors.redAccent),
+                ),
+                child: const Text("Loyihadan chiqarish"),
               ),
             ],
             const SizedBox(height: 20),
@@ -428,7 +439,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
               ...memberTxs.map((tx) => TransactionRow(
                     tx: tx,
                     onTap: () {
-                      Navigator.of(ctx).pop(false);
+                      Navigator.of(ctx).pop(null);
                       _openTxDetail(tx);
                     },
                   )),
@@ -437,8 +448,28 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       ),
     );
 
-    if (send == true) {
+    if (action == 'send') {
       await _openSendMoney(member);
+    } else if (action == 'remove') {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text("Loyihadan chiqarish"),
+          content: Text("${member.displayName}ni loyihadan chiqarasizmi?"),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text("Yo'q")),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+              child: const Text("Ha, chiqar"),
+            ),
+          ],
+        ),
+      );
+      if (confirm == true) {
+        await _memberRepo.removeMember(obId: _project.id, userId: member.userId);
+        _load();
+      }
     }
   }
 
