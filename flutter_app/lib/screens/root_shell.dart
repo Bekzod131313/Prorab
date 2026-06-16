@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import 'activity_screen.dart';
 import 'dashboard_screen.dart';
 import 'profile_screen.dart';
 import 'report_screen.dart';
@@ -19,6 +20,7 @@ class _RootShellState extends State<RootShell> {
   static const _screens = [
     DashboardScreen(),
     WorkersScreen(),
+    ActivityScreen(),
     ReportScreen(),
     ProfileScreen(),
   ];
@@ -35,6 +37,7 @@ class _RootShellState extends State<RootShell> {
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'Asosiy'),
           NavigationDestination(icon: Icon(Icons.engineering_outlined), selectedIcon: Icon(Icons.engineering_rounded), label: 'Ishchilar'),
+          NavigationDestination(icon: Icon(Icons.bolt_outlined), selectedIcon: Icon(Icons.bolt_rounded), label: 'Faoliyat'),
           NavigationDestination(icon: Icon(Icons.bar_chart_outlined), selectedIcon: Icon(Icons.bar_chart_rounded), label: 'Hisobot'),
           NavigationDestination(icon: Icon(Icons.person_outline_rounded), selectedIcon: Icon(Icons.person_rounded), label: 'Profil'),
         ],
