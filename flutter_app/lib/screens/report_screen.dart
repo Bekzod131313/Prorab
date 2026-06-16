@@ -431,7 +431,91 @@ class _ReportScreenState extends State<ReportScreen> {
                   ],
                 ),
         ),
+        if (trendMonths.length >= 2) ...[
+          const SizedBox(height: 16),
+          _SectionCard(
+            title: 'Oylik tendentsiya',
+            child: Column(
+              children: [
+                for (int i = 0; i < trendMonths.length; i++) ...[
+                  Builder(builder: (ctx) {
+                    final month = trendMonths[i];
+                    final inn = monthIn[month] ?? 0;
+                    final out = monthOut[month] ?? 0;
+                    final profit = inn - out;
+                    final maxM = trendMonths.map((m) => [monthIn[m] ?? 0, monthOut[m] ?? 0]).expand((x) => x).fold<num>(1, (a, b) => a > b ? a : b);
+                    final parts = month.split('-');
+                    final label = parts.length == 2 ? DateFormat('MMM yy').format(DateTime(int.parse(parts[0]), int.parse(parts[1]))) : month;
+                    return Padding(
+                      padding: EdgeInsets.only(bottom: i < trendMonths.length - 1 ? 14 : 0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              SizedBox(width: 50, child: Text(label, style: const TextStyle(fontSize: 11, color: AppColors.muted, fontWeight: FontWeight.w700))),
+                              Expanded(
+                                child: Column(
+                                  children: [
+                                    _MiniBar(value: inn.toDouble(), max: maxM.toDouble(), color: const Color(0xFF22C55E)),
+                                    const SizedBox(height: 3),
+                                    _MiniBar(value: out.toDouble(), max: maxM.toDouble(), color: const Color(0xFFF43F5E)),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text('+${formatMoney(inn)}', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF22C55E))),
+                                  Text('-${formatMoney(out)}', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFFF43F5E))),
+                                ],
+                              ),
+                            ],
+                          ),
+                          if (profit != 0) ...[
+                            const SizedBox(height: 2),
+                            Padding(
+                              padding: const EdgeInsets.only(left: 50),
+                              child: Text(
+                                '${profit >= 0 ? '+' : ''}${formatMoney(profit)} foyda',
+                                style: TextStyle(fontSize: 10, color: profit >= 0 ? const Color(0xFF22C55E) : const Color(0xFFF43F5E), fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+              ],
+            ),
+          ),
+        ],
       ],
+    );
+  }
+}
+
+class _MiniBar extends StatelessWidget {
+  final double value;
+  final double max;
+  final Color color;
+
+  const _MiniBar({required this.value, required this.max, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (ctx, constraints) {
+        final width = max > 0 ? (value / max * constraints.maxWidth).clamp(2.0, constraints.maxWidth) : 0.0;
+        return Stack(
+          children: [
+            Container(height: 8, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(4))),
+            Container(width: width, height: 8, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4))),
+          ],
+        );
+      },
     );
   }
 }
