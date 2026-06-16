@@ -73,17 +73,21 @@ class MemberRow extends StatelessWidget {
               ],
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                formatMoney(member.balance),
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF16A34A)),
-              ),
-              const SizedBox(height: 2),
-              const Text("qo'lida", style: TextStyle(fontSize: 11, color: AppColors.muted)),
-            ],
-          ),
+          Builder(builder: (_) {
+            final bal = member.balance;
+            final balColor = bal >= 0 ? const Color(0xFF16A34A) : const Color(0xFFEF4444);
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${bal >= 0 ? '+' : ''}${formatMoney(bal)}',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: balColor),
+                ),
+                const SizedBox(height: 2),
+                const Text('balans', style: TextStyle(fontSize: 11, color: AppColors.muted)),
+              ],
+            );
+          }),
         ],
       ),
       ),
