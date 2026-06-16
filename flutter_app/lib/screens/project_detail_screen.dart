@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 import '../data/budget_repository.dart';
 import '../data/category_repository.dart';
 import '../data/contract_repository.dart';
+import '../data/goal_repository.dart';
 import '../data/notes_repository.dart';
 import '../data/templates_repository.dart';
 import '../data/material_repository.dart';
@@ -48,6 +49,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   final _budgetRepo = BudgetRepository();
   final _notesRepo = NotesRepository();
   final _contractRepo = ContractRepository();
+  final _goalRepo = GoalRepository();
   late Project _project;
   List<ProjectTransaction> _txs = [];
   List<ObMember> _members = [];
@@ -56,6 +58,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   List<ProjectNote> _notes = [];
   Map<String, num> _budgets = {};
   ProjectContract? _contract;
+  ProjectGoal? _goal;
   String? _tasksError;
   String? _materialsError;
   bool _loading = true;
@@ -126,6 +129,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     } catch (_) {}
     try {
       _contract = await _contractRepo.load(_project.id);
+    } catch (_) {}
+    try {
+      _goal = await _goalRepo.load(_project.id);
     } catch (_) {}
     if (mounted) setState(() {});
   }
@@ -1460,6 +1466,110 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     mijozCtrl.dispose(); summaCtrl.dispose(); oldingiCtrl.dispose(); izohCtrl.dispose();
   }
 
+  Future<void> _openGoalSheet() async {
+    final existing = _goal;
+    final profitCtrl = TextEditingController(text: existing?.targetProfit?.toString() ?? '');
+    final kirimCtrl = TextEditingController(text: existing?.targetKirim?.toString() ?? '');
+    final noteCtrl = TextEditingController(text: existing?.izoh ?? '');
+    DateTime? targetDate = existing?.targetDate;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.card,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) => Padding(
+          padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 20 + MediaQuery.of(ctx).viewInsets.bottom),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  const Expanded(child: Text('Moliyaviy maqsad', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
+                  if (existing != null)
+                    TextButton(
+                      onPressed: () async {
+                        await _goalRepo.delete(_project.id);
+                        if (!mounted) return;
+                        setState(() => _goal = null);
+                        Navigator.of(ctx).pop();
+                      },
+                      style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+                      child: const Text("O'chirish"),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: profitCtrl,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(hintText: 'Maqsad foyda (so\'m)'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: kirimCtrl,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(hintText: 'Maqsad kirim (so\'m)'),
+              ),
+              const SizedBox(height: 10),
+              InkWell(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: ctx,
+                    initialDate: targetDate ?? DateTime.now().add(const Duration(days: 30)),
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime(2100),
+                  );
+                  if (picked != null) setSheet(() => targetDate = picked);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                  decoration: BoxDecoration(border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(14)),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.flag_outlined, size: 18, color: AppColors.muted),
+                      const SizedBox(width: 10),
+                      Text(
+                        targetDate != null ? 'Maqsad sana: ${DateFormat('dd.MM.yyyy').format(targetDate!)}' : 'Maqsad sanani belgilash',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: targetDate != null ? AppColors.text : AppColors.muted),
+                      ),
+                      if (targetDate != null) ...[
+                        const Spacer(),
+                        GestureDetector(onTap: () => setSheet(() => targetDate = null), child: const Icon(Icons.close, size: 16, color: AppColors.muted)),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(controller: noteCtrl, decoration: const InputDecoration(hintText: 'Izoh (ixtiyoriy)')),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () async {
+                  final goal = ProjectGoal(
+                    obId: _project.id,
+                    targetProfit: num.tryParse(profitCtrl.text.trim()),
+                    targetKirim: num.tryParse(kirimCtrl.text.trim()),
+                    targetDate: targetDate,
+                    izoh: noteCtrl.text.trim().isNotEmpty ? noteCtrl.text.trim() : null,
+                  );
+                  await _goalRepo.save(goal);
+                  if (!mounted) return;
+                  setState(() => _goal = goal);
+                  Navigator.of(ctx).pop();
+                },
+                child: const Text('Saqlash'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    profitCtrl.dispose(); kirimCtrl.dispose(); noteCtrl.dispose();
+  }
+
   Future<void> _openAddNote() async {
     final ctrl = TextEditingController();
     final saved = await showModalBottomSheet<bool>(
@@ -2348,6 +2458,127 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
               )
             else
               ..._materials.map((m) => MaterialRow(material: m, onTap: () => _openMaterialDetail(m))),
+            if (project.role == 'owner') ...[
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Moliyaviy maqsad',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: _openGoalSheet,
+                    icon: Icon(_goal == null ? Icons.add_rounded : Icons.edit_outlined, size: 16),
+                    label: Text(_goal == null ? 'Qo\'shish' : 'Tahrirlash'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              if (_goal == null)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Center(child: Text('Maqsad belgilanmagan', style: TextStyle(color: AppColors.muted, fontSize: 13))),
+                )
+              else
+                Builder(builder: (ctx) {
+                  final goal = _goal!;
+                  final profitPct = (goal.targetProfit != null && goal.targetProfit! > 0)
+                      ? (project.balance / goal.targetProfit! * 100).clamp(0, 100).toDouble()
+                      : null;
+                  final kirimPct = (goal.targetKirim != null && goal.targetKirim! > 0)
+                      ? (project.kirim / goal.targetKirim! * 100).clamp(0, 100).toDouble()
+                      : null;
+                  final daysLeft = goal.targetDate != null
+                      ? goal.targetDate!.difference(DateTime.now()).inDays
+                      : null;
+                  return Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.card,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (goal.targetProfit != null) ...[
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Maqsad foyda', style: TextStyle(fontSize: 12, color: AppColors.muted, fontWeight: FontWeight.w700)),
+                              Text('${formatMoney(project.balance)} / ${formatMoney(goal.targetProfit!)}',
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800,
+                                  color: project.balance >= goal.targetProfit! ? const Color(0xFF22C55E) : AppColors.text2)),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: LinearProgressIndicator(
+                              value: profitPct! / 100,
+                              minHeight: 8,
+                              backgroundColor: AppColors.border,
+                              valueColor: AlwaysStoppedAnimation(
+                                profitPct >= 100 ? const Color(0xFF22C55E) : AppColors.accent,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text('${profitPct.toStringAsFixed(0)}% bajarildi', style: const TextStyle(fontSize: 11, color: AppColors.muted)),
+                        ],
+                        if (goal.targetKirim != null) ...[
+                          if (goal.targetProfit != null) const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Maqsad kirim', style: TextStyle(fontSize: 12, color: AppColors.muted, fontWeight: FontWeight.w700)),
+                              Text('${formatMoney(project.kirim)} / ${formatMoney(goal.targetKirim!)}',
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: LinearProgressIndicator(
+                              value: kirimPct! / 100,
+                              minHeight: 8,
+                              backgroundColor: AppColors.border,
+                              valueColor: AlwaysStoppedAnimation(
+                                kirimPct >= 100 ? const Color(0xFF22C55E) : AppColors.accentTeal,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text('${kirimPct.toStringAsFixed(0)}% bajarildi', style: const TextStyle(fontSize: 11, color: AppColors.muted)),
+                        ],
+                        if (daysLeft != null) ...[
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              const Icon(Icons.flag_outlined, size: 14, color: AppColors.muted),
+                              const SizedBox(width: 6),
+                              Text(
+                                daysLeft > 0 ? '$daysLeft kun qoldi' : (daysLeft == 0 ? 'Bugun muddat!' : '${daysLeft.abs()} kun kechikkan'),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: daysLeft < 0 ? Colors.redAccent : (daysLeft <= 7 ? const Color(0xFFF59E0B) : AppColors.muted),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                        if (goal.izoh?.isNotEmpty == true) ...[
+                          const SizedBox(height: 8),
+                          Text(goal.izoh!, style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+                        ],
+                      ],
+                    ),
+                  );
+                }),
+            ],
             const SizedBox(height: 24),
             Row(
               children: [
