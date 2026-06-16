@@ -939,7 +939,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     DateTime startDate = _project.boshlanish ?? DateTime.now();
     bool isDone = _project.status == 'done';
 
-    final saved = await showModalBottomSheet<bool>(
+    final saved = await showModalBottomSheet<dynamic>(
       context: context,
       backgroundColor: AppColors.card,
       isScrollControlled: true,
@@ -1022,11 +1022,43 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 },
                 child: const Text('Saqlash'),
               ),
+              const SizedBox(height: 8),
+              OutlinedButton(
+                onPressed: () => Navigator.of(ctx).pop('delete'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.redAccent,
+                  side: const BorderSide(color: Colors.redAccent),
+                ),
+                child: const Text("Loyihani o'chirish"),
+              ),
             ],
           ),
         ),
       ),
     );
+
+    if (saved == 'delete') {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text("Loyihani o'chirish"),
+          content: Text("'${_project.nomi}' loyihasini barcha ma'lumotlari bilan birga o'chirasizmi? Bu amalni qaytarib bo'lmaydi."),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text("Bekor")),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+              child: const Text("Ha, o'chir"),
+            ),
+          ],
+        ),
+      );
+      if (confirm == true && mounted) {
+        await _projectRepo.deleteProject(_project.id);
+        if (mounted) Navigator.of(context).pop();
+      }
+      return;
+    }
 
     if (saved == true) {
       final days = int.tryParse(daysCtrl.text.trim()) ?? _project.muddat;
