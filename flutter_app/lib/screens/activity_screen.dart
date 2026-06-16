@@ -235,10 +235,20 @@ class _ActivityScreenState extends State<ActivityScreen> {
                     final prevItem = index > 0 ? items[index - 1] : null;
                     final showDate = prevItem == null ||
                         !_sameDay(item.tx.date, prevItem.tx.date);
+                    // Compute day totals
+                    num dayIn = 0, dayOut = 0;
+                    if (showDate) {
+                      for (final i in items) {
+                        if (_sameDay(i.tx.date, item.tx.date)) {
+                          if (i.tx.isIncomeFor(i.userId)) dayIn += i.tx.summa;
+                          if (i.tx.isExpenseFor(i.userId)) dayOut += i.tx.summa;
+                        }
+                      }
+                    }
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (showDate) _DateHeader(date: item.tx.date),
+                        if (showDate) _DateHeader(date: item.tx.date, dayIn: dayIn, dayOut: dayOut),
                         _ActivityTile(item: item),
                       ],
                     );
@@ -330,8 +340,10 @@ class _Chip extends StatelessWidget {
 
 class _DateHeader extends StatelessWidget {
   final DateTime date;
+  final num dayIn;
+  final num dayOut;
 
-  const _DateHeader({required this.date});
+  const _DateHeader({required this.date, this.dayIn = 0, this.dayOut = 0});
 
   @override
   Widget build(BuildContext context) {
@@ -348,9 +360,14 @@ class _DateHeader extends StatelessWidget {
     }
     return Padding(
       padding: const EdgeInsets.only(top: 16, bottom: 8),
-      child: Text(
-        label,
-        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.muted, letterSpacing: 0.4),
+      child: Row(
+        children: [
+          Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.muted, letterSpacing: 0.4)),
+          const Spacer(),
+          if (dayIn > 0) Text('+${formatMoney(dayIn)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF22C55E))),
+          if (dayIn > 0 && dayOut > 0) const Text(' ', style: TextStyle(fontSize: 11, color: AppColors.muted)),
+          if (dayOut > 0) Text('-${formatMoney(dayOut)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFFF43F5E))),
+        ],
       ),
     );
   }
