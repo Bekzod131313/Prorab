@@ -28,6 +28,13 @@ class TaskRepository {
     await supabase.from('tasks').update({'holat': next}).eq('id', id);
   }
 
+  Future<void> updateTask(String id, {required String nomi, DateTime? muddat, bool clearMuddat = false}) async {
+    await supabase.from('tasks').update({
+      'nomi': nomi,
+      'muddat': clearMuddat ? null : muddat?.toIso8601String().substring(0, 10),
+    }).eq('id', id);
+  }
+
   Future<void> deleteTask(String id) async {
     await supabase.from('tasks').delete().eq('id', id);
   }
