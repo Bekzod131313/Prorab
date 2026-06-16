@@ -32,6 +32,8 @@ import '../widgets/task_row.dart';
 import '../widgets/transaction_row.dart';
 import 'time_log_screen.dart';
 import 'checklist_screen.dart';
+import 'budget_screen.dart';
+import 'notes_screen.dart';
 
 class ProjectDetailScreen extends StatefulWidget {
   final Project project;
@@ -1799,6 +1801,22 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 project: _project,
                 workerNames: _members.where((m) => m.role != 'owner').map((m) => m.displayName).toList(),
               )),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.note_alt_outlined),
+            tooltip: 'Eslatmalar',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => NotesScreen(project: _project)),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.account_balance_wallet_outlined),
+            tooltip: 'Byudjet',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => BudgetScreen(project: _project)),
             ),
           ),
           IconButton(
