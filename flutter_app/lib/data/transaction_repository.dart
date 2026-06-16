@@ -7,7 +7,7 @@ class TransactionRepository {
         .from('transactions')
         .select('*')
         .eq('ob_id', obId)
-        .order('created_at', ascending: false);
+        .order('tx_date', ascending: false);
 
     return (data as List)
         .map((row) => ProjectTransaction.fromMap(row as Map<String, dynamic>))
