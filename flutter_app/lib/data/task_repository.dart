@@ -13,12 +13,12 @@ class TaskRepository {
     return (data as List).map((row) => ObTask.fromMap(row as Map<String, dynamic>)).toList();
   }
 
-  Future<void> addTask(String obId, String nomi, {DateTime? muddat}) async {
+  Future<void> addTask(String obId, String nomi, {DateTime? muddat, String holat = 'todo'}) async {
     final userId = supabase.auth.currentUser?.id;
     await supabase.from('tasks').insert({
       'ob_id': obId,
       'nomi': nomi,
-      'holat': 'todo',
+      'holat': holat,
       'created_by': userId,
       if (muddat != null) 'muddat': muddat.toIso8601String().substring(0, 10),
     });
