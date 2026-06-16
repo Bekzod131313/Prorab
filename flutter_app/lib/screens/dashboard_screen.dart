@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../data/currency_repository.dart';
+import '../data/prefs_repository.dart';
 import '../data/profile_repository.dart';
 import '../data/project_repository.dart';
 import '../data/task_repository.dart';
@@ -28,9 +29,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final _txRepo = TransactionRepository();
   final _profileRepo = ProfileRepository();
   final _taskRepo = TaskRepository();
+  final _prefsRepo = PrefsRepository();
   List<Project> _projects = [];
   List<ProjectTransaction> _recentTxs = [];
   List<UpcomingTask> _upcomingTasks = [];
+  Set<String> _pinned = {};
   Profile? _profile;
   bool _loading = true;
   String? _error;
@@ -61,11 +64,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
       try {
         upcomingTasks = await _taskRepo.loadUpcoming(projects);
       } catch (_) {}
+      Set<String> pinned = {};
+      try {
+        pinned = await _prefsRepo.loadPinned();
+      } catch (_) {}
       if (!mounted) return;
       setState(() {
         _projects = projects;
         _recentTxs = recentTxs;
         _upcomingTasks = upcomingTasks;
+        _pinned = pinned;
         _profile = profile;
         _loading = false;
       });
@@ -335,6 +343,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(height: 16),
             ListTile(
               contentPadding: EdgeInsets.zero,
+              leading: Icon(_pinned.contains(project.id) ? Icons.push_pin_rounded : Icons.push_pin_outlined, color: AppColors.accent),
+              title: Text(_pinned.contains(project.id) ? 'Mahkamlashni bekor qilish' : 'Tepaga mahkamlash'),
+              onTap: () => Navigator.of(ctx).pop('pin'),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.check_circle_outline_rounded, color: Color(0xFF22C55E)),
               title: Text(project.status == 'done' ? 'Faolga qaytarish' : 'Yakunlandi deb belgilash'),
               onTap: () => Navigator.of(ctx).pop('toggleDone'),
@@ -356,7 +370,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
     if (action == null || !mounted) return;
-    if (action == 'toggleDone') {
+    if (action == 'pin') {
+      await _prefsRepo.togglePin(project.id);
+      final pinned = await _prefsRepo.loadPinned();
+      setState(() => _pinned = pinned);
+    } else if (action == 'toggleDone') {
       final newStatus = project.status == 'done' ? 'active' : 'done';
       await _repo.setStatus(project.id, newStatus);
       _load();
@@ -408,9 +426,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
     final projectNames = {for (final p in _projects) p.id: p.nomi};
     final activeProjects = _projects.where((p) => p.status != 'done').toList();
-    final filteredProjects = _search.isEmpty
-        ? activeProjects
-        : activeProjects.where((p) => p.nomi.toLowerCase().contains(_search.toLowerCase())).toList();
+    final filteredProjects = (_search.isEmpty
+        ? List<Project>.from(activeProjects)
+        : activeProjects.where((p) => p.nomi.toLowerCase().contains(_search.toLowerCase())).toList())
+      ..sort((a, b) {
+        final aPin = _pinned.contains(a.id) ? 0 : 1;
+        final bPin = _pinned.contains(b.id) ? 0 : 1;
+        return aPin.compareTo(bPin);
+      });
     final doneProjects = _projects.where((p) => p.status == 'done').toList();
     final totalBal = _projects.fold<num>(0, (s, p) => s + p.balance);
     final totalIn = _projects.fold<num>(0, (s, p) => s + p.kirim);
@@ -489,6 +512,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           final project = filteredProjects[index - headerOffset];
           return ProjectCard(
             project: project,
+            isPinned: _pinned.contains(project.id),
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: project)),
