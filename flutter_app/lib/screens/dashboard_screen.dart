@@ -320,6 +320,59 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _load();
   }
 
+  Future<void> _openProjectMenu(Project project) async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: const Color(0xFF0F1626),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(project.nomi, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 16),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.check_circle_outline_rounded, color: Color(0xFF22C55E)),
+              title: Text(project.status == 'done' ? 'Faolga qaytarish' : 'Yakunlandi deb belgilash'),
+              onTap: () => Navigator.of(ctx).pop('toggleDone'),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.add_rounded, color: Color(0xFF3B82F6)),
+              title: const Text('Kirim qo\'shish'),
+              onTap: () => Navigator.of(ctx).pop('income'),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.remove_rounded, color: Color(0xFFF43F5E)),
+              title: const Text('Chiqim qo\'shish'),
+              onTap: () => Navigator.of(ctx).pop('expense'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (action == null || !mounted) return;
+    if (action == 'toggleDone') {
+      final newStatus = project.status == 'done' ? 'active' : 'done';
+      await _repo.setStatus(project.id, newStatus);
+      _load();
+    } else if (action == 'income') {
+      await Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: project, quickAddIncome: true)),
+      );
+      _load();
+    } else if (action == 'expense') {
+      await Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: project, quickAddIncome: false)),
+      );
+      _load();
+    }
+  }
+
   Widget _buildBody() {
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
@@ -439,8 +492,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: project)),
-              );
+              ).then((_) => _load());
             },
+            onLongPress: () => _openProjectMenu(project),
           );
         }
         if (showRecent && index < recentEnd) {
@@ -553,8 +607,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: project)),
-            );
+            ).then((_) => _load());
           },
+          onLongPress: () => _openProjectMenu(project),
         );
       },
     );

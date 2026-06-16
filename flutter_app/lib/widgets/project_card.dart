@@ -28,8 +28,9 @@ String formatMoney(num value) {
 class ProjectCard extends StatelessWidget {
   final Project project;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
-  const ProjectCard({super.key, required this.project, this.onTap});
+  const ProjectCard({super.key, required this.project, this.onTap, this.onLongPress});
 
   static const _roleLabels = {
     'owner': 'Egasi',
@@ -47,6 +48,7 @@ class ProjectCard extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
+      onLongPress: onLongPress,
       borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.all(18),
