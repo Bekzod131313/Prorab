@@ -33,7 +33,7 @@ class Project {
     this.bosqich,
   });
 
-  num get balance => role == 'owner' ? (kirim - chiqim) : myBalance;
+  num get balance => role == 'owner' ? (kirim - chiqim) : (ishaqi - olingan);
 
   factory Project.fromMember(Map<String, dynamic> row) {
     final ob = row['ob'] as Map<String, dynamic>;
