@@ -5,6 +5,7 @@ import '../data/currency_repository.dart';
 import '../data/prefs_repository.dart';
 import '../data/profile_repository.dart';
 import '../data/project_repository.dart';
+import '../data/project_template_repository.dart';
 import '../data/task_repository.dart';
 import '../data/transaction_repository.dart';
 import '../main.dart';
@@ -33,6 +34,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final _profileRepo = ProfileRepository();
   final _taskRepo = TaskRepository();
   final _prefsRepo = PrefsRepository();
+  final _templateRepo = ProjectTemplateRepository();
   List<Project> _projects = [];
   List<ProjectTransaction> _recentTxs = [];
   List<UpcomingTask> _upcomingTasks = [];
@@ -162,9 +164,54 @@ class _DashboardScreenState extends State<DashboardScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                'Yangi obyekt',
-                style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              Row(
+                children: [
+                  Expanded(child: Text('Yangi obyekt', style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800))),
+                  TextButton.icon(
+                    icon: const Icon(Icons.bookmark_outline_rounded, size: 16),
+                    label: const Text('Shablon', style: TextStyle(fontSize: 12)),
+                    style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8), foregroundColor: AppColors.accent),
+                    onPressed: () async {
+                      final templates = await _templateRepo.load();
+                      if (templates.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Saqlangan shablon yo'q")));
+                        return;
+                      }
+                      final tmpl = await showModalBottomSheet<ProjectTemplate>(
+                        context: context,
+                        backgroundColor: AppColors.card,
+                        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+                        builder: (c) => Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Shablon tanlash', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                              const SizedBox(height: 12),
+                              for (final t in templates)
+                                ListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  title: Text(t.nomi),
+                                  subtitle: Text('${t.muddat} kun${t.mijoz?.isNotEmpty == true ? " • ${t.mijoz}" : ""}'),
+                                  onTap: () => Navigator.pop(c, t),
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                      if (tmpl != null) {
+                        setSheetState(() {
+                          nameCtrl.text = tmpl.nomi;
+                          daysCtrl.text = tmpl.muddat.toString();
+                          manzilCtrl.text = tmpl.manzil ?? '';
+                          mijozCtrl.text = tmpl.mijoz ?? '';
+                          bosqichCtrl.text = tmpl.bosqich ?? '';
+                        });
+                      }
+                    },
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               TextField(
@@ -470,6 +517,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               title: const Text('Nusxa ko\'chirish'),
               onTap: () => Navigator.of(ctx).pop('duplicate'),
             ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.bookmark_add_outlined, color: AppColors.accentTeal),
+              title: const Text('Shablon sifatida saqlash'),
+              onTap: () => Navigator.of(ctx).pop('saveTemplate'),
+            ),
           ],
         ),
       ),
@@ -505,6 +558,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _load();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nusxa yaratildi')));
+      }
+    } else if (action == 'saveTemplate') {
+      await _templateRepo.add(ProjectTemplate(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        nomi: project.nomi,
+        muddat: project.muddat,
+        manzil: project.manzil,
+        mijoz: project.mijoz,
+        bosqich: project.bosqich,
+      ));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Shablon saqlandi')));
       }
     }
   }
