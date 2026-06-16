@@ -12,8 +12,9 @@ const _statusColors = {
 class TaskRow extends StatelessWidget {
   final ObTask task;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
-  const TaskRow({super.key, required this.task, this.onTap});
+  const TaskRow({super.key, required this.task, this.onTap, this.onLongPress});
 
   @override
   Widget build(BuildContext context) {
@@ -22,6 +23,7 @@ class TaskRow extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
+      onLongPress: onLongPress,
       borderRadius: BorderRadius.circular(14),
       child: Container(
         padding: const EdgeInsets.all(12),
