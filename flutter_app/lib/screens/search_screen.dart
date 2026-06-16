@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../main.dart';
 import '../models/project.dart';
@@ -22,9 +23,12 @@ class _SearchScreenState extends State<SearchScreen> {
   String _query = '';
   bool _loading = false;
   List<_SearchResult> _results = [];
+  List<String> _history = [];
 
   final _obNames = <String, String>{};
   final _obMap = <String, Project>{};
+
+  static const _historyKey = 'search_history';
 
   @override
   void initState() {
@@ -33,6 +37,28 @@ class _SearchScreenState extends State<SearchScreen> {
       _obNames[p.id] = p.nomi;
       _obMap[p.id] = p;
     }
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() => _history = prefs.getStringList(_historyKey) ?? []);
+  }
+
+  Future<void> _saveToHistory(String q) async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = prefs.getStringList(_historyKey) ?? [];
+    list.remove(q);
+    list.insert(0, q);
+    if (list.length > 10) list.removeLast();
+    await prefs.setStringList(_historyKey, list);
+    if (mounted) setState(() => _history = list);
+  }
+
+  Future<void> _clearHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_historyKey);
+    setState(() => _history = []);
   }
 
   @override
@@ -48,6 +74,7 @@ class _SearchScreenState extends State<SearchScreen> {
     });
     if (q.trim().length < 2) return;
 
+    await _saveToHistory(q.trim());
     setState(() => _loading = true);
     try {
       final obIds = widget.projects.map((p) => p.id).toList();
@@ -163,17 +190,55 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget _buildBody() {
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_query.trim().length < 2) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.search_rounded, size: 64, color: AppColors.muted.withOpacity(0.4)),
-            const SizedBox(height: 12),
-            const Text('Qidirish uchun yozing', style: TextStyle(color: AppColors.muted, fontSize: 15)),
-            const SizedBox(height: 4),
-            const Text('Loyihalar, vazifalar, materiallar, tranzaksiyalar', style: TextStyle(color: AppColors.muted, fontSize: 12)),
-          ],
-        ),
+      if (_history.isEmpty) {
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.search_rounded, size: 64, color: AppColors.muted.withOpacity(0.4)),
+              const SizedBox(height: 12),
+              const Text('Qidirish uchun yozing', style: TextStyle(color: AppColors.muted, fontSize: 15)),
+              const SizedBox(height: 4),
+              const Text('Loyihalar, vazifalar, materiallar, tranzaksiyalar', style: TextStyle(color: AppColors.muted, fontSize: 12)),
+            ],
+          ),
+        );
+      }
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        children: [
+          Row(
+            children: [
+              const Text('Oxirgi qidiruvlar', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
+              const Spacer(),
+              TextButton(
+                onPressed: _clearHistory,
+                style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8), foregroundColor: AppColors.muted),
+                child: const Text('Tozalash', style: TextStyle(fontSize: 12)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          for (final h in _history)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.history_rounded, color: AppColors.muted, size: 20),
+              title: Text(h, style: const TextStyle(fontSize: 14)),
+              trailing: IconButton(
+                icon: const Icon(Icons.north_west_rounded, size: 16, color: AppColors.muted),
+                onPressed: () {
+                  _ctrl.text = h;
+                  _ctrl.selection = TextSelection.fromPosition(TextPosition(offset: h.length));
+                  _search(h);
+                },
+              ),
+              onTap: () {
+                _ctrl.text = h;
+                _ctrl.selection = TextSelection.fromPosition(TextPosition(offset: h.length));
+                _search(h);
+              },
+            ),
+        ],
       );
     }
     if (_results.isEmpty) {
