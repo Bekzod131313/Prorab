@@ -778,23 +778,25 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
             ),
             const SizedBox(height: 16),
             Row(
-              children: [
-                Expanded(
-                  child: _InfoBox(
-                    label: 'KIRIM',
-                    value: formatMoney(project.kirim),
-                    color: const Color(0xFF16A34A),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _InfoBox(
-                    label: 'CHIQIM',
-                    value: formatMoney(project.chiqim),
-                    color: const Color(0xFFEF4444),
-                  ),
-                ),
-              ],
+              children: project.role == 'owner'
+                  ? [
+                      Expanded(
+                        child: _InfoBox(label: 'KIRIM', value: formatMoney(project.kirim), color: const Color(0xFF16A34A)),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _InfoBox(label: 'CHIQIM', value: formatMoney(project.chiqim), color: const Color(0xFFEF4444)),
+                      ),
+                    ]
+                  : [
+                      Expanded(
+                        child: _InfoBox(label: 'ISHHAQI', value: formatMoney(project.ishaqi), color: const Color(0xFF16A34A)),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _InfoBox(label: 'OLINGAN', value: formatMoney(project.olingan), color: const Color(0xFFF59E0B)),
+                      ),
+                    ],
             ),
             const SizedBox(height: 16),
             Builder(builder: (context) {
