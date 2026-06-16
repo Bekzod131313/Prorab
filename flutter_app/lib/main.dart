@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'l10n/strings.dart';
 import 'theme/app_theme.dart';
 import 'screens/splash_screen.dart';
 
@@ -14,6 +15,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
   supabase = Supabase.instance.client;
+  await loadSavedLocale();
   runApp(const MoliyaApp());
 }
 
@@ -22,12 +24,15 @@ class MoliyaApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Moliya',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      themeMode: ThemeMode.light,
-      home: const SplashScreen(),
+    return ValueListenableBuilder<String>(
+      valueListenable: appLocaleNotifier,
+      builder: (_, __, ___) => MaterialApp(
+        title: 'Prorab',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        themeMode: ThemeMode.light,
+        home: const SplashScreen(),
+      ),
     );
   }
 }

@@ -1,6 +1,22 @@
 import '../main.dart';
 import '../models/project.dart';
 
+// Batch load member counts for all projects in one query
+Future<Map<String, int>> loadMemberCounts(List<String> projectIds) async {
+  if (projectIds.isEmpty) return {};
+  final rows = await supabase
+      .from('ob_members')
+      .select('ob_id')
+      .inFilter('ob_id', projectIds)
+      .eq('role', 'member');
+  final Map<String, int> counts = {};
+  for (final row in rows as List) {
+    final id = row['ob_id'].toString();
+    counts[id] = (counts[id] ?? 0) + 1;
+  }
+  return counts;
+}
+
 class ProjectRepository {
   Future<List<Project>> loadProjects() async {
     final userId = supabase.auth.currentUser?.id;
