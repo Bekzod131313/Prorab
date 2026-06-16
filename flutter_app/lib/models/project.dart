@@ -56,6 +56,24 @@ class Project {
     );
   }
 
+  /// 0-100 health score based on financial and timeline status.
+  int get healthScore {
+    if (role != 'owner') return 100;
+    int score = 100;
+    // Financial: penalize if negative balance
+    if (kirim > 0) {
+      final roi = (kirim - chiqim) / kirim;
+      if (roi < 0) score -= 40;
+      else if (roi < 0.1) score -= 20;
+      else if (roi < 0.2) score -= 10;
+    }
+    // Timeline: penalize if overdue
+    final (_, left, _) = schedule;
+    if (left == 0) score -= 30;
+    else if (left <= 3) score -= 15;
+    return score.clamp(0, 100);
+  }
+
   /// Days passed since project start, capped at [muddat], and days remaining.
   (int passed, int left, int progress) get schedule {
     final start = boshlanish ?? createdAt;

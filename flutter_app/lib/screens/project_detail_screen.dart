@@ -1653,21 +1653,31 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                     '${bal >= 0 ? '+' : ''}${formatMoney(bal)} so\'m',
                     style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 26),
                   ),
-                  if (project.role == 'owner' && project.kirim > 0) ...[
+                  if (project.role == 'owner') ...[
                     const SizedBox(height: 10),
                     Builder(builder: (_) {
-                      final roi = ((project.kirim - project.chiqim) / project.kirim * 100);
-                      final roiStr = '${roi >= 0 ? '+' : ''}${roi.toStringAsFixed(1)}%';
+                      final roi = project.kirim > 0 ? ((project.kirim - project.chiqim) / project.kirim * 100) : 0.0;
+                      final roiStr = project.kirim > 0 ? '${roi >= 0 ? '+' : ''}${roi.toStringAsFixed(1)}%' : '—';
                       final start = project.boshlanish ?? project.createdAt;
                       final days = DateTime.now().difference(start).inDays.clamp(1, 9999);
-                      final avgDaily = project.chiqim / days;
+                      final avgDaily = project.chiqim > 0 ? project.chiqim / days : 0;
+                      final health = project.healthScore;
+                      final healthColor = health >= 80 ? const Color(0xFF86EFAC) : health >= 50 ? const Color(0xFFFBBF24) : const Color(0xFFFCA5A5);
                       return Row(
                         children: [
                           _MiniStat(label: 'ROI', value: roiStr, positive: roi >= 0),
                           const SizedBox(width: 12),
-                          _MiniStat(label: 'KUN/CHIQIM', value: '${formatMoney(avgDaily.round())}', positive: null),
+                          _MiniStat(label: 'KUN/XARAJAT', value: avgDaily > 0 ? formatMoney(avgDaily.round()) : '—', positive: null),
                           const SizedBox(width: 12),
                           _MiniStat(label: 'ISHCHILAR', value: '${_members.where((m) => m.role != 'owner').length}', positive: null),
+                          const SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('SIFAT', style: TextStyle(color: Colors.white38, fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                              Text('$health%', style: TextStyle(color: healthColor, fontSize: 13, fontWeight: FontWeight.w900)),
+                            ],
+                          ),
                         ],
                       );
                     }),
