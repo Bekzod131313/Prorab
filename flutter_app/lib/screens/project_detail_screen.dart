@@ -484,6 +484,122 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     _load();
   }
 
+  Future<void> _deleteTask(ObTask task) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Vazifani o'chirish"),
+        content: Text("'${task.nomi}' vazifasini o'chirasizmi?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text("Yo'q")),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+            child: const Text("Ha, o'chir"),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      await _taskRepo.deleteTask(task.id);
+      _load();
+    }
+  }
+
+  Future<void> _openMaterialDetail(ObMaterial material) async {
+    const statuses = ['kerak', 'buyurtma', 'yetkazildi'];
+    const statusLabels = {'kerak': 'Kerak', 'buyurtma': 'Buyurtma', 'yetkazildi': 'Yetkazildi'};
+    const statusColors = {
+      'kerak': Color(0xFFF43F5E),
+      'buyurtma': Color(0xFFF59E0B),
+      'yetkazildi': Color(0xFF22C55E),
+    };
+
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppColors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(material.nomi, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 4),
+            Text('${material.miqdor} ${material.birlik}', style: const TextStyle(color: AppColors.muted)),
+            const SizedBox(height: 16),
+            const Text('Holati:', style: TextStyle(color: AppColors.text2, fontSize: 13, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 8),
+            ...statuses.map((s) {
+              final isActive = material.holat == s;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: InkWell(
+                  onTap: () => Navigator.of(ctx).pop(s),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: isActive ? (statusColors[s] ?? AppColors.accent).withOpacity(0.15) : AppColors.bg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isActive ? (statusColors[s] ?? AppColors.accent) : AppColors.border,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: statusColors[s] ?? AppColors.muted,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          statusLabels[s] ?? s,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: isActive ? (statusColors[s] ?? AppColors.accent) : AppColors.text,
+                          ),
+                        ),
+                        if (isActive) ...[
+                          const Spacer(),
+                          const Icon(Icons.check_rounded, size: 16, color: AppColors.accentTeal),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }),
+            const SizedBox(height: 8),
+            OutlinedButton(
+              onPressed: () => Navigator.of(ctx).pop('__delete__'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.redAccent,
+                side: const BorderSide(color: Colors.redAccent),
+              ),
+              child: const Text("O'chirish"),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (action == null) return;
+    if (action == '__delete__') {
+      await _materialRepo.deleteMaterial(material.id);
+    } else if (action != material.holat) {
+      await _materialRepo.updateStatus(material.id, action);
+    }
+    _load();
+  }
+
   Future<void> _openAddMaterial() async {
     final nameCtrl = TextEditingController();
     final qtyCtrl = TextEditingController();
@@ -984,7 +1100,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 child: Center(child: Text("Vazifalar yo'q", style: TextStyle(color: AppColors.muted))),
               )
             else
-              ..._tasks.map((t) => TaskRow(task: t, onTap: () => _toggleTask(t))),
+              ..._tasks.map((t) => TaskRow(task: t, onTap: () => _toggleTask(t), onLongPress: () => _deleteTask(t))),
             const SizedBox(height: 24),
             Text(
               'Materiallar',
@@ -1013,7 +1129,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 child: Center(child: Text("Materiallar yo'q", style: TextStyle(color: AppColors.muted))),
               )
             else
-              ..._materials.map((m) => MaterialRow(material: m)),
+              ..._materials.map((m) => MaterialRow(material: m, onTap: () => _openMaterialDetail(m))),
           ],
         ),
       ),

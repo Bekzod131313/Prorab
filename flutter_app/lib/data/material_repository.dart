@@ -26,4 +26,12 @@ class MaterialRepository {
       'holat': 'kerak',
     });
   }
+
+  Future<void> updateStatus(String id, String holat) async {
+    await supabase.from('materials').update({'holat': holat}).eq('id', id);
+  }
+
+  Future<void> deleteMaterial(String id) async {
+    await supabase.from('materials').delete().eq('id', id);
+  }
 }

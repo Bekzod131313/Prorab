@@ -12,14 +12,18 @@ const _statusColors = {
 
 class MaterialRow extends StatelessWidget {
   final ObMaterial material;
+  final VoidCallback? onTap;
 
-  const MaterialRow({super.key, required this.material});
+  const MaterialRow({super.key, required this.material, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final color = _statusColors[material.holat] ?? AppColors.muted;
 
-    return Container(
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
       padding: const EdgeInsets.all(12),
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
@@ -57,6 +61,8 @@ class MaterialRow extends StatelessWidget {
             Text(formatMoney(material.total), style: const TextStyle(fontWeight: FontWeight.w900)),
         ],
       ),
+    ),
     );
   }
 }
+

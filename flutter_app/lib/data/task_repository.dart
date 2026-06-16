@@ -26,4 +26,8 @@ class TaskRepository {
     final next = ObTask.nextStatus[currentStatus] ?? 'todo';
     await supabase.from('tasks').update({'holat': next}).eq('id', id);
   }
+
+  Future<void> deleteTask(String id) async {
+    await supabase.from('tasks').delete().eq('id', id);
+  }
 }
