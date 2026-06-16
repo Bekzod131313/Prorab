@@ -24,16 +24,32 @@ class TransactionRow extends StatelessWidget {
             : AppColors.muted;
     final sign = isIn ? '+' : (isOut ? '-' : '');
 
+    const _catLabels = {
+      'mijoz': 'Mijozdan',
+      'kredit': 'Kredit',
+      'owner': 'Prorab avans',
+      'ishchi': 'Ishchi',
+      'usta': 'Usta',
+      'boshqa': 'Boshqa',
+    };
+
     String title;
     switch (tx.tur) {
       case 'income':
         title = tx.izoh?.isNotEmpty == true ? tx.izoh! : 'Pul kirdi';
         break;
       case 'spend':
-        title = tx.kategoriya ?? 'Xarajat';
+        final cat = tx.kategoriya;
+        title = (cat != null && cat.isNotEmpty) ? (_catLabels[cat] ?? cat) : 'Xarajat';
+        break;
+      case 'ishhaqi':
+        title = isIn ? 'Ish haqi olindi' : 'Ish haqi yozildi';
+        break;
+      case 'send':
+        title = isIn ? 'Avans olindi' : 'Avans yuborildi';
         break;
       default:
-        title = isIn ? "O'tkazma keldi" : "O'tkazma yuborildi";
+        title = tx.izoh?.isNotEmpty == true ? tx.izoh! : tx.tur;
     }
 
     final dateStr = DateFormat('dd.MM.yyyy HH:mm').format(tx.date);
