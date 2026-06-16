@@ -120,6 +120,18 @@ class _ReportScreenState extends State<ReportScreen> {
 
     final data = _data!;
     final maxVal = [data.totalIn, data.totalOut, 1].reduce((a, b) => a > b ? a : b);
+    final userId = supabase.auth.currentUser?.id ?? '';
+
+    // build monthly trend (last 6 months that have data)
+    final monthIn = <String, num>{};
+    final monthOut = <String, num>{};
+    for (final tx in data.txs) {
+      final key = '${tx.date.year}-${tx.date.month.toString().padLeft(2, '0')}';
+      if (tx.isIncomeFor(userId)) monthIn[key] = (monthIn[key] ?? 0) + tx.summa;
+      if (tx.isExpenseFor(userId)) monthOut[key] = (monthOut[key] ?? 0) + tx.summa;
+    }
+    final allMonths = {...monthIn.keys, ...monthOut.keys}.toList()..sort();
+    final trendMonths = allMonths.length > 6 ? allMonths.sublist(allMonths.length - 6) : allMonths;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -206,6 +218,69 @@ class _ReportScreenState extends State<ReportScreen> {
                   ],
                 );
               },
+            ),
+          ),
+        ],
+        if (trendMonths.length >= 2) ...[
+          const SizedBox(height: 16),
+          _SectionCard(
+            title: 'Oylik trend',
+            child: Column(
+              children: [
+                for (var i = 0; i < trendMonths.length; i++) ...[
+                  if (i > 0) const SizedBox(height: 12),
+                  Builder(builder: (_) {
+                    final m = trendMonths[i];
+                    final parts = m.split('-');
+                    final label = '${parts[1]}.${parts[0]}';
+                    final inVal = monthIn[m] ?? 0;
+                    final outVal = monthOut[m] ?? 0;
+                    final maxM = [inVal, outVal, 1].reduce((a, b) => a > b ? a : b);
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(label, style: const TextStyle(fontSize: 12, color: AppColors.muted, fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: LinearProgressIndicator(
+                                  value: maxM > 0 ? (inVal / maxM).clamp(0.0, 1.0) : 0,
+                                  minHeight: 8,
+                                  backgroundColor: AppColors.border,
+                                  valueColor: const AlwaysStoppedAnimation(Color(0xFF22C55E)),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            SizedBox(width: 70, child: Text('+${formatMoney(inVal)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF22C55E)), overflow: TextOverflow.ellipsis)),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: LinearProgressIndicator(
+                                  value: maxM > 0 ? (outVal / maxM).clamp(0.0, 1.0) : 0,
+                                  minHeight: 8,
+                                  backgroundColor: AppColors.border,
+                                  valueColor: const AlwaysStoppedAnimation(Color(0xFFF43F5E)),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            SizedBox(width: 70, child: Text('-${formatMoney(outVal)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFFF43F5E)), overflow: TextOverflow.ellipsis)),
+                          ],
+                        ),
+                      ],
+                    );
+                  }),
+                ],
+              ],
             ),
           ),
         ],
