@@ -83,4 +83,17 @@ class ProjectRepository {
   Future<void> setStatus(String id, String status) async {
     await supabase.from('obyektlar').update({'status': status}).eq('id', id);
   }
+
+  Future<Project?> loadProjectById(String id) async {
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) return null;
+    final row = await supabase
+        .from('ob_members')
+        .select('ob_id,role,balance,ishaqi,olingan,ob:obyektlar(*)')
+        .eq('user_id', userId)
+        .eq('ob_id', id)
+        .maybeSingle();
+    if (row == null || row['ob'] == null) return null;
+    return Project.fromMember(row as Map<String, dynamic>);
+  }
 }

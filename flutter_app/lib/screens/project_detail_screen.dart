@@ -66,12 +66,19 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       _error = null;
     });
     try {
-      final txs = await _repo.loadForProject(_project.id);
-      final members = await _memberRepo.loadForProject(_project.id);
+      final results = await Future.wait([
+        _repo.loadForProject(_project.id),
+        _memberRepo.loadForProject(_project.id),
+        _projectRepo.loadProjectById(_project.id),
+      ]);
+      final txs = results[0] as List<ProjectTransaction>;
+      final members = results[1] as List<ObMember>;
+      final refreshed = results[2] as Project?;
       if (!mounted) return;
       setState(() {
         _txs = txs;
         _members = members;
+        if (refreshed != null) _project = refreshed;
         _loading = false;
       });
     } catch (e) {
