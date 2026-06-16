@@ -2,16 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
-  static const bg = Color(0xFF0A0E1A);
-  static const card = Color(0x0CFFFFFF);
-  static const border = Color(0x14FFFFFF);
-  static const text = Color(0xFFEAF1FB);
-  static const text2 = Color(0xFFAEBBD0);
-  static const muted = Color(0xFF71809B);
-  static const accent = Color(0xFF3B82F6);
-  static const accent2 = Color(0xFF2563EB);
+  // Light theme colors (from new design)
+  static const bg = Color(0xFFF1F5F9);
+  static const card = Colors.white;
+  static const border = Color(0xFFE2E8F0);
+  static const text = Color(0xFF0F172A);
+  static const text2 = Color(0xFF475569);
+  static const muted = Color(0xFF94A3B8);
+  static const accent = Color(0xFF2563EB);
+  static const accent2 = Color(0xFF1D4ED8);
   static const accentTeal = Color(0xFF2DD4BF);
   static const accentTeal2 = Color(0xFF14B8A6);
+  static const green = Color(0xFF22C55E);
+  static const red = Color(0xFFEF4444);
+  static const orange = Color(0xFFF59E0B);
 
   static const gradient = LinearGradient(
     begin: Alignment.topLeft,
@@ -21,8 +25,8 @@ class AppColors {
 }
 
 class AppTheme {
-  static ThemeData get dark {
-    final base = ThemeData.dark(useMaterial3: true);
+  static ThemeData get light {
+    final base = ThemeData.light(useMaterial3: true);
     final textTheme = GoogleFonts.manropeTextTheme(base.textTheme).apply(
       bodyColor: AppColors.text,
       displayColor: AppColors.text,
@@ -34,11 +38,39 @@ class AppTheme {
       colorScheme: base.colorScheme.copyWith(
         primary: AppColors.accent,
         secondary: AppColors.accentTeal,
-        surface: AppColors.bg,
+        surface: Colors.white,
+        onSurface: AppColors.text,
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: AppColors.bg,
+        foregroundColor: AppColors.text,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        titleTextStyle: TextStyle(
+          color: AppColors.text,
+          fontSize: 18,
+          fontWeight: FontWeight.w800,
+        ),
+        iconTheme: IconThemeData(color: AppColors.text2),
+      ),
+      cardTheme: CardThemeData(
+        color: Colors.white,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppColors.border),
+        ),
+      ),
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: Colors.white,
+        selectedItemColor: AppColors.accent,
+        unselectedItemColor: AppColors.muted,
+        type: BottomNavigationBarType.fixed,
+        elevation: 0,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.card,
+        fillColor: AppColors.bg,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -53,6 +85,7 @@ class AppTheme {
           borderSide: const BorderSide(color: AppColors.accent, width: 1.5),
         ),
         hintStyle: const TextStyle(color: AppColors.muted),
+        labelStyle: const TextStyle(color: AppColors.text2),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -61,8 +94,40 @@ class AppTheme {
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+          elevation: 0,
         ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.accent,
+          side: const BorderSide(color: AppColors.border),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+        ),
+      ),
+      dividerTheme: const DividerThemeData(color: AppColors.border, thickness: 1),
+      chipTheme: ChipThemeData(
+        backgroundColor: AppColors.bg,
+        selectedColor: AppColors.accent.withOpacity(0.1),
+        labelStyle: const TextStyle(fontSize: 12, color: AppColors.text2),
+        side: const BorderSide(color: AppColors.border),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      ),
+      popupMenuTheme: const PopupMenuThemeData(
+        color: Colors.white,
+        elevation: 4,
+        shadowColor: Color(0x1A000000),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      ),
+      dropdownMenuTheme: const DropdownMenuThemeData(
+        menuStyle: MenuStyle(backgroundColor: WidgetStatePropertyAll(Colors.white)),
       ),
     );
   }
+
+  // Keep dark as alias for backwards compat
+  static ThemeData get dark => light;
 }

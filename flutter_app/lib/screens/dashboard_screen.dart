@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../data/currency_repository.dart';
 import '../data/prefs_repository.dart';
 import '../data/profile_repository.dart';
 import '../data/project_repository.dart';
@@ -9,18 +8,14 @@ import '../data/project_template_repository.dart';
 import '../data/task_repository.dart';
 import '../data/transaction_repository.dart';
 import '../main.dart';
-import '../models/currency.dart';
 import '../models/profile.dart';
 import '../models/project.dart';
 import '../models/transaction.dart';
 import '../theme/app_theme.dart';
-import '../widgets/moliya_logo.dart';
-import '../widgets/project_card.dart';
+import '../widgets/project_card.dart' show formatMoney;
 import 'project_detail_screen.dart';
-import 'search_screen.dart';
-import 'calendar_screen.dart';
-import 'tasks_screen.dart';
 import 'archive_screen.dart';
+import 'tasks_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -36,15 +31,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final _taskRepo = TaskRepository();
   final _prefsRepo = PrefsRepository();
   final _templateRepo = ProjectTemplateRepository();
+
   List<Project> _projects = [];
   List<ProjectTransaction> _recentTxs = [];
   List<UpcomingTask> _upcomingTasks = [];
   Set<String> _pinned = {};
   Profile? _profile;
   bool _loading = true;
-  String? _error;
-  String _search = '';
-  bool _fabOpen = false;
 
   @override
   void initState() {
@@ -53,28 +46,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    setState(() => _loading = true);
     try {
       final projects = await _repo.loadProjects();
       List<ProjectTransaction> recentTxs = [];
-      try {
-        recentTxs = await _txRepo.loadRecentForProjects(projects.map((p) => p.id).toList());
-      } catch (_) {}
+      try { recentTxs = await _txRepo.loadRecentForProjects(projects.map((p) => p.id).toList()); } catch (_) {}
       Profile? profile;
-      try {
-        profile = await _profileRepo.loadCurrent();
-      } catch (_) {}
+      try { profile = await _profileRepo.loadCurrent(); } catch (_) {}
       List<UpcomingTask> upcomingTasks = [];
-      try {
-        upcomingTasks = await _taskRepo.loadUpcoming(projects);
-      } catch (_) {}
+      try { upcomingTasks = await _taskRepo.loadUpcoming(projects); } catch (_) {}
       Set<String> pinned = {};
-      try {
-        pinned = await _prefsRepo.loadPinned();
-      } catch (_) {}
+      try { pinned = await _prefsRepo.loadPinned(); } catch (_) {}
       if (!mounted) return;
       setState(() {
         _projects = projects;
@@ -86,55 +68,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  Future<void> _openQuickTransaction({required bool isIncome}) async {
-    final ownedProjects = _projects.where((p) => p.role == 'owner' && p.status != 'done').toList();
-    if (ownedProjects.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Faol loyiha yo'q")));
-      return;
-    }
-    setState(() => _fabOpen = false);
-    Project? selectedProject;
-    if (ownedProjects.length == 1) {
-      selectedProject = ownedProjects.first;
-    } else {
-      selectedProject = await showModalBottomSheet<Project>(
-        context: context,
-        backgroundColor: AppColors.card,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-        builder: (_) => Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(isIncome ? 'Kirim qo\'shish' : 'Chiqim qo\'shish', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-              const SizedBox(height: 4),
-              const Text('Loyihani tanlang', style: TextStyle(color: AppColors.muted, fontSize: 13)),
-              const SizedBox(height: 16),
-              for (final p in ownedProjects) ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(p.nomi, overflow: TextOverflow.ellipsis),
-                subtitle: Text('${formatMoney(p.balance)} so\'m', style: const TextStyle(fontSize: 12)),
-                onTap: () => Navigator.pop(context, p),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-    if (selectedProject != null && mounted) {
-      await Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: selectedProject!, quickAddIncome: isIncome)),
-      );
-      _load();
+      setState(() => _loading = false);
     }
   }
 
@@ -143,127 +77,88 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final daysCtrl = TextEditingController(text: '30');
     final manzilCtrl = TextEditingController();
     final mijozCtrl = TextEditingController();
-    final bosqichCtrl = TextEditingController();
     DateTime startDate = DateTime.now();
 
     final created = await showModalBottomSheet<bool>(
       context: context,
       backgroundColor: AppColors.card,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 20,
-            bottom: 20 + MediaQuery.of(ctx).viewInsets.bottom,
-          ),
+        builder: (ctx, setSt) => Padding(
+          padding: EdgeInsets.only(left: 20, right: 20, top: 24, bottom: 24 + MediaQuery.of(ctx).viewInsets.bottom),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                children: [
-                  Expanded(child: Text('Yangi obyekt', style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800))),
-                  TextButton.icon(
-                    icon: const Icon(Icons.bookmark_outline_rounded, size: 16),
-                    label: const Text('Shablon', style: TextStyle(fontSize: 12)),
-                    style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8), foregroundColor: AppColors.accent),
-                    onPressed: () async {
-                      final templates = await _templateRepo.load();
-                      if (templates.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Saqlangan shablon yo'q")));
-                        return;
-                      }
-                      final tmpl = await showModalBottomSheet<ProjectTemplate>(
-                        context: context,
-                        backgroundColor: AppColors.card,
-                        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-                        builder: (c) => Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Shablon tanlash', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                              const SizedBox(height: 12),
-                              for (final t in templates)
-                                ListTile(
-                                  contentPadding: EdgeInsets.zero,
-                                  title: Text(t.nomi),
-                                  subtitle: Text('${t.muddat} kun${t.mijoz?.isNotEmpty == true ? " • ${t.mijoz}" : ""}'),
-                                  onTap: () => Navigator.pop(c, t),
-                                ),
-                            ],
-                          ),
+              Row(children: [
+                Expanded(child: const Text('Yangi obyekt', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17))),
+                TextButton.icon(
+                  icon: const Icon(Icons.bookmark_outline_rounded, size: 16),
+                  label: const Text('Shablon', style: TextStyle(fontSize: 12)),
+                  style: TextButton.styleFrom(foregroundColor: AppColors.accent),
+                  onPressed: () async {
+                    final templates = await _templateRepo.load();
+                    if (templates.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Saqlangan shablon yo'q")));
+                      return;
+                    }
+                    final tmpl = await showModalBottomSheet<ProjectTemplate>(
+                      context: context,
+                      backgroundColor: AppColors.card,
+                      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+                      builder: (c) => Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Shablon tanlash', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                            const SizedBox(height: 12),
+                            for (final t in templates)
+                              ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                title: Text(t.nomi),
+                                subtitle: Text('${t.muddat} kun${t.mijoz?.isNotEmpty == true ? " • ${t.mijoz}" : ""}'),
+                                onTap: () => Navigator.pop(c, t),
+                              ),
+                          ],
                         ),
-                      );
-                      if (tmpl != null) {
-                        setSheetState(() {
-                          nameCtrl.text = tmpl.nomi;
-                          daysCtrl.text = tmpl.muddat.toString();
-                          manzilCtrl.text = tmpl.manzil ?? '';
-                          mijozCtrl.text = tmpl.mijoz ?? '';
-                          bosqichCtrl.text = tmpl.bosqich ?? '';
-                        });
-                      }
-                    },
-                  ),
-                ],
-              ),
+                      ),
+                    );
+                    if (tmpl != null) {
+                      setSt(() {
+                        nameCtrl.text = tmpl.nomi;
+                        daysCtrl.text = tmpl.muddat.toString();
+                        manzilCtrl.text = tmpl.manzil ?? '';
+                        mijozCtrl.text = tmpl.mijoz ?? '';
+                      });
+                    }
+                  },
+                ),
+              ]),
               const SizedBox(height: 16),
-              TextField(
-                controller: nameCtrl,
-                decoration: const InputDecoration(hintText: 'Obyekt nomi'),
-              ),
+              TextField(controller: nameCtrl, autofocus: true, decoration: const InputDecoration(hintText: 'Obyekt nomi *')),
               const SizedBox(height: 12),
               InkWell(
                 onTap: () async {
-                  final picked = await showDatePicker(
-                    context: ctx,
-                    initialDate: startDate,
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime(2100),
-                  );
-                  if (picked != null) setSheetState(() => startDate = picked);
+                  final picked = await showDatePicker(context: ctx, initialDate: startDate, firstDate: DateTime(2020), lastDate: DateTime(2100));
+                  if (picked != null) setSt(() => startDate = picked);
                 },
                 child: InputDecorator(
-                  decoration: const InputDecoration(labelText: 'Boshlanish sanasi'),
-                  child: Text(
-                    '${startDate.year}-${startDate.month.toString().padLeft(2, '0')}-${startDate.day.toString().padLeft(2, '0')}',
-                  ),
+                  decoration: const InputDecoration(labelText: 'Boshlanish sanasi', prefixIcon: Icon(Icons.calendar_today_rounded, size: 18)),
+                  child: Text('${startDate.year}-${startDate.month.toString().padLeft(2, '0')}-${startDate.day.toString().padLeft(2, '0')}'),
                 ),
               ),
               const SizedBox(height: 12),
-              TextField(
-                controller: daysCtrl,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(hintText: 'Muddat (kun)'),
-              ),
+              TextField(controller: daysCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(hintText: 'Muddat (kun)', prefixIcon: Icon(Icons.timer_outlined, size: 18))),
               const SizedBox(height: 12),
-              TextField(
-                controller: manzilCtrl,
-                decoration: const InputDecoration(hintText: 'Manzil (ixtiyoriy)'),
-              ),
+              TextField(controller: manzilCtrl, decoration: const InputDecoration(hintText: 'Manzil (ixtiyoriy)', prefixIcon: Icon(Icons.location_on_outlined, size: 18))),
               const SizedBox(height: 12),
-              TextField(
-                controller: mijozCtrl,
-                decoration: const InputDecoration(hintText: 'Mijoz (ixtiyoriy)'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: bosqichCtrl,
-                decoration: const InputDecoration(hintText: 'Bosqich (ixtiyoriy, masalan: Poydevor)'),
-              ),
+              TextField(controller: mijozCtrl, decoration: const InputDecoration(hintText: 'Mijoz (ixtiyoriy)', prefixIcon: Icon(Icons.person_outline_rounded, size: 18))),
               const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: () {
-                  if (nameCtrl.text.trim().isEmpty) return;
-                  Navigator.of(ctx).pop(true);
-                },
+                onPressed: () { if (nameCtrl.text.trim().isEmpty) return; Navigator.of(ctx).pop(true); },
                 child: const Text('Yaratish'),
               ),
             ],
@@ -280,193 +175,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
         muddat: days,
         manzil: manzilCtrl.text.trim(),
         mijoz: mijozCtrl.text.trim(),
-        bosqich: bosqichCtrl.text.trim(),
+        bosqich: '',
       );
       _load();
     }
-  }
-
-  Future<void> _openCurrencyRates() async {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppColors.card,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => const _CurrencyRatesSheet(),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bg,
-      appBar: AppBar(
-        backgroundColor: AppColors.bg,
-        title: Row(
-          children: const [
-            MoliyaLogo(size: 28),
-            SizedBox(width: 10),
-            Text('Moliya'),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.calendar_month_outlined),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => CalendarScreen(projects: _projects)),
-            ).then((_) => _load()),
-          ),
-          IconButton(
-            icon: const Icon(Icons.search_rounded),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => SearchScreen(projects: _projects)),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.archive_outlined),
-            tooltip: 'Arxiv',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ArchiveScreen()),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.currency_exchange_rounded),
-            onPressed: _openCurrencyRates,
-          ),
-        ],
-      ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          if (_fabOpen) ...[
-            _SpeedDialItem(
-              icon: Icons.arrow_downward_rounded,
-              label: 'Kirim',
-              color: const Color(0xFF22C55E),
-              onTap: () => _openQuickTransaction(isIncome: true),
-            ),
-            const SizedBox(height: 8),
-            _SpeedDialItem(
-              icon: Icons.arrow_upward_rounded,
-              label: 'Chiqim',
-              color: const Color(0xFFF43F5E),
-              onTap: () => _openQuickTransaction(isIncome: false),
-            ),
-            const SizedBox(height: 8),
-            _SpeedDialItem(
-              icon: Icons.folder_open_rounded,
-              label: 'Loyiha',
-              color: AppColors.accent,
-              onTap: () {
-                setState(() => _fabOpen = false);
-                _openAddProject();
-              },
-            ),
-            const SizedBox(height: 12),
-          ],
-          FloatingActionButton(
-            onPressed: () => setState(() => _fabOpen = !_fabOpen),
-            child: AnimatedRotation(
-              turns: _fabOpen ? 0.125 : 0,
-              duration: const Duration(milliseconds: 200),
-              child: const Icon(Icons.add_rounded),
-            ),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          if (_profile != null) _buildGreeting(),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _load,
-              child: _buildBody(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildGreeting() {
-    final hour = DateTime.now().hour;
-    final greeting = hour < 12
-        ? 'Xayrli tong'
-        : hour < 18
-            ? 'Assalomu alaykum'
-            : 'Xayrli kech';
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(greeting, style: const TextStyle(fontSize: 12, color: AppColors.muted, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 2),
-                Text(
-                  _profile!.displayName,
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          if (_projects.isNotEmpty) ...[
-            _QuickActionButton(
-              icon: Icons.arrow_downward_rounded,
-              color: const Color(0xFF22C55E),
-              label: 'Kirim',
-              onTap: () => _openQuickAdd(isIncome: true),
-            ),
-            const SizedBox(width: 8),
-            _QuickActionButton(
-              icon: Icons.arrow_upward_rounded,
-              color: const Color(0xFFF43F5E),
-              label: 'Chiqim',
-              onTap: () => _openQuickAdd(isIncome: false),
-            ),
-          ],
-        ],
-      ),
-    );
+    nameCtrl.dispose(); daysCtrl.dispose(); manzilCtrl.dispose(); mijozCtrl.dispose();
   }
 
   Future<void> _openQuickAdd({required bool isIncome}) async {
+    final activeProjects = _projects.where((p) => p.role == 'owner' && p.status != 'done').toList();
+    if (activeProjects.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Faol loyiha yo'q")));
+      return;
+    }
     Project? target;
-    if (_projects.length == 1) {
-      target = _projects.first;
+    if (activeProjects.length == 1) {
+      target = activeProjects.first;
     } else {
       target = await showModalBottomSheet<Project>(
         context: context,
         backgroundColor: AppColors.card,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
         builder: (ctx) => SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  'Obyekt tanlang',
-                  style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-                ),
+                Text(isIncome ? 'Kirim — Loyiha tanlang' : 'Chiqim — Loyiha tanlang',
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
                 const SizedBox(height: 12),
-                for (final p in _projects)
+                for (final p in activeProjects)
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     title: Text(p.nomi),
+                    subtitle: Text('${formatMoney(p.balance)} so\'m', style: const TextStyle(fontSize: 12)),
                     trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
                     onTap: () => Navigator.of(ctx).pop(p),
                   ),
@@ -483,19 +227,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _load();
   }
 
-  Future<void> _openProjectMenu(Project project) async {
+  Future<void> _togglePin(Project project) async {
+    await _prefsRepo.togglePin(project.id);
+    final pinned = await _prefsRepo.loadPinned();
+    setState(() => _pinned = pinned);
+  }
+
+  Future<void> _toggleDone(Project project) async {
+    final newStatus = project.status == 'done' ? 'active' : 'done';
+    await _repo.setStatus(project.id, newStatus);
+    _load();
+  }
+
+  void _openProjectMenu(Project project) async {
     final action = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: const Color(0xFF0F1626),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      backgroundColor: AppColors.card,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(project.nomi, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+            Text(project.nomi, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 4),
+            Text(project.manzil ?? '', style: const TextStyle(fontSize: 12, color: AppColors.muted)),
             const SizedBox(height: 16),
+            const Divider(color: AppColors.border),
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Icon(_pinned.contains(project.id) ? Icons.push_pin_rounded : Icons.push_pin_outlined, color: AppColors.accent),
@@ -504,21 +262,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.check_circle_outline_rounded, color: Color(0xFF22C55E)),
+              leading: Icon(project.status == 'done' ? Icons.restart_alt_rounded : Icons.check_circle_outline_rounded, color: AppColors.green),
               title: Text(project.status == 'done' ? 'Faolga qaytarish' : 'Yakunlandi deb belgilash'),
               onTap: () => Navigator.of(ctx).pop('toggleDone'),
-            ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.add_rounded, color: Color(0xFF3B82F6)),
-              title: const Text('Kirim qo\'shish'),
-              onTap: () => Navigator.of(ctx).pop('income'),
-            ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.remove_rounded, color: Color(0xFFF43F5E)),
-              title: const Text('Chiqim qo\'shish'),
-              onTap: () => Navigator.of(ctx).pop('expense'),
             ),
             ListTile(
               contentPadding: EdgeInsets.zero,
@@ -538,23 +284,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
     if (action == null || !mounted) return;
     if (action == 'pin') {
-      await _prefsRepo.togglePin(project.id);
-      final pinned = await _prefsRepo.loadPinned();
-      setState(() => _pinned = pinned);
+      await _togglePin(project);
     } else if (action == 'toggleDone') {
-      final newStatus = project.status == 'done' ? 'active' : 'done';
-      await _repo.setStatus(project.id, newStatus);
-      _load();
-    } else if (action == 'income') {
-      await Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: project, quickAddIncome: true)),
-      );
-      _load();
-    } else if (action == 'expense') {
-      await Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: project, quickAddIncome: false)),
-      );
-      _load();
+      await _toggleDone(project);
     } else if (action == 'duplicate') {
       await _repo.createProject(
         nomi: '${project.nomi} (nusxa)',
@@ -565,9 +297,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         boshlanish: DateTime.now(),
       );
       _load();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nusxa yaratildi')));
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nusxa yaratildi')));
     } else if (action == 'saveTemplate') {
       await _templateRepo.add(ProjectTemplate(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -577,728 +307,562 @@ class _DashboardScreenState extends State<DashboardScreen> {
         mijoz: project.mijoz,
         bosqich: project.bosqich,
       ));
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Shablon saqlandi')));
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Shablon saqlandi')));
     }
   }
 
-  Widget _buildBody() {
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_error != null) {
-      return ListView(
-        children: [
-          const SizedBox(height: 80),
-          Center(
-            child: Text('Xatolik: $_error', style: const TextStyle(color: Colors.redAccent)),
-          ),
-        ],
-      );
-    }
-    if (_projects.isEmpty) {
-      return ListView(
-        children: [
-          const SizedBox(height: 100),
-          const Icon(Icons.folder_open_rounded, size: 56, color: AppColors.muted),
-          const SizedBox(height: 12),
-          const Center(
-            child: Text("Hozircha obyektlar yo'q", style: TextStyle(color: AppColors.text2)),
-          ),
-          const SizedBox(height: 16),
-          Center(
-            child: ElevatedButton(
-              onPressed: _openAddProject,
-              child: const Text('+ Yaratish'),
+  @override
+  Widget build(BuildContext context) {
+    final hour = DateTime.now().hour;
+    final greeting = hour < 12 ? 'Xayrli tong' : hour < 18 ? 'Assalomu alaykum' : 'Xayrli kech';
+    final name = _profile?.displayName ?? '';
+
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      appBar: AppBar(
+        backgroundColor: AppColors.bg,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        titleSpacing: 16,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(greeting, style: const TextStyle(fontSize: 12, color: AppColors.muted, fontWeight: FontWeight.w600)),
+            if (name.isNotEmpty)
+              Text(name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.text)),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: Container(
+              width: 38, height: 38,
+              decoration: BoxDecoration(
+                color: AppColors.card,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.border),
+              ),
+              child: const Icon(Icons.notifications_none_rounded, size: 20, color: AppColors.text2),
             ),
+            onPressed: () {},
           ),
+          const SizedBox(width: 8),
         ],
-      );
-    }
-    final projectNames = {for (final p in _projects) p.id: p.nomi};
-    final activeProjects = _projects.where((p) => p.status != 'done').toList();
-    final filteredProjects = (_search.isEmpty
-        ? List<Project>.from(activeProjects)
-        : activeProjects.where((p) => p.nomi.toLowerCase().contains(_search.toLowerCase())).toList())
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _openAddProject,
+        backgroundColor: AppColors.accent,
+        foregroundColor: Colors.white,
+        elevation: 2,
+        child: const Icon(Icons.add_rounded),
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: _buildBody(),
+            ),
+    );
+  }
+
+  Widget _buildBody() {
+    final activeProjects = _projects.where((p) => p.status != 'done').toList()
       ..sort((a, b) {
         final aPin = _pinned.contains(a.id) ? 0 : 1;
         final bPin = _pinned.contains(b.id) ? 0 : 1;
         return aPin.compareTo(bPin);
       });
-    final doneProjects = _projects.where((p) => p.status == 'done').toList();
+    final userId = supabase.auth.currentUser?.id ?? '';
     final totalBal = _projects.fold<num>(0, (s, p) => s + p.balance);
     final totalIn = _projects.fold<num>(0, (s, p) => s + p.kirim);
     final totalOut = _projects.fold<num>(0, (s, p) => s + p.chiqim);
-    // Compute alerts
-    final overdueProjects = activeProjects.where((p) {
-      final (_, left, _) = p.schedule;
-      return left == 0;
-    }).toList();
-    final negBalProjects = activeProjects.where((p) => p.role == 'owner' && p.balance < 0).toList();
-    final alerts = <String>[
-      if (overdueProjects.isNotEmpty) '⏰ ${overdueProjects.length} ta loyiha muddati o\'tgan',
-      if (negBalProjects.isNotEmpty) '⚠️ ${negBalProjects.length} ta loyihada manfiy balans',
-      if (_upcomingTasks.any((t) => t.task.muddat!.isBefore(DateTime.now()))) '🔴 Kechikkan vazifalar mavjud',
-    ];
-    final showAlerts = alerts.isNotEmpty;
-    final showRecent = _recentTxs.isNotEmpty;
-    final showSearch = activeProjects.length > 3;
-    final showUpcoming = _upcomingTasks.isNotEmpty;
-    final alertOffset = showAlerts ? 1 : 0;
-    final headerOffset = alertOffset + (showSearch ? 3 : 2);
-    final headerCount = filteredProjects.length + headerOffset;
-    final recentEnd = headerCount + (showRecent ? 1 + _recentTxs.length : 0);
-    final upcomingEnd = recentEnd + (showUpcoming ? 1 + _upcomingTasks.length : 0);
-    final doneStart = upcomingEnd;
-    final itemCount = doneStart + (doneProjects.isNotEmpty ? 1 + doneProjects.length : 0);
 
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-      itemCount: itemCount,
-      itemBuilder: (context, index) {
-        if (showAlerts && index == 0) {
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF59E0B).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.3)),
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+      children: [
+        // Summary card
+        _SummaryCard(totalBal: totalBal, totalIn: totalIn, totalOut: totalOut),
+        const SizedBox(height: 16),
+
+        // Quick action buttons
+        Row(
+          children: [
+            Expanded(
+              child: _ActionBtn(
+                label: 'Kirim qo\'shish',
+                icon: Icons.add_rounded,
+                color: AppColors.accent,
+                onTap: () => _openQuickAdd(isIncome: true),
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (final alert in alerts) ...[
-                  Text(alert, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFFF59E0B))),
-                  if (alert != alerts.last) const SizedBox(height: 4),
-                ],
-              ],
+            const SizedBox(width: 10),
+            Expanded(
+              child: _ActionBtn(
+                label: 'Chiqim qo\'shish',
+                icon: Icons.remove_rounded,
+                color: AppColors.red,
+                onTap: () => _openQuickAdd(isIncome: false),
+              ),
             ),
-          );
-        }
-        final adjIndex = index - alertOffset;
-        if (adjIndex == 0) {
-          final balColor = totalBal >= 0 ? const Color(0xFF16A34A) : const Color(0xFFEF4444);
-          final now = DateTime.now();
-          final today = DateTime(now.year, now.month, now.day);
-          final userId = supabase.auth.currentUser?.id ?? '';
-          final todayIn = _recentTxs
-              .where((tx) => tx.date.isAfter(today) && tx.isIncomeFor(userId))
-              .fold<num>(0, (s, tx) => s + tx.summa);
-          final todayOut = _recentTxs
-              .where((tx) => tx.date.isAfter(today) && tx.isExpenseFor(userId))
-              .fold<num>(0, (s, tx) => s + tx.summa);
-          return Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            padding: const EdgeInsets.all(16),
+          ],
+        ),
+        const SizedBox(height: 20),
+
+        // Active projects
+        if (activeProjects.isNotEmpty) ...[
+          _SectionHeader(
+            title: 'Faol loyihalar',
+            count: activeProjects.length,
+            action: activeProjects.length > 3 ? TextButton(
+              onPressed: () {},
+              child: const Text('Barchasi', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.accent)),
+            ) : null,
+          ),
+          const SizedBox(height: 8),
+          for (final p in activeProjects) ...[
+            _ProjectTile(
+              project: p,
+              isPinned: _pinned.contains(p.id),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: p))).then((_) => _load()),
+              onLongPress: () => _openProjectMenu(p),
+            ),
+            const SizedBox(height: 8),
+          ],
+          const SizedBox(height: 4),
+        ] else ...[
+          _EmptyProjectsCard(onAdd: _openAddProject),
+          const SizedBox(height: 20),
+        ],
+
+        // Upcoming tasks
+        if (_upcomingTasks.isNotEmpty) ...[
+          _SectionHeader(
+            title: 'Yaqinlashgan muddatlar',
+            count: _upcomingTasks.length,
+            action: TextButton(
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TasksScreen(projects: _projects))).then((_) => _load()),
+              child: const Text('Barchasi', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.accent)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
             decoration: BoxDecoration(
               color: AppColors.card,
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(color: AppColors.border),
             ),
             child: Column(
-              children: [
-                Row(
+              children: List.generate(_upcomingTasks.take(4).length, (i) {
+                final tasks = _upcomingTasks.take(4).toList();
+                final ut = tasks[i];
+                final isOverdue = ut.task.muddat!.isBefore(DateTime.now());
+                return Column(
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('UMUMIY QOLDIQ', style: TextStyle(fontSize: 10, color: AppColors.muted, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
-                          const SizedBox(height: 4),
-                          Text('${totalBal >= 0 ? '+' : ''}${formatMoney(totalBal)} so\'m',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: balColor)),
-                        ],
+                    ListTile(
+                      dense: true,
+                      leading: Container(
+                        width: 8, height: 8,
+                        decoration: BoxDecoration(shape: BoxShape.circle, color: isOverdue ? AppColors.red : AppColors.orange),
+                      ),
+                      title: Text(ut.task.nomi, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13), overflow: TextOverflow.ellipsis),
+                      subtitle: Text(ut.obNomi, style: const TextStyle(fontSize: 11, color: AppColors.muted)),
+                      trailing: Text(
+                        isOverdue ? 'Kechikkan' : DateFormat('dd.MM').format(ut.task.muddat!),
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: isOverdue ? AppColors.red : AppColors.orange),
                       ),
                     ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text('+${formatMoney(totalIn)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF16A34A))),
-                        const SizedBox(height: 2),
-                        Text('-${formatMoney(totalOut)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFFEF4444))),
-                      ],
-                    ),
+                    if (i < tasks.length - 1) const Divider(color: AppColors.border, height: 1, indent: 16),
                   ],
-                ),
-                if (todayIn > 0 || todayOut > 0) ...[
-                  const SizedBox(height: 10),
-                  const Divider(color: AppColors.border, height: 1),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      const Text('BUGUN', style: TextStyle(fontSize: 10, color: AppColors.muted, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
-                      const Spacer(),
-                      if (todayIn > 0) Text('+${formatMoney(todayIn)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF16A34A))),
-                      if (todayIn > 0 && todayOut > 0) const SizedBox(width: 8),
-                      if (todayOut > 0) Text('-${formatMoney(todayOut)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFFEF4444))),
-                    ],
-                  ),
-                ],
-                Builder(builder: (ctx) {
-                  // 7-day sparkline
-                  final days = List.generate(7, (i) => today.subtract(Duration(days: 6 - i)));
-                  final dayTotals = <double>[];
-                  for (final day in days) {
-                    final end = day.add(const Duration(days: 1));
-                    final netIn = _recentTxs
-                        .where((tx) => tx.date.isAfter(day) && tx.date.isBefore(end) && tx.isIncomeFor(userId))
-                        .fold<num>(0, (s, tx) => s + tx.summa);
-                    final netOut = _recentTxs
-                        .where((tx) => tx.date.isAfter(day) && tx.date.isBefore(end) && tx.isExpenseFor(userId))
-                        .fold<num>(0, (s, tx) => s + tx.summa);
-                    dayTotals.add((netIn - netOut).toDouble());
-                  }
-                  final hasData = dayTotals.any((v) => v != 0);
-                  if (!hasData) return const SizedBox.shrink();
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Divider(color: AppColors.border, height: 1),
-                        const SizedBox(height: 10),
-                        const Text('7 KUNLIK TREND', style: TextStyle(fontSize: 10, color: AppColors.muted, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
-                        const SizedBox(height: 8),
-                        _SparklineChart(values: dayTotals),
-                      ],
-                    ),
-                  );
-                }),
-              ],
+                );
+              }),
             ),
-          );
-        }
-        if (adjIndex == 1) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12, left: 4),
-            child: Text(
-              'Faol obyektlar',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-            ),
-          );
-        }
-        if (showSearch && adjIndex == 2) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: TextField(
-              onChanged: (v) => setState(() => _search = v),
-              decoration: const InputDecoration(
-                hintText: 'Obyekt qidirish...',
-                prefixIcon: Icon(Icons.search_rounded),
-              ),
-            ),
-          );
-        }
-        if (index < headerCount) {
-          final project = filteredProjects[index - headerOffset];
-          return ProjectCard(
-            project: project,
-            isPinned: _pinned.contains(project.id),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: project)),
-              ).then((_) => _load());
-            },
-            onLongPress: () => _openProjectMenu(project),
-          );
-        }
-        if (showRecent && index < recentEnd) {
-          if (index == headerCount) {
-            return Padding(
-              padding: const EdgeInsets.only(top: 8, bottom: 12, left: 4),
-              child: Text(
-                "So'nggi harakatlar",
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-              ),
-            );
-          }
-          final tx = _recentTxs[index - headerCount - 1];
-          final isLast = index == recentEnd - 1;
-          return _RecentTxTile(
-            tx: tx,
-            obNomi: projectNames[tx.obId] ?? '',
-            isLast: isLast,
-            onTap: () {
-              final project = _projects.firstWhere(
-                (p) => p.id == tx.obId,
-                orElse: () => _projects.first,
-              );
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: project)),
-              );
-            },
-          );
-        }
-        if (showUpcoming && index < upcomingEnd) {
-          if (index == recentEnd) {
-            return Padding(
-              padding: const EdgeInsets.only(top: 8, bottom: 12, left: 4),
-              child: Row(
-                children: [
-                  Text(
-                    "Yaqinlashgan muddatlar",
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.redAccent.withOpacity(0.14),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      '${_upcomingTasks.length}',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.redAccent),
-                    ),
-                  ),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TasksScreen(projects: _projects))).then((_) => _load()),
-                    style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8), foregroundColor: AppColors.accent),
-                    child: const Text('Barchasi', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-                  ),
-                ],
-              ),
-            );
-          }
-          final ut = _upcomingTasks[index - recentEnd - 1];
-          final isOverdue = ut.task.muddat!.isBefore(DateTime.now());
-          final dateStr = DateFormat('dd.MM').format(ut.task.muddat!);
-          return Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          ),
+          const SizedBox(height: 20),
+        ],
+
+        // Recent transactions
+        if (_recentTxs.isNotEmpty) ...[
+          _SectionHeader(title: 'So\'nggi harakatlar', count: null),
+          const SizedBox(height: 8),
+          Container(
             decoration: BoxDecoration(
               color: AppColors.card,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: isOverdue ? Colors.redAccent.withOpacity(0.4) : AppColors.border),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
             ),
-            child: Row(
-              children: [
-                Container(
-                  width: 8, height: 8,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isOverdue ? Colors.redAccent : const Color(0xFFF59E0B),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(ut.task.nomi, style: const TextStyle(fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis),
-                      Text(ut.obNomi, style: const TextStyle(fontSize: 12, color: AppColors.muted, fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                ),
-                Text(
-                  isOverdue ? 'Kechikkan' : dateStr,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: isOverdue ? Colors.redAccent : const Color(0xFFF59E0B),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-        if (index == doneStart) {
-          return Padding(
-            padding: const EdgeInsets.only(top: 8, bottom: 12, left: 4),
-            child: Text(
-              'Yakunlangan obyektlar',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-            ),
-          );
-        }
-        final project = doneProjects[index - doneStart - 1];
-        return ProjectCard(
-          project: project,
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: project)),
-            ).then((_) => _load());
-          },
-          onLongPress: () => _openProjectMenu(project),
-        );
-      },
-    );
-  }
-}
-
-class _QuickActionButton extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final String label;
-  final VoidCallback onTap;
-
-  const _QuickActionButton({required this.icon, required this.color, required this.label, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.14),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, size: 16, color: color),
-            const SizedBox(height: 2),
-            Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: color)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _RecentTxTile extends StatelessWidget {
-  final ProjectTransaction tx;
-  final String obNomi;
-  final bool isLast;
-  final VoidCallback? onTap;
-
-  const _RecentTxTile({required this.tx, required this.obNomi, required this.isLast, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final userId = supabase.auth.currentUser?.id;
-    final isIn = tx.isIncomeFor(userId ?? '');
-
-    final Color dotColor;
-    final String title;
-    switch (tx.tur) {
-      case 'income':
-        dotColor = const Color(0xFF22C55E);
-        title = tx.izoh?.isNotEmpty == true ? tx.izoh! : 'Kirim';
-        break;
-      case 'ishhaqi':
-        dotColor = const Color(0xFF3B82F6);
-        title = 'Ish haqi berildi';
-        break;
-      case 'send':
-        dotColor = const Color(0xFF3B82F6);
-        title = "Pul o'tkazma";
-        break;
-      case 'spend':
-        dotColor = const Color(0xFFF43F5E);
-        title = tx.kategoriya?.isNotEmpty == true ? tx.kategoriya! : 'Chiqim';
-        break;
-      default:
-        dotColor = const Color(0xFFF43F5E);
-        title = tx.izoh ?? '';
-    }
-
-    final amountColor = isIn ? const Color(0xFF22C55E) : const Color(0xFFF43F5E);
-    final sign = isIn ? '+' : '-';
-    final dateStr = DateFormat('dd.MM.yyyy').format(tx.date);
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Column(
-              children: [
-                const SizedBox(height: 4),
-                Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: dotColor,
-                    border: Border.all(color: AppColors.bg, width: 3),
-                    boxShadow: [BoxShadow(color: dotColor.withOpacity(0.35), blurRadius: 0, spreadRadius: 2)],
-                  ),
-                ),
-                if (!isLast)
-                  Expanded(
-                    child: Container(width: 2, margin: const EdgeInsets.symmetric(vertical: 2), color: AppColors.border),
-                  ),
-              ],
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Padding(
-                padding: EdgeInsets.only(bottom: isLast ? 0 : 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            child: Column(
+              children: List.generate(_recentTxs.take(6).length, (i) {
+                final txList = _recentTxs.take(6).toList();
+                final tx = txList[i];
+                final isIn = tx.isIncomeFor(userId);
+                final projName = _projects.where((p) => p.id == tx.obId).map((p) => p.nomi).firstOrNull ?? '';
+                return Column(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            title,
-                            style: const TextStyle(fontWeight: FontWeight.w800),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '$sign${formatMoney(tx.summa)}',
-                          style: TextStyle(fontWeight: FontWeight.w900, color: amountColor),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      obNomi.isNotEmpty ? '$obNomi • $dateStr' : dateStr,
-                      style: const TextStyle(fontSize: 12, color: AppColors.muted, fontWeight: FontWeight.w600),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CurrencyRatesSheet extends StatefulWidget {
-  const _CurrencyRatesSheet();
-
-  @override
-  State<_CurrencyRatesSheet> createState() => _CurrencyRatesSheetState();
-}
-
-class _CurrencyRatesSheetState extends State<_CurrencyRatesSheet> {
-  final _repo = CurrencyRepository();
-  List<CurrencyRate>? _rates;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    try {
-      final rates = await _repo.loadRates();
-      if (!mounted) return;
-      setState(() {
-        _rates = rates;
-        _error = null;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _error = 'Kursni yuklashda xato');
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 20,
-        bottom: 20 + MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Valyuta kurslari',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 16),
-          if (_error != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              child: Center(child: Text(_error!, style: const TextStyle(color: AppColors.muted))),
-            )
-          else if (_rates == null)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 20),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else
-            ..._rates!.map((c) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: AppColors.bg,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        child: Text(c.code, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.text2)),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                    InkWell(
+                      onTap: () {
+                        final proj = _projects.where((p) => p.id == tx.obId).firstOrNull;
+                        if (proj != null) Navigator.of(context).push(MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: proj)));
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        child: Row(
                           children: [
-                            Text(c.nameUz, style: const TextStyle(fontWeight: FontWeight.w700)),
-                            Text(c.nameEn, style: const TextStyle(fontSize: 11, color: AppColors.muted)),
+                            Container(
+                              width: 36, height: 36,
+                              decoration: BoxDecoration(
+                                color: (isIn ? AppColors.green : AppColors.red).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(
+                                isIn ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
+                                size: 18, color: isIn ? AppColors.green : AppColors.red,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _txTitle(tx),
+                                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    projName.isNotEmpty ? '$projName • ${DateFormat('dd.MM.yy').format(tx.date)}' : DateFormat('dd.MM.yy').format(tx.date),
+                                    style: const TextStyle(fontSize: 11, color: AppColors.muted),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Text(
+                              '${isIn ? '+' : '-'}${formatMoney(tx.summa)}',
+                              style: TextStyle(fontWeight: FontWeight.w800, color: isIn ? AppColors.green : AppColors.red),
+                            ),
                           ],
                         ),
                       ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text("${c.rate.toStringAsFixed(2)} so'm", style: const TextStyle(fontWeight: FontWeight.w900)),
-                          Text(
-                            '${c.diff > 0 ? '▲' : c.diff < 0 ? '▼' : ''} ${c.diff.abs().toStringAsFixed(2)}',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: c.diff > 0
-                                  ? const Color(0xFF16A34A)
-                                  : c.diff < 0
-                                      ? const Color(0xFFEF4444)
-                                      : AppColors.muted,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                )),
-          const SizedBox(height: 12),
+                    ),
+                    if (i < txList.length - 1) const Divider(color: AppColors.border, height: 1, indent: 14),
+                  ],
+                );
+              }),
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
+
+        // Archived / done projects
+        if (_projects.any((p) => p.status == 'done')) ...[
+          _SectionHeader(
+            title: 'Yakunlangan',
+            count: _projects.where((p) => p.status == 'done').length,
+            action: TextButton(
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ArchiveScreen())).then((_) => _load()),
+              child: const Text('Arxiv', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.accent)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          for (final p in _projects.where((p) => p.status == 'done').take(3)) ...[
+            _ProjectTile(
+              project: p,
+              isPinned: false,
+              isDone: true,
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: p))).then((_) => _load()),
+              onLongPress: () => _openProjectMenu(p),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ],
+      ],
+    );
+  }
+
+  String _txTitle(ProjectTransaction tx) {
+    switch (tx.tur) {
+      case 'income': return tx.izoh?.isNotEmpty == true ? tx.izoh! : 'Kirim';
+      case 'ishhaqi': return 'Ish haqi berildi';
+      case 'send': return "Pul o'tkazma";
+      case 'spend': return tx.kategoriya?.isNotEmpty == true ? tx.kategoriya! : 'Chiqim';
+      default: return tx.izoh ?? 'Tranzaksiya';
+    }
+  }
+}
+
+class _SummaryCard extends StatelessWidget {
+  final num totalBal;
+  final num totalIn;
+  final num totalOut;
+
+  const _SummaryCard({required this.totalBal, required this.totalIn, required this.totalOut});
+
+  @override
+  Widget build(BuildContext context) {
+    final isPositive = totalBal >= 0;
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.accent, Color(0xFF1D4ED8)],
+        ),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Umumiy qoldiq', style: TextStyle(fontSize: 12, color: Colors.white70, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 6),
+          Text(
+            '${formatMoney(totalBal.abs())} so\'m',
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(child: _BalStat(label: 'Kirim', value: formatMoney(totalIn), isIncome: true)),
+              Container(width: 1, height: 32, color: Colors.white24),
+              Expanded(child: _BalStat(label: 'Chiqim', value: formatMoney(totalOut), isIncome: false)),
+            ],
+          ),
         ],
       ),
     );
   }
 }
 
-class _SpeedDialItem extends StatelessWidget {
-  final IconData icon;
+class _BalStat extends StatelessWidget {
   final String label;
-  final Color color;
-  final VoidCallback onTap;
+  final String value;
+  final bool isIncome;
 
-  const _SpeedDialItem({required this.icon, required this.label, required this.color, required this.onTap});
+  const _BalStat({required this.label, required this.value, required this.isIncome});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
+    return Column(
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: AppColors.card,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.border),
+        Text(label, style: const TextStyle(fontSize: 11, color: Colors.white60)),
+        const SizedBox(height: 4),
+        Text(
+          '${isIncome ? '+' : '-'}$value',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+            color: isIncome ? const Color(0xFF86EFAC) : const Color(0xFFFCA5A5),
           ),
-          child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-        ),
-        const SizedBox(width: 10),
-        FloatingActionButton.small(
-          heroTag: label,
-          onPressed: onTap,
-          backgroundColor: color.withOpacity(0.15),
-          elevation: 0,
-          child: Icon(icon, color: color, size: 20),
         ),
       ],
     );
   }
 }
 
-class _SparklineChart extends StatelessWidget {
-  final List<double> values;
+class _ActionBtn extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
 
-  const _SparklineChart({required this.values});
+  const _ActionBtn({required this.label, required this.icon, required this.color, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 48,
-      child: CustomPaint(
-        painter: _SparklinePainter(values: values),
-        size: Size.infinite,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withOpacity(0.25)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 28, height: 28,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              child: Icon(icon, size: 16, color: Colors.white),
+            ),
+            const SizedBox(width: 8),
+            Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color)),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _SparklinePainter extends CustomPainter {
-  final List<double> values;
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  final int? count;
+  final Widget? action;
 
-  _SparklinePainter({required this.values});
+  const _SectionHeader({required this.title, this.count, this.action});
 
   @override
-  void paint(Canvas canvas, Size size) {
-    if (values.isEmpty) return;
-    final maxAbs = values.map((v) => v.abs()).reduce((a, b) => a > b ? a : b);
-    if (maxAbs == 0) return;
-
-    final midY = size.height / 2;
-    final scaleY = (size.height / 2 - 4) / maxAbs;
-    final stepX = size.width / (values.length - 1).clamp(1, double.infinity);
-
-    final posPath = Path();
-    final negPath = Path();
-    bool posStarted = false;
-    bool negStarted = false;
-
-    for (int i = 0; i < values.length; i++) {
-      final x = i * stepX;
-      final y = midY - values[i] * scaleY;
-      if (values[i] >= 0) {
-        if (!posStarted) { posPath.moveTo(x, y); posStarted = true; }
-        else posPath.lineTo(x, y);
-        if (negStarted) { negPath.lineTo(x, midY); negStarted = false; }
-      } else {
-        if (!negStarted) { negPath.moveTo(x, y); negStarted = true; }
-        else negPath.lineTo(x, y);
-        if (posStarted) { posPath.lineTo(x, midY); posStarted = false; }
-      }
-    }
-
-    final posPaint = Paint()
-      ..color = const Color(0xFF22C55E).withOpacity(0.8)
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    final negPaint = Paint()
-      ..color = const Color(0xFFEF4444).withOpacity(0.8)
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    canvas.drawLine(Offset(0, midY), Offset(size.width, midY),
-      Paint()..color = const Color(0x14FFFFFF)..strokeWidth = 1);
-
-    canvas.drawPath(posPath, posPaint);
-    canvas.drawPath(negPath, negPaint);
-
-    // Draw dot at last point
-    final lastX = (values.length - 1) * stepX;
-    final lastY = midY - values.last * scaleY;
-    canvas.drawCircle(
-      Offset(lastX, lastY),
-      3,
-      Paint()..color = values.last >= 0 ? const Color(0xFF22C55E) : const Color(0xFFEF4444),
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.text)),
+        if (count != null) ...[
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(color: AppColors.accent.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+            child: Text('$count', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.accent)),
+          ),
+        ],
+        const Spacer(),
+        if (action != null) action!,
+      ],
     );
   }
+}
+
+class _ProjectTile extends StatelessWidget {
+  final Project project;
+  final bool isPinned;
+  final bool isDone;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
+
+  const _ProjectTile({
+    required this.project,
+    required this.isPinned,
+    this.isDone = false,
+    required this.onTap,
+    required this.onLongPress,
+  });
 
   @override
-  bool shouldRepaint(_SparklinePainter old) => old.values != values;
+  Widget build(BuildContext context) {
+    final (daysPassed, daysLeft, progressPct) = project.schedule;
+    final totalDays = project.muddat == 0 ? 30 : project.muddat;
+    final progress = progressPct / 100.0;
+    final isOverdue = daysLeft == 0 && !isDone;
+    final progressColor = isDone
+        ? AppColors.green
+        : isOverdue
+            ? AppColors.red
+            : progress > 0.8
+                ? AppColors.orange
+                : AppColors.accent;
+
+    return InkWell(
+      onTap: onTap,
+      onLongPress: onLongPress,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: isOverdue ? AppColors.red.withOpacity(0.3) : AppColors.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                if (isPinned) ...[
+                  const Icon(Icons.push_pin_rounded, size: 12, color: AppColors.accent),
+                  const SizedBox(width: 4),
+                ],
+                Expanded(
+                  child: Text(project.nomi, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14), overflow: TextOverflow.ellipsis),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: isDone ? AppColors.green.withOpacity(0.1) : isOverdue ? AppColors.red.withOpacity(0.1) : AppColors.accent.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    isDone ? 'Yakunlandi' : isOverdue ? 'Muddati o\'tgan' : 'Faol',
+                    style: TextStyle(
+                      fontSize: 10, fontWeight: FontWeight.w700,
+                      color: isDone ? AppColors.green : isOverdue ? AppColors.red : AppColors.accent,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (project.manzil?.isNotEmpty == true) ...[
+              const SizedBox(height: 4),
+              Text(project.manzil!, style: const TextStyle(fontSize: 12, color: AppColors.muted), overflow: TextOverflow.ellipsis),
+            ],
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('${formatMoney(project.balance)} so\'m', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: project.balance >= 0 ? AppColors.green : AppColors.red)),
+                      const SizedBox(height: 2),
+                      Text('Qoldiq', style: const TextStyle(fontSize: 10, color: AppColors.muted)),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(isDone ? 'Yakunlandi' : '$daysLeft kun qoldi', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: isOverdue ? AppColors.red : AppColors.text2)),
+                    Text('$totalDays kunlik muddat', style: const TextStyle(fontSize: 10, color: AppColors.muted)),
+                  ],
+                ),
+              ],
+            ),
+            if (!isDone) ...[
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: progress.clamp(0.0, 1.0),
+                  minHeight: 4,
+                  backgroundColor: AppColors.border,
+                  valueColor: AlwaysStoppedAnimation(progressColor),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyProjectsCard extends StatelessWidget {
+  final VoidCallback onAdd;
+
+  const _EmptyProjectsCard({required this.onAdd});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 56, height: 56,
+            decoration: BoxDecoration(color: AppColors.accent.withOpacity(0.1), shape: BoxShape.circle),
+            child: const Icon(Icons.folder_open_rounded, size: 28, color: AppColors.accent),
+          ),
+          const SizedBox(height: 12),
+          const Text('Loyihalar yo\'q', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+          const SizedBox(height: 4),
+          const Text('Birinchi loyihangizni yarating', style: TextStyle(fontSize: 13, color: AppColors.muted), textAlign: TextAlign.center),
+          const SizedBox(height: 16),
+          ElevatedButton(onPressed: onAdd, child: const Text('+ Loyiha yaratish')),
+        ],
+      ),
+    );
+  }
 }

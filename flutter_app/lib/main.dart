@@ -25,9 +25,8 @@ class MoliyaApp extends StatelessWidget {
     return MaterialApp(
       title: 'Moliya',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark,
-      darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.dark,
+      theme: AppTheme.light,
+      themeMode: ThemeMode.light,
       home: const SplashScreen(),
     );
   }
