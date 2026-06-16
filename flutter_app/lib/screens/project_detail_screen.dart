@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../data/category_repository.dart';
 import '../data/material_repository.dart';
@@ -276,8 +277,18 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
               _TxDetailRow(label: 'Kategoriya', value: tx.kategoriya!),
             if (tx.izoh?.isNotEmpty == true)
               _TxDetailRow(label: 'Izoh', value: tx.izoh!),
+            const SizedBox(height: 20),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.of(ctx).pop('share'),
+              icon: const Icon(Icons.ios_share_rounded, size: 16),
+              label: const Text("Ulashish"),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+            ),
             if (canDelete) ...[
-              const SizedBox(height: 20),
+              const SizedBox(height: 8),
               OutlinedButton.icon(
                 onPressed: () => Navigator.of(ctx).pop('edit'),
                 icon: const Icon(Icons.edit_outlined, size: 16),
@@ -304,7 +315,23 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       ),
     );
 
-    if (delete == 'edit') {
+    if (delete == 'share') {
+      final fromM = _members.where((m) => m.userId == tx.fromUser).firstOrNull;
+      final toM = _members.where((m) => m.userId == tx.toUser).firstOrNull;
+      final turLabel = {'income': 'Kirim', 'spend': 'Chiqim', 'send': 'Avans', 'ishhaqi': 'Ish haqi'}[tx.tur] ?? tx.tur;
+      final lines = [
+        '📋 ${_project.nomi} — $turLabel',
+        '💰 ${isIn ? '+' : '-'}${formatMoney(tx.summa)} so\'m',
+        '📅 $dateStr',
+        if (fromM != null) '👤 Kimdan: ${fromM.displayName}',
+        if (toM != null) '👤 Kimga: ${toM.displayName}',
+        if (tx.kategoriya?.isNotEmpty == true && tx.tur != 'send' && tx.tur != 'ishhaqi') '🏷 ${tx.kategoriya}',
+        if (tx.izoh?.isNotEmpty == true) '📝 ${tx.izoh}',
+        '',
+        '#moliya #hisobot',
+      ];
+      await Share.share(lines.join('\n'));
+    } else if (delete == 'edit') {
       final noteCtrl = TextEditingController(text: tx.izoh ?? '');
       DateTime editDate = tx.date;
 
