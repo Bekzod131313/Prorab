@@ -547,10 +547,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final totalBal = _projects.fold<num>(0, (s, p) => s + p.balance);
     final totalIn = _projects.fold<num>(0, (s, p) => s + p.kirim);
     final totalOut = _projects.fold<num>(0, (s, p) => s + p.chiqim);
+    // Compute alerts
+    final overdueProjects = activeProjects.where((p) {
+      final (_, left, _) = p.schedule;
+      return left == 0;
+    }).toList();
+    final negBalProjects = activeProjects.where((p) => p.role == 'owner' && p.balance < 0).toList();
+    final alerts = <String>[
+      if (overdueProjects.isNotEmpty) '⏰ ${overdueProjects.length} ta loyiha muddati o\'tgan',
+      if (negBalProjects.isNotEmpty) '⚠️ ${negBalProjects.length} ta loyihada manfiy balans',
+      if (_upcomingTasks.any((t) => t.task.muddat!.isBefore(DateTime.now()))) '🔴 Kechikkan vazifalar mavjud',
+    ];
+    final showAlerts = alerts.isNotEmpty;
     final showRecent = _recentTxs.isNotEmpty;
     final showSearch = activeProjects.length > 3;
     final showUpcoming = _upcomingTasks.isNotEmpty;
-    final headerOffset = showSearch ? 3 : 2;
+    final alertOffset = showAlerts ? 1 : 0;
+    final headerOffset = alertOffset + (showSearch ? 3 : 2);
     final headerCount = filteredProjects.length + headerOffset;
     final recentEnd = headerCount + (showRecent ? 1 + _recentTxs.length : 0);
     final upcomingEnd = recentEnd + (showUpcoming ? 1 + _upcomingTasks.length : 0);
@@ -561,7 +574,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       itemCount: itemCount,
       itemBuilder: (context, index) {
-        if (index == 0) {
+        if (showAlerts && index == 0) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF59E0B).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final alert in alerts) ...[
+                  Text(alert, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFFF59E0B))),
+                  if (alert != alerts.last) const SizedBox(height: 4),
+                ],
+              ],
+            ),
+          );
+        }
+        final adjIndex = index - alertOffset;
+        if (adjIndex == 0) {
           final balColor = totalBal >= 0 ? const Color(0xFF16A34A) : const Color(0xFFEF4444);
           return Container(
             margin: const EdgeInsets.only(bottom: 16),
@@ -596,7 +630,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           );
         }
-        if (index == 1) {
+        if (adjIndex == 1) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 12, left: 4),
             child: Text(
@@ -605,7 +639,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           );
         }
-        if (showSearch && index == 2) {
+        if (showSearch && adjIndex == 2) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: TextField(
