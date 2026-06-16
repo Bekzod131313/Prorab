@@ -806,6 +806,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     final nameCtrl = TextEditingController();
     final qtyCtrl = TextEditingController();
     final unitCtrl = TextEditingController();
+    final narxCtrl = TextEditingController();
 
     final result = await showModalBottomSheet<bool>(
       context: context,
@@ -845,6 +846,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
               controller: unitCtrl,
               decoration: const InputDecoration(hintText: 'Birlik (kg, dona...)'),
             ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: narxCtrl,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(hintText: 'Narx (ixtiyoriy)'),
+            ),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
@@ -864,6 +871,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         nomi: nameCtrl.text.trim(),
         miqdor: num.tryParse(qtyCtrl.text.trim()) ?? 0,
         birlik: unitCtrl.text.trim(),
+        narx: num.tryParse(narxCtrl.text.trim()),
       );
       _load();
     }
