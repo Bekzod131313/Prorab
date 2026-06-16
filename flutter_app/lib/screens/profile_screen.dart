@@ -13,6 +13,7 @@ import '../widgets/moliya_logo.dart';
 import '../widgets/project_card.dart' show formatMoney;
 import 'auth_screen.dart';
 import 'debt_screen.dart';
+import 'supplier_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -327,6 +328,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: Icons.book_outlined,
             label: 'Qarz daftari',
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtScreen())),
+          ),
+          _MenuTile(
+            icon: Icons.store_outlined,
+            label: 'Yetkazib beruvchilar',
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupplierScreen())),
           ),
           _MenuTile(icon: Icons.backup_outlined, label: 'Zaxira nusxa', onTap: _doBackup),
           _MenuTile(icon: Icons.info_outline_rounded, label: 'Ilova haqida', onTap: _showAbout),
