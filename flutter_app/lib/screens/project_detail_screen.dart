@@ -10,6 +10,7 @@ import '../data/contract_repository.dart';
 import '../data/goal_repository.dart';
 import '../data/notes_repository.dart';
 import '../data/templates_repository.dart';
+import '../data/time_log_repository.dart';
 import '../data/material_repository.dart';
 import '../data/member_repository.dart';
 import '../data/project_repository.dart';
@@ -29,6 +30,7 @@ import '../widgets/member_row.dart' show MemberRow, colorForName;
 import '../widgets/project_card.dart' show colorForProject, formatMoney;
 import '../widgets/task_row.dart';
 import '../widgets/transaction_row.dart';
+import 'time_log_screen.dart';
 
 class ProjectDetailScreen extends StatefulWidget {
   final Project project;
@@ -69,6 +71,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   String _txFilter = 'all';
   String _txSearch = '';
   bool _showTxSearch = false;
+  DateTime? _txDateFrom;
+  DateTime? _txDateTo;
   String _taskFilter = 'all';
 
   @override
@@ -179,6 +183,13 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
           (tx.izoh ?? '').toLowerCase().contains(q) ||
           (tx.kategoriya ?? '').toLowerCase().contains(q) ||
           tx.summa.toString().contains(q)).toList();
+    }
+    if (_txDateFrom != null) {
+      filtered = filtered.where((tx) => !tx.date.isBefore(_txDateFrom!)).toList();
+    }
+    if (_txDateTo != null) {
+      final toEnd = _txDateTo!.add(const Duration(days: 1));
+      filtered = filtered.where((tx) => tx.date.isBefore(toEnd)).toList();
     }
     return filtered;
   }
@@ -1779,6 +1790,17 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         title: Text(project.nomi),
         actions: [
           IconButton(
+            icon: const Icon(Icons.timer_outlined),
+            tooltip: 'Vaqt hisobi',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => TimeLogScreen(
+                project: _project,
+                workerNames: _members.where((m) => m.role != 'owner').map((m) => m.displayName).toList(),
+              )),
+            ),
+          ),
+          IconButton(
             icon: const Icon(Icons.ios_share_rounded),
             onPressed: _shareProjectSummary,
           ),
@@ -2462,6 +2484,53 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                   _TxFilterChip(label: 'Kirim', selected: _txFilter == 'income', onTap: () => setState(() => _txFilter = 'income')),
                   const SizedBox(width: 8),
                   _TxFilterChip(label: 'Chiqim', selected: _txFilter == 'expense', onTap: () => setState(() => _txFilter = 'expense')),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () async {
+                      final range = await showDateRangePicker(
+                        context: context,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2100),
+                        initialDateRange: _txDateFrom != null && _txDateTo != null
+                            ? DateTimeRange(start: _txDateFrom!, end: _txDateTo!)
+                            : null,
+                        builder: (ctx, child) => Theme(data: Theme.of(ctx), child: child!),
+                      );
+                      if (range != null) {
+                        setState(() { _txDateFrom = range.start; _txDateTo = range.end; });
+                      }
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: _txDateFrom != null ? AppColors.accentTeal.withOpacity(0.18) : AppColors.card,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: _txDateFrom != null ? AppColors.accentTeal : AppColors.border),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.date_range_rounded, size: 14, color: _txDateFrom != null ? AppColors.accentTeal : AppColors.muted),
+                          const SizedBox(width: 4),
+                          Text(
+                            _txDateFrom != null
+                                ? '${DateFormat('dd.MM').format(_txDateFrom!)} – ${DateFormat('dd.MM').format(_txDateTo!)}'
+                                : 'Sana',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
+                              color: _txDateFrom != null ? AppColors.accentTeal : AppColors.text2),
+                          ),
+                          if (_txDateFrom != null) ...[
+                            const SizedBox(width: 4),
+                            GestureDetector(
+                              onTap: () => setState(() { _txDateFrom = null; _txDateTo = null; }),
+                              child: const Icon(Icons.close, size: 12, color: AppColors.muted),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
