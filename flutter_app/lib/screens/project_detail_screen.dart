@@ -12,7 +12,6 @@ import '../theme/app_theme.dart';
 import '../widgets/add_member_sheet.dart';
 import '../widgets/member_row.dart' show colorForName;
 import '../widgets/project_card.dart' show formatMoney;
-import 'worker_detail_screen.dart';
 
 class ProjectDetailScreen extends StatefulWidget {
   final Project project;
