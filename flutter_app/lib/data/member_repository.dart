@@ -54,6 +54,17 @@ class MemberRepository {
     });
   }
 
+  Future<List<Map<String, dynamic>>> searchUsers(String query) async {
+    if (query.trim().length < 2) return [];
+    final q = query.trim();
+    final rows = await supabase
+        .from('profiles')
+        .select('id,full_name,phone')
+        .or('full_name.ilike.%$q%,phone.ilike.%$q%')
+        .limit(10);
+    return (rows as List).cast<Map<String, dynamic>>();
+  }
+
   Future<void> removeMember({required String obId, required String userId}) async {
     await supabase.from('ob_members').delete().eq('ob_id', obId).eq('user_id', userId);
   }

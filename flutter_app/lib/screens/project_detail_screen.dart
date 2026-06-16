@@ -166,33 +166,24 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   }
 
   Future<void> _openAddMember() async {
-    final phoneCtrl = TextEditingController(text: '+998');
-    final kasbCtrl = TextEditingController();
-
-    final result = await showModalBottomSheet<bool>(
+    final result = await showModalBottomSheet<Map<String, String>>(
       context: context,
       backgroundColor: AppColors.card,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 20,
-          bottom: 20 + MediaQuery.of(ctx).viewInsets.bottom,
-        ),
-        child: AddMemberSheet(phoneCtrl: phoneCtrl, kasbCtrl: kasbCtrl),
-      ),
+      builder: (ctx) => _AddMemberSearchSheet(memberRepo: _memberRepo),
     );
 
-    if (result == true) {
+    if (result != null) {
+      final phone = result['phone'] ?? '';
+      final kasb = result['kasb'] ?? '';
       try {
         await _memberRepo.addMember(
           obId: _project.id,
-          phone: phoneCtrl.text.trim(),
-          kasb: kasbCtrl.text.trim(),
+          phone: phone,
+          kasb: kasb,
         );
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -2210,6 +2201,152 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _AddMemberSearchSheet extends StatefulWidget {
+  final MemberRepository memberRepo;
+  const _AddMemberSearchSheet({required this.memberRepo});
+
+  @override
+  State<_AddMemberSearchSheet> createState() => _AddMemberSearchSheetState();
+}
+
+class _AddMemberSearchSheetState extends State<_AddMemberSearchSheet> {
+  final _searchCtrl = TextEditingController();
+  final _kasbCtrl = TextEditingController();
+  List<Map<String, dynamic>> _results = [];
+  Map<String, dynamic>? _selected;
+  bool _searching = false;
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    _kasbCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _search(String q) async {
+    setState(() => _searching = true);
+    final results = await widget.memberRepo.searchUsers(q);
+    if (!mounted) return;
+    setState(() {
+      _results = results;
+      _searching = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 20 + MediaQuery.of(context).viewInsets.bottom),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text("Jamoaga qo'shish", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+          const SizedBox(height: 12),
+          if (_selected == null) ...[
+            TextField(
+              controller: _searchCtrl,
+              autofocus: true,
+              decoration: const InputDecoration(
+                hintText: 'Ism yoki telefon raqam...',
+                prefixIcon: Icon(Icons.search_rounded),
+              ),
+              onChanged: (v) {
+                if (v.length >= 2) _search(v);
+                else setState(() => _results = []);
+              },
+            ),
+            if (_searching) ...[
+              const SizedBox(height: 12),
+              const Center(child: CircularProgressIndicator()),
+            ] else if (_results.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              for (final user in _results) InkWell(
+                onTap: () => setState(() => _selected = user),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.bg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 36, height: 36,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(color: AppColors.accent.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+                        child: Text(
+                          (user['full_name'] as String? ?? '?').isNotEmpty ? (user['full_name'] as String)[0].toUpperCase() : '?',
+                          style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.accent),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(user['full_name'] ?? '—', style: const TextStyle(fontWeight: FontWeight.w700)),
+                            Text(user['phone'] ?? '', style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ] else if (_searchCtrl.text.length >= 2) ...[
+              const SizedBox(height: 12),
+              const Center(child: Text("Topilmadi — raqamni to'liq kiriting", style: TextStyle(color: AppColors.muted, fontSize: 13))),
+            ],
+          ] else ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.accent.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.accent.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(_selected!['full_name'] ?? '—', style: const TextStyle(fontWeight: FontWeight.w800)),
+                        Text(_selected!['phone'] ?? '', style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+                      ],
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => setState(() => _selected = null),
+                    child: const Icon(Icons.close_rounded, size: 18, color: AppColors.muted),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _kasbCtrl,
+              decoration: const InputDecoration(hintText: "Kasbi (Masalan: Ustachi, Elektrik)"),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop({
+                'phone': _selected!['phone'] as String? ?? '',
+                'kasb': _kasbCtrl.text.trim(),
+              }),
+              child: const Text("Qo'shish"),
+            ),
+          ],
+        ],
       ),
     );
   }
