@@ -53,6 +53,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   String _txFilter = 'all';
   String _txSearch = '';
   bool _showTxSearch = false;
+  String _taskFilter = 'all';
 
   @override
   void initState() {
@@ -1834,12 +1835,30 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 padding: EdgeInsets.symmetric(vertical: 12),
                 child: Center(child: Text("Vazifalar yo'q", style: TextStyle(color: AppColors.muted))),
               )
-            else
-              ...([..._tasks]..sort((a, b) {
-                    const order = {'todo': 0, 'progress': 1, 'done': 2};
-                    return (order[a.holat] ?? 0).compareTo(order[b.holat] ?? 0);
-                  }))
+            else ...[
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _TxFilterChip(label: 'Barchasi', selected: _taskFilter == 'all', onTap: () => setState(() => _taskFilter = 'all')),
+                    const SizedBox(width: 8),
+                    _TxFilterChip(label: 'Boshlanmagan', selected: _taskFilter == 'todo', onTap: () => setState(() => _taskFilter = 'todo')),
+                    const SizedBox(width: 8),
+                    _TxFilterChip(label: 'Jarayonda', selected: _taskFilter == 'progress', onTap: () => setState(() => _taskFilter = 'progress')),
+                    const SizedBox(width: 8),
+                    _TxFilterChip(label: 'Bajarildi', selected: _taskFilter == 'done', onTap: () => setState(() => _taskFilter = 'done')),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...([..._tasks]
+                    ..sort((a, b) {
+                        const order = {'todo': 0, 'progress': 1, 'done': 2};
+                        return (order[a.holat] ?? 0).compareTo(order[b.holat] ?? 0);
+                      }))
+                  .where((t) => _taskFilter == 'all' || t.holat == _taskFilter)
                   .map((t) => TaskRow(task: t, onTap: () => _toggleTask(t), onLongPress: () => _openTaskMenu(t))),
+            ],
             const SizedBox(height: 24),
             Text(
               'Materiallar',
