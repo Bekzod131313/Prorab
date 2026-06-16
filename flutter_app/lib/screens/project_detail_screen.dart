@@ -1758,6 +1758,107 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 );
               }),
             ],
+            if (_txs.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Builder(builder: (context) {
+                final userId = supabase.auth.currentUser?.id ?? '';
+                final now = DateTime.now();
+                // Build last 7 days data
+                final days = List.generate(7, (i) => DateTime(now.year, now.month, now.day - (6 - i)));
+                final dayIn = <int, num>{};
+                final dayOut = <int, num>{};
+                for (final tx in _txs) {
+                  final d = DateTime(tx.date.year, tx.date.month, tx.date.day);
+                  final idx = days.indexWhere((day) => day == d);
+                  if (idx == -1) continue;
+                  if (tx.isIncomeFor(userId)) dayIn[idx] = (dayIn[idx] ?? 0) + tx.summa;
+                  if (tx.isExpenseFor(userId)) dayOut[idx] = (dayOut[idx] ?? 0) + tx.summa;
+                }
+                final hasData = dayIn.isNotEmpty || dayOut.isNotEmpty;
+                if (!hasData) return const SizedBox.shrink();
+                final maxVal = [...dayIn.values, ...dayOut.values, 1].reduce((a, b) => a > b ? a : b);
+                return Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('7 kunlik grafik', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 80,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            for (var i = 0; i < 7; i++) ...[
+                              if (i > 0) const SizedBox(width: 4),
+                              Expanded(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.end,
+                                        children: [
+                                          if ((dayIn[i] ?? 0) > 0)
+                                            Flexible(
+                                              flex: ((dayIn[i] ?? 0) / maxVal * 100).round().clamp(1, 100),
+                                              child: Container(
+                                                margin: const EdgeInsets.only(bottom: 1),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFF22C55E).withOpacity(0.8),
+                                                  borderRadius: BorderRadius.circular(3),
+                                                ),
+                                              ),
+                                            ),
+                                          if ((dayOut[i] ?? 0) > 0)
+                                            Flexible(
+                                              flex: ((dayOut[i] ?? 0) / maxVal * 100).round().clamp(1, 100),
+                                              child: Container(
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFFF43F5E).withOpacity(0.8),
+                                                  borderRadius: BorderRadius.circular(3),
+                                                ),
+                                              ),
+                                            ),
+                                          if ((dayIn[i] ?? 0) == 0 && (dayOut[i] ?? 0) == 0)
+                                            Container(height: 4, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(3))),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      DateFormat('E').format(days[i])[0],
+                                      style: const TextStyle(fontSize: 9, color: AppColors.muted, fontWeight: FontWeight.w700),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Container(width: 8, height: 8, decoration: BoxDecoration(color: const Color(0xFF22C55E), borderRadius: BorderRadius.circular(2))),
+                          const SizedBox(width: 4),
+                          const Text('Kirim', style: TextStyle(fontSize: 11, color: AppColors.muted, fontWeight: FontWeight.w600)),
+                          const SizedBox(width: 12),
+                          Container(width: 8, height: 8, decoration: BoxDecoration(color: const Color(0xFFF43F5E), borderRadius: BorderRadius.circular(2))),
+                          const SizedBox(width: 4),
+                          const Text('Chiqim', style: TextStyle(fontSize: 11, color: AppColors.muted, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
             const SizedBox(height: 20),
             Builder(builder: (context) {
               final userId = supabase.auth.currentUser?.id ?? '';
