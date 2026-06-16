@@ -55,7 +55,7 @@ class WorkerRepository {
   }
 
   /// Records an advance ("avans") payment to a worker on a project; increases `olingan`.
-  Future<void> giveAvans({required String obId, required String toUserId, required num amount, String? izoh}) async {
+  Future<void> giveAvans({required String obId, required String toUserId, required num amount, String? izoh, DateTime? txDate}) async {
     final userId = supabase.auth.currentUser?.id;
     await supabase.from('transactions').insert({
       'ob_id': obId,
@@ -65,7 +65,7 @@ class WorkerRepository {
       'tur': 'send',
       'kategoriya': 'usta',
       'izoh': izoh?.isNotEmpty == true ? izoh : 'Avans',
-      'tx_date': DateTime.now().toIso8601String(),
+      'tx_date': (txDate ?? DateTime.now()).toIso8601String(),
     });
 
     final member = await supabase
@@ -94,7 +94,7 @@ class WorkerRepository {
   }
 
   /// Records a wage ("ish haqi") entry for a worker on a project; increases `ishaqi`.
-  Future<void> giveIshHaqi({required String obId, required String toUserId, required num amount, String? izoh}) async {
+  Future<void> giveIshHaqi({required String obId, required String toUserId, required num amount, String? izoh, DateTime? txDate}) async {
     final userId = supabase.auth.currentUser?.id;
     await supabase.from('transactions').insert({
       'ob_id': obId,
@@ -104,7 +104,7 @@ class WorkerRepository {
       'tur': 'ishhaqi',
       'kategoriya': 'usta',
       'izoh': izoh?.isNotEmpty == true ? izoh : 'Ish haqi',
-      'tx_date': DateTime.now().toIso8601String(),
+      'tx_date': (txDate ?? DateTime.now()).toIso8601String(),
     });
 
     final member = await supabase

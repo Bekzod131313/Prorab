@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../data/member_repository.dart';
 import '../data/project_repository.dart';
@@ -349,6 +350,7 @@ class _WorkerDetailSheetState extends State<_WorkerDetailSheet> {
     final amountCtrl = TextEditingController();
     final noteCtrl = TextEditingController();
     String selectedObId = worker.obsList.first.obId;
+    DateTime txDate = DateTime.now();
 
     final result = await showModalBottomSheet<bool>(
       context: context,
@@ -391,6 +393,35 @@ class _WorkerDetailSheetState extends State<_WorkerDetailSheet> {
                 controller: noteCtrl,
                 decoration: const InputDecoration(hintText: 'Izoh (ixtiyoriy)'),
               ),
+              const SizedBox(height: 12),
+              InkWell(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: ctx,
+                    initialDate: txDate,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime.now().add(const Duration(days: 1)),
+                  );
+                  if (picked != null) setSheetState(() => txDate = picked);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppColors.border),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.muted),
+                      const SizedBox(width: 10),
+                      Text(
+                        DateFormat('dd.MM.yyyy').format(txDate),
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
@@ -409,9 +440,9 @@ class _WorkerDetailSheetState extends State<_WorkerDetailSheet> {
     if (result == true) {
       final amount = num.tryParse(amountCtrl.text.trim()) ?? 0;
       if (isAvans) {
-        await _repo.giveAvans(obId: selectedObId, toUserId: worker.userId, amount: amount, izoh: noteCtrl.text.trim());
+        await _repo.giveAvans(obId: selectedObId, toUserId: worker.userId, amount: amount, izoh: noteCtrl.text.trim(), txDate: txDate);
       } else {
-        await _repo.giveIshHaqi(obId: selectedObId, toUserId: worker.userId, amount: amount, izoh: noteCtrl.text.trim());
+        await _repo.giveIshHaqi(obId: selectedObId, toUserId: worker.userId, amount: amount, izoh: noteCtrl.text.trim(), txDate: txDate);
       }
       if (!mounted) return;
       widget.onChanged();
