@@ -759,6 +759,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
             ),
             ListTile(
               contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.edit_outlined, color: AppColors.accent),
+              title: const Text('Tahrirlash'),
+              onTap: () => Navigator.of(ctx).pop('edit'),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
               title: const Text('O\'chirish', style: TextStyle(color: Colors.redAccent)),
               onTap: () => Navigator.of(ctx).pop('delete'),
@@ -770,6 +776,73 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
 
     if (action == 'toggle') {
       await _toggleTask(task);
+    } else if (action == 'edit') {
+      final ctrl = TextEditingController(text: task.nomi);
+      DateTime? muddat = task.muddat;
+      bool clearMuddat = false;
+
+      final saved = await showModalBottomSheet<bool>(
+        context: context,
+        backgroundColor: AppColors.card,
+        isScrollControlled: true,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        builder: (ctx) => StatefulBuilder(
+          builder: (ctx, setSheetState) => Padding(
+            padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 20 + MediaQuery.of(ctx).viewInsets.bottom),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Vazifani tahrirlash', style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                const SizedBox(height: 16),
+                TextField(controller: ctrl, decoration: const InputDecoration(hintText: 'Vazifa nomi')),
+                const SizedBox(height: 12),
+                InkWell(
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: ctx,
+                      initialDate: muddat ?? DateTime.now().add(const Duration(days: 1)),
+                      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                      lastDate: DateTime(2100),
+                    );
+                    setSheetState(() { muddat = picked; clearMuddat = picked == null; });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                    decoration: BoxDecoration(border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(14)),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.event_outlined, size: 18, color: AppColors.muted),
+                        const SizedBox(width: 10),
+                        Text(
+                          muddat != null ? DateFormat('dd.MM.yyyy').format(muddat!) : 'Muddat (ixtiyoriy)',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: muddat != null ? AppColors.text : AppColors.muted),
+                        ),
+                        if (muddat != null) ...[
+                          const Spacer(),
+                          GestureDetector(
+                            onTap: () => setSheetState(() { muddat = null; clearMuddat = true; }),
+                            child: const Icon(Icons.close, size: 16, color: AppColors.muted),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () { if (ctrl.text.trim().isEmpty) return; Navigator.of(ctx).pop(true); },
+                  child: const Text('Saqlash'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      if (saved == true) {
+        await _taskRepo.updateTask(task.id, nomi: ctrl.text.trim(), muddat: muddat, clearMuddat: clearMuddat);
+        _load();
+      }
     } else if (action == 'delete') {
       final confirm = await showDialog<bool>(
         context: context,
