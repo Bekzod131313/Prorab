@@ -92,6 +92,10 @@ class ProjectRepository {
     await supabase.from('obyektlar').delete().eq('id', id);
   }
 
+  Future<void> updateImage(String obId, String imageUrl) async {
+    await supabase.from('ob').update({'image_url': imageUrl}).eq('id', obId);
+  }
+
   Future<Project?> loadProjectById(String id) async {
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) return null;

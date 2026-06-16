@@ -14,6 +14,7 @@ class Project {
   final String? manzil;
   final String? mijoz;
   final String? bosqich;
+  final String? imageUrl;
 
   Project({
     required this.id,
@@ -31,6 +32,7 @@ class Project {
     this.manzil,
     this.mijoz,
     this.bosqich,
+    this.imageUrl,
   });
 
   num get balance => role == 'owner' ? (kirim - chiqim) : (ishaqi - olingan);
@@ -53,6 +55,7 @@ class Project {
       manzil: ob['manzil'] as String?,
       mijoz: ob['mijoz'] as String?,
       bosqich: ob['bosqich'] as String?,
+      imageUrl: ob['image_url'] as String?,
     );
   }
 
