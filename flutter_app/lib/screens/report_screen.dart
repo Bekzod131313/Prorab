@@ -10,6 +10,7 @@ import '../main.dart';
 import '../models/project.dart';
 import '../theme/app_theme.dart';
 import '../widgets/project_card.dart' show formatMoney;
+import 'materials_screen.dart';
 
 class ReportScreen extends StatefulWidget {
   const ReportScreen({super.key});
