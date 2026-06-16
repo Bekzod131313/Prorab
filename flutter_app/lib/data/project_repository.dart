@@ -84,6 +84,10 @@ class ProjectRepository {
     await supabase.from('obyektlar').update({'status': status}).eq('id', id);
   }
 
+  Future<void> deleteProject(String id) async {
+    await supabase.from('obyektlar').delete().eq('id', id);
+  }
+
   Future<Project?> loadProjectById(String id) async {
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) return null;
