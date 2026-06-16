@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../data/budget_repository.dart';
 import '../data/category_repository.dart';
+import '../data/notes_repository.dart';
 import '../data/material_repository.dart';
 import '../data/member_repository.dart';
 import '../data/project_repository.dart';
@@ -43,11 +44,13 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   final _materialRepo = MaterialRepository();
   final _workerRepo = WorkerRepository();
   final _budgetRepo = BudgetRepository();
+  final _notesRepo = NotesRepository();
   late Project _project;
   List<ProjectTransaction> _txs = [];
   List<ObMember> _members = [];
   List<ObTask> _tasks = [];
   List<ObMaterial> _materials = [];
+  List<ProjectNote> _notes = [];
   Map<String, num> _budgets = {};
   String? _tasksError;
   String? _materialsError;
@@ -113,6 +116,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     }
     try {
       _budgets = await _budgetRepo.loadBudgets(_project.id);
+    } catch (_) {}
+    try {
+      _notes = await _notesRepo.load(_project.id);
     } catch (_) {}
     if (mounted) setState(() {});
   }
@@ -1366,6 +1372,53 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     }
   }
 
+  Future<void> _openAddNote() async {
+    final ctrl = TextEditingController();
+    final saved = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: AppColors.card,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 20 + MediaQuery.of(ctx).viewInsets.bottom),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text('Eslatma qo\'shish', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: ctrl,
+              autofocus: true,
+              maxLines: 4,
+              decoration: const InputDecoration(hintText: 'Eslatma matni...'),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Saqlash'),
+            ),
+          ],
+        ),
+      ),
+    );
+    final text = ctrl.text.trim();
+    ctrl.dispose();
+    if (saved == true && text.isNotEmpty) {
+      await _notesRepo.add(_project.id, text);
+      final notes = await _notesRepo.load(_project.id);
+      if (!mounted) return;
+      setState(() => _notes = notes);
+    }
+  }
+
+  Future<void> _deleteNote(String noteId) async {
+    await _notesRepo.delete(_project.id, noteId);
+    final notes = await _notesRepo.load(_project.id);
+    if (!mounted) return;
+    setState(() => _notes = notes);
+  }
+
   Future<void> _openBudgetSheet(List<String> categories) async {
     final controllers = {for (final cat in categories) cat: TextEditingController(text: _budgets[cat]?.toStringAsFixed(0) ?? '')};
     await showModalBottomSheet(
@@ -2077,6 +2130,64 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
               )
             else
               ..._materials.map((m) => MaterialRow(material: m, onTap: () => _openMaterialDetail(m))),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Eslatmalar',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: _openAddNote,
+                  icon: const Icon(Icons.add_rounded, size: 16),
+                  label: const Text('Qo\'shish'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (_notes.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Center(child: Text("Eslatmalar yo'q", style: TextStyle(color: AppColors.muted, fontSize: 13))),
+              )
+            else
+              for (final note in _notes)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(note.text, style: const TextStyle(fontSize: 13.5)),
+                            const SizedBox(height: 4),
+                            Text(
+                              DateFormat('dd.MM.yyyy HH:mm').format(note.createdAt),
+                              style: const TextStyle(fontSize: 11, color: AppColors.muted),
+                            ),
+                          ],
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => _deleteNote(note.id),
+                        child: const Padding(
+                          padding: EdgeInsets.only(left: 10),
+                          child: Icon(Icons.close_rounded, size: 16, color: AppColors.muted),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
           ],
         ),
       ),
