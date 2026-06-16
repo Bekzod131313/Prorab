@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../data/budget_repository.dart';
 import '../data/category_repository.dart';
+import '../data/contract_repository.dart';
 import '../data/notes_repository.dart';
 import '../data/templates_repository.dart';
 import '../data/material_repository.dart';
@@ -46,6 +47,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   final _workerRepo = WorkerRepository();
   final _budgetRepo = BudgetRepository();
   final _notesRepo = NotesRepository();
+  final _contractRepo = ContractRepository();
   late Project _project;
   List<ProjectTransaction> _txs = [];
   List<ObMember> _members = [];
@@ -53,6 +55,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   List<ObMaterial> _materials = [];
   List<ProjectNote> _notes = [];
   Map<String, num> _budgets = {};
+  ProjectContract? _contract;
   String? _tasksError;
   String? _materialsError;
   bool _loading = true;
@@ -120,6 +123,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     } catch (_) {}
     try {
       _notes = await _notesRepo.load(_project.id);
+    } catch (_) {}
+    try {
+      _contract = await _contractRepo.load(_project.id);
     } catch (_) {}
     if (mounted) setState(() {});
   }
@@ -1364,6 +1370,79 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     }
   }
 
+  Future<void> _openContractSheet() async {
+    final existing = _contract;
+    final mijozCtrl = TextEditingController(text: existing?.mijozIsm ?? '');
+    final summaCtrl = TextEditingController(text: existing?.shartnomaSumma?.toStringAsFixed(0) ?? '');
+    final oldingiCtrl = TextEditingController(text: existing?.oldingiTulov?.toStringAsFixed(0) ?? '');
+    final izohCtrl = TextEditingController(text: existing?.izoh ?? '');
+    DateTime? sana = existing?.shartnomaSana;
+
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.card,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSS) => Padding(
+          padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 20 + MediaQuery.of(ctx).viewInsets.bottom),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text('Shartnoma', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+              const SizedBox(height: 12),
+              TextField(controller: mijozCtrl, decoration: const InputDecoration(hintText: 'Mijoz ismi')),
+              const SizedBox(height: 10),
+              TextField(controller: summaCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(hintText: 'Shartnoma summasi', suffixText: "so'm")),
+              const SizedBox(height: 10),
+              TextField(controller: oldingiCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(hintText: "Oldingi to'lov", suffixText: "so'm")),
+              const SizedBox(height: 10),
+              InkWell(
+                onTap: () async {
+                  final d = await showDatePicker(context: ctx, initialDate: sana ?? DateTime.now(), firstDate: DateTime(2020), lastDate: DateTime(2030));
+                  if (d != null) setSS(() => sana = d);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                  decoration: BoxDecoration(border: Border.all(color: AppColors.border), borderRadius: BorderRadius.circular(14)),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.muted),
+                      const SizedBox(width: 10),
+                      Text(sana != null ? DateFormat('dd.MM.yyyy').format(sana!) : 'Shartnoma sanasi', style: TextStyle(color: sana != null ? AppColors.text : AppColors.muted)),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(controller: izohCtrl, decoration: const InputDecoration(hintText: 'Izoh')),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () async {
+                  final contract = ProjectContract(
+                    obId: _project.id,
+                    mijozIsm: mijozCtrl.text.trim().isNotEmpty ? mijozCtrl.text.trim() : null,
+                    shartnomaSumma: num.tryParse(summaCtrl.text.replaceAll(' ', '')),
+                    oldingiTulov: num.tryParse(oldingiCtrl.text.replaceAll(' ', '')),
+                    shartnomaSana: sana,
+                    izoh: izohCtrl.text.trim().isNotEmpty ? izohCtrl.text.trim() : null,
+                  );
+                  await _contractRepo.save(contract);
+                  if (!mounted) return;
+                  Navigator.of(ctx).pop();
+                  setState(() => _contract = contract);
+                },
+                child: const Text('Saqlash'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    mijozCtrl.dispose(); summaCtrl.dispose(); oldingiCtrl.dispose(); izohCtrl.dispose();
+  }
+
   Future<void> _openAddNote() async {
     final ctrl = TextEditingController();
     final saved = await showModalBottomSheet<bool>(
@@ -1726,6 +1805,60 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 ),
               );
             }),
+            if (_project.role == 'owner') ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.card,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Expanded(child: Text('Shartnoma', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14))),
+                        GestureDetector(
+                          onTap: _openContractSheet,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(_contract == null ? Icons.add_rounded : Icons.edit_outlined, size: 14, color: AppColors.accent),
+                              const SizedBox(width: 4),
+                              Text(_contract == null ? "Qo'shish" : 'Tahrirlash', style: const TextStyle(fontSize: 12, color: AppColors.accent, fontWeight: FontWeight.w700)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (_contract == null) ...[
+                      const SizedBox(height: 10),
+                      const Text("Shartnoma ma'lumotlari kiritilmagan", style: TextStyle(color: AppColors.muted, fontSize: 13)),
+                    ] else ...[
+                      const SizedBox(height: 12),
+                      if (_contract!.mijozIsm?.isNotEmpty == true)
+                        _ContractRow(label: 'Mijoz', value: _contract!.mijozIsm!),
+                      if (_contract!.shartnomaSumma != null)
+                        _ContractRow(label: 'Shartnoma summa', value: '${formatMoney(_contract!.shartnomaSumma!)} so\'m'),
+                      if (_contract!.oldingiTulov != null)
+                        _ContractRow(label: 'Oldingi to\'lov', value: '${formatMoney(_contract!.oldingiTulov!)} so\'m'),
+                      if (_contract!.shartnomaSumma != null)
+                        _ContractRow(
+                          label: 'Qoldiq to\'lov',
+                          value: '${formatMoney(_contract!.qoldiqTulov)} so\'m',
+                          valueColor: _contract!.qoldiqTulov > 0 ? const Color(0xFFF43F5E) : const Color(0xFF22C55E),
+                        ),
+                      if (_contract!.shartnomaSana != null)
+                        _ContractRow(label: 'Shartnoma sanasi', value: DateFormat('dd.MM.yyyy').format(_contract!.shartnomaSana!)),
+                      if (_contract!.izoh?.isNotEmpty == true)
+                        _ContractRow(label: 'Izoh', value: _contract!.izoh!),
+                    ],
+                  ],
+                ),
+              ),
+            ],
             if (_project.role == 'owner' && _txs.isNotEmpty) ...[
               const SizedBox(height: 16),
               Builder(builder: (context) {
@@ -2346,6 +2479,28 @@ class _AddMemberSearchSheetState extends State<_AddMemberSearchSheet> {
               child: const Text("Qo'shish"),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ContractRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  const _ContractRow({required this.label, required this.value, this.valueColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 12, color: AppColors.muted, fontWeight: FontWeight.w600)),
+          Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: valueColor ?? AppColors.text)),
         ],
       ),
     );
