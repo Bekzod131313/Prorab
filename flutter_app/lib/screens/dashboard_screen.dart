@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../data/member_repository.dart';
 import '../data/prefs_repository.dart';
 import '../data/profile_repository.dart';
 import '../data/project_repository.dart';
@@ -30,6 +31,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final _taskRepo = TaskRepository();
   final _prefsRepo = PrefsRepository();
   final _templateRepo = ProjectTemplateRepository();
+  final _memberRepo = MemberRepository();
 
   List<Project> _projects = [];
   List<ProjectTransaction> _recentTxs = [];
@@ -38,10 +40,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Profile? _profile;
   bool _loading = true;
 
+  final _pageCtrl = PageController();
+  int _currentPage = 0;
+  Map<String, int> _memberCounts = {};
+  Map<String, int> _taskCounts = {};
+
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _pageCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -56,6 +69,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
       try { upcomingTasks = await _taskRepo.loadUpcoming(projects); } catch (_) {}
       Set<String> pinned = {};
       try { pinned = await _prefsRepo.loadPinned(); } catch (_) {}
+
+      // Load member and task counts
+      final Map<String, int> memberCounts = {};
+      final Map<String, int> taskCounts = {};
+      for (final p in projects) {
+        try {
+          final members = await _memberRepo.loadForProject(p.id);
+          memberCounts[p.id] = members.where((m) => m.role == 'member').length;
+        } catch (_) {
+          memberCounts[p.id] = 0;
+        }
+        try {
+          final tasks = await _taskRepo.loadForProject(p.id);
+          taskCounts[p.id] = tasks.length;
+        } catch (_) {
+          taskCounts[p.id] = 0;
+        }
+      }
+
       if (!mounted) return;
       setState(() {
         _projects = projects;
@@ -63,12 +95,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _upcomingTasks = upcomingTasks;
         _pinned = pinned;
         _profile = profile;
+        _memberCounts = memberCounts;
+        _taskCounts = taskCounts;
         _loading = false;
+        if (_currentPage >= projects.length && projects.isNotEmpty) {
+          _currentPage = 0;
+        }
       });
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
     }
+  }
+
+  List<Color> _gradientForProject(String id) {
+    final gradients = [
+      [const Color(0xFF2563EB), const Color(0xFF7C3AED)],
+      [const Color(0xFF059669), const Color(0xFF0891B2)],
+      [const Color(0xFFDC2626), const Color(0xFFEA580C)],
+      [const Color(0xFF7C3AED), const Color(0xFFDB2777)],
+      [const Color(0xFF0891B2), const Color(0xFF0284C7)],
+      [const Color(0xFF065F46), const Color(0xFF0369A1)],
+    ];
+    final idx = id.codeUnits.fold(0, (a, b) => a + b) % gradients.length;
+    return gradients[idx];
   }
 
   Future<void> _openAddProject() async {
@@ -181,43 +231,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
     nameCtrl.dispose(); daysCtrl.dispose(); manzilCtrl.dispose(); mijozCtrl.dispose();
   }
 
-  Future<void> _openQuickAdd({required bool isIncome}) async {
+  Future<void> _openQuickAdd({required bool isIncome, Project? selectedProject}) async {
     final activeProjects = _projects.where((p) => p.role == 'owner' && p.status != 'done').toList();
     if (activeProjects.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Faol loyiha yo'q")));
       return;
     }
-    Project? target;
-    if (activeProjects.length == 1) {
-      target = activeProjects.first;
-    } else {
-      target = await showModalBottomSheet<Project>(
-        context: context,
-        backgroundColor: AppColors.card,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-        builder: (ctx) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(isIncome ? 'Kirim — Loyiha tanlang' : 'Chiqim — Loyiha tanlang',
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                const SizedBox(height: 12),
-                for (final p in activeProjects)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(p.nomi),
-                    subtitle: Text('${formatMoney(p.balance)} so\'m', style: const TextStyle(fontSize: 12)),
-                    trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
-                    onTap: () => Navigator.of(ctx).pop(p),
-                  ),
-              ],
+    Project? target = selectedProject;
+    if (target == null) {
+      if (activeProjects.length == 1) {
+        target = activeProjects.first;
+      } else {
+        target = await showModalBottomSheet<Project>(
+          context: context,
+          backgroundColor: AppColors.card,
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+          builder: (ctx) => SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(isIncome ? 'Kirim — Loyiha tanlang' : 'Chiqim — Loyiha tanlang',
+                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                  const SizedBox(height: 12),
+                  for (final p in activeProjects)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(p.nomi),
+                      subtitle: Text('${formatMoney(p.balance)} so\'m', style: const TextStyle(fontSize: 12)),
+                      trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
+                      onTap: () => Navigator.of(ctx).pop(p),
+                    ),
+                ],
+              ),
             ),
           ),
-        ),
-      );
+        );
+      }
     }
     if (target == null || !mounted) return;
     await Navigator.of(context).push(
@@ -312,10 +364,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final hour = DateTime.now().hour;
-    final greeting = hour < 12 ? 'Xayrli tong' : hour < 18 ? 'Assalomu alaykum' : 'Xayrli kech';
-    final name = _profile?.displayName ?? '';
-
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
@@ -323,14 +371,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         titleSpacing: 16,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(greeting, style: const TextStyle(fontSize: 12, color: AppColors.muted, fontWeight: FontWeight.w600)),
-            if (name.isNotEmpty)
-              Text(name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.text)),
-          ],
-        ),
+        title: const Text('Asosiy', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.text)),
         actions: [
           IconButton(
             icon: Container(
@@ -364,206 +405,412 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildBody() {
-    final activeProjects = _projects.where((p) => p.status != 'done').toList()
-      ..sort((a, b) {
-        final aPin = _pinned.contains(a.id) ? 0 : 1;
-        final bPin = _pinned.contains(b.id) ? 0 : 1;
-        return aPin.compareTo(bPin);
-      });
-    final userId = supabase.auth.currentUser?.id ?? '';
-    final totalBal = _projects.fold<num>(0, (s, p) => s + p.balance);
-    final totalIn = _projects.fold<num>(0, (s, p) => s + p.kirim);
-    final totalOut = _projects.fold<num>(0, (s, p) => s + p.chiqim);
+    final allProjects = _projects;
+
+    if (allProjects.isEmpty) {
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(16, 24, 16, 100),
+        children: [
+          _EmptyProjectsCard(onAdd: _openAddProject),
+        ],
+      );
+    }
+
+    final currentProject = _currentPage < allProjects.length ? allProjects[_currentPage] : allProjects.first;
+    final (_, daysLeft, progress) = currentProject.schedule;
+    final isDone = currentProject.status == 'done';
+    final memberCount = _memberCounts[currentProject.id] ?? 0;
+    final taskCount = _taskCounts[currentProject.id] ?? 0;
+    final startFmt = currentProject.boshlanish != null
+        ? DateFormat('dd.MM.yyyy').format(currentProject.boshlanish!)
+        : '—';
+    final endDate = currentProject.boshlanish != null
+        ? currentProject.boshlanish!.add(Duration(days: currentProject.muddat))
+        : null;
+    final endFmt = endDate != null ? DateFormat('dd.MM.yyyy').format(endDate) : '—';
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+      padding: const EdgeInsets.fromLTRB(0, 8, 0, 100),
       children: [
-        // Summary card
-        _SummaryCard(totalBal: totalBal, totalIn: totalIn, totalOut: totalOut),
+        // Hero PageView
+        SizedBox(
+          height: 220,
+          child: PageView.builder(
+            controller: _pageCtrl,
+            itemCount: allProjects.length,
+            onPageChanged: (i) => setState(() => _currentPage = i),
+            itemBuilder: (ctx, i) {
+              final p = allProjects[i];
+              final gradient = _gradientForProject(p.id);
+              final (_, left, prog) = p.schedule;
+              final done = p.status == 'done';
+              final indexLabel = '#${(i + 1).toString().padLeft(3, '0')}';
+              return GestureDetector(
+                onTap: () => Navigator.of(context)
+                    .push(MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: p)))
+                    .then((_) => _load()),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: gradient,
+                    ),
+                    image: p.imageUrl != null
+                        ? DecorationImage(image: NetworkImage(p.imageUrl!), fit: BoxFit.cover)
+                        : null,
+                  ),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withOpacity(p.imageUrl != null ? 0.3 : 0.0),
+                          Colors.black.withOpacity(0.55),
+                        ],
+                      ),
+                    ),
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.35),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(indexLabel, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+                            ),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: done ? Colors.grey.withOpacity(0.5) : Colors.green.withOpacity(0.75),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                done ? 'Yakunlandi' : 'Active',
+                                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Spacer(),
+                        Text(
+                          p.nomi,
+                          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                        const SizedBox(height: 8),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: (prog / 100).clamp(0.0, 1.0),
+                            minHeight: 4,
+                            backgroundColor: Colors.white.withOpacity(0.25),
+                            valueColor: const AlwaysStoppedAnimation(Colors.white),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            // Avatar circles
+                            if (memberCount > 0)
+                              SizedBox(
+                                width: memberCount.clamp(1, 3) * 20.0 + 8,
+                                height: 24,
+                                child: Stack(
+                                  children: List.generate(memberCount.clamp(1, 3), (idx) => Positioned(
+                                    left: idx * 16.0,
+                                    child: Container(
+                                      width: 24, height: 24,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.3),
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: Colors.white, width: 1.5),
+                                      ),
+                                      child: const Icon(Icons.person, size: 12, color: Colors.white),
+                                    ),
+                                  )),
+                                ),
+                              ),
+                            const SizedBox(width: 6),
+                            Text('$memberCount ishchi', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                            const SizedBox(width: 12),
+                            const Icon(Icons.calendar_today_rounded, size: 12, color: Colors.white70),
+                            const SizedBox(width: 4),
+                            Text('$left kun qoldi', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 10),
+
+        // Page indicator dots
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(allProjects.length, (i) => AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: i == _currentPage ? 18 : 6,
+            height: 6,
+            margin: const EdgeInsets.symmetric(horizontal: 2),
+            decoration: BoxDecoration(
+              color: i == _currentPage ? AppColors.accent : AppColors.border,
+              borderRadius: BorderRadius.circular(3),
+            ),
+          )),
+        ),
         const SizedBox(height: 16),
 
-        // Quick action buttons
-        Row(
-          children: [
-            Expanded(
-              child: _ActionBtn(
-                label: 'Kirim qo\'shish',
-                icon: Icons.add_rounded,
-                color: AppColors.accent,
-                onTap: () => _openQuickAdd(isIncome: true),
+        // Two action buttons
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Expanded(
+                child: _HeroActionBtn(
+                  label: 'Kirim',
+                  subtitle: "Qo'shish",
+                  icon: Icons.arrow_downward_rounded,
+                  color: AppColors.accent,
+                  onTap: () => _openQuickAdd(
+                    isIncome: true,
+                    selectedProject: currentProject.role == 'owner' && currentProject.status != 'done' ? currentProject : null,
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _ActionBtn(
-                label: 'Chiqim qo\'shish',
-                icon: Icons.remove_rounded,
-                color: AppColors.red,
-                onTap: () => _openQuickAdd(isIncome: false),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _HeroActionBtn(
+                  label: 'Chiqim',
+                  subtitle: "Qo'shish",
+                  icon: Icons.arrow_upward_rounded,
+                  color: AppColors.green,
+                  onTap: () => _openQuickAdd(
+                    isIncome: false,
+                    selectedProject: currentProject.role == 'owner' && currentProject.status != 'done' ? currentProject : null,
+                  ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
 
-        // Active projects
-        if (activeProjects.isNotEmpty) ...[
-          _SectionHeader(
-            title: 'Faol loyihalar',
-            count: activeProjects.length,
-            action: activeProjects.length > 3 ? TextButton(
-              onPressed: () {},
-              child: const Text('Barchasi', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.accent)),
-            ) : null,
-          ),
-          const SizedBox(height: 8),
-          for (final p in activeProjects) ...[
-            _ProjectTile(
-              project: p,
-              isPinned: _pinned.contains(p.id),
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: p))).then((_) => _load()),
-              onLongPress: () => _openProjectMenu(p),
-            ),
-            const SizedBox(height: 8),
-          ],
-          const SizedBox(height: 4),
-        ] else ...[
-          _EmptyProjectsCard(onAdd: _openAddProject),
-          const SizedBox(height: 20),
-        ],
-
-        // Upcoming tasks
-        if (_upcomingTasks.isNotEmpty) ...[
-          _SectionHeader(
-            title: 'Yaqinlashgan muddatlar',
-            count: _upcomingTasks.length,
-          ),
-          const SizedBox(height: 8),
-          Container(
+        // Project info card for current project
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Container(
             decoration: BoxDecoration(
               color: AppColors.card,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: AppColors.border),
             ),
             child: Column(
-              children: List.generate(_upcomingTasks.take(4).length, (i) {
-                final tasks = _upcomingTasks.take(4).toList();
-                final ut = tasks[i];
-                final isOverdue = ut.task.muddat!.isBefore(DateTime.now());
-                return Column(
-                  children: [
-                    ListTile(
-                      dense: true,
-                      leading: Container(
-                        width: 8, height: 8,
-                        decoration: BoxDecoration(shape: BoxShape.circle, color: isOverdue ? AppColors.red : AppColors.orange),
-                      ),
-                      title: Text(ut.task.nomi, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13), overflow: TextOverflow.ellipsis),
-                      subtitle: Text(ut.obNomi, style: const TextStyle(fontSize: 11, color: AppColors.muted)),
-                      trailing: Text(
-                        isOverdue ? 'Kechikkan' : DateFormat('dd.MM').format(ut.task.muddat!),
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: isOverdue ? AppColors.red : AppColors.orange),
-                      ),
-                    ),
-                    if (i < tasks.length - 1) const Divider(color: AppColors.border, height: 1, indent: 16),
-                  ],
-                );
-              }),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
+                  child: Text("Loyiha ma'lumotlari", style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.text)),
+                ),
+                const Divider(color: AppColors.border, height: 1),
+                _InfoRow(
+                  icon: Icons.calendar_today_rounded,
+                  label: 'Boshlangan sana',
+                  value: startFmt,
+                ),
+                const Divider(color: AppColors.border, height: 1, indent: 14),
+                _InfoRow(
+                  icon: Icons.access_time_rounded,
+                  label: 'Tugash sanasi',
+                  value: endFmt,
+                ),
+                const Divider(color: AppColors.border, height: 1, indent: 14),
+                _InfoRowProgress(
+                  icon: Icons.bar_chart_rounded,
+                  label: 'Bajarilish darajasi',
+                  progress: progress,
+                ),
+                const Divider(color: AppColors.border, height: 1, indent: 14),
+                _InfoRow(
+                  icon: Icons.people_outline_rounded,
+                  label: 'Jami ishchi',
+                  value: '$memberCount',
+                ),
+                const Divider(color: AppColors.border, height: 1, indent: 14),
+                _InfoRow(
+                  icon: Icons.task_alt_rounded,
+                  label: 'Jami vazifalar',
+                  value: '$taskCount',
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 20),
+        ),
+        const SizedBox(height: 16),
+
+        // Upcoming tasks
+        if (_upcomingTasks.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _SectionHeader(title: 'Yaqinlashgan muddatlar', count: _upcomingTasks.length),
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.card,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Column(
+                children: List.generate(_upcomingTasks.take(4).length, (i) {
+                  final tasks = _upcomingTasks.take(4).toList();
+                  final ut = tasks[i];
+                  final isOverdue = ut.task.muddat!.isBefore(DateTime.now());
+                  return Column(
+                    children: [
+                      ListTile(
+                        dense: true,
+                        leading: Container(
+                          width: 8, height: 8,
+                          decoration: BoxDecoration(shape: BoxShape.circle, color: isOverdue ? AppColors.red : AppColors.orange),
+                        ),
+                        title: Text(ut.task.nomi, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13), overflow: TextOverflow.ellipsis),
+                        subtitle: Text(ut.obNomi, style: const TextStyle(fontSize: 11, color: AppColors.muted)),
+                        trailing: Text(
+                          isOverdue ? 'Kechikkan' : DateFormat('dd.MM').format(ut.task.muddat!),
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: isOverdue ? AppColors.red : AppColors.orange),
+                        ),
+                      ),
+                      if (i < tasks.length - 1) const Divider(color: AppColors.border, height: 1, indent: 16),
+                    ],
+                  );
+                }),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
         ],
 
         // Recent transactions
         if (_recentTxs.isNotEmpty) ...[
-          _SectionHeader(title: 'So\'nggi harakatlar', count: null),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _SectionHeader(title: "So'nggi harakatlar", count: null),
+          ),
           const SizedBox(height: 8),
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.card,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Column(
-              children: List.generate(_recentTxs.take(6).length, (i) {
-                final txList = _recentTxs.take(6).toList();
-                final tx = txList[i];
-                final isIn = tx.isIncomeFor(userId);
-                final projName = _projects.where((p) => p.id == tx.obId).map((p) => p.nomi).firstOrNull ?? '';
-                return Column(
-                  children: [
-                    InkWell(
-                      onTap: () {
-                        final proj = _projects.where((p) => p.id == tx.obId).firstOrNull;
-                        if (proj != null) Navigator.of(context).push(MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: proj)));
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 36, height: 36,
-                              decoration: BoxDecoration(
-                                color: (isIn ? AppColors.green : AppColors.red).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(10),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.card,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Column(
+                children: List.generate(_recentTxs.take(6).length, (i) {
+                  final txList = _recentTxs.take(6).toList();
+                  final tx = txList[i];
+                  final userId = supabase.auth.currentUser?.id ?? '';
+                  final isIn = tx.isIncomeFor(userId);
+                  final projName = _projects.where((p) => p.id == tx.obId).map((p) => p.nomi).firstOrNull ?? '';
+                  return Column(
+                    children: [
+                      InkWell(
+                        onTap: () {
+                          final proj = _projects.where((p) => p.id == tx.obId).firstOrNull;
+                          if (proj != null) Navigator.of(context).push(MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: proj)));
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 36, height: 36,
+                                decoration: BoxDecoration(
+                                  color: (isIn ? AppColors.green : AppColors.red).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(
+                                  isIn ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
+                                  size: 18, color: isIn ? AppColors.green : AppColors.red,
+                                ),
                               ),
-                              child: Icon(
-                                isIn ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
-                                size: 18, color: isIn ? AppColors.green : AppColors.red,
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _txTitle(tx),
+                                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    Text(
+                                      projName.isNotEmpty ? '$projName • ${DateFormat('dd.MM.yy').format(tx.date)}' : DateFormat('dd.MM.yy').format(tx.date),
+                                      style: const TextStyle(fontSize: 11, color: AppColors.muted),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _txTitle(tx),
-                                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  Text(
-                                    projName.isNotEmpty ? '$projName • ${DateFormat('dd.MM.yy').format(tx.date)}' : DateFormat('dd.MM.yy').format(tx.date),
-                                    style: const TextStyle(fontSize: 11, color: AppColors.muted),
-                                  ),
-                                ],
+                              Text(
+                                '${isIn ? '+' : '-'}${formatMoney(tx.summa)}',
+                                style: TextStyle(fontWeight: FontWeight.w800, color: isIn ? AppColors.green : AppColors.red),
                               ),
-                            ),
-                            Text(
-                              '${isIn ? '+' : '-'}${formatMoney(tx.summa)}',
-                              style: TextStyle(fontWeight: FontWeight.w800, color: isIn ? AppColors.green : AppColors.red),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    if (i < txList.length - 1) const Divider(color: AppColors.border, height: 1, indent: 14),
-                  ],
-                );
-              }),
+                      if (i < txList.length - 1) const Divider(color: AppColors.border, height: 1, indent: 14),
+                    ],
+                  );
+                }),
+              ),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
         ],
 
         // Archived / done projects
         if (_projects.any((p) => p.status == 'done')) ...[
-          _SectionHeader(
-            title: 'Yakunlangan',
-            count: _projects.where((p) => p.status == 'done').length,
-            action: TextButton(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProjectsScreen())).then((_) => _load()),
-              child: const Text('Arxiv', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.accent)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _SectionHeader(
+              title: 'Yakunlangan',
+              count: _projects.where((p) => p.status == 'done').length,
+              action: TextButton(
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProjectsScreen())).then((_) => _load()),
+                child: const Text('Arxiv', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.accent)),
+              ),
             ),
           ),
           const SizedBox(height: 8),
           for (final p in _projects.where((p) => p.status == 'done').take(3)) ...[
-            _ProjectTile(
-              project: p,
-              isPinned: false,
-              isDone: true,
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: p))).then((_) => _load()),
-              onLongPress: () => _openProjectMenu(p),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _ProjectTile(
+                project: p,
+                isPinned: false,
+                isDone: true,
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: p))).then((_) => _load()),
+                onLongPress: () => _openProjectMenu(p),
+              ),
             ),
             const SizedBox(height: 8),
           ],
@@ -583,82 +830,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 }
 
-class _SummaryCard extends StatelessWidget {
-  final num totalBal;
-  final num totalIn;
-  final num totalOut;
-
-  const _SummaryCard({required this.totalBal, required this.totalIn, required this.totalOut});
-
-  @override
-  Widget build(BuildContext context) {
-    final isPositive = totalBal >= 0;
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.accent, Color(0xFF1D4ED8)],
-        ),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Umumiy qoldiq', style: TextStyle(fontSize: 12, color: Colors.white70, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 6),
-          Text(
-            '${formatMoney(totalBal.abs())} so\'m',
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(child: _BalStat(label: 'Kirim', value: formatMoney(totalIn), isIncome: true)),
-              Container(width: 1, height: 32, color: Colors.white24),
-              Expanded(child: _BalStat(label: 'Chiqim', value: formatMoney(totalOut), isIncome: false)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BalStat extends StatelessWidget {
+class _HeroActionBtn extends StatelessWidget {
   final String label;
-  final String value;
-  final bool isIncome;
-
-  const _BalStat({required this.label, required this.value, required this.isIncome});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(label, style: const TextStyle(fontSize: 11, color: Colors.white60)),
-        const SizedBox(height: 4),
-        Text(
-          '${isIncome ? '+' : '-'}$value',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w800,
-            color: isIncome ? const Color(0xFF86EFAC) : const Color(0xFFFCA5A5),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ActionBtn extends StatelessWidget {
-  final String label;
+  final String subtitle;
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
 
-  const _ActionBtn({required this.label, required this.icon, required this.color, required this.onTap});
+  const _HeroActionBtn({
+    required this.label,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -666,9 +851,9 @@ class _ActionBtn extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withOpacity(0.08),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: color.withOpacity(0.25)),
         ),
@@ -676,14 +861,79 @@ class _ActionBtn extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 28, height: 28,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-              child: Icon(icon, size: 16, color: Colors.white),
+              width: 32, height: 32,
+              decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(10)),
+              child: Icon(icon, size: 18, color: Colors.white),
             ),
-            const SizedBox(width: 8),
-            Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color)),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: color)),
+                Text(subtitle, style: TextStyle(fontSize: 11, color: color.withOpacity(0.7))),
+              ],
+            ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _InfoRow({required this.icon, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: AppColors.muted),
+          const SizedBox(width: 10),
+          Expanded(child: Text(label, style: const TextStyle(fontSize: 13, color: AppColors.text2))),
+          Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.text)),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoRowProgress extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final int progress;
+
+  const _InfoRowProgress({required this.icon, required this.label, required this.progress});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: AppColors.muted),
+          const SizedBox(width: 10),
+          Expanded(child: Text(label, style: const TextStyle(fontSize: 13, color: AppColors.text2))),
+          Text('$progress%', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.text)),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 60,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(3),
+              child: LinearProgressIndicator(
+                value: (progress / 100).clamp(0.0, 1.0),
+                minHeight: 6,
+                backgroundColor: AppColors.border,
+                valueColor: const AlwaysStoppedAnimation(AppColors.accent),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -775,7 +1025,7 @@ class _ProjectTile extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    isDone ? 'Yakunlandi' : isOverdue ? 'Muddati o\'tgan' : 'Faol',
+                    isDone ? 'Yakunlandi' : isOverdue ? "Muddati o'tgan" : 'Faol',
                     style: TextStyle(
                       fontSize: 10, fontWeight: FontWeight.w700,
                       color: isDone ? AppColors.green : isOverdue ? AppColors.red : AppColors.accent,
@@ -797,7 +1047,7 @@ class _ProjectTile extends StatelessWidget {
                     children: [
                       Text('${formatMoney(project.balance)} so\'m', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: project.balance >= 0 ? AppColors.green : AppColors.red)),
                       const SizedBox(height: 2),
-                      Text('Qoldiq', style: const TextStyle(fontSize: 10, color: AppColors.muted)),
+                      const Text('Qoldiq', style: TextStyle(fontSize: 10, color: AppColors.muted)),
                     ],
                   ),
                 ),
@@ -851,11 +1101,11 @@ class _EmptyProjectsCard extends StatelessWidget {
             child: const Icon(Icons.folder_open_rounded, size: 28, color: AppColors.accent),
           ),
           const SizedBox(height: 12),
-          const Text('Loyihalar yo\'q', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+          const Text("Loyiha yo'q", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
           const SizedBox(height: 4),
           const Text('Birinchi loyihangizni yarating', style: TextStyle(fontSize: 13, color: AppColors.muted), textAlign: TextAlign.center),
           const SizedBox(height: 16),
-          ElevatedButton(onPressed: onAdd, child: const Text('+ Loyiha yaratish')),
+          ElevatedButton(onPressed: onAdd, child: const Text('Yaratish')),
         ],
       ),
     );

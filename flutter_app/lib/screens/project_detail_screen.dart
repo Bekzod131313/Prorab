@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 import '../data/member_repository.dart';
@@ -44,6 +45,46 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _openAddTransaction(isIncome: widget.quickAddIncome!);
       });
+    }
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    try {
+      final picker = ImagePicker();
+      final file = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+      if (file == null) return;
+      final bytes = await file.readAsBytes();
+      final path = '${_project.id}/cover.jpg';
+      await supabase.storage.from('project-images').uploadBinary(
+        path,
+        bytes,
+        fileOptions: const FileOptions(contentType: 'image/jpeg', upsert: true),
+      );
+      final publicUrl = supabase.storage.from('project-images').getPublicUrl(path);
+      await _projectRepo.updateImage(_project.id, publicUrl);
+      setState(() {
+        _project = Project(
+          id: _project.id,
+          nomi: _project.nomi,
+          kirim: _project.kirim,
+          chiqim: _project.chiqim,
+          boshlanish: _project.boshlanish,
+          createdAt: _project.createdAt,
+          muddat: _project.muddat,
+          role: _project.role,
+          myBalance: _project.myBalance,
+          ishaqi: _project.ishaqi,
+          olingan: _project.olingan,
+          status: _project.status,
+          manzil: _project.manzil,
+          mijoz: _project.mijoz,
+          bosqich: _project.bosqich,
+          imageUrl: publicUrl,
+        );
+      });
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Rasm yuklandi')));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Xato: $e')));
     }
   }
 
@@ -250,6 +291,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         title: Text(project.nomi),
         actions: [
           if (_loading) const Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Center(child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)))),
+          if (_project.role == 'owner')
+            IconButton(
+              icon: const Icon(Icons.camera_alt_outlined),
+              tooltip: 'Rasm yuklash',
+              onPressed: _pickAndUploadImage,
+            ),
           PopupMenuButton<String>(
             onSelected: (action) async {
               if (action == 'toggleDone') {
