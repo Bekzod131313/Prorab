@@ -153,6 +153,9 @@ class _WorkersScreenState extends State<WorkersScreen> {
     final plus = _workers.where((w) => w.balans > 0).length;
     final minus = _workers.where((w) => w.balans < 0).length;
     final zero = _workers.where((w) => w.balans == 0).length;
+    final totalIshaqi = _workers.fold<num>(0, (s, w) => s + w.ishaqi);
+    final totalOlingan = _workers.fold<num>(0, (s, w) => s + w.olingan);
+    final totalBalans = totalIshaqi - totalOlingan;
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -177,6 +180,61 @@ class _WorkersScreenState extends State<WorkersScreen> {
                 Expanded(child: _StatBox(label: 'NOL', value: zero.toString(), color: AppColors.muted)),
               ],
             ),
+            if (_workers.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('JAMI ISH HAQI', style: TextStyle(fontSize: 9.5, color: AppColors.muted, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
+                          const SizedBox(height: 3),
+                          Text(formatMoney(totalIshaqi), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF22C55E)), overflow: TextOverflow.ellipsis),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('JAMI OLINGAN', style: TextStyle(fontSize: 9.5, color: AppColors.muted, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
+                          const SizedBox(height: 3),
+                          Text(formatMoney(totalOlingan), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFFF59E0B)), overflow: TextOverflow.ellipsis),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('UMUMIY QOLDIQ', style: TextStyle(fontSize: 9.5, color: AppColors.muted, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
+                          const SizedBox(height: 3),
+                          Text(
+                            '${totalBalans >= 0 ? '+' : ''}${formatMoney(totalBalans)}',
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: totalBalans >= 0 ? const Color(0xFF22C55E) : const Color(0xFFEF4444)),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 16),
             TextField(
               onChanged: (v) => setState(() => _search = v),
