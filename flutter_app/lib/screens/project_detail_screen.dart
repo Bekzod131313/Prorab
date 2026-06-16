@@ -1582,6 +1582,25 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                     '${bal >= 0 ? '+' : ''}${formatMoney(bal)} so\'m',
                     style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 26),
                   ),
+                  if (project.role == 'owner' && project.kirim > 0) ...[
+                    const SizedBox(height: 10),
+                    Builder(builder: (_) {
+                      final roi = ((project.kirim - project.chiqim) / project.kirim * 100);
+                      final roiStr = '${roi >= 0 ? '+' : ''}${roi.toStringAsFixed(1)}%';
+                      final start = project.boshlanish ?? project.createdAt;
+                      final days = DateTime.now().difference(start).inDays.clamp(1, 9999);
+                      final avgDaily = project.chiqim / days;
+                      return Row(
+                        children: [
+                          _MiniStat(label: 'ROI', value: roiStr, positive: roi >= 0),
+                          const SizedBox(width: 12),
+                          _MiniStat(label: 'KUN/CHIQIM', value: '${formatMoney(avgDaily.round())}', positive: null),
+                          const SizedBox(width: 12),
+                          _MiniStat(label: 'ISHCHILAR', value: '${_members.where((m) => m.role != 'owner').length}', positive: null),
+                        ],
+                      );
+                    }),
+                  ],
                 ],
               ),
             ),
@@ -2191,6 +2210,26 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _MiniStat extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool? positive;
+
+  const _MiniStat({required this.label, required this.value, required this.positive});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = positive == null ? Colors.white70 : (positive! ? const Color(0xFF86EFAC) : const Color(0xFFFCA5A5));
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(color: Colors.white38, fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+        Text(value, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w900)),
+      ],
     );
   }
 }
