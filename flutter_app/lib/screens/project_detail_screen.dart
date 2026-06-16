@@ -935,6 +935,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                   'Jamoa',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
                 ),
+                if (_visibleMembers.isNotEmpty)
+                  Text(
+                    '${_visibleMembers.length} kishi',
+                    style: const TextStyle(color: AppColors.muted, fontSize: 13),
+                  ),
               ],
             ),
             const SizedBox(height: 10),
