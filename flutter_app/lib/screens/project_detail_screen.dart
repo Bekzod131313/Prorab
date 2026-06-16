@@ -69,6 +69,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   String _txFilter = 'all';
   String _txSearch = '';
   bool _showTxSearch = false;
+  DateTime? _txDateFrom;
+  DateTime? _txDateTo;
   String _taskFilter = 'all';
 
   @override
@@ -179,6 +181,13 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
           (tx.izoh ?? '').toLowerCase().contains(q) ||
           (tx.kategoriya ?? '').toLowerCase().contains(q) ||
           tx.summa.toString().contains(q)).toList();
+    }
+    if (_txDateFrom != null) {
+      filtered = filtered.where((tx) => !tx.date.isBefore(_txDateFrom!)).toList();
+    }
+    if (_txDateTo != null) {
+      final toEnd = _txDateTo!.add(const Duration(days: 1));
+      filtered = filtered.where((tx) => tx.date.isBefore(toEnd)).toList();
     }
     return filtered;
   }
@@ -2462,6 +2471,53 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                   _TxFilterChip(label: 'Kirim', selected: _txFilter == 'income', onTap: () => setState(() => _txFilter = 'income')),
                   const SizedBox(width: 8),
                   _TxFilterChip(label: 'Chiqim', selected: _txFilter == 'expense', onTap: () => setState(() => _txFilter = 'expense')),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () async {
+                      final range = await showDateRangePicker(
+                        context: context,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2100),
+                        initialDateRange: _txDateFrom != null && _txDateTo != null
+                            ? DateTimeRange(start: _txDateFrom!, end: _txDateTo!)
+                            : null,
+                        builder: (ctx, child) => Theme(data: Theme.of(ctx), child: child!),
+                      );
+                      if (range != null) {
+                        setState(() { _txDateFrom = range.start; _txDateTo = range.end; });
+                      }
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: _txDateFrom != null ? AppColors.accentTeal.withOpacity(0.18) : AppColors.card,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: _txDateFrom != null ? AppColors.accentTeal : AppColors.border),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.date_range_rounded, size: 14, color: _txDateFrom != null ? AppColors.accentTeal : AppColors.muted),
+                          const SizedBox(width: 4),
+                          Text(
+                            _txDateFrom != null
+                                ? '${DateFormat('dd.MM').format(_txDateFrom!)} – ${DateFormat('dd.MM').format(_txDateTo!)}'
+                                : 'Sana',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
+                              color: _txDateFrom != null ? AppColors.accentTeal : AppColors.text2),
+                          ),
+                          if (_txDateFrom != null) ...[
+                            const SizedBox(width: 4),
+                            GestureDetector(
+                              onTap: () => setState(() { _txDateFrom = null; _txDateTo = null; }),
+                              child: const Icon(Icons.close, size: 12, color: AppColors.muted),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
