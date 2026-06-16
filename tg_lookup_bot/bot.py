@@ -1,160 +1,138 @@
 """
 Telegram Phone Number Lookup Bot
-Telefon raqam orqali Telegram profilini topadi.
-
-Kerakli kutubxonalar:
-    pip install telethon python-telegram-bot
-
-Ishlatish:
-    1. https://my.telegram.org dan API_ID va API_HASH oling
-    2. @BotFather dan BOT_TOKEN oling
-    3. .env faylga yozing yoki quyidagi o'zgaruvchilarni to'ldiring
-    4. python bot.py
+Python 3.7 uchun moslanган
 """
 
 import os
 import asyncio
+import threading
 import logging
-from telethon import TelegramClient, events
+from telethon.sync import TelegramClient
 from telethon.tl.functions.contacts import ImportContactsRequest, DeleteContactsRequest
 from telethon.tl.types import InputPhoneContact
-from telegram import Update, Bot
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram import Update
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
 logging.basicConfig(level=logging.INFO)
 
-# === SOZLAMALAR ===
-API_ID = int(os.getenv("API_ID", "0"))          # my.telegram.org dan
-API_HASH = os.getenv("API_HASH", "")             # my.telegram.org dan
-BOT_TOKEN = os.getenv("BOT_TOKEN", "")           # @BotFather dan
-PHONE_NUMBER = os.getenv("PHONE_NUMBER", "")     # Sizning telefon raqamingiz (+998...)
+# === SOZLAMALAR - BU YERGA O'Z MA'LUMOTLARINGIZNI YOZING ===
+API_ID = 0                   # my.telegram.org dan olgan raqam
+API_HASH = ""                # my.telegram.org dan olgan hash
+BOT_TOKEN = ""               # @BotFather dan olgan token
+PHONE_NUMBER = ""            # Sizning raqamingiz masalan: +998901234567
+# ===========================================================
+
 SESSION_NAME = "lookup_session"
-
-# Faqat shu admin ID lar ishlatishi mumkin (bo'sh qoldiring = hamma)
-ALLOWED_USERS = []  # masalan: [123456789, 987654321]
-
-# Global Telethon client
-client: TelegramClient = None
+client = None
+loop = None
 
 
-async def start_telethon():
-    global client
-    client = TelegramClient(SESSION_NAME, API_ID, API_HASH)
-    await client.start(phone=PHONE_NUMBER)
-    print("✅ Telethon ulandi")
+def start_telethon_thread():
+    global client, loop
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    client = TelegramClient(SESSION_NAME, API_ID, API_HASH, loop=loop)
+    client.start(phone=PHONE_NUMBER)
+    print("Telethon ulandi!")
+    loop.run_forever()
 
 
-async def lookup_phone(phone: str):
-    """Telefon raqam bo'yicha Telegram foydalanuvchini topadi."""
+def lookup_phone_sync(phone):
     phone = phone.strip().replace(" ", "").replace("-", "")
     if not phone.startswith("+"):
         phone = "+" + phone
 
-    # Vaqtinchalik kontakt sifatida qo'shamiz
-    contact = InputPhoneContact(
-        client_id=0,
-        phone=phone,
-        first_name="lookup",
-        last_name=""
-    )
-
-    try:
-        result = await client(ImportContactsRequest([contact]))
-        users = result.users
-
-        if not users:
+    async def _lookup():
+        contact = InputPhoneContact(
+            client_id=0,
+            phone=phone,
+            first_name="lookup",
+            last_name=""
+        )
+        try:
+            result = await client(ImportContactsRequest([contact]))
+            users = result.users
+            if not users:
+                return None
+            user = users[0]
+            await client(DeleteContactsRequest(id=[user]))
+            return {
+                "id": user.id,
+                "first_name": user.first_name or "",
+                "last_name": user.last_name or "",
+                "username": user.username,
+                "phone": getattr(user, "phone", None),
+            }
+        except Exception as e:
+            logging.error("Lookup xatosi: %s", e)
             return None
 
-        user = users[0]
-
-        # Kontaktni o'chirib tashlaymiz
-        await client(DeleteContactsRequest(id=[user]))
-
-        return {
-            "id": user.id,
-            "first_name": user.first_name or "",
-            "last_name": user.last_name or "",
-            "username": user.username,
-            "phone": user.phone,
-        }
-    except Exception as e:
-        logging.error(f"Lookup xatosi: {e}")
-        return None
+    future = asyncio.run_coroutine_threadsafe(_lookup(), loop)
+    return future.result(timeout=15)
 
 
-def is_allowed(user_id: int) -> bool:
-    if not ALLOWED_USERS:
-        return True
-    return user_id in ALLOWED_USERS
-
-
-async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_allowed(update.effective_user.id):
-        await update.message.reply_text("❌ Ruxsat yo'q.")
-        return
-
-    await update.message.reply_text(
-        "📞 *Telefon Lookup Bot*\n\n"
-        "Menga telefon raqam yuboring, Telegram profilini topib beraman.\n\n"
-        "Format: `+998901234567`\n"
-        "Yoki: `998901234567`",
-        parse_mode="Markdown"
+def cmd_start(update, context):
+    update.message.reply_text(
+        "Telefon Lookup Bot\n\n"
+        "Menga telefon raqam yuboring.\n"
+        "Format: +998901234567"
     )
 
 
-async def handle_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_allowed(update.effective_user.id):
-        await update.message.reply_text("❌ Ruxsat yo'q.")
-        return
-
+def handle_message(update, context):
     text = update.message.text.strip()
-
-    # Raqam ekanligini tekshiramiz
     digits = text.replace("+", "").replace(" ", "").replace("-", "")
+
     if not digits.isdigit() or len(digits) < 7:
-        await update.message.reply_text("⚠️ Iltimos, to'g'ri telefon raqam yuboring.\nMasalan: `+998901234567`", parse_mode="Markdown")
+        update.message.reply_text("Iltimos togri telefon raqam yuboring.\nMasalan: +998901234567")
         return
 
-    msg = await update.message.reply_text("🔍 Qidirilmoqda...")
+    msg = update.message.reply_text("Qidirilmoqda...")
 
-    result = await lookup_phone(text)
+    try:
+        result = lookup_phone_sync(text)
+    except Exception as e:
+        msg.edit_text("Xato yuz berdi: {}".format(str(e)))
+        return
 
     if result is None:
-        await msg.edit_text(
-            "❌ Bu raqamga ulangan Telegram topilmadi.\n\n"
-            "_Sabab: Foydalanuvchi Telegram'dan foydalanmaydi yoki raqamini yashirgan._",
-            parse_mode="Markdown"
+        msg.edit_text(
+            "Bu raqamga ulangan Telegram topilmadi.\n"
+            "Sabab: foydalanuvchi Telegram ishlatmaydi yoki raqamini yashirgan."
         )
         return
 
-    name = f"{result['first_name']} {result['last_name']}".strip()
-    username_line = f"🔗 Username: @{result['username']}\n" if result['username'] else ""
-    profile_link = f"tg://user?id={result['id']}"
+    name = "{} {}".format(result["first_name"], result["last_name"]).strip()
+    username_line = "@{}\n".format(result["username"]) if result["username"] else ""
+    profile_link = "tg://user?id={}".format(result["id"])
 
-    text_response = (
-        f"✅ *Topildi!*\n\n"
-        f"👤 Ism: {name}\n"
-        f"{username_line}"
-        f"🆔 ID: `{result['id']}`\n"
-        f"📱 Raqam: `{result.get('phone') or 'yashirin'}`\n\n"
-        f"[Profilni ochish]({profile_link})"
+    msg.edit_text(
+        "Topildi!\n\n"
+        "Ism: {}\n"
+        "{}ID: {}\n"
+        "Profil: {}".format(name, username_line, result["id"], profile_link)
     )
 
-    await msg.edit_text(text_response, parse_mode="Markdown")
 
+def main():
+    # Telethon ni alohida threadda ishga tushiramiz
+    t = threading.Thread(target=start_telethon_thread, daemon=True)
+    t.start()
 
-async def main():
-    # Telethon'ni ishga tushuramiz
-    await start_telethon()
+    # Telethon ulanishini kutamiz
+    import time
+    time.sleep(5)
 
-    # python-telegram-bot'ni ishga tushuramiz
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(CommandHandler("start", cmd_start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_phone))
+    # Bot ishga tushadi
+    updater = Updater(BOT_TOKEN)
+    dp = updater.dispatcher
+    dp.add_handler(CommandHandler("start", cmd_start))
+    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
 
-    print("🤖 Bot ishlamoqda...")
-    await app.run_polling()
+    print("Bot ishlamoqda...")
+    updater.start_polling()
+    updater.idle()
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
