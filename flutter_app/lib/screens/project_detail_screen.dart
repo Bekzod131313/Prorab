@@ -111,7 +111,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       return _txs
           .where((tx) =>
               tx.tur == 'income' ||
-              ((tx.tur == 'send' || tx.tur == 'spend') && tx.fromUser == userId))
+              ((tx.tur == 'send' || tx.tur == 'spend' || tx.tur == 'ishhaqi') && tx.fromUser == userId))
           .toList();
     }
     return _txs.where((tx) => tx.fromUser == userId || tx.toUser == userId).toList();
