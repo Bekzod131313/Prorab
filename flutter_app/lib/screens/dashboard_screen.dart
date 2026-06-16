@@ -17,6 +17,7 @@ import '../widgets/moliya_logo.dart';
 import '../widgets/project_card.dart';
 import 'project_detail_screen.dart';
 import 'search_screen.dart';
+import 'tasks_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -739,6 +740,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       '${_upcomingTasks.length}',
                       style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.redAccent),
                     ),
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TasksScreen(projects: _projects))).then((_) => _load()),
+                    style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8), foregroundColor: AppColors.accent),
+                    child: const Text('Barchasi', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                   ),
                 ],
               ),
