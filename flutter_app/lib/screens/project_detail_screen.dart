@@ -590,6 +590,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
 
   Future<void> _openAddTask() async {
     final ctrl = TextEditingController();
+    DateTime? muddat;
 
     final result = await showModalBottomSheet<String>(
       context: context,
@@ -598,42 +599,84 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 20,
-          bottom: 20 + MediaQuery.of(ctx).viewInsets.bottom,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              "Yangi vazifa",
-              style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: ctrl,
-              decoration: const InputDecoration(hintText: 'Vazifa nomi'),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                final name = ctrl.text.trim();
-                if (name.isEmpty) return;
-                Navigator.of(ctx).pop(name);
-              },
-              child: const Text("Qo'shish"),
-            ),
-          ],
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: 20 + MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                "Yangi vazifa",
+                style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: ctrl,
+                decoration: const InputDecoration(hintText: 'Vazifa nomi'),
+              ),
+              const SizedBox(height: 12),
+              InkWell(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: ctx,
+                    initialDate: muddat ?? DateTime.now().add(const Duration(days: 1)),
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime(2100),
+                  );
+                  setSheetState(() => muddat = picked);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppColors.border),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.event_outlined, size: 18, color: AppColors.muted),
+                      const SizedBox(width: 10),
+                      Text(
+                        muddat != null ? DateFormat('dd.MM.yyyy').format(muddat!) : 'Muddat (ixtiyoriy)',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: muddat != null ? AppColors.text : AppColors.muted,
+                        ),
+                      ),
+                      if (muddat != null) ...[
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: () => setSheetState(() => muddat = null),
+                          child: const Icon(Icons.close, size: 16, color: AppColors.muted),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  final name = ctrl.text.trim();
+                  if (name.isEmpty) return;
+                  Navigator.of(ctx).pop(name);
+                },
+                child: const Text("Qo'shish"),
+              ),
+            ],
+          ),
         ),
       ),
     );
 
     if (result != null) {
-      await _taskRepo.addTask(_project.id, result);
+      await _taskRepo.addTask(_project.id, result, muddat: muddat);
       _load();
     }
   }
@@ -1296,7 +1339,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 child: Center(child: Text("Vazifalar yo'q", style: TextStyle(color: AppColors.muted))),
               )
             else
-              ..._tasks.map((t) => TaskRow(task: t, onTap: () => _toggleTask(t), onLongPress: () => _deleteTask(t))),
+              ...([..._tasks]..sort((a, b) {
+                    const order = {'todo': 0, 'progress': 1, 'done': 2};
+                    return (order[a.holat] ?? 0).compareTo(order[b.holat] ?? 0);
+                  }))
+                  .map((t) => TaskRow(task: t, onTap: () => _toggleTask(t), onLongPress: () => _deleteTask(t))),
             const SizedBox(height: 24),
             Text(
               'Materiallar',

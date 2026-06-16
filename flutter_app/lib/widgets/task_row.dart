@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../models/task.dart';
 import '../theme/app_theme.dart';
@@ -60,9 +61,21 @@ class TaskRow extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    task.statusLabel,
-                    style: TextStyle(fontSize: 11.5, color: color, fontWeight: FontWeight.w700),
+                  Row(
+                    children: [
+                      Text(task.statusLabel, style: TextStyle(fontSize: 11.5, color: color, fontWeight: FontWeight.w700)),
+                      if (task.muddat != null) ...[
+                        const SizedBox(width: 6),
+                        Text(
+                          '• ${DateFormat('dd.MM.yyyy').format(task.muddat!)}',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: !done && task.muddat!.isBefore(DateTime.now()) ? const Color(0xFFEF4444) : AppColors.muted,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),
