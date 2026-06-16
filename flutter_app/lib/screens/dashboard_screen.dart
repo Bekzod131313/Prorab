@@ -597,6 +597,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final adjIndex = index - alertOffset;
         if (adjIndex == 0) {
           final balColor = totalBal >= 0 ? const Color(0xFF16A34A) : const Color(0xFFEF4444);
+          final now = DateTime.now();
+          final today = DateTime(now.year, now.month, now.day);
+          final userId = supabase.auth.currentUser?.id ?? '';
+          final todayIn = _recentTxs
+              .where((tx) => tx.date.isAfter(today) && tx.isIncomeFor(userId))
+              .fold<num>(0, (s, tx) => s + tx.summa);
+          final todayOut = _recentTxs
+              .where((tx) => tx.date.isAfter(today) && tx.isExpenseFor(userId))
+              .fold<num>(0, (s, tx) => s + tx.summa);
           return Container(
             margin: const EdgeInsets.only(bottom: 16),
             padding: const EdgeInsets.all(16),
@@ -605,27 +614,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
               borderRadius: BorderRadius.circular(18),
               border: Border.all(color: AppColors.border),
             ),
-            child: Row(
+            child: Column(
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('UMUMIY QOLDIQ', style: TextStyle(fontSize: 10, color: AppColors.muted, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
-                      const SizedBox(height: 4),
-                      Text('${totalBal >= 0 ? '+' : ''}${formatMoney(totalBal)} so\'m',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: balColor)),
-                    ],
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                Row(
                   children: [
-                    Text('+${formatMoney(totalIn)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF16A34A))),
-                    const SizedBox(height: 2),
-                    Text('-${formatMoney(totalOut)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFFEF4444))),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('UMUMIY QOLDIQ', style: TextStyle(fontSize: 10, color: AppColors.muted, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                          const SizedBox(height: 4),
+                          Text('${totalBal >= 0 ? '+' : ''}${formatMoney(totalBal)} so\'m',
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: balColor)),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text('+${formatMoney(totalIn)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF16A34A))),
+                        const SizedBox(height: 2),
+                        Text('-${formatMoney(totalOut)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFFEF4444))),
+                      ],
+                    ),
                   ],
                 ),
+                if (todayIn > 0 || todayOut > 0) ...[
+                  const SizedBox(height: 10),
+                  const Divider(color: AppColors.border, height: 1),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      const Text('BUGUN', style: TextStyle(fontSize: 10, color: AppColors.muted, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                      const Spacer(),
+                      if (todayIn > 0) Text('+${formatMoney(todayIn)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF16A34A))),
+                      if (todayIn > 0 && todayOut > 0) const SizedBox(width: 8),
+                      if (todayOut > 0) Text('-${formatMoney(todayOut)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFFEF4444))),
+                    ],
+                  ),
+                ],
               ],
             ),
           );
