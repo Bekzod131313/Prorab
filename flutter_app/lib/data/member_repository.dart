@@ -57,4 +57,8 @@ class MemberRepository {
   Future<void> removeMember({required String obId, required String userId}) async {
     await supabase.from('ob_members').delete().eq('ob_id', obId).eq('user_id', userId);
   }
+
+  Future<void> updateKasb({required String obId, required String userId, required String kasb}) async {
+    await supabase.from('ob_members').update({'kasb': kasb.isNotEmpty ? kasb : null}).eq('ob_id', obId).eq('user_id', userId);
+  }
 }

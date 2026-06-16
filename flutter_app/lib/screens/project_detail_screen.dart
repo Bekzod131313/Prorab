@@ -459,6 +459,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
             ],
             if (_project.role == 'owner') ...[
               const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () => Navigator.of(ctx).pop('editKasb'),
+                icon: const Icon(Icons.edit_outlined, size: 16),
+                label: const Text("Kasbini tahrirlash"),
+              ),
+              const SizedBox(height: 8),
               OutlinedButton(
                 onPressed: () => Navigator.of(ctx).pop('remove'),
                 style: OutlinedButton.styleFrom(
@@ -496,6 +502,32 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
       await _openSendMoney(member);
     } else if (action == 'ishhaqi') {
       await _openRecordIshHaqi(member);
+    } else if (action == 'editKasb') {
+      final kasbCtrl = TextEditingController(text: member.kasb ?? '');
+      final saved = await showModalBottomSheet<bool>(
+        context: context,
+        backgroundColor: AppColors.card,
+        isScrollControlled: true,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        builder: (ctx) => Padding(
+          padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 20 + MediaQuery.of(ctx).viewInsets.bottom),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('${member.displayName}: kasb', style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+              const SizedBox(height: 16),
+              TextField(controller: kasbCtrl, decoration: const InputDecoration(hintText: 'Kasb (masalan: Usta, Qorovul...)')),
+              const SizedBox(height: 20),
+              ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Saqlash')),
+            ],
+          ),
+        ),
+      );
+      if (saved == true) {
+        await _memberRepo.updateKasb(obId: _project.id, userId: member.userId, kasb: kasbCtrl.text.trim());
+        _load();
+      }
     } else if (action == 'remove') {
       final confirm = await showDialog<bool>(
         context: context,
