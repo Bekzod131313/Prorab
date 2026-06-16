@@ -84,6 +84,10 @@ class ProjectRepository {
     await supabase.from('obyektlar').update({'status': status}).eq('id', id);
   }
 
+  Future<void> setBosqich(String id, String? bosqich) async {
+    await supabase.from('obyektlar').update({'bosqich': bosqich}).eq('id', id);
+  }
+
   Future<void> deleteProject(String id) async {
     await supabase.from('obyektlar').delete().eq('id', id);
   }
