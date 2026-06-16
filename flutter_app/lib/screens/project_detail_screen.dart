@@ -10,6 +10,7 @@ import '../data/contract_repository.dart';
 import '../data/goal_repository.dart';
 import '../data/notes_repository.dart';
 import '../data/templates_repository.dart';
+import '../data/time_log_repository.dart';
 import '../data/material_repository.dart';
 import '../data/member_repository.dart';
 import '../data/project_repository.dart';
@@ -29,6 +30,7 @@ import '../widgets/member_row.dart' show MemberRow, colorForName;
 import '../widgets/project_card.dart' show colorForProject, formatMoney;
 import '../widgets/task_row.dart';
 import '../widgets/transaction_row.dart';
+import 'time_log_screen.dart';
 
 class ProjectDetailScreen extends StatefulWidget {
   final Project project;
@@ -1787,6 +1789,17 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         backgroundColor: AppColors.bg,
         title: Text(project.nomi),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.timer_outlined),
+            tooltip: 'Vaqt hisobi',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => TimeLogScreen(
+                project: _project,
+                workerNames: _members.where((m) => m.role != 'owner').map((m) => m.displayName).toList(),
+              )),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.ios_share_rounded),
             onPressed: _shareProjectSummary,
