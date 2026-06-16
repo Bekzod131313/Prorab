@@ -71,7 +71,7 @@ class ReportRepository {
     num totalIn = 0;
     num totalOut = 0;
     final catTotals = <String?, num>{};
-    final dayTotals = <int, num>{};
+    final dayTotals = <String, num>{};
     for (final tx in txs) {
       final isIn = tx.isIncomeFor(userId ?? '');
       final isOut = tx.isExpenseFor(userId ?? '');
@@ -80,13 +80,15 @@ class ReportRepository {
         totalOut += tx.summa;
         catTotals[tx.kategoriya] = (catTotals[tx.kategoriya] ?? 0) + tx.summa;
       }
-      dayTotals[tx.date.day] = (dayTotals[tx.date.day] ?? 0) + tx.summa;
+      final dayKey = '${tx.date.year}-${tx.date.month}-${tx.date.day}';
+      dayTotals[dayKey] = (dayTotals[dayKey] ?? 0) + tx.summa;
     }
 
     final avgDaily = dayTotals.isEmpty ? 0 : (totalIn / dayTotals.length).round();
     int? activeDay;
     if (dayTotals.isNotEmpty) {
-      activeDay = dayTotals.entries.reduce((a, b) => b.value > a.value ? b : a).key;
+      final busiest = dayTotals.entries.reduce((a, b) => b.value > a.value ? b : a);
+      activeDay = int.tryParse(busiest.key.split('-').last);
     }
 
     final projectProfits = projects
