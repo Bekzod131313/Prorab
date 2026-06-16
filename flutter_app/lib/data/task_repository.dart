@@ -36,6 +36,10 @@ class TaskRepository {
     }).eq('id', id);
   }
 
+  Future<void> updateTaskStatus(String id, String status) async {
+    await supabase.from('tasks').update({'holat': status}).eq('id', id);
+  }
+
   Future<void> deleteTask(String id) async {
     await supabase.from('tasks').delete().eq('id', id);
   }

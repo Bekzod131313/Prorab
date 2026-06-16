@@ -983,6 +983,17 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     }
   }
 
+  Future<void> _deleteTaskDirect(ObTask task) async {
+    await _taskRepo.deleteTask(task.id);
+    _load();
+  }
+
+  Future<void> _completeTask(ObTask task) async {
+    if (task.holat == 'done') return;
+    await _taskRepo.updateTaskStatus(task.id, 'done');
+    _load();
+  }
+
   Future<void> _openMaterialDetail(ObMaterial material) async {
     const statuses = ['kerak', 'buyurtma', 'yetkazildi'];
     const statusLabels = {'kerak': 'Kerak', 'buyurtma': 'Buyurtma', 'yetkazildi': 'Yetkazildi'};
@@ -2300,7 +2311,13 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                         return (order[a.holat] ?? 0).compareTo(order[b.holat] ?? 0);
                       }))
                   .where((t) => _taskFilter == 'all' || t.holat == _taskFilter)
-                  .map((t) => TaskRow(task: t, onTap: () => _toggleTask(t), onLongPress: () => _openTaskMenu(t))),
+                  .map((t) => TaskRow(
+                        task: t,
+                        onTap: () => _toggleTask(t),
+                        onLongPress: () => _openTaskMenu(t),
+                        onDelete: () => _deleteTaskDirect(t),
+                        onComplete: t.holat != 'done' ? () => _completeTask(t) : null,
+                      )),
             ],
             const SizedBox(height: 24),
             Text(

@@ -12,6 +12,7 @@ import '../utils/phone_formatter.dart';
 import '../widgets/moliya_logo.dart';
 import '../widgets/project_card.dart' show formatMoney;
 import 'auth_screen.dart';
+import 'debt_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -321,6 +322,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const Padding(
             padding: EdgeInsets.only(left: 4, bottom: 10),
             child: Text('Ilova', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.muted, letterSpacing: 0.5)),
+          ),
+          _MenuTile(
+            icon: Icons.book_outlined,
+            label: 'Qarz daftari',
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DebtScreen())),
           ),
           _MenuTile(icon: Icons.backup_outlined, label: 'Zaxira nusxa', onTap: _doBackup),
           _MenuTile(icon: Icons.info_outline_rounded, label: 'Ilova haqida', onTap: _showAbout),

@@ -129,20 +129,59 @@ class ProjectCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: LinearProgressIndicator(
-                value: progress / 100,
-                minHeight: 6,
-                backgroundColor: AppColors.border,
-                valueColor: const AlwaysStoppedAnimation(AppColors.accentTeal),
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: LinearProgressIndicator(
+                      value: progress / 100,
+                      minHeight: 6,
+                      backgroundColor: AppColors.border,
+                      valueColor: const AlwaysStoppedAnimation(AppColors.accentTeal),
+                    ),
+                  ),
+                ),
+                if (project.role == 'owner') ...[
+                  const SizedBox(width: 10),
+                  _HealthBadge(score: project.healthScore),
+                ],
+              ],
             ),
             const SizedBox(height: 8),
             Text('$left kun qoldi', style: const TextStyle(color: AppColors.muted, fontSize: 12)),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _HealthBadge extends StatelessWidget {
+  final int score;
+  const _HealthBadge({required this.score});
+
+  @override
+  Widget build(BuildContext context) {
+    final Color color;
+    final String label;
+    if (score >= 80) {
+      color = const Color(0xFF22C55E);
+      label = '●';
+    } else if (score >= 50) {
+      color = const Color(0xFFF59E0B);
+      label = '●';
+    } else {
+      color = const Color(0xFFEF4444);
+      label = '●';
+    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(label, style: TextStyle(fontSize: 10, color: color)),
+        const SizedBox(width: 3),
+        Text('$score%', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color)),
+      ],
     );
   }
 }
