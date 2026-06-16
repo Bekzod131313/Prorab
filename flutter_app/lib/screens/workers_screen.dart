@@ -5,6 +5,8 @@ import 'package:share_plus/share_plus.dart';
 import '../data/member_repository.dart';
 import '../data/project_repository.dart';
 import '../data/worker_repository.dart';
+import '../main.dart';
+import '../models/transaction.dart';
 import '../models/worker.dart';
 import '../theme/app_theme.dart';
 import '../widgets/add_member_sheet.dart';
@@ -422,6 +424,43 @@ class _WorkerDetailSheet extends StatefulWidget {
 
 class _WorkerDetailSheetState extends State<_WorkerDetailSheet> {
   final _repo = WorkerRepository();
+  List<ProjectTransaction> _payments = [];
+  bool _paymentsLoaded = false;
+  Map<String, String> _obNames = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPayments();
+    _obNames = {for (final o in widget.worker.obsList) o.obId: o.obNomi};
+  }
+
+  Future<void> _loadPayments() async {
+    final obIds = widget.worker.obsList.map((o) => o.obId).toList();
+    if (obIds.isEmpty) {
+      setState(() => _paymentsLoaded = true);
+      return;
+    }
+    try {
+      final rows = await supabase
+          .from('transactions')
+          .select('*')
+          .inFilter('ob_id', obIds)
+          .eq('to_user', widget.worker.userId)
+          .inFilter('tur', ['send', 'ishhaqi'])
+          .order('tx_date', ascending: false)
+          .limit(50);
+      final txs = (rows as List).map((r) => ProjectTransaction.fromMap(r as Map<String, dynamic>)).toList();
+      if (!mounted) return;
+      setState(() {
+        _payments = txs;
+        _paymentsLoaded = true;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _paymentsLoaded = true);
+    }
+  }
 
   Future<void> _openAmountSheet({required String title, required bool isAvans}) async {
     final worker = widget.worker;
@@ -638,6 +677,76 @@ class _WorkerDetailSheetState extends State<_WorkerDetailSheet> {
             ),
           ),
         ],
+        const SizedBox(height: 20),
+        Row(
+          children: [
+            const Expanded(child: Text("To'lov tarixi", style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800))),
+            if (!_paymentsLoaded) const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+          ],
+        ),
+        const SizedBox(height: 10),
+        if (_paymentsLoaded && _payments.isEmpty)
+          const Padding(
+            padding: EdgeInsets.only(bottom: 10),
+            child: Text("To'lovlar yo'q", style: TextStyle(color: AppColors.muted, fontSize: 13)),
+          )
+        else if (_payments.isNotEmpty)
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.bg,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              children: [
+                for (var i = 0; i < _payments.length && i < 10; i++) ...[
+                  Builder(builder: (_) {
+                    final tx = _payments[i];
+                    final isAvans = tx.tur == 'send';
+                    final color = isAvans ? const Color(0xFFF59E0B) : AppColors.accent;
+                    final label = isAvans ? 'Avans' : 'Ish haqi';
+                    final dateStr = DateFormat('dd.MM.yy').format(tx.date);
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                      decoration: BoxDecoration(
+                        border: i < (_payments.length > 10 ? 9 : _payments.length - 1)
+                            ? const Border(bottom: BorderSide(color: AppColors.border))
+                            : null,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 32,
+                            height: 32,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(color: color.withOpacity(0.13), borderRadius: BorderRadius.circular(10)),
+                            child: Icon(isAvans ? Icons.send_rounded : Icons.payments_rounded, size: 15, color: color),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(label, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: color)),
+                                Text(_obNames[tx.obId] ?? '', style: const TextStyle(fontSize: 11, color: AppColors.muted), overflow: TextOverflow.ellipsis),
+                              ],
+                            ),
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text('+${formatMoney(tx.summa)}', style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w900, color: Color(0xFF22C55E))),
+                              Text(dateStr, style: const TextStyle(fontSize: 10, color: AppColors.muted)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+              ],
+            ),
+          ),
         const SizedBox(height: 20),
         OutlinedButton.icon(
           onPressed: () {
