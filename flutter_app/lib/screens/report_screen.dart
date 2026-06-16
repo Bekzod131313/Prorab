@@ -504,7 +504,7 @@ class _TopWorkerRow extends StatelessWidget {
               children: [
                 Text(worker.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800), overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 2),
-                Text('Olgan: ${formatMoney(worker.olingan)}', style: const TextStyle(fontSize: 11, color: AppColors.muted, fontWeight: FontWeight.w600)),
+                Text('Ish haqi: ${formatMoney(worker.ishaqi)} • Olgan: ${formatMoney(worker.olingan)}', style: const TextStyle(fontSize: 11, color: AppColors.muted, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
