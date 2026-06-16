@@ -14,7 +14,7 @@ import '../models/transaction.dart';
 import '../theme/app_theme.dart';
 import '../widgets/project_card.dart' show formatMoney;
 import 'project_detail_screen.dart';
-import 'archive_screen.dart';
+import 'projects_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -552,7 +552,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             title: 'Yakunlangan',
             count: _projects.where((p) => p.status == 'done').length,
             action: TextButton(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ArchiveScreen())).then((_) => _load()),
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProjectsScreen())).then((_) => _load()),
               child: const Text('Arxiv', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.accent)),
             ),
           ),
