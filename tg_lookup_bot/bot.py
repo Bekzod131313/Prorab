@@ -44,7 +44,7 @@ async def start_telethon():
     print("✅ Telethon ulandi")
 
 
-async def lookup_phone(phone: str) -> dict | None:
+async def lookup_phone(phone: str):
     """Telefon raqam bo'yicha Telegram foydalanuvchini topadi."""
     phone = phone.strip().replace(" ", "").replace("-", "")
     if not phone.startswith("+"):
