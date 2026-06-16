@@ -1109,10 +1109,34 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
               );
             }),
             const SizedBox(height: 20),
-            Text(
-              'Operatsiyalar',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-            ),
+            Builder(builder: (context) {
+              final userId = supabase.auth.currentUser?.id ?? '';
+              final totalIn = _visibleTxs.fold<num>(0, (s, tx) => s + (tx.isIncomeFor(userId) ? tx.summa : 0));
+              final totalOut = _visibleTxs.fold<num>(0, (s, tx) => s + (tx.isExpenseFor(userId) ? tx.summa : 0));
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Operatsiyalar',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                  ),
+                  if (_visibleTxs.isNotEmpty)
+                    Row(
+                      children: [
+                        Text(
+                          '+${formatMoney(totalIn)}',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF16A34A)),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '-${formatMoney(totalOut)}',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFFEF4444)),
+                        ),
+                      ],
+                    ),
+                ],
+              );
+            }),
             const SizedBox(height: 10),
             if (_loading)
               const Padding(
