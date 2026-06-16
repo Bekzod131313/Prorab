@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../data/budget_repository.dart';
 import '../data/category_repository.dart';
 import '../data/material_repository.dart';
 import '../data/member_repository.dart';
@@ -41,11 +42,13 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   final _taskRepo = TaskRepository();
   final _materialRepo = MaterialRepository();
   final _workerRepo = WorkerRepository();
+  final _budgetRepo = BudgetRepository();
   late Project _project;
   List<ProjectTransaction> _txs = [];
   List<ObMember> _members = [];
   List<ObTask> _tasks = [];
   List<ObMaterial> _materials = [];
+  Map<String, num> _budgets = {};
   String? _tasksError;
   String? _materialsError;
   bool _loading = true;
@@ -108,6 +111,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     } catch (e) {
       _materialsError = e.toString();
     }
+    try {
+      _budgets = await _budgetRepo.loadBudgets(_project.id);
+    } catch (_) {}
     if (mounted) setState(() {});
   }
 
@@ -1360,6 +1366,55 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     }
   }
 
+  Future<void> _openBudgetSheet(List<String> categories) async {
+    final controllers = {for (final cat in categories) cat: TextEditingController(text: _budgets[cat]?.toStringAsFixed(0) ?? '')};
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.card,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 20 + MediaQuery.of(ctx).viewInsets.bottom),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text('Smeta (byudjet limiti)', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+            const SizedBox(height: 4),
+            const Text('Har bir kategoriya uchun chiqim limitini belgilang', style: TextStyle(fontSize: 12, color: AppColors.muted)),
+            const SizedBox(height: 16),
+            for (final cat in categories) ...[
+              Text(cat, style: const TextStyle(fontSize: 12, color: AppColors.muted, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 4),
+              TextField(
+                controller: controllers[cat],
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(hintText: 'Limit ($cat)', suffixText: "so'm"),
+              ),
+              const SizedBox(height: 10),
+            ],
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () async {
+                for (final cat in categories) {
+                  final val = num.tryParse(controllers[cat]?.text.replaceAll(' ', '') ?? '') ?? 0;
+                  await _budgetRepo.setBudget(_project.id, cat, val);
+                }
+                if (!mounted) return;
+                Navigator.of(ctx).pop();
+                final budgets = await _budgetRepo.loadBudgets(_project.id);
+                if (!mounted) return;
+                setState(() => _budgets = budgets);
+              },
+              child: const Text('Saqlash'),
+            ),
+          ],
+        ),
+      ),
+    );
+    for (final c in controllers.values) c.dispose();
+  }
+
   Future<void> _shareProjectSummary() async {
     final df = DateFormat('dd.MM.yyyy');
     final start = _project.boshlanish ?? _project.createdAt;
@@ -1632,38 +1687,71 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Xarajat taqsimoti', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                      Row(
+                        children: [
+                          const Expanded(child: Text('Xarajat taqsimoti', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14))),
+                          GestureDetector(
+                            onTap: () => _openBudgetSheet(entries.map((e) => e.key).toList()),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.tune_rounded, size: 14, color: AppColors.accent),
+                                SizedBox(width: 4),
+                                Text('Smeta', style: TextStyle(fontSize: 12, color: AppColors.accent, fontWeight: FontWeight.w700)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 12),
                       for (var i = 0; i < entries.length && i < 5; i++) ...[
                         if (i > 0) const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                        Builder(builder: (_) {
+                          final cat = entries[i].key;
+                          final spent = entries[i].value;
+                          final budget = _budgets[cat];
+                          final color = catColors[i % catColors.length];
+                          final overBudget = budget != null && spent > budget;
+                          final barColor = overBudget ? const Color(0xFFF43F5E) : color;
+                          final barValue = budget != null
+                              ? (spent / budget).clamp(0.0, 1.0)
+                              : maxVal > 0 ? (spent / maxVal).clamp(0.0, 1.0) : 0.0;
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
+                                  Text(cat, style: const TextStyle(fontSize: 12, color: AppColors.muted, fontWeight: FontWeight.w700)),
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Text(entries[i].key, style: const TextStyle(fontSize: 12, color: AppColors.muted, fontWeight: FontWeight.w700)),
-                                      Text(formatMoney(entries[i].value), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: catColors[i % catColors.length])),
+                                      Text(formatMoney(spent), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: barColor)),
+                                      if (budget != null) ...[
+                                        Text(' / ${formatMoney(budget)}', style: const TextStyle(fontSize: 11, color: AppColors.muted, fontWeight: FontWeight.w600)),
+                                        if (overBudget)
+                                          const Padding(
+                                            padding: EdgeInsets.only(left: 4),
+                                            child: Icon(Icons.warning_amber_rounded, size: 13, color: Color(0xFFF43F5E)),
+                                          ),
+                                      ],
                                     ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(4),
-                                    child: LinearProgressIndicator(
-                                      value: maxVal > 0 ? (entries[i].value / maxVal).clamp(0.0, 1.0) : 0,
-                                      minHeight: 7,
-                                      backgroundColor: AppColors.border,
-                                      valueColor: AlwaysStoppedAnimation(catColors[i % catColors.length]),
-                                    ),
                                   ),
                                 ],
                               ),
-                            ),
-                          ],
-                        ),
+                              const SizedBox(height: 4),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: LinearProgressIndicator(
+                                  value: barValue,
+                                  minHeight: 7,
+                                  backgroundColor: AppColors.border,
+                                  valueColor: AlwaysStoppedAnimation(barColor),
+                                ),
+                              ),
+                            ],
+                          );
+                        }),
                       ],
                     ],
                   ),
