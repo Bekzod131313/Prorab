@@ -87,6 +87,13 @@ class TransactionRepository {
         .toList();
   }
 
+  Future<void> updateTransactionNote(String id, {String? izoh, required DateTime txDate}) async {
+    await supabase.from('transactions').update({
+      'izoh': izoh?.isNotEmpty == true ? izoh : null,
+      'tx_date': txDate.toIso8601String(),
+    }).eq('id', id);
+  }
+
   Future<void> deleteTransaction(String id) async {
     final row = await supabase.from('transactions').select('*').eq('id', id).single();
     final tx = ProjectTransaction.fromMap(row as Map<String, dynamic>);
