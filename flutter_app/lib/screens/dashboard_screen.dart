@@ -15,7 +15,6 @@ import '../theme/app_theme.dart';
 import '../widgets/project_card.dart' show formatMoney;
 import 'project_detail_screen.dart';
 import 'archive_screen.dart';
-import 'tasks_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -438,10 +437,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _SectionHeader(
             title: 'Yaqinlashgan muddatlar',
             count: _upcomingTasks.length,
-            action: TextButton(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TasksScreen(projects: _projects))).then((_) => _load()),
-              child: const Text('Barchasi', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.accent)),
-            ),
           ),
           const SizedBox(height: 8),
           Container(

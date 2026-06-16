@@ -1,15 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:share_plus/share_plus.dart';
 
-import '../data/member_repository.dart';
-import '../data/project_repository.dart';
+import '../data/transaction_repository.dart';
 import '../data/worker_repository.dart';
-import '../main.dart';
-import '../models/transaction.dart';
 import '../models/worker.dart';
 import '../theme/app_theme.dart';
-import '../widgets/add_member_sheet.dart';
 import '../widgets/member_row.dart' show colorForName;
 import '../widgets/project_card.dart' show formatMoney;
 import 'worker_detail_screen.dart';
@@ -23,13 +17,9 @@ class WorkersScreen extends StatefulWidget {
 
 class _WorkersScreenState extends State<WorkersScreen> {
   final _repo = WorkerRepository();
-  final _projectRepo = ProjectRepository();
-  final _memberRepo = MemberRepository();
+  final _txRepo = TransactionRepository();
   List<Worker> _workers = [];
   bool _loading = true;
-  String _filter = 'all';
-  String _search = '';
-  String _sort = 'balans';
 
   @override
   void initState() {
@@ -53,871 +43,133 @@ class _WorkersScreenState extends State<WorkersScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('${worker.displayName}ga to\'lash'),
-        content: Text("${formatMoney(worker.balans)} so'm avans berilsinmi?"),
+        title: Text("${worker.displayName}ga to'lash"),
+        content: Text("${formatMoney(worker.balans)} so'm berilsinmi?"),
         actions: [
           TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Bekor')),
           ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text("Ha, berish")),
         ],
       ),
     );
-    if (confirm != true) return;
+    if (confirm != true || !mounted) return;
     try {
-      await _repo.giveAvans(obId: ob.obId, toUserId: worker.userId, amount: worker.balans, izoh: 'Tez to\'lov');
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("${worker.displayName}ga ${formatMoney(worker.balans)} so'm berildi")));
+      await _txRepo.addTransaction(
+        obId: ob.obId,
+        isIncome: false,
+        amount: worker.balans,
+        kategoriya: 'Mehnat haqi',
+        toUserId: worker.userId,
+      );
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("To'lov amalga oshirildi")));
       _load();
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
     }
-  }
-
-  Future<void> _payAllWorkers() async {
-    final owing = _workers.where((w) => w.balans > 0 && w.obsList.isNotEmpty).toList();
-    if (owing.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("To'lanadigan ishchi yo'q")));
-      return;
-    }
-    final total = owing.fold<num>(0, (s, w) => s + w.balans);
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Hammaga avans berish"),
-        content: Text("${owing.length} ta ishchiga jami ${formatMoney(total)} so'm avans beriladi. Davom etasizmi?"),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Bekor')),
-          ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text("Ha, berish")),
-        ],
-      ),
-    );
-    if (confirm != true) return;
-    int success = 0;
-    for (final w in owing) {
-      try {
-        final ob = w.obsList.first;
-        await _repo.giveAvans(obId: ob.obId, toUserId: w.userId, amount: w.balans, izoh: 'Hammaga avans');
-        success++;
-      } catch (_) {}
-    }
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$success ta ishchiga avans berildi")));
-    _load();
-  }
-
-  Future<void> _exportWorkers() async {
-    final date = DateFormat('dd.MM.yyyy').format(DateTime.now());
-    final buf = StringBuffer();
-    buf.writeln('📋 Ishchilar hisoboti — $date');
-    buf.writeln('Jami: ${_workers.length} kishi');
-    buf.writeln('');
-    final sorted = List<Worker>.from(_workers)..sort((a, b) => a.displayName.compareTo(b.displayName));
-    for (final w in sorted) {
-      buf.writeln('👤 ${w.displayName}${w.kasb?.isNotEmpty == true ? ' (${w.kasb})' : ''}');
-      buf.writeln('   Ish haqi: ${formatMoney(w.ishaqi)} | Olingan: ${formatMoney(w.olingan)} | Qoldiq: ${w.balans >= 0 ? '+' : ''}${formatMoney(w.balans)}');
-    }
-    await Share.share(buf.toString(), subject: 'ishchilar-$date');
-  }
-
-  List<Worker> get _filtered {
-    var list = _workers;
-    if (_search.isNotEmpty) {
-      final q = _search.toLowerCase();
-      list = list.where((w) => w.displayName.toLowerCase().contains(q) || (w.kasb ?? '').toLowerCase().contains(q)).toList();
-    }
-    switch (_filter) {
-      case 'plus':
-        list = list.where((w) => w.balans > 0).toList();
-        break;
-      case 'minus':
-        list = list.where((w) => w.balans < 0).toList();
-        break;
-      case 'zero':
-        list = list.where((w) => w.balans == 0).toList();
-        break;
-    }
-    final sorted = List<Worker>.from(list);
-    if (_sort == 'balans') {
-      sorted.sort((a, b) => a.balans.compareTo(b.balans));
-    } else if (_sort == 'ishaqi') {
-      sorted.sort((a, b) => b.ishaqi.compareTo(a.ishaqi));
-    } else {
-      sorted.sort((a, b) => a.displayName.compareTo(b.displayName));
-    }
-    return sorted;
-  }
-
-  Future<void> _openAddWorker() async {
-    final projects = await _projectRepo.loadProjects();
-    final ownedProjects = projects.where((p) => p.role == 'owner').toList();
-    final ownedProject = ownedProjects.isEmpty ? null : ownedProjects.first;
-    if (ownedProject == null) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Sizda obyekt yo'q")),
-      );
-      return;
-    }
-
-    final phoneCtrl = TextEditingController(text: '+998');
-    final kasbCtrl = TextEditingController();
-
-    final result = await showModalBottomSheet<bool>(
-      context: context,
-      backgroundColor: AppColors.card,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 20,
-          bottom: 20 + MediaQuery.of(ctx).viewInsets.bottom,
-        ),
-        child: AddMemberSheet(phoneCtrl: phoneCtrl, kasbCtrl: kasbCtrl),
-      ),
-    );
-
-    if (result == true) {
-      try {
-        await _memberRepo.addMember(
-          obId: ownedProject.id,
-          phone: phoneCtrl.text.trim(),
-          kasb: kasbCtrl.text.trim(),
-        );
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Qo'shildi")),
-        );
-        _load();
-      } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
-      }
-    }
-  }
-
-  Future<void> _openWorkerDetail(Worker worker) async {
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppColors.card,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => DraggableScrollableSheet(
-        initialChildSize: 0.65,
-        minChildSize: 0.4,
-        maxChildSize: 0.9,
-        expand: false,
-        builder: (ctx, scrollController) => _WorkerDetailSheet(
-          worker: worker,
-          scrollController: scrollController,
-          onChanged: _load,
-        ),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final total = _workers.length;
-    final plus = _workers.where((w) => w.balans > 0).length;
-    final minus = _workers.where((w) => w.balans < 0).length;
-    final zero = _workers.where((w) => w.balans == 0).length;
-    final totalIshaqi = _workers.fold<num>(0, (s, w) => s + w.ishaqi);
-    final totalOlingan = _workers.fold<num>(0, (s, w) => s + w.olingan);
-    final totalBalans = totalIshaqi - totalOlingan;
+    final totalWorkers = _workers.length;
+    final totalOwed = _workers.fold<num>(0, (s, w) => s + (w.balans > 0 ? w.balans : 0));
+    final totalPaid = _workers.fold<num>(0, (s, w) => s + w.olingan);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
         backgroundColor: AppColors.bg,
-        title: const Text('Ishchilar'),
-        actions: [
-          if (_workers.any((w) => w.balans > 0))
-            IconButton(
-              icon: const Icon(Icons.payments_rounded),
-              tooltip: 'Hammaga avans',
-              onPressed: _payAllWorkers,
-            ),
-          if (_workers.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.ios_share_rounded),
-              onPressed: _exportWorkers,
-            ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _openAddWorker,
-        child: const Icon(Icons.person_add_alt_1_rounded),
+        title: const Text('Odamlar'),
       ),
       body: RefreshIndicator(
         onRefresh: _load,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            Row(
-              children: [
-                Expanded(child: _StatBox(label: 'JAMI', value: total.toString(), color: AppColors.text)),
-                const SizedBox(width: 8),
-                Expanded(child: _StatBox(label: 'MUSBAT', value: plus.toString(), color: const Color(0xFF16A34A))),
-                const SizedBox(width: 8),
-                Expanded(child: _StatBox(label: 'MANFIY', value: minus.toString(), color: const Color(0xFFEF4444))),
-                const SizedBox(width: 8),
-                Expanded(child: _StatBox(label: 'NOL', value: zero.toString(), color: AppColors.muted)),
-              ],
-            ),
-            if (_workers.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('JAMI ISH HAQI', style: TextStyle(fontSize: 9.5, color: AppColors.muted, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
-                          const SizedBox(height: 3),
-                          Text(formatMoney(totalIshaqi), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF22C55E)), overflow: TextOverflow.ellipsis),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('JAMI OLINGAN', style: TextStyle(fontSize: 9.5, color: AppColors.muted, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
-                          const SizedBox(height: 3),
-                          Text(formatMoney(totalOlingan), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFFF59E0B)), overflow: TextOverflow.ellipsis),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('UMUMIY QOLDIQ', style: TextStyle(fontSize: 9.5, color: AppColors.muted, fontWeight: FontWeight.w700, letterSpacing: 0.4)),
-                          const SizedBox(height: 3),
-                          Text(
-                            '${totalBalans >= 0 ? '+' : ''}${formatMoney(totalBalans)}',
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: totalBalans >= 0 ? const Color(0xFF22C55E) : const Color(0xFFEF4444)),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-            const SizedBox(height: 16),
-            TextField(
-              onChanged: (v) => setState(() => _search = v),
-              decoration: const InputDecoration(
-                hintText: 'Qidirish...',
-                prefixIcon: Icon(Icons.search_rounded),
-              ),
-            ),
-            const SizedBox(height: 12),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _FilterChip(label: 'Hammasi', selected: _filter == 'all', onTap: () => setState(() => _filter = 'all')),
-                  const SizedBox(width: 8),
-                  _FilterChip(label: 'Musbat', selected: _filter == 'plus', onTap: () => setState(() => _filter = 'plus')),
-                  const SizedBox(width: 8),
-                  _FilterChip(label: 'Manfiy', selected: _filter == 'minus', onTap: () => setState(() => _filter = 'minus')),
-                  const SizedBox(width: 8),
-                  _FilterChip(label: 'Nol', selected: _filter == 'zero', onTap: () => setState(() => _filter = 'zero')),
-                  const SizedBox(width: 16),
-                  const Text('|', style: TextStyle(color: AppColors.border, fontSize: 18)),
-                  const SizedBox(width: 16),
-                  _FilterChip(label: 'Balans ↑', selected: _sort == 'balans', onTap: () => setState(() => _sort = 'balans')),
-                  const SizedBox(width: 8),
-                  _FilterChip(label: 'Ish haqi ↓', selected: _sort == 'ishaqi', onTap: () => setState(() => _sort = 'ishaqi')),
-                  const SizedBox(width: 8),
-                  _FilterChip(label: 'Ism A-Z', selected: _sort == 'name', onTap: () => setState(() => _sort = 'name')),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            if (_loading)
-              const Padding(
-                padding: EdgeInsets.only(top: 40),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (_filtered.isEmpty)
-              const Padding(
-                padding: EdgeInsets.only(top: 40),
-                child: Center(child: Text("Ishchilar yo'q", style: TextStyle(color: AppColors.muted))),
-              )
-            else
-              ..._filtered.map((w) => _WorkerCard(
-                    worker: w,
-                    onTap: () => _openWorkerDetail(w),
-                    onQuickPay: w.balans > 0 && w.obsList.isNotEmpty ? () => _quickPayWorker(w) : null,
-                  )),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StatBox extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color color;
-
-  const _StatBox({required this.label, required this.value, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        children: [
-          Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: color)),
-          const SizedBox(height: 4),
-          Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.muted)),
-        ],
-      ),
-    );
-  }
-}
-
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _FilterChip({required this.label, required this.selected, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.accent : AppColors.card,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: selected ? AppColors.accent : AppColors.border),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: selected ? Colors.white : AppColors.text2,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _WorkerCard extends StatelessWidget {
-  final Worker worker;
-  final VoidCallback onTap;
-  final VoidCallback? onQuickPay;
-
-  const _WorkerCard({required this.worker, required this.onTap, this.onQuickPay});
-
-  @override
-  Widget build(BuildContext context) {
-    final name = worker.displayName;
-    final color = colorForName(name);
-    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
-    final bal = worker.balans;
-    final balColor = bal > 0
-        ? const Color(0xFF16A34A)
-        : bal < 0
-            ? const Color(0xFFEF4444)
-            : AppColors.muted;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(14)),
-              child: Text(initial, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18)),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 3),
-                  Text(
-                    '${worker.kasb?.isNotEmpty == true ? worker.kasb! : 'Ishchi'} • ${worker.obsCount} loyiha',
-                    style: const TextStyle(fontSize: 12, color: AppColors.muted, fontWeight: FontWeight.w600),
-                  ),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '${bal >= 0 ? '+' : '-'}${formatMoney(bal.abs())}',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: balColor),
-                ),
-                if (bal > 0 && onQuickPay != null) ...[
-                  const SizedBox(height: 4),
-                  GestureDetector(
-                    onTap: onQuickPay,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF16A34A).withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFF16A34A).withOpacity(0.3)),
-                      ),
-                      child: const Text('To\'lash', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF16A34A))),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _WorkerDetailSheet extends StatefulWidget {
-  final Worker worker;
-  final ScrollController scrollController;
-  final VoidCallback onChanged;
-
-  const _WorkerDetailSheet({required this.worker, required this.scrollController, required this.onChanged});
-
-  @override
-  State<_WorkerDetailSheet> createState() => _WorkerDetailSheetState();
-}
-
-class _WorkerDetailSheetState extends State<_WorkerDetailSheet> {
-  final _repo = WorkerRepository();
-  List<ProjectTransaction> _payments = [];
-  bool _paymentsLoaded = false;
-  Map<String, String> _obNames = {};
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPayments();
-    _obNames = {for (final o in widget.worker.obsList) o.obId: o.obNomi};
-  }
-
-  Future<void> _loadPayments() async {
-    final obIds = widget.worker.obsList.map((o) => o.obId).toList();
-    if (obIds.isEmpty) {
-      setState(() => _paymentsLoaded = true);
-      return;
-    }
-    try {
-      final rows = await supabase
-          .from('transactions')
-          .select('*')
-          .inFilter('ob_id', obIds)
-          .eq('to_user', widget.worker.userId)
-          .inFilter('tur', ['send', 'ishhaqi'])
-          .order('tx_date', ascending: false)
-          .limit(50);
-      final txs = (rows as List).map((r) => ProjectTransaction.fromMap(r as Map<String, dynamic>)).toList();
-      if (!mounted) return;
-      setState(() {
-        _payments = txs;
-        _paymentsLoaded = true;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _paymentsLoaded = true);
-    }
-  }
-
-  Future<void> _openAmountSheet({required String title, required bool isAvans}) async {
-    final worker = widget.worker;
-    final amountCtrl = TextEditingController();
-    final noteCtrl = TextEditingController();
-    String selectedObId = worker.obsList.first.obId;
-    DateTime txDate = DateTime.now();
-
-    final result = await showModalBottomSheet<bool>(
-      context: context,
-      backgroundColor: AppColors.card,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 20,
-            bottom: 20 + MediaQuery.of(ctx).viewInsets.bottom,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(title, style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
-              const SizedBox(height: 16),
-              if (worker.obsList.length > 1)
-                DropdownButtonFormField<String>(
-                  value: selectedObId,
-                  decoration: const InputDecoration(labelText: 'Obyekt'),
-                  items: worker.obsList
-                      .map((o) => DropdownMenuItem(value: o.obId, child: Text(o.obNomi)))
-                      .toList(),
-                  onChanged: (v) => setSheetState(() => selectedObId = v ?? selectedObId),
-                ),
-              if (worker.obsList.length > 1) const SizedBox(height: 12),
-              TextField(
-                controller: amountCtrl,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(hintText: 'Summa'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: noteCtrl,
-                decoration: const InputDecoration(hintText: 'Izoh (ixtiyoriy)'),
-              ),
-              const SizedBox(height: 12),
-              InkWell(
-                onTap: () async {
-                  final picked = await showDatePicker(
-                    context: ctx,
-                    initialDate: txDate,
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime.now().add(const Duration(days: 1)),
-                  );
-                  if (picked != null) setSheetState(() => txDate = picked);
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.border),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Row(
+        child: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : _workers.isEmpty
+                ? const Center(child: Text("Ishchilar yo'q", style: TextStyle(color: AppColors.muted)))
+                : ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
                     children: [
-                      const Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.muted),
-                      const SizedBox(width: 10),
-                      Text(
-                        DateFormat('dd.MM.yyyy').format(txDate),
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  final amount = num.tryParse(amountCtrl.text.trim());
-                  if (amount == null || amount <= 0) return;
-                  Navigator.of(ctx).pop(true);
-                },
-                child: const Text('Saqlash'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-
-    if (result == true) {
-      final amount = num.tryParse(amountCtrl.text.trim()) ?? 0;
-      if (isAvans) {
-        await _repo.giveAvans(obId: selectedObId, toUserId: worker.userId, amount: amount, izoh: noteCtrl.text.trim(), txDate: txDate);
-      } else {
-        await _repo.giveIshHaqi(obId: selectedObId, toUserId: worker.userId, amount: amount, izoh: noteCtrl.text.trim(), txDate: txDate);
-      }
-      if (!mounted) return;
-      widget.onChanged();
-      Navigator.of(context).pop();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final worker = widget.worker;
-    final name = worker.displayName;
-    final color = colorForName(name);
-    final bal = worker.balans;
-    final balColor = bal > 0
-        ? const Color(0xFF16A34A)
-        : bal < 0
-            ? const Color(0xFFEF4444)
-            : AppColors.muted;
-
-    return ListView(
-      controller: widget.scrollController,
-      padding: const EdgeInsets.all(20),
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 58,
-              height: 58,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(18)),
-              child: Text(
-                name.isNotEmpty ? name[0].toUpperCase() : '?',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 22),
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(name, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
-                  const SizedBox(height: 3),
-                  Text(
-                    worker.kasb?.isNotEmpty == true ? worker.kasb! : 'Ishchi',
-                    style: const TextStyle(fontSize: 13, color: AppColors.muted),
-                  ),
-                ],
-              ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.open_in_new_rounded, color: AppColors.muted),
-              tooltip: 'To\'liq sahifa',
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => WorkerDetailScreen(worker: worker)),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(child: _DetailStat(label: 'ISH HAQI', value: formatMoney(worker.ishaqi), color: AppColors.accent)),
-            const SizedBox(width: 8),
-            Expanded(child: _DetailStat(label: 'OLINGAN', value: formatMoney(worker.olingan), color: const Color(0xFFF59E0B))),
-            const SizedBox(width: 8),
-            Expanded(child: _DetailStat(label: 'BALANS', value: '${bal >= 0 ? '+' : '-'}${formatMoney(bal.abs())}', color: balColor)),
-          ],
-        ),
-        const SizedBox(height: 20),
-        Row(
-          children: [
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () => _openAmountSheet(title: 'Avans berish', isAvans: true),
-                child: const Text('Avans berish'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => _openAmountSheet(title: "Ish haqi yozish", isAvans: false),
-                child: const Text("Ish haqi yozish"),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        if (worker.obsList.isNotEmpty) ...[
-          const Text('Obyektlar', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 10),
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.bg,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Column(
-              children: [
-                for (var i = 0; i < worker.obsList.length; i++)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    decoration: BoxDecoration(
-                      border: i < worker.obsList.length - 1
-                          ? const Border(bottom: BorderSide(color: AppColors.border))
-                          : null,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(worker.obsList[i].obNomi, style: const TextStyle(fontWeight: FontWeight.w700)),
-                        Text(
-                          '${worker.obsList[i].balans >= 0 ? '+' : '-'}${formatMoney(worker.obsList[i].balans.abs())}',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w800,
-                            color: worker.obsList[i].balans >= 0 ? const Color(0xFF16A34A) : const Color(0xFFEF4444),
-                          ),
+                      // Summary row
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+                        child: Row(
+                          children: [
+                            _SumCol(label: 'Ishchilar', value: '$totalWorkers ta', color: AppColors.accent),
+                            _SumCol(label: 'Qarzdorlik', value: '${formatMoney(totalOwed)} so\'m', color: AppColors.orange),
+                            _SumCol(label: 'To\'langan', value: '${formatMoney(totalPaid)} so\'m', color: AppColors.green),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ],
-        const SizedBox(height: 20),
-        Row(
-          children: [
-            const Expanded(child: Text("To'lov tarixi", style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800))),
-            if (!_paymentsLoaded) const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
-          ],
-        ),
-        const SizedBox(height: 10),
-        if (_paymentsLoaded && _payments.isEmpty)
-          const Padding(
-            padding: EdgeInsets.only(bottom: 10),
-            child: Text("To'lovlar yo'q", style: TextStyle(color: AppColors.muted, fontSize: 13)),
-          )
-        else if (_payments.isNotEmpty)
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.bg,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Column(
-              children: [
-                for (var i = 0; i < _payments.length && i < 10; i++) ...[
-                  Builder(builder: (_) {
-                    final tx = _payments[i];
-                    final isAvans = tx.tur == 'send';
-                    final color = isAvans ? const Color(0xFFF59E0B) : AppColors.accent;
-                    final label = isAvans ? 'Avans' : 'Ish haqi';
-                    final dateStr = DateFormat('dd.MM.yy').format(tx.date);
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-                      decoration: BoxDecoration(
-                        border: i < (_payments.length > 10 ? 9 : _payments.length - 1)
-                            ? const Border(bottom: BorderSide(color: AppColors.border))
-                            : null,
                       ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 32,
-                            height: 32,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(color: color.withOpacity(0.13), borderRadius: BorderRadius.circular(10)),
-                            child: Icon(isAvans ? Icons.send_rounded : Icons.payments_rounded, size: 15, color: color),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                      const SizedBox(height: 16),
+
+                      ..._workers.map((worker) {
+                        final color = colorForName(worker.displayName);
+                        final initials = worker.displayName.trim().isEmpty ? '?' : worker.displayName.trim()[0].toUpperCase();
+                        final owed = worker.balans;
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+                          child: InkWell(
+                            onTap: () async {
+                              await Navigator.of(context).push(MaterialPageRoute(builder: (_) => WorkerDetailScreen(worker: worker)));
+                              _load();
+                            },
+                            child: Row(
                               children: [
-                                Text(label, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: color)),
-                                Text(_obNames[tx.obId] ?? '', style: const TextStyle(fontSize: 11, color: AppColors.muted), overflow: TextOverflow.ellipsis),
+                                CircleAvatar(
+                                  radius: 22,
+                                  backgroundColor: color.withOpacity(0.15),
+                                  child: Text(initials, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: color)),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(worker.displayName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                                      Text('${worker.obsCount} ta loyiha', style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+                                      if (owed > 0)
+                                        Text('Qarzdorlik: ${formatMoney(owed)} so\'m', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.green)),
+                                    ],
+                                  ),
+                                ),
+                                if (owed > 0)
+                                  TextButton(
+                                    onPressed: () => _quickPayWorker(worker),
+                                    style: TextButton.styleFrom(
+                                      backgroundColor: AppColors.green.withOpacity(0.1),
+                                      foregroundColor: AppColors.green,
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    ),
+                                    child: const Text("To'lash", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                                  ),
                               ],
                             ),
                           ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text('+${formatMoney(tx.summa)}', style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w900, color: Color(0xFF22C55E))),
-                              Text(dateStr, style: const TextStyle(fontSize: 10, color: AppColors.muted)),
-                            ],
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
-                ],
-              ],
-            ),
-          ),
-        const SizedBox(height: 20),
-        OutlinedButton.icon(
-          onPressed: () {
-            final w = widget.worker;
-            final date = DateFormat('dd.MM.yyyy').format(DateTime.now());
-            final lines = [
-              '📋 Ishchi hisoboti — $date',
-              '👤 ${w.displayName}${w.kasb?.isNotEmpty == true ? ' (${w.kasb})' : ''}',
-              '',
-              '💰 Jami ish haqi: ${formatMoney(w.ishaqi)} so\'m',
-              '📤 Olingan: ${formatMoney(w.olingan)} so\'m',
-              '💵 Qoldiq: ${w.balans >= 0 ? '+' : ''}${formatMoney(w.balans)} so\'m',
-              '',
-              if (w.obsList.isNotEmpty) 'Loyihalar:',
-              for (final o in w.obsList) '  • ${o.obNomi}: ${o.balans >= 0 ? '+' : ''}${formatMoney(o.balans.abs())}',
-              '',
-              '#moliya #hisobot',
-            ];
-            Share.share(lines.join('\n'));
-          },
-          icon: const Icon(Icons.ios_share_rounded, size: 16),
-          label: const Text('Hisobot ulashish'),
-        ),
-      ],
+                        );
+                      }),
+                    ],
+                  ),
+      ),
     );
   }
 }
 
-class _DetailStat extends StatelessWidget {
+class _SumCol extends StatelessWidget {
   final String label;
   final String value;
   final Color color;
-
-  const _DetailStat({required this.label, required this.value, required this.color});
-
+  const _SumCol({required this.label, required this.value, required this.color});
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
-      decoration: BoxDecoration(
-        color: AppColors.bg,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
-      ),
+    return Expanded(
       child: Column(
         children: [
-          Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: color)),
+          Text(label, style: const TextStyle(fontSize: 10, color: AppColors.muted), textAlign: TextAlign.center),
           const SizedBox(height: 4),
-          Text(label, style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700, color: AppColors.muted)),
+          Text(value, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: color), textAlign: TextAlign.center),
         ],
       ),
     );
