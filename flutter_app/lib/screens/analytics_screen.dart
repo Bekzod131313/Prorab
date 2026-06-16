@@ -5,6 +5,7 @@ import '../data/transaction_repository.dart';
 import '../models/project.dart';
 import '../models/transaction.dart';
 import '../theme/app_theme.dart';
+import '../widgets/pie_chart.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   final Project project;
@@ -275,7 +276,18 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             _SectionCard(
               title: 'Xarajat kategoriyalari',
               child: Column(
-                children: byCategory.entries.map((e) {
+                children: [
+                  MoliyaPieChart(
+                    data: () {
+                      final colors = [AppColors.accent, AppColors.accentTeal, const Color(0xFFF59E0B), const Color(0xFFEF4444), const Color(0xFF8B5CF6), const Color(0xFF22C55E)];
+                      int ci = 0;
+                      return byCategory.entries.map((e) => PieChartData(label: e.key, value: e.value.toDouble(), color: colors[ci++ % colors.length])).toList();
+                    }(),
+                  ),
+                  const SizedBox(height: 14),
+                  const Divider(color: AppColors.border, height: 1),
+                  const SizedBox(height: 8),
+                  ...byCategory.entries.map((e) {
                   final ratio = totalSpend > 0 ? e.value / totalSpend : 0.0;
                   final barRatio = e.value / maxCatSpend;
                   return Padding(
@@ -307,6 +319,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     ),
                   );
                 }).toList(),
+                ],
               ),
             ),
         ],
