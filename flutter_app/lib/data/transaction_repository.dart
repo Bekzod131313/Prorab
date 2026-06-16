@@ -23,9 +23,10 @@ class TransactionRepository {
     required String kategoriya,
     String? izoh,
     String? toUserId,
+    DateTime? txDate,
   }) async {
     final userId = supabase.auth.currentUser?.id;
-    final txDate = DateTime.now().toIso8601String();
+    final txDate0 = (txDate ?? DateTime.now()).toIso8601String();
 
     if (isIncome) {
       await supabase.from('transactions').insert({
@@ -36,7 +37,7 @@ class TransactionRepository {
         'tur': 'income',
         'kategoriya': kategoriya,
         'izoh': izoh,
-        'tx_date': txDate,
+        'tx_date': txDate0,
       });
 
       final ob = await supabase.from('obyektlar').select('kirim').eq('id', obId).single();
@@ -50,7 +51,7 @@ class TransactionRepository {
         'tur': 'spend',
         'kategoriya': kategoriya,
         'izoh': izoh,
-        'tx_date': txDate,
+        'tx_date': txDate0,
       });
 
       if (toUserId != null) {
