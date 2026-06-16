@@ -1810,7 +1810,39 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                       ],
                     ),
                     const SizedBox(height: 10),
-                    _InfoTile(label: 'MANZIL', value: project.manzil?.isNotEmpty == true ? project.manzil! : '—'),
+                    if (project.manzil?.isNotEmpty == true)
+                      GestureDetector(
+                        onTap: () {
+                          Clipboard.setData(ClipboardData(text: project.manzil!));
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Manzil nusxalandi')));
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.bg,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: AppColors.border),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('MANZIL', style: TextStyle(fontSize: 10, color: AppColors.muted, fontWeight: FontWeight.w800, letterSpacing: 0.4)),
+                                    const SizedBox(height: 3),
+                                    Text(project.manzil!, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800), overflow: TextOverflow.ellipsis),
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.copy_rounded, size: 14, color: AppColors.muted),
+                            ],
+                          ),
+                        ),
+                      )
+                    else
+                      _InfoTile(label: 'MANZIL', value: '—'),
                   ],
                 ),
               );
