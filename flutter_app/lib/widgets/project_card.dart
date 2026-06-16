@@ -29,8 +29,9 @@ class ProjectCard extends StatelessWidget {
   final Project project;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
+  final bool isPinned;
 
-  const ProjectCard({super.key, required this.project, this.onTap, this.onLongPress});
+  const ProjectCard({super.key, required this.project, this.onTap, this.onLongPress, this.isPinned = false});
 
   static const _roleLabels = {
     'owner': 'Egasi',
@@ -81,10 +82,18 @@ class ProjectCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        project.nomi,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-                        overflow: TextOverflow.ellipsis,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              project.nomi,
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (isPinned)
+                            const Icon(Icons.push_pin_rounded, size: 14, color: AppColors.accent),
+                        ],
                       ),
                       const SizedBox(height: 4),
                       Row(
