@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
@@ -204,15 +206,75 @@ class _ReportScreenState extends State<ReportScreen> {
                 final entries = data.catTotals.entries.toList()
                   ..sort((a, b) => b.value.compareTo(a.value));
                 final maxCat = entries.first.value;
+                final total = entries.fold<num>(0, (s, e) => s + e.value);
+                const pieColors = [
+                  Color(0xFF3B82F6), Color(0xFFF59E0B), Color(0xFFF43F5E),
+                  Color(0xFFA855F7), Color(0xFF22C55E), Color(0xFF0891B2),
+                  Color(0xFFEC4899), Color(0xFF84CC16),
+                ];
                 return Column(
                   children: [
+                    SizedBox(
+                      height: 160,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: CustomPaint(
+                              painter: _PieChartPainter(
+                                values: entries.map((e) => e.value.toDouble()).toList(),
+                                colors: List.generate(entries.length, (i) => pieColors[i % pieColors.length]),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                for (var i = 0; i < entries.length && i < 5; i++) ...[
+                                  if (i > 0) const SizedBox(height: 6),
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 10,
+                                        height: 10,
+                                        decoration: BoxDecoration(
+                                          color: pieColors[i % pieColors.length],
+                                          borderRadius: BorderRadius.circular(3),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          entries[i].key?.isNotEmpty == true ? entries[i].key! : 'Boshqa',
+                                          style: const TextStyle(fontSize: 11, color: AppColors.muted, fontWeight: FontWeight.w600),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      Text(
+                                        '${(entries[i].value / total * 100).round()}%',
+                                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: pieColors[i % pieColors.length]),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    const Divider(color: AppColors.border, height: 1),
+                    const SizedBox(height: 14),
                     for (var i = 0; i < entries.length; i++) ...[
                       if (i > 0) const SizedBox(height: 14),
                       _ProgressBar(
                         label: entries[i].key?.isNotEmpty == true ? entries[i].key! : 'Boshqa',
                         value: entries[i].value,
                         max: maxCat,
-                        color: const Color(0xFFF43F5E),
+                        color: pieColors[i % pieColors.length],
                       ),
                     ],
                   ],
@@ -597,4 +659,42 @@ class _TopWorkerRow extends StatelessWidget {
       ),
     );
   }
+}
+
+class _PieChartPainter extends CustomPainter {
+  final List<double> values;
+  final List<Color> colors;
+
+  _PieChartPainter({required this.values, required this.colors});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final total = values.fold(0.0, (s, v) => s + v);
+    if (total == 0) return;
+
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = math.min(size.width, size.height) / 2 - 4;
+    final innerRadius = radius * 0.55;
+
+    double startAngle = -math.pi / 2;
+    for (var i = 0; i < values.length; i++) {
+      final sweepAngle = (values[i] / total) * 2 * math.pi;
+      final paint = Paint()
+        ..style = PaintingStyle.fill
+        ..color = colors[i % colors.length];
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle,
+        sweepAngle - 0.02,
+        true,
+        paint,
+      );
+      startAngle += sweepAngle;
+    }
+
+    canvas.drawCircle(center, innerRadius, Paint()..color = AppColors.bg..style = PaintingStyle.fill);
+  }
+
+  @override
+  bool shouldRepaint(_PieChartPainter old) => old.values != values || old.colors != colors;
 }
