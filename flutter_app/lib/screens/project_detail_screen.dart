@@ -428,6 +428,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
     }
   }
 
+  Future<void> _deleteTx(ProjectTransaction tx) async {
+    await _repo.deleteTransaction(tx.id);
+    if (!mounted) return;
+    _load();
+  }
+
   Future<void> _openMemberDetail(ObMember member) async {
     final memberTxs = _txs.where((t) => t.fromUser == member.userId || t.toUser == member.userId).toList();
     final canSend = (_project.role == 'owner' && member.role == 'member') ||
@@ -2176,7 +2182,16 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                 child: Center(child: Text("Operatsiyalar yo'q", style: TextStyle(color: AppColors.muted))),
               )
             else
-              ..._visibleTxs.map((tx) => TransactionRow(tx: tx, onTap: () => _openTxDetail(tx))),
+              ..._visibleTxs.map((tx) {
+                final userId = supabase.auth.currentUser?.id;
+                final canDelete = tx.fromUser == userId || _project.role == 'owner';
+                return TransactionRow(
+                  key: Key(tx.id),
+                  tx: tx,
+                  onTap: () => _openTxDetail(tx),
+                  onDelete: canDelete ? () => _deleteTx(tx) : null,
+                );
+              }),
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,

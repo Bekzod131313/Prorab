@@ -9,8 +9,9 @@ import 'project_card.dart' show formatMoney;
 class TransactionRow extends StatelessWidget {
   final ProjectTransaction tx;
   final VoidCallback? onTap;
+  final VoidCallback? onDelete;
 
-  const TransactionRow({super.key, required this.tx, this.onTap});
+  const TransactionRow({super.key, required this.tx, this.onTap, this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +55,7 @@ class TransactionRow extends StatelessWidget {
 
     final dateStr = DateFormat('dd.MM.yyyy HH:mm').format(tx.date);
 
-    return InkWell(
+    final tile = InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: Container(
@@ -105,6 +106,25 @@ class TransactionRow extends StatelessWidget {
         ],
       ),
       ),
+    );
+
+    if (onDelete == null) return tile;
+    return Dismissible(
+      key: Key(tx.id),
+      direction: DismissDirection.endToStart,
+      confirmDismiss: (_) async => true,
+      onDismissed: (_) => onDelete!(),
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEF4444).withOpacity(0.85),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: const Icon(Icons.delete_outline_rounded, color: Colors.white, size: 24),
+      ),
+      child: tile,
     );
   }
 }
