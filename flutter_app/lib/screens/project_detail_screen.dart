@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 import '../data/budget_repository.dart';
 import '../data/category_repository.dart';
 import '../data/notes_repository.dart';
+import '../data/templates_repository.dart';
 import '../data/material_repository.dart';
 import '../data/member_repository.dart';
 import '../data/project_repository.dart';
@@ -2259,8 +2260,10 @@ class _AddTransactionSheetState extends State<_AddTransactionSheet> {
   static const _addNewValue = '__add_new__';
 
   final _categoryRepo = CategoryRepository();
+  final _templatesRepo = TemplatesRepository();
   List<String> _customIncomeCats = [];
   List<String> _customExpenseCats = [];
+  List<TxTemplate> _templates = [];
 
   bool _isIncome = true;
   String _category = 'mijoz';
@@ -2279,10 +2282,12 @@ class _AddTransactionSheetState extends State<_AddTransactionSheet> {
   Future<void> _loadCustomCats() async {
     final income = await _categoryRepo.loadCustomIncomeCats();
     final expense = await _categoryRepo.loadCustomExpenseCats();
+    final templates = await _templatesRepo.load();
     if (!mounted) return;
     setState(() {
       _customIncomeCats = income;
       _customExpenseCats = expense;
+      _templates = templates;
     });
   }
 
@@ -2338,11 +2343,70 @@ class _AddTransactionSheetState extends State<_AddTransactionSheet> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          'Operatsiya qo\'shish',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Operatsiya qo\'shish',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              ),
+            ),
+            TextButton.icon(
+              onPressed: () async {
+                final note = _noteCtrl.text.trim();
+                if (note.isEmpty) return;
+                final t = TxTemplate(
+                  id: DateTime.now().millisecondsSinceEpoch.toString(),
+                  izoh: note,
+                  kategoriya: _category,
+                  isIncome: _isIncome,
+                );
+                await _templatesRepo.add(t);
+                final templates = await _templatesRepo.load();
+                if (!mounted) return;
+                setState(() => _templates = templates);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Shablon saqlandi')));
+              },
+              icon: const Icon(Icons.bookmark_add_outlined, size: 16),
+              label: const Text('Shablon', style: TextStyle(fontSize: 12)),
+            ),
+          ],
         ),
-        const SizedBox(height: 16),
+        if (_templates.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: _templates.where((t) => t.isIncome == _isIncome).map((t) => Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _noteCtrl.text = t.izoh;
+                      _category = t.kategoriya;
+                    });
+                  },
+                  onLongPress: () async {
+                    await _templatesRepo.delete(t.id);
+                    final templates = await _templatesRepo.load();
+                    if (!mounted) return;
+                    setState(() => _templates = templates);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: AppColors.accent.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.accent.withOpacity(0.3)),
+                    ),
+                    child: Text(t.izoh, style: const TextStyle(fontSize: 12, color: AppColors.accent, fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              )).toList(),
+            ),
+          ),
+        ],
+        const SizedBox(height: 12),
         SegmentedButton<bool>(
           segments: const [
             ButtonSegment(value: true, label: Text('Kirim')),
