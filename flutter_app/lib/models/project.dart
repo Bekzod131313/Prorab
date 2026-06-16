@@ -59,6 +59,16 @@ class Project {
     );
   }
 
+  Project copyWith({String? imageUrl}) {
+    return Project(
+      id: id, nomi: nomi, kirim: kirim, chiqim: chiqim,
+      boshlanish: boshlanish, createdAt: createdAt, muddat: muddat,
+      role: role, myBalance: myBalance, ishaqi: ishaqi, olingan: olingan,
+      status: status, manzil: manzil, mijoz: mijoz, bosqich: bosqich,
+      imageUrl: imageUrl ?? this.imageUrl,
+    );
+  }
+
   /// 0-100 health score based on financial and timeline status.
   int get healthScore {
     if (role != 'owner') return 100;

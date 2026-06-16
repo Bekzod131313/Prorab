@@ -93,7 +93,7 @@ class ProjectRepository {
   }
 
   Future<void> updateImage(String obId, String imageUrl) async {
-    await supabase.from('ob').update({'image_url': imageUrl}).eq('id', obId);
+    await supabase.from('obyektlar').update({'image_url': imageUrl}).eq('id', obId);
   }
 
   Future<Project?> loadProjectById(String id) async {
