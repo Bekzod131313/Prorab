@@ -47,6 +47,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   String? _materialsError;
   bool _loading = true;
   String? _error;
+  String _txFilter = 'all';
 
   @override
   void initState() {
@@ -114,14 +115,24 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
 
   List<ProjectTransaction> get _visibleTxs {
     final userId = supabase.auth.currentUser?.id;
+    List<ProjectTransaction> base;
     if (_project.role == 'owner') {
-      return _txs
+      base = _txs
           .where((tx) =>
               tx.tur == 'income' ||
               ((tx.tur == 'send' || tx.tur == 'spend' || tx.tur == 'ishhaqi') && tx.fromUser == userId))
           .toList();
+    } else {
+      base = _txs.where((tx) => tx.fromUser == userId || tx.toUser == userId).toList();
     }
-    return _txs.where((tx) => tx.fromUser == userId || tx.toUser == userId).toList();
+    switch (_txFilter) {
+      case 'income':
+        return base.where((tx) => tx.isIncomeFor(userId ?? '')).toList();
+      case 'expense':
+        return base.where((tx) => tx.isExpenseFor(userId ?? '')).toList();
+      default:
+        return base;
+    }
   }
 
   Future<void> _openAddMember() async {
@@ -1138,6 +1149,19 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
               );
             }),
             const SizedBox(height: 10),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _TxFilterChip(label: 'Barchasi', selected: _txFilter == 'all', onTap: () => setState(() => _txFilter = 'all')),
+                  const SizedBox(width: 8),
+                  _TxFilterChip(label: 'Kirim', selected: _txFilter == 'income', onTap: () => setState(() => _txFilter = 'income')),
+                  const SizedBox(width: 8),
+                  _TxFilterChip(label: 'Chiqim', selected: _txFilter == 'expense', onTap: () => setState(() => _txFilter = 'expense')),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
             if (_loading)
               const Padding(
                 padding: EdgeInsets.only(top: 40),
@@ -1624,6 +1648,38 @@ class _SendMoneySheetState extends State<_SendMoneySheet> {
           child: const Text('Yuborish'),
         ),
       ],
+    );
+  }
+}
+
+class _TxFilterChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _TxFilterChip({required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.accent.withOpacity(0.18) : AppColors.card,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: selected ? AppColors.accent : AppColors.border),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: selected ? AppColors.accent : AppColors.text2,
+          ),
+        ),
+      ),
     );
   }
 }
