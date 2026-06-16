@@ -351,9 +351,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ? activeProjects
         : activeProjects.where((p) => p.nomi.toLowerCase().contains(_search.toLowerCase())).toList();
     final doneProjects = _projects.where((p) => p.status == 'done').toList();
+    final totalBal = _projects.fold<num>(0, (s, p) => s + p.balance);
+    final totalIn = _projects.fold<num>(0, (s, p) => s + p.kirim);
+    final totalOut = _projects.fold<num>(0, (s, p) => s + p.chiqim);
     final showRecent = _recentTxs.isNotEmpty;
     final showSearch = activeProjects.length > 3;
-    final headerOffset = showSearch ? 2 : 1;
+    final headerOffset = showSearch ? 3 : 2;
     final headerCount = filteredProjects.length + headerOffset;
     final doneStart = headerCount + (showRecent ? 1 + _recentTxs.length : 0);
     final itemCount = doneStart + (doneProjects.isNotEmpty ? 1 + doneProjects.length : 0);
@@ -363,6 +366,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
       itemCount: itemCount,
       itemBuilder: (context, index) {
         if (index == 0) {
+          final balColor = totalBal >= 0 ? const Color(0xFF16A34A) : const Color(0xFFEF4444);
+          return Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('UMUMIY QOLDIQ', style: TextStyle(fontSize: 10, color: AppColors.muted, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                      const SizedBox(height: 4),
+                      Text('${totalBal >= 0 ? '+' : ''}${formatMoney(totalBal)} so\'m',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: balColor)),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text('+${formatMoney(totalIn)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF16A34A))),
+                    const SizedBox(height: 2),
+                    Text('-${formatMoney(totalOut)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFFEF4444))),
+                  ],
+                ),
+              ],
+            ),
+          );
+        }
+        if (index == 1) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 12, left: 4),
             child: Text(
@@ -371,7 +409,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           );
         }
-        if (showSearch && index == 1) {
+        if (showSearch && index == 2) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: TextField(
