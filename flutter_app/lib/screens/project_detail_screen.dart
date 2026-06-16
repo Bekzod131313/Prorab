@@ -237,23 +237,25 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
             ),
             const SizedBox(height: 8),
             Center(child: Text(dateStr, style: const TextStyle(color: AppColors.muted))),
-            if (tx.izoh?.isNotEmpty == true) ...[
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.bg,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            const SizedBox(height: 16),
+            if (tx.tur == 'send' || tx.tur == 'ishhaqi') ...[
+              Builder(builder: (_) {
+                final fromM = _members.where((m) => m.userId == tx.fromUser).firstOrNull;
+                final toM = _members.where((m) => m.userId == tx.toUser).firstOrNull;
+                return Column(
                   children: [
-                    const Text('Izoh', style: TextStyle(color: AppColors.muted)),
-                    Text(tx.izoh!, style: const TextStyle(fontWeight: FontWeight.w700)),
+                    if (fromM != null)
+                      _TxDetailRow(label: 'Kimdan', value: fromM.displayName),
+                    if (toM != null)
+                      _TxDetailRow(label: 'Kimga', value: toM.displayName),
                   ],
-                ),
-              ),
+                );
+              }),
             ],
+            if (tx.kategoriya?.isNotEmpty == true && tx.tur != 'send' && tx.tur != 'ishhaqi')
+              _TxDetailRow(label: 'Kategoriya', value: tx.kategoriya!),
+            if (tx.izoh?.isNotEmpty == true)
+              _TxDetailRow(label: 'Izoh', value: tx.izoh!),
             if (canDelete) ...[
               const SizedBox(height: 20),
               OutlinedButton(
@@ -1244,6 +1246,32 @@ class _InfoBox extends StatelessWidget {
           Text(label, style: const TextStyle(fontSize: 11, color: AppColors.muted, letterSpacing: 0.5)),
           const SizedBox(height: 4),
           Text(value, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: color)),
+        ],
+      ),
+    );
+  }
+}
+
+class _TxDetailRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _TxDetailRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+      decoration: BoxDecoration(
+        color: AppColors.bg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: AppColors.muted, fontSize: 13)),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
         ],
       ),
     );
