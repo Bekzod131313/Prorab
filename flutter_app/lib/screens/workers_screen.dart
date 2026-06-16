@@ -25,6 +25,7 @@ class _WorkersScreenState extends State<WorkersScreen> {
   bool _loading = true;
   String _filter = 'all';
   String _search = '';
+  String _sort = 'balans';
 
   @override
   void initState() {
@@ -50,14 +51,24 @@ class _WorkersScreenState extends State<WorkersScreen> {
     }
     switch (_filter) {
       case 'plus':
-        return list.where((w) => w.balans > 0).toList();
+        list = list.where((w) => w.balans > 0).toList();
+        break;
       case 'minus':
-        return list.where((w) => w.balans < 0).toList();
+        list = list.where((w) => w.balans < 0).toList();
+        break;
       case 'zero':
-        return list.where((w) => w.balans == 0).toList();
-      default:
-        return list;
+        list = list.where((w) => w.balans == 0).toList();
+        break;
     }
+    final sorted = List<Worker>.from(list);
+    if (_sort == 'balans') {
+      sorted.sort((a, b) => a.balans.compareTo(b.balans));
+    } else if (_sort == 'ishaqi') {
+      sorted.sort((a, b) => b.ishaqi.compareTo(a.ishaqi));
+    } else {
+      sorted.sort((a, b) => a.displayName.compareTo(b.displayName));
+    }
+    return sorted;
   }
 
   Future<void> _openAddWorker() async {
@@ -186,6 +197,14 @@ class _WorkersScreenState extends State<WorkersScreen> {
                   _FilterChip(label: 'Manfiy', selected: _filter == 'minus', onTap: () => setState(() => _filter = 'minus')),
                   const SizedBox(width: 8),
                   _FilterChip(label: 'Nol', selected: _filter == 'zero', onTap: () => setState(() => _filter = 'zero')),
+                  const SizedBox(width: 16),
+                  const Text('|', style: TextStyle(color: AppColors.border, fontSize: 18)),
+                  const SizedBox(width: 16),
+                  _FilterChip(label: 'Balans ↑', selected: _sort == 'balans', onTap: () => setState(() => _sort = 'balans')),
+                  const SizedBox(width: 8),
+                  _FilterChip(label: 'Ish haqi ↓', selected: _sort == 'ishaqi', onTap: () => setState(() => _sort = 'ishaqi')),
+                  const SizedBox(width: 8),
+                  _FilterChip(label: 'Ism A-Z', selected: _sort == 'name', onTap: () => setState(() => _sort = 'name')),
                 ],
               ),
             ),
