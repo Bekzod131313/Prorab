@@ -9,6 +9,7 @@ import threading
 import logging
 from telethon.sync import TelegramClient
 from telethon.tl.functions.contacts import ImportContactsRequest, DeleteContactsRequest
+from telethon.tl.functions.account import ResolvePhoneRequest
 from telethon.tl.types import InputPhoneContact
 from telegram import Update
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
@@ -43,35 +44,52 @@ def lookup_phone_sync(phone):
         phone = "+" + phone
 
     async def _lookup():
-        contact = InputPhoneContact(client_id=0, phone=phone, first_name="lookup", last_name="")
+        # 1-usul: account.resolvePhone (eng kuchli usul)
         try:
+            result = await client(ResolvePhoneRequest(phone=phone))
+            user = result.users[0] if result.users else None
+            if user:
+                return {
+                    "id": user.id,
+                    "first_name": getattr(user, "first_name", "") or "",
+                    "last_name": getattr(user, "last_name", "") or "",
+                    "username": getattr(user, "username", None),
+                    "phone": getattr(user, "phone", None),
+                }
+        except Exception as e:
+            logging.info("ResolvePhone ishlamadi: %s", e)
+
+        # 2-usul: ImportContacts
+        try:
+            contact = InputPhoneContact(client_id=0, phone=phone, first_name="lookup", last_name="")
             result = await client(ImportContactsRequest([contact]))
-            users = result.users
-            if not users:
-                # username orqali ham sinab ko'ramiz
-                try:
-                    entity = await client.get_entity(phone)
-                    return {
-                        "id": entity.id,
-                        "first_name": getattr(entity, "first_name", "") or "",
-                        "last_name": getattr(entity, "last_name", "") or "",
-                        "username": getattr(entity, "username", None),
-                        "phone": getattr(entity, "phone", None),
-                    }
-                except:
-                    return None
-            user = users[0]
-            await client(DeleteContactsRequest(id=[user]))
+            if result.users:
+                user = result.users[0]
+                await client(DeleteContactsRequest(id=[user]))
+                return {
+                    "id": user.id,
+                    "first_name": user.first_name or "",
+                    "last_name": user.last_name or "",
+                    "username": user.username,
+                    "phone": getattr(user, "phone", None),
+                }
+        except Exception as e:
+            logging.info("ImportContacts ishlamadi: %s", e)
+
+        # 3-usul: get_entity
+        try:
+            entity = await client.get_entity(phone)
             return {
-                "id": user.id,
-                "first_name": user.first_name or "",
-                "last_name": user.last_name or "",
-                "username": user.username,
-                "phone": getattr(user, "phone", None),
+                "id": entity.id,
+                "first_name": getattr(entity, "first_name", "") or "",
+                "last_name": getattr(entity, "last_name", "") or "",
+                "username": getattr(entity, "username", None),
+                "phone": getattr(entity, "phone", None),
             }
         except Exception as e:
-            logging.error("Lookup xatosi: %s", e)
-            return None
+            logging.info("get_entity ishlamadi: %s", e)
+
+        return None
 
     future = asyncio.run_coroutine_threadsafe(_lookup(), loop)
     try:
