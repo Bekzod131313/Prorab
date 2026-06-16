@@ -682,6 +682,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
   }
 
   Future<void> _toggleTask(ObTask task) async {
+    HapticFeedback.lightImpact();
     await _taskRepo.toggleTask(task.id, task.holat);
     _load();
   }
@@ -1220,8 +1221,14 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
                         _InfoTile(label: 'ISHCHILAR', value: '$workersCount ta'),
                         _InfoTile(label: 'MIJOZ', value: project.mijoz?.isNotEmpty == true ? project.mijoz! : '—'),
                         _InfoTile(label: 'BOSQICH', value: project.bosqich?.isNotEmpty == true ? project.bosqich! : '—'),
-                        _InfoTile(label: 'VAZIFALAR', value: '${_tasks.length} ta'),
-                        _InfoTile(label: 'MATERIALLAR', value: '${_materials.length} ta'),
+                        _InfoTile(label: 'VAZIFALAR', value: () {
+                          final done = _tasks.where((t) => t.holat == 'done').length;
+                          return '${_tasks.length} ta (${done}✓)';
+                        }()),
+                        _InfoTile(label: 'MATERIALLAR', value: () {
+                          final total = _materials.fold<num>(0, (s, m) => s + m.total);
+                          return total > 0 ? '${formatMoney(total)} so\'m' : '${_materials.length} ta';
+                        }()),
                       ],
                     ),
                     const SizedBox(height: 10),
