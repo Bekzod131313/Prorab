@@ -73,6 +73,65 @@ class TransactionRepository {
     }
   }
 
+  /// A member (usta) gives part of the money already paid to them to one of
+  /// their own sub-workers on the project. Does not touch obyektlar
+  /// kirim/chiqim since that amount was already recorded as an expense when
+  /// the owner originally paid the member.
+  Future<void> distributeToSubWorker({
+    required String obId,
+    required String toUserId,
+    required num amount,
+    String? izoh,
+    DateTime? txDate,
+  }) async {
+    final userId = supabase.auth.currentUser?.id;
+    await supabase.from('transactions').insert({
+      'ob_id': obId,
+      'from_user': userId,
+      'to_user': toUserId,
+      'summa': amount,
+      'tur': 'send',
+      'kategoriya': 'usta',
+      'izoh': izoh,
+      'tx_date': (txDate ?? DateTime.now()).toIso8601String(),
+    });
+
+    final member = await supabase
+        .from('ob_members')
+        .select('olingan')
+        .eq('ob_id', obId)
+        .eq('user_id', toUserId)
+        .single();
+    await supabase
+        .from('ob_members')
+        .update({'olingan': (member['olingan'] ?? 0) + amount})
+        .eq('ob_id', obId)
+        .eq('user_id', toUserId);
+  }
+
+  /// A member (usta) withdraws part of their own already-received money for
+  /// themselves; purely a record for their own history, no balance fields
+  /// change since it was already accounted for when the owner paid them.
+  Future<void> logSelfWithdrawal({
+    required String obId,
+    required num amount,
+    String kategoriya = "O'zim uchun",
+    String? izoh,
+    DateTime? txDate,
+  }) async {
+    final userId = supabase.auth.currentUser?.id;
+    await supabase.from('transactions').insert({
+      'ob_id': obId,
+      'from_user': userId,
+      'to_user': userId,
+      'summa': amount,
+      'tur': 'send',
+      'kategoriya': kategoriya,
+      'izoh': izoh,
+      'tx_date': (txDate ?? DateTime.now()).toIso8601String(),
+    });
+  }
+
   Future<List<ProjectTransaction>> loadRecentForProjects(List<String> obIds, {int limit = 6}) async {
     if (obIds.isEmpty) return [];
     final data = await supabase
@@ -126,7 +185,7 @@ class TransactionRepository {
         }
       }
     } else if (tx.tur == 'send') {
-      if (tx.toUser != null) {
+      if (tx.toUser != null && tx.toUser != tx.fromUser) {
         final mem = await supabase
             .from('ob_members')
             .select('olingan')

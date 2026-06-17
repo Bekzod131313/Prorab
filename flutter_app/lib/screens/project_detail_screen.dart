@@ -253,11 +253,16 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
     final amountCtrl = TextEditingController();
     final noteCtrl = TextEditingController();
     final workers = _visibleMembers;
+    final isMember = _project.role == 'member';
 
     final customCategories = isIncome ? <_ExpenseCategory>[] : await _loadCustomCategories();
     final categories = isIncome
         ? <_ExpenseCategory>[]
-        : [const _ExpenseCategory(name: 'Ishchiga', icon: Icons.engineering_rounded, isWorker: true), ...customCategories];
+        : [
+            _ExpenseCategory(name: isMember ? 'Ishchisiga' : 'Ishchiga', icon: Icons.engineering_rounded, isWorker: true),
+            _ExpenseCategory(name: isMember ? "O'zim uchun" : 'Men uchun', icon: Icons.person_rounded),
+            ...customCategories,
+          ];
 
     _ExpenseCategory? selectedCategory = categories.isNotEmpty ? categories.first : null;
     String? selectedToUserId;
@@ -384,12 +389,27 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
     final amount = num.tryParse(amountText.replaceAll(' ', '')) ?? 0;
     if (amount <= 0) return;
     try {
-      await _txRepo.addTransaction(
-        obId: _project.id, isIncome: isIncome, amount: amount,
-        kategoriya: isIncome ? 'Kirim' : (selectedCategory?.name ?? 'Boshqa'),
-        izoh: noteText.isNotEmpty ? noteText : null,
-        toUserId: isIncome ? null : selectedToUserId,
-      );
+      if (!isIncome && isMember) {
+        if (selectedCategory?.isWorker == true && selectedToUserId != null) {
+          await _txRepo.distributeToSubWorker(
+            obId: _project.id, toUserId: selectedToUserId!, amount: amount,
+            izoh: noteText.isNotEmpty ? noteText : null,
+          );
+        } else {
+          await _txRepo.logSelfWithdrawal(
+            obId: _project.id, amount: amount,
+            kategoriya: selectedCategory?.name ?? "O'zim uchun",
+            izoh: noteText.isNotEmpty ? noteText : null,
+          );
+        }
+      } else {
+        await _txRepo.addTransaction(
+          obId: _project.id, isIncome: isIncome, amount: amount,
+          kategoriya: isIncome ? 'Kirim' : (selectedCategory?.name ?? 'Boshqa'),
+          izoh: noteText.isNotEmpty ? noteText : null,
+          toUserId: isIncome ? null : selectedToUserId,
+        );
+      }
       if (mounted) _load();
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Xato: $e')));
@@ -804,7 +824,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
                   ),
                   const SizedBox(height: 12),
 
-                  // Action buttons (owner only)
+                  // Action buttons
                   if (_project.role == 'owner') ...[
                     Row(children: [
                       Expanded(
@@ -825,6 +845,14 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
                         ),
                       ),
                     ]),
+                    const SizedBox(height: 16),
+                  ] else if (_project.role == 'member') ...[
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.red, padding: const EdgeInsets.symmetric(vertical: 14)),
+                      onPressed: () => _openAddTransaction(isIncome: false),
+                      icon: const Icon(Icons.arrow_upward_rounded, size: 18),
+                      label: const Text("Pul tarqatish / yechib olish", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                    ),
                     const SizedBox(height: 16),
                   ],
 
