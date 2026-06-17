@@ -30,7 +30,17 @@ jobs:
 
       - name: Bump Android compileSdk for plugin compatibility
         working-directory: flutter_app
-        run: sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts
+        run: |
+          {
+            echo ''
+            echo 'subprojects {'
+            echo '    afterEvaluate {'
+            echo '        extensions.findByType(com.android.build.gradle.BaseExtension::class.java)?.let {'
+            echo '            it.compileSdkVersion(36)'
+            echo '        }'
+            echo '    }'
+            echo '}'
+          } >> android/build.gradle.kts
 
       - name: Install dependencies
         working-directory: flutter_app
