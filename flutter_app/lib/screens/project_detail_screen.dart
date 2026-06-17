@@ -223,18 +223,25 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
       )),
     );
 
-    if (confirmed == true) {
-      final amount = num.tryParse(amountCtrl.text.trim().replaceAll(' ', '')) ?? 0;
-      if (amount <= 0) return;
+    final amountText = amountCtrl.text.trim();
+    final noteText = noteCtrl.text.trim();
+    amountCtrl.dispose();
+    noteCtrl.dispose();
+
+    if (confirmed != true) return;
+    final amount = num.tryParse(amountText.replaceAll(' ', '')) ?? 0;
+    if (amount <= 0) return;
+    try {
       await _txRepo.addTransaction(
         obId: _project.id, isIncome: isIncome, amount: amount,
         kategoriya: isIncome ? 'Kirim' : (selectedCategory ?? 'Boshqa'),
-        izoh: noteCtrl.text.trim().isNotEmpty ? noteCtrl.text.trim() : null,
+        izoh: noteText.isNotEmpty ? noteText : null,
         toUserId: isIncome ? null : selectedToUserId,
       );
-      _load();
+      if (mounted) _load();
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Xato: $e')));
     }
-    amountCtrl.dispose(); noteCtrl.dispose();
   }
 
   Future<void> _openEditProject() async {

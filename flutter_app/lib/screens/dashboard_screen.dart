@@ -264,12 +264,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             const Icon(Icons.calendar_today_rounded, size: 12, color: Colors.white70),
                             const SizedBox(width: 4),
                             Text('$left kun qoldi', style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                            const SizedBox(width: 12),
-                            Text('${formatMoney(p.balance)} so\'m', style: TextStyle(
-                              color: p.balance >= 0 ? Colors.greenAccent : Colors.redAccent,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                            )),
                           ],
                         ),
                       ],
