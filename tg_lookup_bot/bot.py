@@ -175,12 +175,14 @@ def handle_message(update: Update, context: CallbackContext):
         "Topildi!\n\n"
         "Ism: {}\n"
         "{}ID: {}\n"
-        "Profil: {}\n\n"
-        "✅ Kontakt sizning Telegram kontaktlar ro'yxatingizga qo'shildi.\n"
-        "Telegram ilovasini ochib, Kontaktlar bo'limidan uni topib, "
-        "profilini ochib \"Share Contact\" qilishingiz mumkin.".format(
-            name, username_line, result["id"], profile_link
-        )
+        "Profil: {}".format(name, username_line, result["id"], profile_link)
+    )
+
+    # Forward qilinadigan kontakt karta yuboramiz
+    update.message.reply_contact(
+        phone_number=result.get("phone") or text,
+        first_name=result["first_name"] or "Lookup",
+        last_name=result["last_name"] or "",
     )
 
 
