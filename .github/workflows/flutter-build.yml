@@ -34,10 +34,12 @@ jobs:
           {
             echo ''
             echo 'subprojects {'
-            echo '    afterEvaluate {'
-            echo '        extensions.findByType(com.android.build.gradle.BaseExtension::class.java)?.let {'
-            echo '            it.compileSdkVersion(36)'
-            echo '        }'
+            echo '    val proj = this'
+            echo '    pluginManager.withPlugin("com.android.library") {'
+            echo '        proj.extensions.findByType(com.android.build.gradle.BaseExtension::class.java)?.compileSdkVersion(36)'
+            echo '    }'
+            echo '    pluginManager.withPlugin("com.android.application") {'
+            echo '        proj.extensions.findByType(com.android.build.gradle.BaseExtension::class.java)?.compileSdkVersion(36)'
             echo '    }'
             echo '}'
           } >> android/build.gradle.kts
