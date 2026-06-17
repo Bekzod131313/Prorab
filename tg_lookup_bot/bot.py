@@ -9,7 +9,6 @@ import threading
 import logging
 from telethon.sync import TelegramClient
 from telethon.tl.functions.contacts import ImportContactsRequest, DeleteContactsRequest
-from telethon.tl.functions.account import ResolvePhoneRequest
 from telethon.tl.types import InputPhoneContact
 from telegram import Update
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
@@ -44,22 +43,7 @@ def lookup_phone_sync(phone):
         phone = "+" + phone
 
     async def _lookup():
-        # 1-usul: account.resolvePhone (eng kuchli usul)
-        try:
-            result = await client(ResolvePhoneRequest(phone=phone))
-            user = result.users[0] if result.users else None
-            if user:
-                return {
-                    "id": user.id,
-                    "first_name": getattr(user, "first_name", "") or "",
-                    "last_name": getattr(user, "last_name", "") or "",
-                    "username": getattr(user, "username", None),
-                    "phone": getattr(user, "phone", None),
-                }
-        except Exception as e:
-            logging.info("ResolvePhone ishlamadi: %s", e)
-
-        # 2-usul: ImportContacts
+        # 1-usul: ImportContacts
         try:
             contact = InputPhoneContact(client_id=0, phone=phone, first_name="lookup", last_name="")
             result = await client(ImportContactsRequest([contact]))
