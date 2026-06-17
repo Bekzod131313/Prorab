@@ -39,8 +39,11 @@ jobs:
             case "$f" in
               */android/*)
                 sed -i -E \
+                  -e 's/compileSdkVersion\(([0-9]+)\)/compileSdkVersion(36)/' \
                   -e 's/compileSdkVersion[[:space:]]+[0-9]+/compileSdkVersion 36/' \
-                  -e 's/compileSdkVersion\([0-9]+\)/compileSdkVersion(36)/' \
+                  -e 's/compileSdkVersion[[:space:]]*=[[:space:]]*[0-9]+/compileSdkVersion = 36/' \
+                  -e 's/compileSdk\(([0-9]+)\)/compileSdk(36)/' \
+                  -e 's/compileSdk[[:space:]]+[0-9]+/compileSdk 36/' \
                   -e 's/compileSdk[[:space:]]*=[[:space:]]*[0-9]+/compileSdk = 36/' \
                   "$f"
                 ;;
