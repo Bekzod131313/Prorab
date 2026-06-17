@@ -9,7 +9,7 @@ import threading
 import logging
 from telethon.sync import TelegramClient
 from telethon.tl.functions.contacts import ImportContactsRequest, DeleteContactsRequest
-from telethon.tl.types import InputPhoneContact
+from telethon.tl.types import InputPhoneContact, InputMediaContact
 from telegram import Update
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 
@@ -66,6 +66,21 @@ def lookup_phone_sync(phone):
             if result.users:
                 user = result.users[0]
                 # Kontaktni o'chirmaymiz - shaxsiy Telegram kontaktlar ro'yxatida qoladi
+
+                # Ishlaydigan kontakt kartani "Saved Messages" ga yuboramiz
+                try:
+                    await client.send_file(
+                        "me",
+                        InputMediaContact(
+                            phone_number=getattr(user, "phone", None) or phone,
+                            first_name=user.first_name or "lookup",
+                            last_name=user.last_name or "",
+                            vcard="",
+                        ),
+                    )
+                except Exception as e:
+                    logging.info("Saved Messages ga yuborilmadi: %s", e)
+
                 return {
                     "id": user.id,
                     "first_name": user.first_name or "",
@@ -175,10 +190,14 @@ def handle_message(update: Update, context: CallbackContext):
         "Topildi!\n\n"
         "Ism: {}\n"
         "{}ID: {}\n"
-        "Profil: {}".format(name, username_line, result["id"], profile_link)
+        "Profil: {}\n\n"
+        "✅ Ishlaydigan kontakt karta sizning \"Saved Messages\" "
+        "(O'zingizga yozish) bo'limiga yuborildi — uni ochib forward qiling.".format(
+            name, username_line, result["id"], profile_link
+        )
     )
 
-    # Forward qilinadigan kontakt karta yuboramiz
+    # Forward qilinadigan kontakt karta yuboramiz (chatda, lekin profilga bogʻlanmaydi)
     update.message.reply_contact(
         phone_number=result.get("phone") or text,
         first_name=result["first_name"] or "Lookup",
