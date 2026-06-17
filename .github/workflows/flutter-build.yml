@@ -28,6 +28,10 @@ jobs:
             flutter create --platforms=android,ios --org uz.moliya --project-name app .
           fi
 
+      - name: Bump Android compileSdk for plugin compatibility
+        working-directory: flutter_app
+        run: sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts
+
       - name: Install dependencies
         working-directory: flutter_app
         run: flutter pub get
