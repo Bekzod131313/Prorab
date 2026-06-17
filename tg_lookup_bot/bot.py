@@ -103,7 +103,43 @@ def cmd_start(update: Update, context: CallbackContext):
     update.message.reply_text(
         "Telefon Lookup Bot\n\n"
         "Menga telefon raqam yuboring — Telegram profilini topib beraman.\n\n"
-        "Format: +998901234567"
+        "Format: +998901234567\n\n"
+        "Yoki kontakt kartani forward qiling — bu ko'proq hollarda ishlaydi!"
+    )
+
+
+def handle_forwarded_contact(update: Update, context: CallbackContext):
+    contact = update.message.contact
+
+    # Agar Telegram bu kontaktni allaqachon profilga bog'lagan bo'lsa,
+    # contact.user_id orqali to'g'ridan-to'g'ri topiladi (privacy cheklovisiz)
+    if contact.user_id:
+        name = "{} {}".format(contact.first_name or "", contact.last_name or "").strip()
+        profile_link = "tg://user?id={}".format(contact.user_id)
+        update.message.reply_text(
+            "Topildi (kontakt orqali)!\n\n"
+            "Ism: {}\n"
+            "ID: {}\n"
+            "Raqam: {}\n"
+            "Profil: {}".format(name, contact.user_id, contact.phone_number, profile_link)
+        )
+        return
+
+    # Aks holda, oddiy raqam qidiruvini sinaymiz
+    msg = update.message.reply_text("Kontaktda user_id yoq, raqam orqali qidirilmoqda...")
+    result = lookup_phone_sync(contact.phone_number)
+
+    if result is None:
+        msg.edit_text("Topilmadi. Bu raqam yashirin yoki Telegram'da yoq.")
+        return
+
+    name = "{} {}".format(result["first_name"], result["last_name"]).strip()
+    username_line = "Username: @{}\n".format(result["username"]) if result["username"] else ""
+    profile_link = "tg://user?id={}".format(result["id"])
+    msg.edit_text(
+        "Topildi!\n\nIsm: {}\n{}ID: {}\nProfil: {}".format(
+            name, username_line, result["id"], profile_link
+        )
     )
 
 
@@ -153,6 +189,7 @@ def main():
     updater = Updater(BOT_TOKEN)
     dp = updater.dispatcher
     dp.add_handler(CommandHandler("start", cmd_start))
+    dp.add_handler(MessageHandler(Filters.contact, handle_forwarded_contact))
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
 
     print("Bot ishlamoqda...")
