@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show FileOptions;
 import 'package:url_launcher/url_launcher.dart';
 
@@ -17,6 +20,55 @@ import '../theme/app_theme.dart';
 import '../widgets/add_member_sheet.dart';
 import '../widgets/member_row.dart' show colorForName;
 import '../widgets/project_card.dart' show formatMoney;
+
+const _categoryIconChoices = [
+  Icons.category_rounded,
+  Icons.construction_rounded,
+  Icons.local_shipping_rounded,
+  Icons.build_rounded,
+  Icons.bolt_rounded,
+  Icons.water_drop_rounded,
+  Icons.shopping_cart_rounded,
+  Icons.handyman_rounded,
+  Icons.electrical_services_rounded,
+  Icons.plumbing_rounded,
+  Icons.inventory_2_rounded,
+  Icons.local_gas_station_rounded,
+  Icons.receipt_long_rounded,
+  Icons.attach_money_rounded,
+];
+
+class _ExpenseCategory {
+  final String name;
+  final IconData icon;
+  final bool isWorker;
+  const _ExpenseCategory({required this.name, required this.icon, this.isWorker = false});
+
+  Map<String, dynamic> toJson() => {'name': name, 'icon': icon.codePoint};
+  factory _ExpenseCategory.fromJson(Map<String, dynamic> json) => _ExpenseCategory(
+        name: json['name'] as String,
+        icon: IconData(json['icon'] as int, fontFamily: 'MaterialIcons'),
+      );
+}
+
+const _kCustomCategoriesPrefsKey = 'expense_custom_categories';
+
+Future<List<_ExpenseCategory>> _loadCustomCategories() async {
+  final prefs = await SharedPreferences.getInstance();
+  final raw = prefs.getString(_kCustomCategoriesPrefsKey);
+  if (raw == null) return [];
+  try {
+    final list = jsonDecode(raw) as List;
+    return list.map((e) => _ExpenseCategory.fromJson(e as Map<String, dynamic>)).toList();
+  } catch (_) {
+    return [];
+  }
+}
+
+Future<void> _saveCustomCategories(List<_ExpenseCategory> categories) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString(_kCustomCategoriesPrefsKey, jsonEncode(categories.map((c) => c.toJson()).toList()));
+}
 
 class ProjectDetailScreen extends StatefulWidget {
   final Project project;
@@ -155,13 +207,60 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
     }
   }
 
+  Future<_ExpenseCategory?> _openAddCategoryDialog(BuildContext ctx) async {
+    final nameCtrl = TextEditingController();
+    IconData selectedIcon = _categoryIconChoices.first;
+    final result = await showDialog<_ExpenseCategory>(
+      context: ctx,
+      builder: (dctx) => StatefulBuilder(builder: (dctx, setSt) => AlertDialog(
+        title: const Text('Yangi kategoriya'),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          TextField(controller: nameCtrl, autofocus: true, decoration: const InputDecoration(hintText: 'Kategoriya nomi')),
+          const SizedBox(height: 16),
+          Wrap(spacing: 10, runSpacing: 10, children: _categoryIconChoices.map((icon) {
+            final selected = icon == selectedIcon;
+            return GestureDetector(
+              onTap: () => setSt(() => selectedIcon = icon),
+              child: Container(
+                width: 42, height: 42,
+                decoration: BoxDecoration(
+                  color: selected ? AppColors.accent : AppColors.accent.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: selected ? Colors.white : AppColors.accent, size: 20),
+              ),
+            );
+          }).toList()),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(dctx).pop(), child: const Text('Bekor qilish')),
+          ElevatedButton(
+            onPressed: () {
+              final name = nameCtrl.text.trim();
+              if (name.isEmpty) return;
+              Navigator.of(dctx).pop(_ExpenseCategory(name: name, icon: selectedIcon));
+            },
+            child: const Text('Saqlash'),
+          ),
+        ],
+      )),
+    );
+    nameCtrl.dispose();
+    return result;
+  }
+
   Future<void> _openAddTransaction({required bool isIncome}) async {
     final amountCtrl = TextEditingController();
     final noteCtrl = TextEditingController();
-    String? selectedCategory = isIncome ? 'Kirim' : 'Boshqa';
-    String? selectedToUserId;
-    final categories = ['Mehnat haqi', 'Materiallar', 'Transport', 'Asbob-uskuna', 'Kommunal', 'Boshqa'];
     final workers = _visibleMembers;
+
+    final customCategories = isIncome ? <_ExpenseCategory>[] : await _loadCustomCategories();
+    final categories = isIncome
+        ? <_ExpenseCategory>[]
+        : [const _ExpenseCategory(name: 'Ishchiga', icon: Icons.engineering_rounded, isWorker: true), ...customCategories];
+
+    _ExpenseCategory? selectedCategory = categories.isNotEmpty ? categories.first : null;
+    String? selectedToUserId;
 
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
@@ -190,32 +289,85 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
               decoration: const InputDecoration(hintText: "Summa (so'm)", prefixIcon: Icon(Icons.monetization_on_outlined, size: 18))),
             const SizedBox(height: 12),
             if (!isIncome) ...[
-              DropdownButtonFormField<String>(
-                value: selectedCategory,
-                decoration: const InputDecoration(labelText: 'Kategoriya'),
-                items: categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-                onChanged: (v) => setSt(() => selectedCategory = v),
-              ),
-              const SizedBox(height: 12),
-              if (workers.isNotEmpty) ...[
-                DropdownButtonFormField<String>(
-                  value: selectedToUserId,
-                  decoration: const InputDecoration(labelText: "Kimga (ixtiyoriy)"),
-                  hint: const Text("Ishchi tanlang"),
-                  items: [
-                    const DropdownMenuItem<String>(value: null, child: Text('— Tanlang —')),
-                    ...workers.map((w) => DropdownMenuItem(value: w.userId, child: Text(w.displayName))),
-                  ],
-                  onChanged: (v) => setSt(() => selectedToUserId = v),
+              const Text('Kategoriya', style: TextStyle(fontSize: 12, color: AppColors.muted)),
+              const SizedBox(height: 8),
+              Wrap(spacing: 10, runSpacing: 10, children: [
+                ...categories.map((c) {
+                  final selected = selectedCategory?.name == c.name;
+                  return GestureDetector(
+                    onTap: () => setSt(() {
+                      selectedCategory = c;
+                      if (!c.isWorker) selectedToUserId = null;
+                    }),
+                    child: Container(
+                      width: 72, height: 64,
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      decoration: BoxDecoration(
+                        color: selected ? AppColors.red.withOpacity(0.12) : AppColors.bg,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: selected ? AppColors.red : AppColors.border),
+                      ),
+                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        Icon(c.icon, size: 20, color: selected ? AppColors.red : AppColors.text2),
+                        const SizedBox(height: 4),
+                        Text(c.name, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: selected ? AppColors.red : AppColors.text2)),
+                      ]),
+                    ),
+                  );
+                }),
+                GestureDetector(
+                  onTap: () async {
+                    final added = await _openAddCategoryDialog(ctx);
+                    if (added != null) {
+                      categories.add(added);
+                      await _saveCustomCategories(categories.where((c) => !c.isWorker).toList());
+                      setSt(() => selectedCategory = added);
+                    }
+                  },
+                  child: Container(
+                    width: 72, height: 64,
+                    decoration: BoxDecoration(
+                      color: AppColors.bg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Icon(Icons.add_rounded, size: 20, color: AppColors.accent),
+                      SizedBox(height: 4),
+                      Text('Boshqa', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.accent)),
+                    ]),
+                  ),
                 ),
-                const SizedBox(height: 12),
+              ]),
+              const SizedBox(height: 12),
+              if (selectedCategory?.isWorker == true) ...[
+                if (workers.isEmpty)
+                  const Padding(padding: EdgeInsets.only(bottom: 12), child: Text('Bu obyektda ishchilar yo\'q', style: TextStyle(fontSize: 12, color: AppColors.muted)))
+                else ...[
+                  DropdownButtonFormField<String>(
+                    value: selectedToUserId,
+                    decoration: const InputDecoration(labelText: 'Ishchini tanlang'),
+                    hint: const Text("Ishchi tanlang"),
+                    items: workers.map((w) => DropdownMenuItem(value: w.userId, child: Text(w.displayName))).toList(),
+                    onChanged: (v) => setSt(() => selectedToUserId = v),
+                  ),
+                  const SizedBox(height: 12),
+                ],
               ],
             ],
             TextField(controller: noteCtrl, decoration: const InputDecoration(hintText: 'Izoh (ixtiyoriy)')),
             const SizedBox(height: 20),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: isIncome ? AppColors.green : AppColors.red),
-              onPressed: () { if (amountCtrl.text.trim().isEmpty) return; Navigator.of(ctx).pop(true); },
+              onPressed: () {
+                if (amountCtrl.text.trim().isEmpty) return;
+                if (!isIncome && selectedCategory?.isWorker == true && selectedToUserId == null) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Ishchini tanlang')));
+                  return;
+                }
+                Navigator.of(ctx).pop(true);
+              },
               child: Text(isIncome ? "Kirim qo'shish" : "Chiqim qo'shish"),
             ),
           ],
@@ -234,7 +386,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> with SingleTi
     try {
       await _txRepo.addTransaction(
         obId: _project.id, isIncome: isIncome, amount: amount,
-        kategoriya: isIncome ? 'Kirim' : (selectedCategory ?? 'Boshqa'),
+        kategoriya: isIncome ? 'Kirim' : (selectedCategory?.name ?? 'Boshqa'),
         izoh: noteText.isNotEmpty ? noteText : null,
         toUserId: isIncome ? null : selectedToUserId,
       );
