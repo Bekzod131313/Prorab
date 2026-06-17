@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:supabase_flutter/supabase_flutter.dart' show FileOptions, UserAttributes;
 
 import '../main.dart';
@@ -40,7 +42,7 @@ class ProfileRepository {
     await supabase.from('profiles').update(data).eq('id', userId);
   }
 
-  Future<String> uploadAvatar(String userId, List<int> bytes) async {
+  Future<String> uploadAvatar(String userId, Uint8List bytes) async {
     final ts = DateTime.now().millisecondsSinceEpoch;
     final path = '$userId/avatar.jpg?t=$ts';
     await supabase.storage.from('profile-images').uploadBinary(
@@ -63,7 +65,7 @@ class ProfileRepository {
     }
   }
 
-  Future<String> uploadPortfolioImage(String userId, List<int> bytes) async {
+  Future<String> uploadPortfolioImage(String userId, Uint8List bytes) async {
     final ts = DateTime.now().millisecondsSinceEpoch;
     final path = '$userId/$ts.jpg';
     await supabase.storage.from('profile-portfolio').uploadBinary(

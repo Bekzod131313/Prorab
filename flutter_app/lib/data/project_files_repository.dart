@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:supabase_flutter/supabase_flutter.dart' show FileOptions;
 import '../main.dart';
 
@@ -48,7 +50,7 @@ class ProjectFilesRepository {
     }
   }
 
-  Future<String> uploadFile(String projectId, String fileName, List<int> bytes, String mimeType) async {
+  Future<String> uploadFile(String projectId, String fileName, Uint8List bytes, String mimeType) async {
     final ts = DateTime.now().millisecondsSinceEpoch;
     final ext = fileName.contains('.') ? '.${fileName.split('.').last}' : '';
     final safeName = '${ts}$ext';
