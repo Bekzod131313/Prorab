@@ -28,25 +28,24 @@ jobs:
             flutter create --platforms=android,ios --org uz.moliya --project-name app .
           fi
 
-      - name: Bump Android compileSdk for plugin compatibility
-        working-directory: flutter_app
-        run: |
-          {
-            echo ''
-            echo 'subprojects {'
-            echo '    val proj = this'
-            echo '    pluginManager.withPlugin("com.android.library") {'
-            echo '        proj.extensions.findByType(com.android.build.gradle.BaseExtension::class.java)?.compileSdkVersion(36)'
-            echo '    }'
-            echo '    pluginManager.withPlugin("com.android.application") {'
-            echo '        proj.extensions.findByType(com.android.build.gradle.BaseExtension::class.java)?.compileSdkVersion(36)'
-            echo '    }'
-            echo '}'
-          } >> android/build.gradle.kts
-
       - name: Install dependencies
         working-directory: flutter_app
         run: flutter pub get
+
+      - name: Bump Android compileSdk for plugin compatibility
+        working-directory: flutter_app
+        run: |
+          find "$PUB_CACHE/hosted" -type f \( -name 'build.gradle' -o -name 'build.gradle.kts' \) | while read -r f; do
+            case "$f" in
+              */android/*)
+                sed -i -E \
+                  -e 's/compileSdkVersion[[:space:]]+[0-9]+/compileSdkVersion 36/' \
+                  -e 's/compileSdkVersion\([0-9]+\)/compileSdkVersion(36)/' \
+                  -e 's/compileSdk[[:space:]]*=[[:space:]]*[0-9]+/compileSdk = 36/' \
+                  "$f"
+                ;;
+            esac
+          done
 
       - name: Build debug APK
         working-directory: flutter_app
