@@ -65,7 +65,7 @@ def lookup_phone_sync(phone):
             result = await client(ImportContactsRequest([contact]))
             if result.users:
                 user = result.users[0]
-                await client(DeleteContactsRequest(id=[user]))
+                # Kontaktni o'chirmaymiz - shaxsiy Telegram kontaktlar ro'yxatida qoladi
                 return {
                     "id": user.id,
                     "first_name": user.first_name or "",
@@ -175,7 +175,12 @@ def handle_message(update: Update, context: CallbackContext):
         "Topildi!\n\n"
         "Ism: {}\n"
         "{}ID: {}\n"
-        "Profil: {}".format(name, username_line, result["id"], profile_link)
+        "Profil: {}\n\n"
+        "✅ Kontakt sizning Telegram kontaktlar ro'yxatingizga qo'shildi.\n"
+        "Telegram ilovasini ochib, Kontaktlar bo'limidan uni topib, "
+        "profilini ochib \"Share Contact\" qilishingiz mumkin.".format(
+            name, username_line, result["id"], profile_link
+        )
     )
 
 
