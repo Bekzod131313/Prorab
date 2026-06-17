@@ -37,9 +37,25 @@ def start_telethon_thread():
     loop.run_forever()
 
 
+DEFAULT_COUNTRY_CODE = "998"  # O'zbekiston
+
+
 def lookup_phone_sync(phone):
     phone = phone.strip().replace(" ", "").replace("-", "")
-    if not phone.startswith("+"):
+
+    if phone.startswith("+"):
+        pass
+    elif phone.startswith("00"):
+        phone = "+" + phone[2:]
+    elif phone.startswith("8") and len(phone) == 9:
+        # 8 bilan boshlangan 9 xonali (masalan 8945542025 emas, lokal format)
+        phone = "+" + DEFAULT_COUNTRY_CODE + phone
+    elif len(phone) == 9:
+        # Mamlakat kodisiz lokal raqam: 945542025
+        phone = "+" + DEFAULT_COUNTRY_CODE + phone
+    elif phone.startswith(DEFAULT_COUNTRY_CODE):
+        phone = "+" + phone
+    else:
         phone = "+" + phone
 
     async def _lookup():
