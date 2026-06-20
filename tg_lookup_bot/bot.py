@@ -10,6 +10,7 @@ import logging
 from telethon.sync import TelegramClient
 from telethon.tl.functions.contacts import ImportContactsRequest, DeleteContactsRequest
 from telethon.tl.types import InputPhoneContact, InputMediaContact
+from telethon.errors import FloodWaitError
 from telegram import Update
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 
@@ -31,7 +32,7 @@ def start_telethon_thread():
     global client, loop
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    client = TelegramClient(SESSION_NAME, API_ID, API_HASH, loop=loop)
+    client = TelegramClient(SESSION_NAME, API_ID, API_HASH, loop=loop, flood_sleep_threshold=0)
     client.start(phone=PHONE_NUMBER)
     print("Telethon ulandi!")
     loop.run_forever()
@@ -88,6 +89,8 @@ def lookup_phone_sync(phone):
                     "username": user.username,
                     "phone": getattr(user, "phone", None),
                 }
+        except FloodWaitError as e:
+            return "FLOODWAIT:{}".format(e.seconds)
         except Exception as e:
             logging.info("ImportContacts ishlamadi: %s", e)
 
@@ -179,6 +182,14 @@ def handle_message(update: Update, context: CallbackContext):
             "Vaqt tugadi (timeout).\n\n"
             "Telegram serveri javob bermadi yoki internet sekin ishladi.\n"
             "Iltimos, qayta urinib ko'ring."
+        )
+        return
+
+    if isinstance(result, str) and result.startswith("FLOODWAIT:"):
+        seconds = result.split(":")[1]
+        msg.edit_text(
+            "Telegram vaqtincha cheklov qo'ydi (juda ko'p so'rov yuborildi).\n\n"
+            "Iltimos, {} soniyadan keyin qayta urinib ko'ring.".format(seconds)
         )
         return
 
