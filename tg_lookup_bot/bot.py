@@ -108,10 +108,10 @@ def lookup_phone_sync(phone):
 
     future = asyncio.run_coroutine_threadsafe(_lookup(), loop)
     try:
-        return future.result(timeout=15)
+        return future.result(timeout=30)
     except Exception as e:
         logging.error("Timeout: %s", e)
-        return None
+        return "TIMEOUT"
 
 
 def cmd_start(update: Update, context: CallbackContext):
@@ -172,6 +172,14 @@ def handle_message(update: Update, context: CallbackContext):
         result = lookup_phone_sync(text)
     except Exception as e:
         msg.edit_text("Xato: {}".format(str(e)))
+        return
+
+    if result == "TIMEOUT":
+        msg.edit_text(
+            "Vaqt tugadi (timeout).\n\n"
+            "Telegram serveri javob bermadi yoki internet sekin ishladi.\n"
+            "Iltimos, qayta urinib ko'ring."
+        )
         return
 
     if result is None:
