@@ -7,7 +7,7 @@ Python 3.7 uchun moslangan.
 import asyncio
 import threading
 import logging
-from telethon.sync import TelegramClient
+from telethon import TelegramClient
 from telethon.tl.functions.contacts import ImportContactsRequest, DeleteContactsRequest
 from telethon.tl.types import InputPhoneContact, InputMediaContact
 from telethon.errors import FloodWaitError
@@ -33,7 +33,7 @@ def start_telethon_thread():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     client = TelegramClient(SESSION_NAME, API_ID, API_HASH, loop=loop, flood_sleep_threshold=0)
-    client.start(phone=PHONE_NUMBER)
+    loop.run_until_complete(client.start(phone=PHONE_NUMBER))
     print("Telethon ulandi!")
     loop.run_forever()
 
