@@ -47,14 +47,55 @@ class _WorkersScreenState extends State<WorkersScreen> {
     });
   }
 
+  Future<WorkerProject?> _pickProject(Worker worker) async {
+    if (worker.obsList.length == 1) return worker.obsList.first;
+    return showModalBottomSheet<WorkerProject>(
+      context: context,
+      backgroundColor: AppColors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${worker.displayName}: loyihani tanlang',
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+            const SizedBox(height: 12),
+            for (final ob in worker.obsList)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(ob.obNomi),
+                subtitle: Text(
+                  'Qoldiq: ${ob.balans >= 0 ? '+' : ''}${formatMoney(ob.balans)}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: ob.balans >= 0 ? const Color(0xFF22C55E) : Colors.redAccent,
+                  ),
+                ),
+                onTap: () => Navigator.of(ctx).pop(ob),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _quickPayWorker(Worker worker) async {
     if (worker.balans <= 0 || worker.obsList.isEmpty) return;
-    final ob = worker.obsList.first;
+    // ✅ Ask which project if the worker is on more than one
+    final ob = await _pickProject(worker);
+    if (ob == null || !mounted) return;
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('${worker.displayName}ga to\'lash'),
-        content: Text("${formatMoney(worker.balans)} so'm avans berilsinmi?"),
+        content: Text(
+          "${formatMoney(worker.balans)} so'm avans berilsinmi?\n(${ob.obNomi})",
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Bekor')),
           ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text("Ha, berish")),
@@ -91,11 +132,12 @@ class _WorkersScreenState extends State<WorkersScreen> {
         ],
       ),
     );
-    if (confirm != true) return;
+    if (confirm != true || !mounted) return;
     int success = 0;
     for (final w in owing) {
       try {
-        final ob = w.obsList.first;
+        // ✅ For multi-project workers, use the project with the highest positive balance
+        final ob = w.obsList.reduce((a, b) => a.balans >= b.balans ? a : b);
         await _repo.giveAvans(obId: ob.obId, toUserId: w.userId, amount: w.balans, izoh: 'Hammaga avans');
         success++;
       } catch (_) {}
@@ -104,6 +146,7 @@ class _WorkersScreenState extends State<WorkersScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$success ta ishchiga avans berildi")));
     _load();
   }
+
 
   Future<void> _exportWorkers() async {
     final date = DateFormat('dd.MM.yyyy').format(DateTime.now());

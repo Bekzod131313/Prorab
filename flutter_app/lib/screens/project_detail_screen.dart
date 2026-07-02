@@ -1388,10 +1388,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         manzil: manzil,
         mijoz: mijoz,
         bosqich: bosqich,
+        status: status,          // ✅ single atomic write
       );
-      if (status != _project.status) {
-        await _projectRepo.setStatus(_project.id, status);
-      }
       if (!mounted) return;
       setState(() {
         _project = Project(
@@ -1413,6 +1411,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
         );
       });
     }
+
   }
 
   Future<void> _openContractSheet() async {
@@ -1684,7 +1683,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
             ),
             const SizedBox(height: 12),
             ElevatedButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
+              // ✅ Only close when text is not empty
+              onPressed: () {
+                if (ctrl.text.trim().isEmpty) return;
+                Navigator.of(ctx).pop(true);
+              },
               child: const Text('Saqlash'),
             ),
           ],
@@ -2680,11 +2683,20 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
             if (_tasksError != null)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Center(
-                  child: Text(
-                    "Vazifalar jadvali sozlanmagan",
-                    style: const TextStyle(color: AppColors.muted),
-                  ),
+                child: Column(
+                  children: [
+                    Text(
+                      'Xatolik: $_tasksError',
+                      style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      onPressed: _load,
+                      icon: const Icon(Icons.refresh_rounded, size: 16),
+                      label: const Text('Qayta urinish'),
+                    ),
+                  ],
                 ),
               )
             else if (_tasks.isEmpty)
@@ -2735,13 +2747,22 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen> {
             ),
             const SizedBox(height: 12),
             if (_materialsError != null)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
-                child: Center(
-                  child: Text(
-                    "Materiallar jadvali sozlanmagan",
-                    style: TextStyle(color: AppColors.muted),
-                  ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Column(
+                  children: [
+                    Text(
+                      'Xatolik: $_materialsError',
+                      style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      onPressed: _load,
+                      icon: const Icon(Icons.refresh_rounded, size: 16),
+                      label: const Text('Qayta urinish'),
+                    ),
+                  ],
                 ),
               )
             else if (_materials.isEmpty)

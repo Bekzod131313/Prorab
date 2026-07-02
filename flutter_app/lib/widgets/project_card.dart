@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../data/settings_repository.dart';
 import '../models/project.dart';
 import '../theme/app_theme.dart';
 
@@ -20,10 +21,45 @@ Color colorForProject(String nomi) {
   return _cardColors[h % _cardColors.length];
 }
 
+/// Currency symbol labels shown after the number.
+const _currencySymbols = {
+  'UZS': 'so\'m',
+  'USD': '\$',
+  'EUR': '€',
+  'RUB': '₽',
+};
+
+/// Formats [value] using the user's active currency and compact-number settings.
+/// Reads [AppConfig.currency] and [AppConfig.compactNumbers] synchronously.
 String formatMoney(num value) {
-  final f = NumberFormat.decimalPattern('uz');
-  return f.format(value);
+  final symbol = _currencySymbols[AppConfig.currency] ?? AppConfig.currency;
+  final compact = AppConfig.compactNumbers;
+
+  String formatted;
+  if (compact) {
+    final abs = value.abs();
+    if (abs >= 1000000000) {
+      formatted = '${(value / 1000000000).toStringAsFixed(1)}mlrd';
+    } else if (abs >= 1000000) {
+      formatted = '${(value / 1000000).toStringAsFixed(1)}mln';
+    } else if (abs >= 1000) {
+      formatted = '${(value / 1000).toStringAsFixed(0)}ming';
+    } else {
+      formatted = value.toStringAsFixed(0);
+    }
+  } else {
+    final f = NumberFormat.decimalPattern('uz');
+    formatted = f.format(value);
+  }
+
+  // USD, EUR, RUB — symbol before; so'm — symbol after
+  if (AppConfig.currency == 'UZS') {
+    return '$formatted $symbol';
+  } else {
+    return '$symbol$formatted';
+  }
 }
+
 
 class ProjectCard extends StatelessWidget {
   final Project project;

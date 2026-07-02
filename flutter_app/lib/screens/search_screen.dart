@@ -74,8 +74,8 @@ class _SearchScreenState extends State<SearchScreen> {
     });
     if (q.trim().length < 2) return;
 
-    await _saveToHistory(q.trim());
     setState(() => _loading = true);
+
     try {
       final obIds = widget.projects.map((p) => p.id).toList();
       final results = <_SearchResult>[];
@@ -145,6 +145,8 @@ class _SearchScreenState extends State<SearchScreen> {
       }
 
       if (!mounted) return;
+      // ✅ Only save to history if the search actually returned results
+      if (results.isNotEmpty) await _saveToHistory(q.trim());
       setState(() {
         _results = results;
         _loading = false;
@@ -154,6 +156,7 @@ class _SearchScreenState extends State<SearchScreen> {
       setState(() => _loading = false);
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

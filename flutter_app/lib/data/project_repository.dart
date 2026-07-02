@@ -69,15 +69,18 @@ class ProjectRepository {
     String? manzil,
     String? mijoz,
     String? bosqich,
+    String? status,
   }) async {
-    await supabase.from('obyektlar').update({
+    final payload = <String, dynamic>{
       'nomi': nomi,
       'boshlanish': boshlanish.toIso8601String().substring(0, 10),
       'muddat': muddat,
       'manzil': manzil?.isNotEmpty == true ? manzil : null,
       'mijoz': mijoz?.isNotEmpty == true ? mijoz : null,
       'bosqich': bosqich?.isNotEmpty == true ? bosqich : null,
-    }).eq('id', id);
+    };
+    if (status != null) payload['status'] = status;
+    await supabase.from('obyektlar').update(payload).eq('id', id);
   }
 
   Future<void> setStatus(String id, String status) async {
