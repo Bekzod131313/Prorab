@@ -44,7 +44,8 @@ class Project {
       nomi: ob['nomi'] ?? '',
       kirim: ob['kirim'] ?? 0,
       chiqim: ob['chiqim'] ?? 0,
-      boshlanish: ob['boshlanish'] != null ? DateTime.tryParse(ob['boshlanish']) : null,
+      boshlanish:
+          ob['boshlanish'] != null ? DateTime.tryParse(ob['boshlanish']) : null,
       createdAt: DateTime.tryParse(ob['created_at'] ?? '') ?? DateTime.now(),
       muddat: ob['muddat'] ?? 30,
       role: row['role'] ?? 'member',
@@ -61,10 +62,21 @@ class Project {
 
   Project copyWith({String? imageUrl}) {
     return Project(
-      id: id, nomi: nomi, kirim: kirim, chiqim: chiqim,
-      boshlanish: boshlanish, createdAt: createdAt, muddat: muddat,
-      role: role, myBalance: myBalance, ishaqi: ishaqi, olingan: olingan,
-      status: status, manzil: manzil, mijoz: mijoz, bosqich: bosqich,
+      id: id,
+      nomi: nomi,
+      kirim: kirim,
+      chiqim: chiqim,
+      boshlanish: boshlanish,
+      createdAt: createdAt,
+      muddat: muddat,
+      role: role,
+      myBalance: myBalance,
+      ishaqi: ishaqi,
+      olingan: olingan,
+      status: status,
+      manzil: manzil,
+      mijoz: mijoz,
+      bosqich: bosqich,
       imageUrl: imageUrl ?? this.imageUrl,
     );
   }
@@ -76,13 +88,16 @@ class Project {
     // Financial: penalize if negative balance
     if (kirim > 0) {
       final roi = (kirim - chiqim) / kirim;
-      if (roi < 0) score -= 40;
-      else if (roi < 0.1) score -= 20;
+      if (roi < 0)
+        score -= 40;
+      else if (roi < 0.1)
+        score -= 20;
       else if (roi < 0.2) score -= 10;
     }
     // Timeline: penalize if overdue
     final (_, left, _) = schedule;
-    if (left == 0) score -= 30;
+    if (left == 0)
+      score -= 30;
     else if (left <= 3) score -= 15;
     return score.clamp(0, 100);
   }

@@ -4,8 +4,8 @@ import 'package:intl/intl.dart';
 import '../data/project_repository.dart';
 import '../models/project.dart';
 import '../theme/app_theme.dart';
-import '../widgets/project_card.dart' show formatMoney;
 import 'project_detail_screen.dart';
+import 'notifications_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -36,15 +36,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    if (_projects.isEmpty) {
+      setState(() => _loading = true);
+    }
     try {
       final projects = await _repo.loadProjects();
       if (!mounted) return;
       setState(() {
         _projects = projects;
         _loading = false;
-        if (_currentPage >= projects.length && projects.isNotEmpty) {
-          _currentPage = 0;
+        if (_currentPage >= projects.length) {
+          _currentPage = projects.isNotEmpty ? 0 : 0;
+          if (_pageCtrl.hasClients) {
+            _pageCtrl.jumpToPage(_currentPage);
+          }
         }
       });
     } catch (e) {
@@ -66,49 +71,76 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return gradients[idx];
   }
 
-  Future<void> _openQuickAdd({required bool isIncome, Project? selectedProject}) async {
-    final activeProjects = _projects.where((p) => p.role == 'owner' && p.status != 'done').toList();
-    if (activeProjects.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Faol loyiha yo'q")));
+  Future<void> _openQuickAdd(
+      {required bool isIncome, Project? selectedProject}) async {
+    Project? target = selectedProject;
+
+    // If a specific project is already identified, go straight to it.
+    if (target != null) {
+      if (!mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+            builder: (_) =>
+                ProjectDetailScreen(project: target!, quickAddIncome: isIncome)),
+      );
+      _load();
       return;
     }
-    Project? target = selectedProject;
-    if (target == null) {
-      if (activeProjects.length == 1) {
-        target = activeProjects.first;
-      } else {
-        target = await showModalBottomSheet<Project>(
-          context: context,
-          backgroundColor: AppColors.card,
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-          builder: (ctx) => SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(isIncome ? 'Kirim — Loyiha tanlang' : 'Chiqim — Loyiha tanlang',
-                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                  const SizedBox(height: 12),
-                  for (final p in activeProjects)
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(p.nomi),
-                      subtitle: Text('${formatMoney(p.balance)} so\'m', style: const TextStyle(fontSize: 12)),
-                      trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
-                      onTap: () => Navigator.of(ctx).pop(p),
-                    ),
-                ],
-              ),
+
+    // No specific project — pick from owner active projects.
+    final activeProjects = _projects
+        .where((p) => p.role == 'owner' && p.status != 'done')
+        .toList();
+    if (activeProjects.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Faol loyiha yo'q")));
+      return;
+    }
+    if (activeProjects.length == 1) {
+      target = activeProjects.first;
+    } else {
+      target = await showModalBottomSheet<Project>(
+        context: context,
+        backgroundColor: AppColors.card,
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        builder: (ctx) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                    isIncome
+                        ? 'Kirim — Loyiha tanlang'
+                        : 'Chiqim — Loyiha tanlang',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w800, fontSize: 16)),
+                const SizedBox(height: 12),
+                for (final p in activeProjects)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(p.nomi),
+                    subtitle: p.manzil != null
+                        ? Text(p.manzil!,
+                            style: const TextStyle(fontSize: 12))
+                        : null,
+                    trailing: const Icon(Icons.chevron_right_rounded,
+                        color: AppColors.muted),
+                    onTap: () => Navigator.of(ctx).pop(p),
+                  ),
+              ],
             ),
           ),
-        );
-      }
+        ),
+      );
     }
     if (target == null || !mounted) return;
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: target!, quickAddIncome: isIncome)),
+      MaterialPageRoute(
+          builder: (_) =>
+              ProjectDetailScreen(project: target!, quickAddIncome: isIncome)),
     );
     _load();
   }
@@ -122,19 +154,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         titleSpacing: 16,
-        title: const Text('Asosiy', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.text)),
+        title: const Text('Asosiy',
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: AppColors.text)),
         actions: [
           IconButton(
             icon: Container(
-              width: 38, height: 38,
+              width: 38,
+              height: 38,
               decoration: BoxDecoration(
                 color: AppColors.card,
                 shape: BoxShape.circle,
                 border: Border.all(color: AppColors.border),
               ),
-              child: const Icon(Icons.notifications_none_rounded, size: 20, color: AppColors.text2),
+              child: const Icon(Icons.notifications_none_rounded,
+                  size: 20, color: AppColors.text2),
             ),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+              );
+            },
           ),
           const SizedBox(width: 8),
         ],
@@ -158,22 +200,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
 
-    final currentProject = _currentPage < _projects.length ? _projects[_currentPage] : _projects.first;
-    final (_, daysLeft, progress) = currentProject.schedule;
-    final startFmt = currentProject.boshlanish != null
-        ? DateFormat('dd.MM.yyyy').format(currentProject.boshlanish!)
-        : '—';
-    final endDate = currentProject.boshlanish != null
-        ? currentProject.boshlanish!.add(Duration(days: currentProject.muddat))
-        : null;
-    final endFmt = endDate != null ? DateFormat('dd.MM.yyyy').format(endDate) : '—';
-
     return ListView(
       padding: const EdgeInsets.fromLTRB(0, 8, 0, 100),
       children: [
-        // Hero PageView
+        // Hero PageView containing the slideable unit (card + buttons + info card)
         SizedBox(
-          height: 220,
+          height: 560,
           child: PageView.builder(
             controller: _pageCtrl,
             itemCount: _projects.length,
@@ -184,194 +216,266 @@ class _DashboardScreenState extends State<DashboardScreen> {
               final (_, left, prog) = p.schedule;
               final done = p.status == 'done';
               final indexLabel = '#${(i + 1).toString().padLeft(3, '0')}';
-              return GestureDetector(
-                onTap: () => Navigator.of(context)
-                    .push(MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: p)))
-                    .then((_) => _load()),
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: gradient,
-                    ),
-                    image: p.imageUrl != null
-                        ? DecorationImage(image: NetworkImage(p.imageUrl!), fit: BoxFit.cover)
-                        : null,
-                  ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.black.withOpacity(p.imageUrl != null ? 0.3 : 0.0),
-                          Colors.black.withOpacity(0.55),
+              
+              final startFmt = p.boshlanish != null
+                  ? DateFormat('dd.MM.yyyy').format(p.boshlanish!)
+                  : '—';
+              final endDate = p.boshlanish != null
+                  ? p.boshlanish!.add(Duration(days: p.muddat))
+                  : null;
+              final endFmt =
+                  endDate != null ? DateFormat('dd.MM.yyyy').format(endDate) : '—';
+
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Top card
+                  GestureDetector(
+                    onTap: () => Navigator.of(context)
+                        .push(MaterialPageRoute(
+                            builder: (_) => ProjectDetailScreen(project: p)))
+                        .then((_) => _load()),
+                    child: Container(
+                      height: 220,
+                      margin: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(24),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: gradient,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: gradient[0].withOpacity(0.25),
+                            blurRadius: 12,
+                            spreadRadius: -2,
+                            offset: const Offset(0, 6),
+                          ),
                         ],
+                        image: p.imageUrl != null
+                            ? DecorationImage(
+                                image: NetworkImage(p.imageUrl!), fit: BoxFit.cover)
+                            : null,
                       ),
-                    ),
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.35),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(indexLabel, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
-                            ),
-                            const Spacer(),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: done ? Colors.grey.withOpacity(0.5) : Colors.green.withOpacity(0.75),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                done ? 'Yakunlandi' : 'Active',
-                                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const Spacer(),
-                        Text(
-                          p.nomi,
-                          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                        const SizedBox(height: 8),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: LinearProgressIndicator(
-                            value: (prog / 100).clamp(0.0, 1.0),
-                            minHeight: 4,
-                            backgroundColor: Colors.white.withOpacity(0.25),
-                            valueColor: const AlwaysStoppedAnimation(Colors.white),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(24),
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black
+                                  .withOpacity(p.imageUrl != null ? 0.25 : 0.0),
+                              Colors.black.withOpacity(0.65),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Row(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(Icons.calendar_today_rounded, size: 12, color: Colors.white70),
-                            const SizedBox(width: 4),
-                            Text('$left kun qoldi', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.18),
+                                    borderRadius: BorderRadius.circular(30),
+                                    border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
+                                  ),
+                                  child: Text(indexLabel,
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 0.5)),
+                                ),
+                                const Spacer(),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: done
+                                        ? Colors.white.withOpacity(0.15)
+                                        : const Color(0xFF10B981),
+                                    borderRadius: BorderRadius.circular(30),
+                                    border: done ? Border.all(color: Colors.white.withOpacity(0.2), width: 1) : null,
+                                  ),
+                                  child: Text(
+                                    done ? 'Yakunlandi' : 'Faol',
+                                    style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 0.5),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Spacer(),
+                            Text(
+                              p.nomi,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -0.5),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                            const SizedBox(height: 8),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: LinearProgressIndicator(
+                                value: (prog / 100).clamp(0.0, 1.0),
+                                minHeight: 5,
+                                backgroundColor: Colors.white.withOpacity(0.2),
+                                valueColor:
+                                    const AlwaysStoppedAnimation(Colors.white),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                const Icon(Icons.calendar_today_rounded,
+                                    size: 12, color: Colors.white70),
+                                const SizedBox(width: 4),
+                                Text('$left kun qoldi',
+                                    style: const TextStyle(
+                                        color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w500)),
+                              ],
+                            ),
                           ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Two action buttons
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _HeroActionBtn(
+                            label: 'Kirim',
+                            subtitle: "Qo'shish",
+                            icon: Icons.arrow_downward_rounded,
+                            color: AppColors.accent,
+                            onTap: () => _openQuickAdd(
+                              isIncome: true,
+                              selectedProject: p,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _HeroActionBtn(
+                            label: 'Chiqim',
+                            subtitle: "Qo'shish",
+                            icon: Icons.arrow_upward_rounded,
+                            color: AppColors.green,
+                            onTap: () => _openQuickAdd(
+                              isIncome: false,
+                              selectedProject: p,
+                            ),
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ),
+                  const SizedBox(height: 20),
+
+                  // Project info card for current project
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.card,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppColors.border),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.015),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 4,
+                                  height: 16,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.accent,
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                const Text("Loyiha ma'lumotlari",
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 14,
+                                        color: AppColors.text)),
+                              ],
+                            ),
+                          ),
+                          const Divider(color: AppColors.border, height: 1),
+                          _InfoRow(
+                            icon: Icons.calendar_today_rounded,
+                            label: 'Boshlangan sana',
+                            value: startFmt,
+                          ),
+                          const Divider(color: AppColors.border, height: 1, indent: 56),
+                          _InfoRow(
+                            icon: Icons.access_time_rounded,
+                            label: 'Tugash sanasi',
+                            value: endFmt,
+                          ),
+                          const Divider(color: AppColors.border, height: 1, indent: 56),
+                          _InfoRowProgress(
+                            icon: Icons.bar_chart_rounded,
+                            label: 'Bajarilish darajasi',
+                            progress: prog.toInt(),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               );
             },
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
 
         // Page indicator dots
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(_projects.length, (i) => AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: i == _currentPage ? 18 : 6,
-            height: 6,
-            margin: const EdgeInsets.symmetric(horizontal: 2),
-            decoration: BoxDecoration(
-              color: i == _currentPage ? AppColors.accent : AppColors.border,
-              borderRadius: BorderRadius.circular(3),
-            ),
-          )),
+          children: List.generate(
+              _projects.length,
+              (i) => AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    width: i == _currentPage ? 20 : 6,
+                    height: 6,
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    decoration: BoxDecoration(
+                      color: i == _currentPage
+                          ? AppColors.accent
+                          : AppColors.border,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  )),
         ),
-        const SizedBox(height: 16),
-
-        // Two action buttons
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              Expanded(
-                child: _HeroActionBtn(
-                  label: 'Kirim',
-                  subtitle: "Qo'shish",
-                  icon: Icons.arrow_downward_rounded,
-                  color: AppColors.accent,
-                  onTap: () => _openQuickAdd(
-                    isIncome: true,
-                    selectedProject: currentProject.role == 'owner' && currentProject.status != 'done' ? currentProject : null,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _HeroActionBtn(
-                  label: 'Chiqim',
-                  subtitle: "Qo'shish",
-                  icon: Icons.arrow_upward_rounded,
-                  color: AppColors.green,
-                  onTap: () => _openQuickAdd(
-                    isIncome: false,
-                    selectedProject: currentProject.role == 'owner' && currentProject.status != 'done' ? currentProject : null,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // Project info card for current project
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.card,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
-                  child: Text("Loyiha ma'lumotlari", style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.text)),
-                ),
-                const Divider(color: AppColors.border, height: 1),
-                _InfoRow(
-                  icon: Icons.calendar_today_rounded,
-                  label: 'Boshlangan sana',
-                  value: startFmt,
-                ),
-                const Divider(color: AppColors.border, height: 1, indent: 14),
-                _InfoRow(
-                  icon: Icons.access_time_rounded,
-                  label: 'Tugash sanasi',
-                  value: endFmt,
-                ),
-                const Divider(color: AppColors.border, height: 1, indent: 14),
-                _InfoRowProgress(
-                  icon: Icons.bar_chart_rounded,
-                  label: 'Bajarilish darajasi',
-                  progress: progress,
-                ),
-                const Divider(color: AppColors.border, height: 1, indent: 14),
-                _InfoRow(
-                  icon: Icons.account_balance_wallet_outlined,
-                  label: 'Balans',
-                  value: '${formatMoney(currentProject.balance)} so\'m',
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
       ],
     );
   }
@@ -396,28 +500,44 @@ class _HeroActionBtn extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(18),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withOpacity(0.25)),
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppColors.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.015),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 32, height: 32,
-              decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(10)),
-              child: Icon(icon, size: 18, color: Colors.white),
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                  color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+              child: Icon(icon, size: 18, color: color),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: color)),
-                Text(subtitle, style: TextStyle(fontSize: 11, color: color.withOpacity(0.7))),
+                Text(label,
+                    style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: color)),
+                const SizedBox(height: 1),
+                Text(subtitle,
+                    style:
+                        TextStyle(fontSize: 11, color: AppColors.muted, fontWeight: FontWeight.w500)),
               ],
             ),
           ],
@@ -432,18 +552,36 @@ class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
 
-  const _InfoRow({required this.icon, required this.label, required this.value});
+  const _InfoRow(
+      {required this.icon, required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
+    final isStart = icon == Icons.calendar_today_rounded;
+    final color = isStart ? AppColors.accent : AppColors.orange;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: AppColors.muted),
-          const SizedBox(width: 10),
-          Expanded(child: Text(label, style: const TextStyle(fontSize: 13, color: AppColors.text2))),
-          Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.text)),
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 16, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+              child: Text(label,
+                  style:
+                      const TextStyle(fontSize: 13, color: AppColors.text2, fontWeight: FontWeight.w500))),
+          Text(value,
+              style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.text)),
         ],
       ),
     );
@@ -455,28 +593,44 @@ class _InfoRowProgress extends StatelessWidget {
   final String label;
   final int progress;
 
-  const _InfoRowProgress({required this.icon, required this.label, required this.progress});
+  const _InfoRowProgress(
+      {required this.icon, required this.label, required this.progress});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: AppColors.muted),
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: AppColors.green.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 16, color: AppColors.green),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+              child: Text(label,
+                  style:
+                      const TextStyle(fontSize: 13, color: AppColors.text2, fontWeight: FontWeight.w500))),
+          Text('$progress%',
+              style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.text)),
           const SizedBox(width: 10),
-          Expanded(child: Text(label, style: const TextStyle(fontSize: 13, color: AppColors.text2))),
-          Text('$progress%', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.text)),
-          const SizedBox(width: 8),
           SizedBox(
-            width: 60,
+            width: 70,
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(3),
+              borderRadius: BorderRadius.circular(10),
               child: LinearProgressIndicator(
                 value: (progress / 100).clamp(0.0, 1.0),
                 minHeight: 6,
                 backgroundColor: AppColors.border,
-                valueColor: const AlwaysStoppedAnimation(AppColors.accent),
+                valueColor: const AlwaysStoppedAnimation(AppColors.green),
               ),
             ),
           ),
@@ -501,14 +655,21 @@ class _EmptyProjectsCard extends StatelessWidget {
       child: Column(
         children: [
           Container(
-            width: 56, height: 56,
-            decoration: BoxDecoration(color: AppColors.accent.withOpacity(0.1), shape: BoxShape.circle),
-            child: const Icon(Icons.folder_open_rounded, size: 28, color: AppColors.accent),
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+                color: AppColors.accent.withOpacity(0.1),
+                shape: BoxShape.circle),
+            child: const Icon(Icons.folder_open_rounded,
+                size: 28, color: AppColors.accent),
           ),
           const SizedBox(height: 12),
-          const Text("Loyiha yo'q", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+          const Text("Loyiha yo'q",
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
           const SizedBox(height: 4),
-          const Text("Obyektlar bo'limidan yangi loyiha yarating", style: TextStyle(fontSize: 13, color: AppColors.muted), textAlign: TextAlign.center),
+          const Text("Obyektlar bo'limidan yangi loyiha yarating",
+              style: TextStyle(fontSize: 13, color: AppColors.muted),
+              textAlign: TextAlign.center),
         ],
       ),
     );

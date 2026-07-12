@@ -82,7 +82,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSt) => Padding(
-          padding: EdgeInsets.only(left: 20, right: 20, top: 24, bottom: 24 + MediaQuery.of(ctx).viewInsets.bottom),
+          padding: EdgeInsets.only(left: 20, right: 20, top: 24, bottom: 24 + MediaQuery.of(context).viewInsets.bottom),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -128,7 +128,12 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
       );
       _load();
     }
-    nameCtrl.dispose(); daysCtrl.dispose(); manzilCtrl.dispose(); mijozCtrl.dispose();
+    Future.delayed(const Duration(milliseconds: 350), () {
+      nameCtrl.dispose();
+      daysCtrl.dispose();
+      manzilCtrl.dispose();
+      mijozCtrl.dispose();
+    });
   }
 
   Future<void> _openProjectMenu(Project project) async {

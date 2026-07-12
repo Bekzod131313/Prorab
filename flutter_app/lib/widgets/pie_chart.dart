@@ -76,7 +76,7 @@ class _PiePainter extends CustomPainter {
         paint,
       );
       // Gap
-      paint.color = const Color(0xFF0A0E1A);
+      paint.color = AppColors.card;
       paint.strokeWidth = 2;
       paint.style = PaintingStyle.stroke;
       canvas.drawArc(
@@ -91,8 +91,9 @@ class _PiePainter extends CustomPainter {
     }
 
     // Center hole
-    paint.color = const Color(0xFF0A0E1A);
+    paint.color = AppColors.card;
     canvas.drawCircle(center, radius * 0.55, paint);
+
   }
 
   @override

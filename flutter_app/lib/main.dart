@@ -1,7 +1,10 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'firebase_options.dart';
 import 'l10n/strings.dart';
+import 'services/notification_service.dart';
 import 'theme/app_theme.dart';
 import 'screens/splash_screen.dart';
 
@@ -10,12 +13,17 @@ const supabaseAnonKey =
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqcmVvdnZwb2pzaWNjbmRsZ3p1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NzMzOTksImV4cCI6MjA5NTA0OTM5OX0.fgaat8STrBIj6WC_p98zYN3Tfp6kScDKYXuHk1lLDKk';
 
 late final SupabaseClient supabase;
+final navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
   supabase = Supabase.instance.client;
   await loadSavedLocale();
+  await NotificationService.initialize();
   runApp(const MoliyaApp());
 }
 
@@ -27,7 +35,8 @@ class MoliyaApp extends StatelessWidget {
     return ValueListenableBuilder<String>(
       valueListenable: appLocaleNotifier,
       builder: (_, __, ___) => MaterialApp(
-        title: 'Prorab',
+        navigatorKey: navigatorKey,
+        title: 'Risq',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
         themeMode: ThemeMode.light,

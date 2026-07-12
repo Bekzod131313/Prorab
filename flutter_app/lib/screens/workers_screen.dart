@@ -6,6 +6,7 @@ import '../models/worker.dart';
 import '../theme/app_theme.dart';
 import '../widgets/member_row.dart' show colorForName;
 import '../widgets/project_card.dart' show formatMoney;
+import '../widgets/add_worker_global_sheet.dart';
 import 'worker_detail_screen.dart';
 
 class WorkersScreen extends StatefulWidget {
@@ -39,12 +40,49 @@ class _WorkersScreenState extends State<WorkersScreen> {
 
   Future<void> _quickPayWorker(Worker worker) async {
     if (worker.balans <= 0 || worker.obsList.isEmpty) return;
-    final ob = worker.obsList.first;
+
+    WorkerProject? selectedOb;
+    final activeObs = worker.obsList.where((op) => op.balans > 0).toList();
+    final listToChoose = activeObs.isNotEmpty ? activeObs : worker.obsList;
+
+    if (listToChoose.length == 1) {
+      selectedOb = listToChoose.first;
+    } else {
+      selectedOb = await showModalBottomSheet<WorkerProject>(
+        context: context,
+        backgroundColor: AppColors.card,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        builder: (ctx) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text("To'lov uchun loyihani tanlang",
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                const SizedBox(height: 12),
+                for (final op in listToChoose)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(op.obNomi),
+                    subtitle: Text("Qarzdorlik: ${formatMoney(op.balans)} so'm"),
+                    trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
+                    onTap: () => Navigator.of(ctx).pop(op),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    if (selectedOb == null || !mounted) return;
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text("${worker.displayName}ga to'lash"),
-        content: Text("${formatMoney(worker.balans)} so'm berilsinmi?"),
+        content: Text("${selectedOb!.obNomi} loyihasi uchun ${formatMoney(selectedOb.balans)} so'm berilsinmi?"),
         actions: [
           TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Bekor')),
           ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text("Ha, berish")),
@@ -54,9 +92,9 @@ class _WorkersScreenState extends State<WorkersScreen> {
     if (confirm != true || !mounted) return;
     try {
       await _txRepo.addTransaction(
-        obId: ob.obId,
+        obId: selectedOb.obId,
         isIncome: false,
-        amount: worker.balans,
+        amount: selectedOb.balans,
         kategoriya: 'Mehnat haqi',
         toUserId: worker.userId,
       );
@@ -65,6 +103,50 @@ class _WorkersScreenState extends State<WorkersScreen> {
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
     }
+  }
+
+  Future<void> _openAddWorkerGlobal() async {
+    final phoneCtrl = TextEditingController();
+    final kasbCtrl = TextEditingController();
+
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.card,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => AddWorkerGlobalSheet(
+        phoneCtrl: phoneCtrl,
+        kasbCtrl: kasbCtrl,
+      ),
+    );
+
+    if (result == true) {
+      setState(() => _loading = true);
+      try {
+        await _repo.addWorkerGlobal(
+          phone: phoneCtrl.text.trim(),
+          kasb: kasbCtrl.text.trim(),
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Yangi ishchi muvaffaqiyatli qo'shildi")),
+          );
+        }
+        _load();
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(e.toString())),
+          );
+        }
+        setState(() => _loading = false);
+      }
+    }
+
+    Future.delayed(const Duration(milliseconds: 350), () {
+      phoneCtrl.dispose();
+      kasbCtrl.dispose();
+    });
   }
 
   @override
@@ -78,6 +160,21 @@ class _WorkersScreenState extends State<WorkersScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.bg,
         title: const Text('Odamlar'),
+        actions: [
+          IconButton(
+            icon: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.accent,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
+            ),
+            onPressed: _openAddWorkerGlobal,
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: _load,
@@ -128,7 +225,15 @@ class _WorkersScreenState extends State<WorkersScreen> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(worker.displayName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                                      Text('${worker.obsCount} ta loyiha', style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+                                      Row(
+                                        children: [
+                                          if (worker.kasb != null && worker.kasb!.isNotEmpty) ...[
+                                            Text(worker.kasb!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.accent)),
+                                            const Text(' • ', style: TextStyle(fontSize: 12, color: AppColors.muted)),
+                                          ],
+                                          Text('${worker.obsCount} ta loyiha', style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+                                        ],
+                                      ),
                                       if (owed > 0)
                                         Text('Qarzdorlik: ${formatMoney(owed)} so\'m', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.green)),
                                     ],

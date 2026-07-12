@@ -5,8 +5,17 @@ class Profile {
   final int staj;
   final String? kasb;
   final String? avatarUrl;
+  final bool isAdmin;
 
-  Profile({required this.id, required this.fullName, required this.phone, this.staj = 0, this.kasb, this.avatarUrl});
+  Profile({
+    required this.id,
+    required this.fullName,
+    required this.phone,
+    this.staj = 0,
+    this.kasb,
+    this.avatarUrl,
+    this.isAdmin = false,
+  });
 
   factory Profile.fromMap(Map<String, dynamic> row) {
     return Profile(
@@ -16,6 +25,7 @@ class Profile {
       staj: row['staj'] ?? 0,
       kasb: row['kasb'] as String?,
       avatarUrl: row['avatar_url'] as String?,
+      isAdmin: row['is_admin'] == true,
     );
   }
 

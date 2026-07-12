@@ -93,7 +93,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 const SizedBox(height: 12),
                 Center(
                   child: Text(
-                    'Moliya',
+                    'Risq',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                           fontWeight: FontWeight.w800,
                         ),

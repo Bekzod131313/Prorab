@@ -50,14 +50,22 @@ class ProjectCard extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       onLongPress: onLongPress,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(22),
       child: Container(
         padding: const EdgeInsets.all(18),
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
           color: AppColors.card,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(22),
           border: Border.all(color: AppColors.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.025),
+              blurRadius: 16,
+              spreadRadius: -2,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -65,19 +73,20 @@ class ProjectCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  width: 54,
-                  height: 54,
+                  width: 52,
+                  height: 52,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(18),
+                    color: color.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: color.withOpacity(0.2), width: 1),
                   ),
                   child: Text(
                     initial,
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: color),
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: color),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -87,7 +96,11 @@ class ProjectCard extends StatelessWidget {
                           Expanded(
                             child: Text(
                               project.nomi,
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.3,
+                              ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -95,7 +108,7 @@ class ProjectCard extends StatelessWidget {
                             const Icon(Icons.push_pin_rounded, size: 14, color: AppColors.accent),
                         ],
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 5),
                       Row(
                         children: [
                           _RoleBadge(label: _roleLabels[project.role] ?? project.role),
@@ -110,7 +123,7 @@ class ProjectCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
@@ -128,15 +141,15 @@ class ProjectCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             Row(
               children: [
                 Expanded(
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(10),
                     child: LinearProgressIndicator(
                       value: progress / 100,
-                      minHeight: 6,
+                      minHeight: 5,
                       backgroundColor: AppColors.border,
                       valueColor: const AlwaysStoppedAnimation(AppColors.accentTeal),
                     ),
@@ -149,7 +162,10 @@ class ProjectCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            Text('$left kun qoldi', style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+            Text(
+              '$left kun qoldi',
+              style: const TextStyle(color: AppColors.muted, fontSize: 12, fontWeight: FontWeight.w500),
+            ),
           ],
         ),
       ),
@@ -180,7 +196,7 @@ class _HealthBadge extends StatelessWidget {
       children: [
         Text(label, style: TextStyle(fontSize: 10, color: color)),
         const SizedBox(width: 3),
-        Text('$score%', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color)),
+        Text('$score%', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: color)),
       ],
     );
   }
@@ -194,14 +210,15 @@ class _RoleBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(8),
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.2), width: 1),
       ),
       child: Text(
         label,
-        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color),
+        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: color),
       ),
     );
   }
@@ -217,19 +234,20 @@ class _StatItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
-        borderRadius: BorderRadius.circular(12),
+        color: AppColors.bg,
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 10, color: AppColors.muted, letterSpacing: 0.5)),
-          const SizedBox(height: 2),
+          Text(label, style: const TextStyle(fontSize: 10, color: AppColors.muted, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+          const SizedBox(height: 3),
           Text(
             value,
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: color ?? AppColors.text),
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

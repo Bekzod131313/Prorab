@@ -44,7 +44,6 @@ class ProfileRepository {
 
   Future<String> uploadAvatar(String userId, Uint8List bytes) async {
     final ts = DateTime.now().millisecondsSinceEpoch;
-    final path = '$userId/avatar.jpg?t=$ts';
     await supabase.storage.from('profile-images').uploadBinary(
       '$userId/avatar.jpg',
       bytes,

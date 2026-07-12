@@ -42,7 +42,7 @@ class _SplashScreenState extends State<SplashScreen> {
             const MoliyaLogo(size: 72),
             const SizedBox(height: 16),
             Text(
-              'Moliya',
+              'Risq',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w800,
                     letterSpacing: 0.5,

@@ -122,6 +122,9 @@ class ProjectRepository {
         .eq('ob_id', id)
         .maybeSingle();
     if (row == null || row['ob'] == null) return null;
-    return Project.fromMember(row as Map<String, dynamic>);
+    return Project.fromMember(row);
   }
 }
+
+
+

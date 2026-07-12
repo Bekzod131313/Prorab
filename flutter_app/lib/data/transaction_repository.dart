@@ -40,8 +40,14 @@ class TransactionRepository {
         'tx_date': txDate0,
       });
 
-      final ob = await supabase.from('obyektlar').select('kirim').eq('id', obId).single();
-      await supabase.from('obyektlar').update({'kirim': (ob['kirim'] ?? 0) + amount}).eq('id', obId);
+      final ob = await supabase
+          .from('obyektlar')
+          .select('kirim')
+          .eq('id', obId)
+          .single();
+      await supabase
+          .from('obyektlar')
+          .update({'kirim': (ob['kirim'] ?? 0) + amount}).eq('id', obId);
     } else {
       await supabase.from('transactions').insert({
         'ob_id': obId,
@@ -68,8 +74,14 @@ class TransactionRepository {
             .eq('user_id', toUserId);
       }
 
-      final ob = await supabase.from('obyektlar').select('chiqim').eq('id', obId).single();
-      await supabase.from('obyektlar').update({'chiqim': (ob['chiqim'] ?? 0) + amount}).eq('id', obId);
+      final ob = await supabase
+          .from('obyektlar')
+          .select('chiqim')
+          .eq('id', obId)
+          .single();
+      await supabase
+          .from('obyektlar')
+          .update({'chiqim': (ob['chiqim'] ?? 0) + amount}).eq('id', obId);
     }
   }
 
@@ -132,7 +144,8 @@ class TransactionRepository {
     });
   }
 
-  Future<List<ProjectTransaction>> loadRecentForProjects(List<String> obIds, {int limit = 6}) async {
+  Future<List<ProjectTransaction>> loadRecentForProjects(List<String> obIds,
+      {int limit = 6}) async {
     if (obIds.isEmpty) return [];
     final data = await supabase
         .from('transactions')
@@ -146,7 +159,8 @@ class TransactionRepository {
         .toList();
   }
 
-  Future<void> updateTransactionNote(String id, {String? izoh, required DateTime txDate}) async {
+  Future<void> updateTransactionNote(String id,
+      {String? izoh, required DateTime txDate}) async {
     await supabase.from('transactions').update({
       'izoh': izoh?.isNotEmpty == true ? izoh : null,
       'tx_date': txDate.toIso8601String(),
@@ -154,19 +168,32 @@ class TransactionRepository {
   }
 
   Future<void> deleteTransaction(String id) async {
-    final row = await supabase.from('transactions').select('*').eq('id', id).single();
-    final tx = ProjectTransaction.fromMap(row as Map<String, dynamic>);
+    final row =
+        await supabase.from('transactions').select('*').eq('id', id).single();
+    final tx = ProjectTransaction.fromMap(row);
 
     await supabase.from('transactions').delete().eq('id', id);
 
     if (tx.tur == 'income') {
-      final ob = await supabase.from('obyektlar').select('kirim').eq('id', tx.obId).single();
+      final ob = await supabase
+          .from('obyektlar')
+          .select('kirim')
+          .eq('id', tx.obId)
+          .single();
       final newVal = ((ob['kirim'] as num?) ?? 0) - tx.summa;
-      await supabase.from('obyektlar').update({'kirim': newVal < 0 ? 0 : newVal}).eq('id', tx.obId);
+      await supabase
+          .from('obyektlar')
+          .update({'kirim': newVal < 0 ? 0 : newVal}).eq('id', tx.obId);
     } else if (tx.tur == 'spend') {
-      final ob = await supabase.from('obyektlar').select('chiqim').eq('id', tx.obId).single();
+      final ob = await supabase
+          .from('obyektlar')
+          .select('chiqim')
+          .eq('id', tx.obId)
+          .single();
       final newVal = ((ob['chiqim'] as num?) ?? 0) - tx.summa;
-      await supabase.from('obyektlar').update({'chiqim': newVal < 0 ? 0 : newVal}).eq('id', tx.obId);
+      await supabase
+          .from('obyektlar')
+          .update({'chiqim': newVal < 0 ? 0 : newVal}).eq('id', tx.obId);
 
       if (tx.toUser != null) {
         final mem = await supabase

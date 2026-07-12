@@ -18,13 +18,21 @@ class MemberRepository {
     required String obId,
     required String phone,
     String? kasb,
+    num ishaqi = 0,
   }) async {
     final userId = supabase.auth.currentUser?.id;
+
+    final digits = phone.replaceAll(RegExp(r'\D'), '');
+    if (digits.isEmpty) throw "Raqam xato kiritildi";
+
+    final phoneWithPlus = '+$digits';
+    final phoneWithoutPlus = digits;
+    final nineDigits = digits.length >= 9 ? digits.substring(digits.length - 9) : digits;
 
     final profileRow = await supabase
         .from('profiles')
         .select('id')
-        .eq('phone', phone)
+        .or('phone.eq.$phoneWithPlus,phone.eq.$phoneWithoutPlus,phone.eq.$nineDigits')
         .maybeSingle();
 
     if (profileRow == null) {
@@ -51,7 +59,23 @@ class MemberRepository {
       'balance': 0,
       'added_by': userId,
       'kasb': kasb?.isNotEmpty == true ? kasb : null,
+      'ishaqi': ishaqi,
     });
+
+    if (ishaqi > 0) {
+      try {
+        await supabase.from('transactions').insert({
+          'ob_id': obId,
+          'from_user': userId,
+          'to_user': newUserId,
+          'summa': ishaqi,
+          'tur': 'ishhaqi',
+          'kategoriya': 'usta',
+          'izoh': "Boshlang'ich ish haqi",
+          'tx_date': DateTime.now().toIso8601String(),
+        });
+      } catch (_) {}
+    }
   }
 
   Future<List<Map<String, dynamic>>> searchUsers(String query) async {

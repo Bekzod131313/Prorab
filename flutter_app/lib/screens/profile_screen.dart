@@ -1,4 +1,6 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -8,6 +10,7 @@ import '../models/profile.dart';
 import '../theme/app_theme.dart';
 import '../widgets/project_card.dart' show formatMoney;
 import 'splash_screen.dart';
+import 'admin_panel_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -22,6 +25,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
   ProfileStats? _stats;
   List<String> _portfolio = [];
   bool _loading = true;
+  bool _avatarUploading = false;
+  bool _portfolioUploading = false;
+
+  Future<void> _showFcmToken() async {
+    try {
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token == null) return;
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text("FCM Token"),
+          content: SelectableText(token),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: token));
+                Navigator.of(ctx).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("FCM Token nusxalandi")),
+                );
+              },
+              child: const Text("Ko'chirish"),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text("Yopish"),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Tokenni olib bo'lmadi: $e")),
+        );
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -29,8 +71,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _load();
   }
 
-  Future<void> _load() async {
-    setState(() => _loading = true);
+  Future<void> _loadSilent() async {
     try {
       final userId = Supabase.instance.client.auth.currentUser?.id ?? '';
       final results = await Future.wait([
@@ -43,10 +84,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _profile = results[0] as Profile?;
         _stats = results[1] as ProfileStats;
         _portfolio = results[2] as List<String>;
-        _loading = false;
       });
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
+    } catch (_) {}
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    await _loadSilent();
+    if (mounted) {
+      setState(() => _loading = false);
     }
   }
 
@@ -57,6 +103,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (file == null) return;
       final bytes = await file.readAsBytes();
       final userId = Supabase.instance.client.auth.currentUser?.id ?? '';
+      setState(() => _avatarUploading = true);
       final url = await _repo.uploadAvatar(userId, bytes);
       await _repo.updateProfile(
         fullName: _profile?.fullName ?? '',
@@ -65,9 +112,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         kasb: _profile?.kasb,
         avatarUrl: url,
       );
-      _load();
+      await _loadSilent();
+      setState(() => _avatarUploading = false);
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Xato: $e')));
+      if (mounted) {
+        setState(() => _avatarUploading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Xato: $e')));
+      }
     }
   }
 
@@ -78,12 +129,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (file == null) return;
       final bytes = await file.readAsBytes();
       final userId = Supabase.instance.client.auth.currentUser?.id ?? '';
-      setState(() => _loading = true);
+      setState(() => _portfolioUploading = true);
       await _repo.uploadPortfolioImage(userId, bytes);
-      _load();
+      await _loadSilent();
+      setState(() => _portfolioUploading = false);
     } catch (e) {
       if (mounted) {
-        setState(() => _loading = false);
+        setState(() => _portfolioUploading = false);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Xato: $e')));
       }
     }
@@ -101,7 +153,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: AppColors.card,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => Padding(
-        padding: EdgeInsets.only(left: 20, right: 20, top: 24, bottom: 24 + MediaQuery.of(ctx).viewInsets.bottom),
+        padding: EdgeInsets.only(left: 20, right: 20, top: 24, bottom: 24 + MediaQuery.of(context).viewInsets.bottom),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -149,7 +201,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Xato: $e')));
       }
     }
-    nameCtrl.dispose(); phoneCtrl.dispose(); stajCtrl.dispose(); kasbCtrl.dispose();
+    Future.delayed(const Duration(milliseconds: 350), () {
+      nameCtrl.dispose();
+      phoneCtrl.dispose();
+      stajCtrl.dispose();
+      kasbCtrl.dispose();
+    });
   }
 
   @override
@@ -188,24 +245,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: Column(children: [
                         // Avatar
                         GestureDetector(
-                          onTap: _pickAvatar,
+                          onTap: _avatarUploading ? null : _pickAvatar,
                           child: Stack(children: [
                             CircleAvatar(
                               radius: 40,
                               backgroundColor: AppColors.accent.withOpacity(0.12),
                               backgroundImage: _profile?.avatarUrl != null ? NetworkImage(_profile!.avatarUrl!) : null,
-                              child: _profile?.avatarUrl == null
-                                  ? Text(_profile?.initial ?? '?', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: AppColors.accent))
-                                  : null,
+                              child: _avatarUploading
+                                  ? const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    )
+                                  : _profile?.avatarUrl == null
+                                      ? Text(_profile?.initial ?? '?', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: AppColors.accent))
+                                      : null,
                             ),
-                            Positioned(
-                              bottom: 0, right: 0,
-                              child: Container(
-                                width: 26, height: 26,
-                                decoration: BoxDecoration(color: AppColors.accent, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
-                                child: const Icon(Icons.camera_alt_rounded, size: 13, color: Colors.white),
+                            if (!_avatarUploading)
+                              Positioned(
+                                bottom: 0, right: 0,
+                                child: Container(
+                                  width: 26, height: 26,
+                                  decoration: BoxDecoration(color: AppColors.accent, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
+                                  child: const Icon(Icons.camera_alt_rounded, size: 13, color: Colors.white),
+                                ),
                               ),
-                            ),
                           ]),
                         ),
                         const SizedBox(height: 12),
@@ -287,9 +351,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 3, crossAxisSpacing: 8, mainAxisSpacing: 8,
                         ),
-                        itemCount: _portfolio.length,
+                        itemCount: _portfolio.length + (_portfolioUploading ? 1 : 0),
                         itemBuilder: (_, i) {
-                          final url = _portfolio[i];
+                          if (_portfolioUploading && i == 0) {
+                            return Container(
+                              decoration: BoxDecoration(
+                                color: AppColors.border.withOpacity(0.3),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Center(
+                                child: SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                              ),
+                            );
+                          }
+                          final idx = _portfolioUploading ? i - 1 : i;
+                          final url = _portfolio[idx];
                           return GestureDetector(
                             onLongPress: () async {
                               final confirm = await showDialog<bool>(
@@ -333,6 +413,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             _LangBtn(code: 'en', label: 'English'),
                           ]),
                         ]),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    if (_profile?.isAdmin == true) ...[
+                      Container(
+                        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+                        child: ListTile(
+                          leading: const Icon(Icons.admin_panel_settings_rounded, color: AppColors.orange),
+                          title: const Text("Admin Panel", style: TextStyle(fontWeight: FontWeight.w700)),
+                          subtitle: const Text("Tizim ma'lumotlarini boshqarish", style: TextStyle(fontSize: 11)),
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(builder: (_) => const AdminPanelScreen()),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    // FCM Token (For testing)
+                    Container(
+                      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+                      child: ListTile(
+                        leading: const Icon(Icons.key_rounded, color: AppColors.accent),
+                        title: const Text("FCM Token", style: TextStyle(fontWeight: FontWeight.w700)),
+                        subtitle: const Text("Sinash / nusxalash uchun bosing", style: TextStyle(fontSize: 11)),
+                        onTap: _showFcmToken,
                       ),
                     ),
                     const SizedBox(height: 16),
