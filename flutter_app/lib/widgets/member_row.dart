@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/member.dart';
 import '../theme/app_theme.dart';
-import 'project_card.dart' show formatMoney;
+import 'project_card.dart' show formatMoney, formatUzsToDisplay;
 
 const _avatarColors = [
   Color(0xFF1D4ED8),
@@ -80,7 +80,7 @@ class MemberRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '${bal >= 0 ? '+' : ''}${formatMoney(bal)}',
+                  '${bal >= 0 ? '+' : ''}${formatUzsToDisplay(bal)}',
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: balColor),
                 ),
                 const SizedBox(height: 2),

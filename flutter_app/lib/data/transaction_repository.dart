@@ -1,5 +1,6 @@
 import '../main.dart';
 import '../models/transaction.dart';
+import '../services/currency_service.dart';
 
 class TransactionRepository {
   Future<List<ProjectTransaction>> loadForProject(String obId) async {
@@ -24,9 +25,14 @@ class TransactionRepository {
     String? izoh,
     String? toUserId,
     DateTime? txDate,
+    String currency = 'UZS',
   }) async {
     final userId = supabase.auth.currentUser?.id;
     final txDate0 = (txDate ?? DateTime.now()).toIso8601String();
+    final liveRate = CurrencyService().usdToUzsRate;
+    final converted = CurrencyService().convert(amount.toDouble(), currency);
+    final amountUzs = converted['UZS']!;
+    final amountUsd = converted['USD']!;
 
     if (isIncome) {
       await supabase.from('transactions').insert({
@@ -38,6 +44,10 @@ class TransactionRepository {
         'kategoriya': kategoriya,
         'izoh': izoh,
         'tx_date': txDate0,
+        'currency': currency,
+        'exchange_rate': liveRate,
+        'summa_usd': amountUsd,
+        'summa_uzs': amountUzs,
       });
 
       final ob = await supabase
@@ -47,7 +57,7 @@ class TransactionRepository {
           .single();
       await supabase
           .from('obyektlar')
-          .update({'kirim': (ob['kirim'] ?? 0) + amount}).eq('id', obId);
+          .update({'kirim': (ob['kirim'] ?? 0) + amountUzs}).eq('id', obId);
     } else {
       await supabase.from('transactions').insert({
         'ob_id': obId,
@@ -58,6 +68,10 @@ class TransactionRepository {
         'kategoriya': kategoriya,
         'izoh': izoh,
         'tx_date': txDate0,
+        'currency': currency,
+        'exchange_rate': liveRate,
+        'summa_usd': amountUsd,
+        'summa_uzs': amountUzs,
       });
 
       if (toUserId != null) {
@@ -69,7 +83,7 @@ class TransactionRepository {
             .single();
         await supabase
             .from('ob_members')
-            .update({'olingan': (member['olingan'] ?? 0) + amount})
+            .update({'olingan': (member['olingan'] ?? 0) + amountUzs})
             .eq('ob_id', obId)
             .eq('user_id', toUserId);
       }
@@ -81,7 +95,7 @@ class TransactionRepository {
           .single();
       await supabase
           .from('obyektlar')
-          .update({'chiqim': (ob['chiqim'] ?? 0) + amount}).eq('id', obId);
+          .update({'chiqim': (ob['chiqim'] ?? 0) + amountUzs}).eq('id', obId);
     }
   }
 
@@ -95,8 +109,14 @@ class TransactionRepository {
     required num amount,
     String? izoh,
     DateTime? txDate,
+    String currency = 'UZS',
   }) async {
     final userId = supabase.auth.currentUser?.id;
+    final liveRate = CurrencyService().usdToUzsRate;
+    final converted = CurrencyService().convert(amount.toDouble(), currency);
+    final amountUzs = converted['UZS']!;
+    final amountUsd = converted['USD']!;
+
     await supabase.from('transactions').insert({
       'ob_id': obId,
       'from_user': userId,
@@ -106,6 +126,10 @@ class TransactionRepository {
       'kategoriya': 'usta',
       'izoh': izoh,
       'tx_date': (txDate ?? DateTime.now()).toIso8601String(),
+      'currency': currency,
+      'exchange_rate': liveRate,
+      'summa_usd': amountUsd,
+      'summa_uzs': amountUzs,
     });
 
     final member = await supabase
@@ -116,7 +140,7 @@ class TransactionRepository {
         .single();
     await supabase
         .from('ob_members')
-        .update({'olingan': (member['olingan'] ?? 0) + amount})
+        .update({'olingan': (member['olingan'] ?? 0) + amountUzs})
         .eq('ob_id', obId)
         .eq('user_id', toUserId);
   }
@@ -130,8 +154,14 @@ class TransactionRepository {
     String kategoriya = "O'zim uchun",
     String? izoh,
     DateTime? txDate,
+    String currency = 'UZS',
   }) async {
     final userId = supabase.auth.currentUser?.id;
+    final liveRate = CurrencyService().usdToUzsRate;
+    final converted = CurrencyService().convert(amount.toDouble(), currency);
+    final amountUzs = converted['UZS']!;
+    final amountUsd = converted['USD']!;
+
     await supabase.from('transactions').insert({
       'ob_id': obId,
       'from_user': userId,
@@ -141,6 +171,10 @@ class TransactionRepository {
       'kategoriya': kategoriya,
       'izoh': izoh,
       'tx_date': (txDate ?? DateTime.now()).toIso8601String(),
+      'currency': currency,
+      'exchange_rate': liveRate,
+      'summa_usd': amountUsd,
+      'summa_uzs': amountUzs,
     });
   }
 

@@ -24,7 +24,7 @@ const _strings = <String, Map<String, String>>{
   'nav_home':        {'uz': 'Asosiy',       'ru': 'Главная',      'en': 'Home'},
   'nav_projects':    {'uz': 'Obyektlar',    'ru': 'Объекты',      'en': 'Projects'},
   'nav_report':      {'uz': 'Hisobot',      'ru': 'Отчёт',        'en': 'Report'},
-  'nav_workers':     {'uz': 'Odamlar',      'ru': 'Люди',         'en': 'People'},
+  'nav_workers':     {'uz': 'Ishchilar',    'ru': 'Люди',         'en': 'People'},
   'nav_profile':     {'uz': 'Profil',       'ru': 'Профиль',      'en': 'Profile'},
 
   // Projects screen

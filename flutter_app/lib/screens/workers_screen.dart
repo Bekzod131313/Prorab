@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../data/transaction_repository.dart';
 import '../data/worker_repository.dart';
 import '../models/worker.dart';
 import '../theme/app_theme.dart';
 import '../widgets/member_row.dart' show colorForName;
-import '../widgets/project_card.dart' show formatMoney;
+import '../widgets/project_card.dart' show formatMoney, formatUzsToDisplay;
 import '../widgets/add_worker_global_sheet.dart';
 import 'worker_detail_screen.dart';
 
@@ -21,6 +22,9 @@ class _WorkersScreenState extends State<WorkersScreen> {
   final _txRepo = TransactionRepository();
   List<Worker> _workers = [];
   bool _loading = true;
+
+  String _searchQuery = '';
+  String _selectedFilter = 'Hammasi';
 
   @override
   void initState() {
@@ -149,28 +153,218 @@ class _WorkersScreenState extends State<WorkersScreen> {
     });
   }
 
+  String formatCurrency(num value) {
+    return formatUzsToDisplay(value);
+  }
+
+  String formatBalance(num balance) {
+    final sign = balance > 0 ? '+' : (balance < 0 ? '-' : '');
+    final absVal = formatUzsToDisplay(balance.abs());
+    return '$sign$absVal';
+  }
+
+  String formatLastActive(DateTime? date) {
+    if (date == null) return "Faoliyat yo'q";
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final compareDate = DateTime(date.year, date.month, date.day);
+
+    if (compareDate == today) {
+      return "Bugun";
+    } else if (compareDate == yesterday) {
+      return "Kecha";
+    } else {
+      final diff = today.difference(compareDate).inDays;
+      return "$diff kun oldin";
+    }
+  }
+
+  Widget _buildAvatar(Worker worker, String initials, Color color) {
+    final avatarUrl = worker.profile?.avatarUrl;
+    if (avatarUrl != null && avatarUrl.isNotEmpty) {
+      return CircleAvatar(
+        radius: 22,
+        backgroundImage: NetworkImage(avatarUrl),
+      );
+    }
+    return CircleAvatar(
+      radius: 22,
+      backgroundColor: color.withOpacity(0.15),
+      child: Text(
+        initials,
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: color),
+      ),
+    );
+  }
+
+  Widget _buildFilterChips() {
+    final filters = ["Hammasi", "Musbat", "Manfiy", "Faol"];
+    return SizedBox(
+      height: 38,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        scrollDirection: Axis.horizontal,
+        itemCount: filters.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final f = filters[index];
+          final selected = _selectedFilter == f;
+          return InkWell(
+            onTap: () => setState(() => _selectedFilter = f),
+            borderRadius: BorderRadius.circular(18),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              decoration: BoxDecoration(
+                color: selected ? AppColors.accent : Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: selected ? AppColors.accent : AppColors.border),
+              ),
+              child: Center(
+                child: Text(
+                  f,
+                  style: TextStyle(
+                    color: selected ? Colors.white : const Color(0xFF475569),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildStatsCards({
+    required int total,
+    required int musbat,
+    required int manfiy,
+    required int nol,
+  }) {
+    return SizedBox(
+      height: 64,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        children: [
+          _buildStatCard("Jami ishchi", "$total ta", const Color(0xFF0F172A)),
+          const SizedBox(width: 8),
+          _buildStatCard("Musbat balans", "$musbat ta", const Color(0xFF22C55E)),
+          const SizedBox(width: 8),
+          _buildStatCard("Manfiy balans", "$manfiy ta", const Color(0xFFEF4444)),
+          const SizedBox(width: 8),
+          _buildStatCard("Nol balans", "$nol ta", const Color(0xFF64748B)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard(String label, String value, Color textColor) {
+    return Container(
+      width: 104,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 9.5,
+              fontWeight: FontWeight.w700,
+              color: textColor.withOpacity(textColor == const Color(0xFF0F172A) ? 0.6 : 1.0),
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 3),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w800,
+              color: textColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGridItem(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 9.5,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF94A3B8),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF0F172A),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final totalWorkers = _workers.length;
-    final totalOwed = _workers.fold<num>(0, (s, w) => s + (w.balans > 0 ? w.balans : 0));
-    final totalPaid = _workers.fold<num>(0, (s, w) => s + w.olingan);
+    final musbatCount = _workers.where((w) => w.balans > 0).length;
+    final manfiyCount = _workers.where((w) => w.balans < 0).length;
+    final nolCount = _workers.where((w) => w.balans == 0).length;
+
+    final filtered = _workers.where((w) {
+      final name = w.displayName.toLowerCase();
+      final kasb = (w.kasb ?? '').toLowerCase();
+      final query = _searchQuery.toLowerCase().trim();
+      if (query.isNotEmpty && !name.contains(query) && !kasb.contains(query)) {
+        return false;
+      }
+      if (_selectedFilter == 'Musbat') {
+        return w.balans > 0;
+      } else if (_selectedFilter == 'Manfiy') {
+        return w.balans < 0;
+      } else if (_selectedFilter == 'Faol') {
+        return w.obsCount > 0;
+      }
+      return true;
+    }).toList();
 
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
         backgroundColor: AppColors.bg,
-        title: const Text('Odamlar'),
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        centerTitle: true,
+        title: const Text(
+          'Ishchilar',
+          style: TextStyle(
+            color: Color(0xFF0F172A),
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
         actions: [
           IconButton(
-            icon: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: AppColors.accent,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
-            ),
+            icon: const Icon(Icons.add_rounded, color: AppColors.accent, size: 28),
             onPressed: _openAddWorkerGlobal,
           ),
           const SizedBox(width: 8),
@@ -180,102 +374,171 @@ class _WorkersScreenState extends State<WorkersScreen> {
         onRefresh: _load,
         child: _loading
             ? const Center(child: CircularProgressIndicator())
-            : _workers.isEmpty
-                ? const Center(child: Text("Ishchilar yo'q", style: TextStyle(color: AppColors.muted)))
-                : ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-                    children: [
-                      // Summary row
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-                        child: Row(
-                          children: [
-                            _SumCol(label: 'Ishchilar', value: '$totalWorkers ta', color: AppColors.accent),
-                            _SumCol(label: 'Qarzdorlik', value: '${formatMoney(totalOwed)} so\'m', color: AppColors.orange),
-                            _SumCol(label: 'To\'langan', value: '${formatMoney(totalPaid)} so\'m', color: AppColors.green),
-                          ],
+            : ListView(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                children: [
+                  // 1. Search Bar
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    child: TextField(
+                      onChanged: (val) => setState(() => _searchQuery = val),
+                      decoration: InputDecoration(
+                        hintText: "Qidirish...",
+                        prefixIcon: const Icon(Icons.search_rounded, color: AppColors.muted, size: 20),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: const BorderSide(color: AppColors.border),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: const BorderSide(color: AppColors.border),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: const BorderSide(color: AppColors.accent, width: 1.2),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
 
-                      ..._workers.map((worker) {
-                        final color = colorForName(worker.displayName);
-                        final initials = worker.displayName.trim().isEmpty ? '?' : worker.displayName.trim()[0].toUpperCase();
-                        final owed = worker.balans;
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 10),
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-                          child: InkWell(
-                            onTap: () async {
-                              await Navigator.of(context).push(MaterialPageRoute(builder: (_) => WorkerDetailScreen(worker: worker)));
-                              _load();
-                            },
-                            child: Row(
-                              children: [
-                                CircleAvatar(
-                                  radius: 22,
-                                  backgroundColor: color.withOpacity(0.15),
-                                  child: Text(initials, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: color)),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(worker.displayName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                                      Row(
-                                        children: [
-                                          if (worker.kasb != null && worker.kasb!.isNotEmpty) ...[
-                                            Text(worker.kasb!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.accent)),
-                                            const Text(' • ', style: TextStyle(fontSize: 12, color: AppColors.muted)),
-                                          ],
-                                          Text('${worker.obsCount} ta loyiha', style: const TextStyle(fontSize: 12, color: AppColors.muted)),
-                                        ],
-                                      ),
-                                      if (owed > 0)
-                                        Text('Qarzdorlik: ${formatMoney(owed)} so\'m', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.green)),
-                                    ],
-                                  ),
-                                ),
-                                if (owed > 0)
-                                  TextButton(
-                                    onPressed: () => _quickPayWorker(worker),
-                                    style: TextButton.styleFrom(
-                                      backgroundColor: AppColors.green.withOpacity(0.1),
-                                      foregroundColor: AppColors.green,
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                    ),
-                                    child: const Text("To'lash", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-                                  ),
-                              ],
+                  // 2. Filter Chips
+                  _buildFilterChips(),
+                  const SizedBox(height: 16),
+
+                  // 3. Stats Cards
+                  _buildStatsCards(
+                    total: totalWorkers,
+                    musbat: musbatCount,
+                    manfiy: manfiyCount,
+                    nol: nolCount,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 4. Workers List
+                  filtered.isEmpty
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 40.0),
+                            child: Text(
+                              "Ishchilar topilmadi",
+                              style: TextStyle(color: AppColors.muted),
                             ),
                           ),
-                        );
-                      }),
-                    ],
-                  ),
-      ),
-    );
-  }
-}
+                        )
+                      : ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: filtered.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            final worker = filtered[index];
+                            final color = colorForName(worker.displayName);
+                            final initials = worker.displayName.trim().isEmpty
+                                ? '?'
+                                : worker.displayName.trim()[0].toUpperCase();
+                            final owed = worker.balans;
+                            final balanceColor = owed > 0
+                                ? const Color(0xFF22C55E)
+                                : (owed < 0 ? const Color(0xFFEF4444) : AppColors.muted);
 
-class _SumCol extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color color;
-  const _SumCol({required this.label, required this.value, required this.color});
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Column(
-        children: [
-          Text(label, style: const TextStyle(fontSize: 10, color: AppColors.muted), textAlign: TextAlign.center),
-          const SizedBox(height: 4),
-          Text(value, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: color), textAlign: TextAlign.center),
-        ],
+                            return Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: AppColors.card,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: AppColors.border),
+                              ),
+                              child: InkWell(
+                                onTap: () async {
+                                  await Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => WorkerDetailScreen(worker: worker),
+                                    ),
+                                  );
+                                  _load();
+                                },
+                                child: Column(
+                                  children: [
+                                    // Top Row: Avatar + Name/Profession + Balance
+                                    Row(
+                                      children: [
+                                        _buildAvatar(worker, initials, color),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                worker.displayName,
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.w800,
+                                                  fontSize: 15,
+                                                  color: Color(0xFF0F172A),
+                                                ),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                worker.kasb?.isNotEmpty == true
+                                                    ? worker.kasb!
+                                                    : 'Usta / Ishchi',
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Color(0xFF64748B),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Text(
+                                          formatBalance(owed),
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w800,
+                                            color: balanceColor,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16),
+
+                                    // Bottom Row: Grid Items
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: _buildGridItem(
+                                            "Ish haqi",
+                                            formatCurrency(worker.ishaqi),
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: _buildGridItem(
+                                            "Olingan",
+                                            formatCurrency(worker.olingan),
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: _buildGridItem(
+                                            "Oxirgi faoliyat",
+                                            formatLastActive(worker.lastActive),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ],
+              ),
       ),
     );
   }

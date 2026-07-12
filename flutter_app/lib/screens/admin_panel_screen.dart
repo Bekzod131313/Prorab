@@ -4,8 +4,9 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../main.dart';
 import '../theme/app_theme.dart';
-import '../widgets/project_card.dart' show formatMoney;
+import '../widgets/project_card.dart' show formatMoney, formatUzsToDisplay, formatTransactionAmount;
 import '../widgets/member_row.dart' show colorForName;
+import '../models/transaction.dart';
 
 class AdminPanelScreen extends StatefulWidget {
   const AdminPanelScreen({super.key});
@@ -458,7 +459,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text('Kirim', style: TextStyle(fontSize: 10, color: AppColors.muted)),
-                        Text('${formatMoney(kirim)} UZS', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.green)),
+                        Text(formatUzsToDisplay(kirim), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.green)),
                       ],
                     ),
                   ),
@@ -467,7 +468,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text('Chiqim', style: TextStyle(fontSize: 10, color: AppColors.muted)),
-                        Text('${formatMoney(chiqim)} UZS', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.red)),
+                        Text(formatUzsToDisplay(chiqim), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.red)),
                       ],
                     ),
                   ),
@@ -476,7 +477,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text('Qoldiq', style: TextStyle(fontSize: 10, color: AppColors.muted)),
-                        Text('${formatMoney(kirim - chiqim)} UZS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: (kirim - chiqim) >= 0 ? AppColors.green : AppColors.red)),
+                        Text(formatUzsToDisplay(kirim - chiqim), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: (kirim - chiqim) >= 0 ? AppColors.green : AppColors.red)),
                       ],
                     ),
                   ),
@@ -551,7 +552,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text('Ish haqi', style: TextStyle(fontSize: 10, color: AppColors.muted)),
-                        Text('${formatMoney(ishaqi)} so\'m', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+                        Text(formatUzsToDisplay(ishaqi), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
                       ],
                     ),
                   ),
@@ -560,7 +561,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text('Olingan', style: TextStyle(fontSize: 10, color: AppColors.muted)),
-                        Text('${formatMoney(olingan)} so\'m', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.green)),
+                        Text(formatUzsToDisplay(olingan), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.green)),
                       ],
                     ),
                   ),
@@ -569,7 +570,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text('Balans', style: TextStyle(fontSize: 10, color: AppColors.muted)),
-                        Text('${formatMoney(balance)} so\'m', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: balance > 0 ? AppColors.orange : AppColors.text)),
+                        Text(formatUzsToDisplay(balance), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: balance > 0 ? AppColors.orange : AppColors.text)),
                       ],
                     ),
                   ),
@@ -590,10 +591,10 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
       separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (_, i) {
         final tx = _transactions[i];
+        final txModel = ProjectTransaction.fromMap(tx);
         final ob = tx['ob'] as Map<String, dynamic>?;
 
         final obName = ob?['nomi'] ?? 'Noma\'lum Loyiha';
-        final summa = tx['summa'] ?? 0;
         final tur = tx['tur'] ?? 'spend';
         final kategoriya = tx['kategoriya'] ?? 'Boshqa';
         final izoh = tx['izoh'];
@@ -629,7 +630,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                 ),
               ),
               Text(
-                '${isIncome ? '+' : '-'}${formatMoney(summa)} so\'m',
+                '${isIncome ? '+' : '-'}${formatTransactionAmount(txModel)}',
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: color),
               ),
             ],

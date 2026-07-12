@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import '../main.dart';
 import '../models/transaction.dart';
 import '../theme/app_theme.dart';
-import 'project_card.dart' show formatMoney;
+import 'project_card.dart' show formatMoney, formatTransactionAmount;
 
 class TransactionRow extends StatelessWidget {
   final ProjectTransaction tx;
@@ -100,7 +100,7 @@ class TransactionRow extends StatelessWidget {
             ),
           ),
           Text(
-            '$sign${formatMoney(tx.summa)}',
+            '$sign${formatTransactionAmount(tx)}',
             style: TextStyle(fontWeight: FontWeight.w800, color: color),
           ),
         ],

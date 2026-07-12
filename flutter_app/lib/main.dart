@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'firebase_options.dart';
 import 'l10n/strings.dart';
 import 'services/notification_service.dart';
+import 'services/currency_service.dart';
 import 'theme/app_theme.dart';
 import 'screens/splash_screen.dart';
 
@@ -23,6 +24,7 @@ Future<void> main() async {
   await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
   supabase = Supabase.instance.client;
   await loadSavedLocale();
+  await CurrencyService().init();
   await NotificationService.initialize();
   runApp(const MoliyaApp());
 }
@@ -34,13 +36,16 @@ class MoliyaApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<String>(
       valueListenable: appLocaleNotifier,
-      builder: (_, __, ___) => MaterialApp(
-        navigatorKey: navigatorKey,
-        title: 'Risq',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.light,
-        themeMode: ThemeMode.light,
-        home: const SplashScreen(),
+      builder: (_, __, ___) => ValueListenableBuilder<String>(
+        valueListenable: CurrencyService().displayCurrencyNotifier,
+        builder: (_, __, ___) => MaterialApp(
+          navigatorKey: navigatorKey,
+          title: 'Risq',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          themeMode: ThemeMode.light,
+          home: const SplashScreen(),
+        ),
       ),
     );
   }

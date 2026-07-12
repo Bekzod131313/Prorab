@@ -7,7 +7,8 @@ import '../models/transaction.dart';
 import '../models/worker.dart';
 import '../theme/app_theme.dart';
 import '../widgets/member_row.dart' show colorForName;
-import '../widgets/project_card.dart' show formatMoney;
+import '../widgets/project_card.dart' show formatMoney, formatUzsToDisplay, formatTransactionAmount;
+import '../services/currency_service.dart';
 
 class WorkerDetailScreen extends StatefulWidget {
   final Worker worker;
@@ -66,6 +67,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
     WorkerProject? selectedOb =
         _worker.obsList.isNotEmpty ? _worker.obsList.first : null;
     DateTime selectedDate = DateTime.now();
+    String selectedCurrencyCode = CurrencyService().displayCurrency;
 
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
@@ -148,13 +150,37 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                     onChanged: (val) => setSt(() => selectedOb = val),
                   ),
                 const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ChoiceChip(
+                        label: const Text('so\'m (UZS)'),
+                        selected: selectedCurrencyCode == 'UZS',
+                        onSelected: (val) {
+                          if (val) setSt(() => selectedCurrencyCode = 'UZS');
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ChoiceChip(
+                        label: const Text('Dollar (USD)'),
+                        selected: selectedCurrencyCode == 'USD',
+                        onSelected: (val) {
+                          if (val) setSt(() => selectedCurrencyCode = 'USD');
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
                 TextField(
                   controller: amountCtrl,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                      hintText: "Miqdor (so'm)",
+                  decoration: InputDecoration(
+                      hintText: selectedCurrencyCode == 'UZS' ? "Miqdor (so'm)" : "Miqdor (\$)",
                       prefixIcon:
-                          Icon(Icons.monetization_on_outlined, size: 18)),
+                          const Icon(Icons.monetization_on_outlined, size: 18)),
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -237,6 +263,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
           amount: amount,
           izoh: noteCtrl.text.trim(),
           txDate: selectedDate,
+          currency: selectedCurrencyCode,
         );
         _load();
       } catch (e) {
@@ -257,6 +284,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
     WorkerProject? selectedOb =
         _worker.obsList.isNotEmpty ? _worker.obsList.first : null;
     DateTime selectedDate = DateTime.now();
+    String selectedCurrencyCode = CurrencyService().displayCurrency;
 
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
@@ -339,13 +367,37 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                     onChanged: (val) => setSt(() => selectedOb = val),
                   ),
                 const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ChoiceChip(
+                        label: const Text('so\'m (UZS)'),
+                        selected: selectedCurrencyCode == 'UZS',
+                        onSelected: (val) {
+                          if (val) setSt(() => selectedCurrencyCode = 'UZS');
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ChoiceChip(
+                        label: const Text('Dollar (USD)'),
+                        selected: selectedCurrencyCode == 'USD',
+                        onSelected: (val) {
+                          if (val) setSt(() => selectedCurrencyCode = 'USD');
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
                 TextField(
                   controller: amountCtrl,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                      hintText: "Miqdor (so'm)",
+                  decoration: InputDecoration(
+                      hintText: selectedCurrencyCode == 'UZS' ? "Miqdor (so'm)" : "Miqdor (\$)",
                       prefixIcon:
-                          Icon(Icons.monetization_on_outlined, size: 18)),
+                          const Icon(Icons.monetization_on_outlined, size: 18)),
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -428,6 +480,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
           amount: amount,
           izoh: noteCtrl.text.trim(),
           txDate: selectedDate,
+          currency: selectedCurrencyCode,
         );
         _load();
       } catch (e) {
@@ -446,12 +499,12 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
     final buffer = StringBuffer();
     buffer.writeln("Ishchi: ${_worker.displayName}");
     if (_worker.kasb != null) buffer.writeln("Kasbi: ${_worker.kasb}");
-    buffer.writeln("Ish haqi: ${formatMoney(_worker.ishaqi)} so'm");
-    buffer.writeln("Olingan avans: ${formatMoney(_worker.olingan)} so'm");
-    buffer.writeln("Balans: ${formatMoney(_worker.balans)} so'm");
+    buffer.writeln("Ish haqi: ${formatUzsToDisplay(_worker.ishaqi)}");
+    buffer.writeln("Olingan avans: ${formatUzsToDisplay(_worker.olingan)}");
+    buffer.writeln("Balans: ${formatUzsToDisplay(_worker.balans)}");
     buffer.writeln("\nLoyihalar bo'yicha:");
     for (final ob in _worker.obsList) {
-      buffer.writeln("- ${ob.obNomi}: ${formatMoney(ob.balans)} so'm");
+      buffer.writeln("- ${ob.obNomi}: ${formatUzsToDisplay(ob.balans)}");
     }
 
     showDialog(
@@ -628,14 +681,14 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                         children: [
                           _StatCard(
                             label: 'Ish haqi',
-                            value: '${formatMoney(worker.ishaqi)} so\'m',
+                            value: formatUzsToDisplay(worker.ishaqi),
                             color: const Color(0xFF2563EB),
                             bgColor: const Color(0xFF2563EB).withOpacity(0.06),
                           ),
                           const SizedBox(width: 8),
                           _StatCard(
                             label: 'Olingan',
-                            value: '${formatMoney(worker.olingan)} so\'m',
+                            value: formatUzsToDisplay(worker.olingan),
                             color: const Color(0xFFEA580C),
                             bgColor: const Color(0xFFEA580C).withOpacity(0.06),
                           ),
@@ -643,7 +696,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                           _StatCard(
                             label: 'Balans',
                             value:
-                                '${isPositive ? "" : "-"}${formatMoney(balans.abs())} so\'m',
+                                '${isPositive ? "" : "-"}${formatUzsToDisplay(balans.abs())}',
                             color: isPositive
                                 ? const Color(0xFF22C55E)
                                 : const Color(0xFFDC2626),
@@ -693,7 +746,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                                               fontWeight: FontWeight.w600,
                                               fontSize: 13))),
                                   Text(
-                                    '${ob.balans > 0 ? "" : "-"}${formatMoney(ob.balans.abs())} so\'m',
+                                    '${ob.balans > 0 ? "" : "-"}${formatUzsToDisplay(ob.balans.abs())}',
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w700,
@@ -814,7 +867,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                                     ),
                                   ),
                                   Text(
-                                    '${isWage ? "+" : "-"}${formatMoney(tx.summa)} so\'m',
+                                    '${isWage ? "+" : "-"}${formatTransactionAmount(tx)}',
                                     style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w700,

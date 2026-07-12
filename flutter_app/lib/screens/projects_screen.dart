@@ -230,10 +230,25 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                           onChanged: (v) => setState(() => _search = v),
                           decoration: InputDecoration(
                             hintText: tr('search'),
-                            prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                            prefixIcon: const Icon(Icons.search_rounded, color: AppColors.muted, size: 20),
                             suffixIcon: _search.isNotEmpty
                                 ? IconButton(icon: const Icon(Icons.clear_rounded, size: 18), onPressed: () { _searchCtrl.clear(); setState(() => _search = ''); })
                                 : null,
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              borderSide: const BorderSide(color: AppColors.border),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              borderSide: const BorderSide(color: AppColors.border),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              borderSide: const BorderSide(color: AppColors.accent, width: 1.2),
+                            ),
                           ),
                         ),
                       ),
@@ -249,8 +264,6 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                             _Chip(label: tr('all'),    selected: _filter == 'all',    onTap: () => setState(() => _filter = 'all')),
                             const SizedBox(width: 8),
                             _Chip(label: tr('active'), selected: _filter == 'active', onTap: () => setState(() => _filter = 'active'), color: AppColors.green),
-                            const SizedBox(width: 8),
-                            _Chip(label: tr('paused'), selected: _filter == 'paused', onTap: () => setState(() => _filter = 'paused'), color: AppColors.orange),
                             const SizedBox(width: 8),
                             _Chip(label: tr('done'),   selected: _filter == 'done',   onTap: () => setState(() => _filter = 'done'), color: AppColors.muted),
                           ]),

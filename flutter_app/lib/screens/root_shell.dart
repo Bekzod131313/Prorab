@@ -6,6 +6,7 @@ import 'dashboard_screen.dart';
 import 'profile_screen.dart';
 import 'projects_screen.dart';
 import 'workers_screen.dart';
+import '../services/currency_service.dart';
 
 class RootShell extends StatefulWidget {
   const RootShell({super.key});
@@ -15,14 +16,6 @@ class RootShell extends StatefulWidget {
 
 class _RootShellState extends State<RootShell> {
   int _index = 0;
-
-  static const _screens = [
-    DashboardScreen(),
-    ProjectsScreen(),
-    AnalyticsScreen(),
-    WorkersScreen(),
-    ProfileScreen(),
-  ];
 
   static const _icons = [
     (Icons.home_outlined, Icons.home_rounded),
@@ -38,9 +31,20 @@ class _RootShellState extends State<RootShell> {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<String>(
       valueListenable: appLocaleNotifier,
-      builder: (_, __, ___) => Scaffold(
-        backgroundColor: AppColors.bg,
-        body: IndexedStack(index: _index, children: _screens),
+      builder: (_, __, ___) => ValueListenableBuilder<String>(
+        valueListenable: CurrencyService().displayCurrencyNotifier,
+        builder: (_, activeCurrency, ___) => Scaffold(
+          backgroundColor: AppColors.bg,
+          body: IndexedStack(
+            index: _index,
+            children: [
+              DashboardScreen(key: ValueKey('db_$activeCurrency')),
+              ProjectsScreen(key: ValueKey('pr_$activeCurrency')),
+              AnalyticsScreen(key: ValueKey('an_$activeCurrency')),
+              WorkersScreen(key: ValueKey('wk_$activeCurrency')),
+              ProfileScreen(key: ValueKey('pf_$activeCurrency')),
+            ],
+          ),
         bottomNavigationBar: Container(
           decoration: const BoxDecoration(
             color: Colors.white,
@@ -75,6 +79,7 @@ class _RootShellState extends State<RootShell> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

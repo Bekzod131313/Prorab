@@ -15,6 +15,7 @@ class Worker {
   num ishaqi;
   num olingan;
   final List<WorkerProject> obsList;
+  DateTime? lastActive;
 
   Worker({
     required this.userId,
@@ -23,6 +24,7 @@ class Worker {
     required this.ishaqi,
     required this.olingan,
     required this.obsList,
+    this.lastActive,
   });
 
   num get balans => ishaqi - olingan;

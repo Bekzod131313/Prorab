@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/material.dart';
 import '../theme/app_theme.dart';
-import 'project_card.dart' show formatMoney;
+import 'project_card.dart' show formatMoney, formatUzsToDisplay;
 
 const _statusColors = {
   'kerak': Color(0xFFF43F5E),
@@ -58,11 +58,11 @@ class MaterialRow extends StatelessWidget {
             ),
           ),
           if (material.narx != null && material.narx! > 0)
-            Text(formatMoney(material.total), style: const TextStyle(fontWeight: FontWeight.w900)),
+            Text(formatUzsToDisplay(material.total), style: const TextStyle(fontWeight: FontWeight.w900)),
         ],
       ),
     ),
-    );
-  }
+  );
+}
 }
 

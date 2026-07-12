@@ -7,8 +7,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/profile_repository.dart';
 import '../l10n/strings.dart';
 import '../models/profile.dart';
+import '../services/currency_service.dart';
 import '../theme/app_theme.dart';
-import '../widgets/project_card.dart' show formatMoney;
+import '../widgets/project_card.dart' show formatMoney, formatUzsToDisplay;
 import 'splash_screen.dart';
 import 'admin_panel_screen.dart';
 
@@ -315,7 +316,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(width: 10),
                           Expanded(child: Text(tr('balance'), style: const TextStyle(fontSize: 14, color: AppColors.text2))),
                           Text(
-                            '${formatMoney(_stats!.totalBalance)} so\'m',
+                            formatUzsToDisplay(_stats!.totalBalance),
                             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _stats!.totalBalance >= 0 ? AppColors.green : AppColors.red),
                           ),
                         ]),
@@ -415,6 +416,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ]),
                       ),
                     ),
+                    const SizedBox(height: 24),
+                    // Currency switcher
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.card,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Valyuta',
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.text),
+                            ),
+                            const SizedBox(height: 12),
+                            ValueListenableBuilder<String>(
+                              valueListenable: CurrencyService().displayCurrencyNotifier,
+                              builder: (ctx, activeCurrency, _) => Row(
+                                children: [
+                                  Expanded(
+                                    child: _CurrencyBtn(
+                                      code: 'UZS',
+                                      label: "So'm (UZS)",
+                                      isSelected: activeCurrency == 'UZS',
+                                      onTap: () => CurrencyService().setDisplayCurrency('UZS'),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: _CurrencyBtn(
+                                      code: 'USD',
+                                      label: "Dollar (USD)",
+                                      isSelected: activeCurrency == 'USD',
+                                      onTap: () => CurrencyService().setDisplayCurrency('USD'),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 16),
 
                     if (_profile?.isAdmin == true) ...[
@@ -511,6 +558,46 @@ class _LangBtn extends StatelessWidget {
           border: Border.all(color: selected ? AppColors.accent : AppColors.border),
         ),
         child: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: selected ? Colors.white : AppColors.text2)),
+      ),
+    );
+  }
+}
+
+class _CurrencyBtn extends StatelessWidget {
+  final String code;
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _CurrencyBtn({
+    required this.code,
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        height: 38,
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.accent : AppColors.bg,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: isSelected ? AppColors.accent : AppColors.border),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: isSelected ? Colors.white : AppColors.text2,
+            ),
+          ),
+        ),
       ),
     );
   }

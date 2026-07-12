@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../models/project.dart';
+import '../models/transaction.dart';
+import '../services/currency_service.dart';
 import '../theme/app_theme.dart';
 
 const _cardColors = [
@@ -20,9 +22,34 @@ Color colorForProject(String nomi) {
   return _cardColors[h % _cardColors.length];
 }
 
-String formatMoney(num value) {
-  final f = NumberFormat.decimalPattern('uz');
-  return f.format(value);
+String formatMoney(num value, {String? currency}) {
+  final activeCurrency = currency ?? CurrencyService().displayCurrency;
+  if (activeCurrency == 'USD') {
+    final f = NumberFormat.decimalPattern('en_US');
+    return '\$${f.format(value)}';
+  } else {
+    final f = NumberFormat.decimalPattern('uz');
+    return '${f.format(value)} so\'m';
+  }
+}
+
+String formatUzsToDisplay(num valueUzs) {
+  final service = CurrencyService();
+  final converted = service.convertUzsToDisplay(valueUzs.toDouble());
+  return formatMoney(converted);
+}
+
+String formatTransactionAmount(ProjectTransaction tx) {
+  final service = CurrencyService();
+  if (service.displayCurrency == 'USD') {
+    final usdVal = tx.summaUsd;
+    final f = NumberFormat.decimalPattern('en_US');
+    return '\$${f.format(usdVal)}';
+  } else {
+    final uzsVal = tx.summaUzs;
+    final f = NumberFormat.decimalPattern('uz');
+    return '${f.format(uzsVal)} so\'m';
+  }
 }
 
 class ProjectCard extends StatelessWidget {
@@ -129,15 +156,15 @@ class ProjectCard extends StatelessWidget {
                 Expanded(
                   child: _StatItem(
                     label: 'QOLDIQ',
-                    value: '${bal >= 0 ? '+' : ''}${formatMoney(bal)}',
+                    value: '${bal >= 0 ? '+' : ''}${formatUzsToDisplay(bal)}',
                     color: balColor,
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: project.role == 'owner'
-                      ? _StatItem(label: 'KIRIM', value: formatMoney(project.kirim), color: const Color(0xFF16A34A))
-                      : _StatItem(label: 'ISHHAQI', value: formatMoney(project.ishaqi), color: AppColors.accentTeal),
+                      ? _StatItem(label: 'KIRIM', value: formatUzsToDisplay(project.kirim), color: const Color(0xFF16A34A))
+                      : _StatItem(label: 'ISHHAQI', value: formatUzsToDisplay(project.ishaqi), color: AppColors.accentTeal),
                 ),
               ],
             ),

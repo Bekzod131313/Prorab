@@ -21,7 +21,8 @@ import '../models/transaction.dart';
 import '../theme/app_theme.dart';
 import '../widgets/add_member_sheet.dart';
 import '../widgets/member_row.dart' show colorForName;
-import '../widgets/project_card.dart' show formatMoney;
+import '../widgets/project_card.dart' show formatMoney, formatUzsToDisplay, formatTransactionAmount;
+import '../services/currency_service.dart';
 
 const _categoryIconChoices = [
   Icons.category_rounded,
@@ -318,10 +319,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
         categories.isNotEmpty ? categories.first : null;
     String? selectedToUserId = preSelectedWorkerId;
 
-    if (preSelectedWorkerId != null && !isIncome) {
+     if (preSelectedWorkerId != null && !isIncome) {
       selectedCategory = categories.firstWhere((c) => c.isWorker,
           orElse: () => categories.first);
     }
+
+    String selectedCurrencyCode = CurrencyService().displayCurrency;
 
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
@@ -361,13 +364,37 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                               fontWeight: FontWeight.w800, fontSize: 17)),
                     ]),
                     const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ChoiceChip(
+                            label: const Text('so\'m (UZS)'),
+                            selected: selectedCurrencyCode == 'UZS',
+                            onSelected: (val) {
+                              if (val) setSt(() => selectedCurrencyCode = 'UZS');
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ChoiceChip(
+                            label: const Text('Dollar (USD)'),
+                            selected: selectedCurrencyCode == 'USD',
+                            onSelected: (val) {
+                              if (val) setSt(() => selectedCurrencyCode = 'USD');
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
                     TextField(
                         controller: amountCtrl,
                         keyboardType: TextInputType.number,
                         autofocus: true,
-                        decoration: const InputDecoration(
-                            hintText: "Summa (so'm)",
-                            prefixIcon: Icon(Icons.monetization_on_outlined,
+                        decoration: InputDecoration(
+                            hintText: selectedCurrencyCode == 'UZS' ? "Summa (so'm)" : "Summa (\$)",
+                            prefixIcon: const Icon(Icons.monetization_on_outlined,
                                 size: 18))),
                     const SizedBox(height: 12),
                     if (!isIncome) ...[
@@ -526,6 +553,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
             toUserId: selectedToUserId!,
             amount: amount,
             izoh: noteText.isNotEmpty ? noteText : null,
+            currency: selectedCurrencyCode,
           );
         } else {
           await _txRepo.logSelfWithdrawal(
@@ -533,6 +561,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
             amount: amount,
             kategoriya: selectedCategory?.name ?? "O'zim",
             izoh: noteText.isNotEmpty ? noteText : null,
+            currency: selectedCurrencyCode,
           );
         }
       } else {
@@ -543,6 +572,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
           kategoriya: isIncome ? 'Kirim' : (selectedCategory?.name ?? 'Boshqa'),
           izoh: noteText.isNotEmpty ? noteText : null,
           toUserId: isIncome ? null : selectedToUserId,
+          currency: selectedCurrencyCode,
         );
       }
       if (mounted) _loadSilent();
@@ -720,17 +750,17 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                 child: Column(children: [
                   _WorkerInfoRow(
                       label: 'Maosh',
-                      value: '${formatMoney(m.ishaqi)} so\'m',
+                      value: formatUzsToDisplay(m.ishaqi),
                       color: AppColors.text),
                   const Divider(color: AppColors.border, height: 1, indent: 14),
                   _WorkerInfoRow(
                       label: 'Olingan',
-                      value: '${formatMoney(m.olingan)} so\'m',
+                      value: formatUzsToDisplay(m.olingan),
                       color: AppColors.green),
                   const Divider(color: AppColors.border, height: 1, indent: 14),
                   _WorkerInfoRow(
                     label: 'Qarzdor',
-                    value: '${formatMoney(balance)} so\'m',
+                    value: formatUzsToDisplay(balance),
                     color: balance > 0 ? AppColors.orange : AppColors.muted,
                   ),
                 ]),
@@ -1042,223 +1072,68 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
                 children: [
-                  // Cover image or gradient banner
-                  if (project.imageUrl != null) ...[
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Image.network(
-                        project.imageUrl!,
-                        height: 160,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-
-                  // Header card
-                  Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                        color: AppColors.card,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.border),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.015),
-                            blurRadius: 16,
-                            offset: const Offset(0, 6),
-                          ),
-                        ]),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(children: [
-                          Expanded(
-                              child: Text(project.nomi,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 18,
-                                      letterSpacing: -0.5))),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                                color: (isDone
-                                        ? AppColors.green
-                                        : AppColors.accent)
-                                    .withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(30)),
-                            child: Text(isDone ? 'Yakunlangan' : 'Faol',
-                                style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w800,
-                                    color: isDone
-                                        ? AppColors.green
-                                        : AppColors.accent)),
-                          ),
-                        ]),
-                        if (project.manzil != null ||
-                            project.mijoz != null) ...[
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              const Icon(Icons.location_on_outlined,
-                                  size: 13, color: AppColors.muted),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                    [project.manzil, project.mijoz]
-                                        .where((s) => s != null && s.isNotEmpty)
-                                        .join(' • '),
-                                    style: const TextStyle(
-                                        fontSize: 13,
-                                        color: AppColors.muted,
-                                        fontWeight: FontWeight.w500),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis),
-                              ),
-                            ],
-                          ),
-                        ],
-                        const SizedBox(height: 14),
-                        const Divider(color: AppColors.border, height: 1),
-                        const SizedBox(height: 14),
-                        Row(children: [
-                          _InfoChip(label: 'Boshlanish', value: startFmt),
-                          const SizedBox(width: 8),
-                          _InfoChip(label: 'Tugash', value: endFmt),
-                          const SizedBox(width: 8),
-                          _InfoChip(label: 'Qolgan', value: '$left kun'),
-                        ]),
-                        const SizedBox(height: 14),
-                        Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('Bajarilish',
-                                  style: TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.text2,
-                                      fontWeight: FontWeight.w600)),
-                              Text('$progress%',
-                                  style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w800,
-                                      color: AppColors.text)),
-                            ]),
-                        const SizedBox(height: 8),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: LinearProgressIndicator(
-                            value: (progress / 100).clamp(0.0, 1.0),
-                            minHeight: 6,
-                            backgroundColor: AppColors.border,
-                            valueColor: AlwaysStoppedAnimation(
-                                isDone ? AppColors.green : AppColors.accent),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  // ── Hero card (image + overlay info) ──
+                  _buildHeroCard(project, isDone, progress, left),
                   const SizedBox(height: 16),
 
-                  // Big balance card
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 22),
-                    decoration: BoxDecoration(
-                        color: const Color(
-                            0xFF0F172A), // Dark slate banking card style
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF0F172A).withOpacity(0.15),
-                            blurRadius: 12,
-                            offset: const Offset(0, 6),
-                          ),
-                        ]),
-                    child: Column(children: [
-                      // Qoldiq (big)
-                      const Text('LOYIHA QOLDIG\'I',
-                          style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.white54,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 1.0)),
-                      const SizedBox(height: 6),
-                      Text(
-                        '${formatMoney(project.balance)} so\'m',
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w900,
-                          color: project.balance >= 0
-                              ? AppColors.green
-                              : AppColors.red,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      const Divider(color: Colors.white10, height: 1),
-                      const SizedBox(height: 18),
-                      Row(children: [
-                        Expanded(
-                            child: _BalanceItem(
-                          icon: Icons.arrow_downward_rounded,
-                          label: 'Kirim',
-                          value: project.kirim,
-                          color: AppColors.green,
-                        )),
-                        Container(width: 1, height: 36, color: Colors.white10),
-                        Expanded(
-                            child: _BalanceItem(
-                          icon: Icons.arrow_upward_rounded,
-                          label: 'Chiqim',
-                          value: project.chiqim,
-                          color: AppColors.red,
-                        )),
-                      ]),
-                    ]),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Action buttons
+                  // ── Action buttons ──
                   if (_project.role == 'owner') ...[
                     Row(children: [
                       Expanded(
-                        child: ElevatedButton.icon(
+                        child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.green,
+                              backgroundColor: AppColors.accent,
                               padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                               elevation: 0),
                           onPressed: () => _openAddTransaction(isIncome: true),
-                          icon: const Icon(Icons.arrow_downward_rounded,
-                              size: 16, color: Colors.white),
-                          label: const Text("Kirim",
-                              style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white)),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 28, height: 28,
+                                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
+                                child: const Icon(Icons.arrow_downward_rounded, size: 16, color: Colors.white),
+                              ),
+                              const SizedBox(width: 8),
+                              const Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Kirim', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
+                                  Text("Qo'shish", style: TextStyle(fontSize: 10, color: Colors.white70)),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: ElevatedButton.icon(
+                        child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.red,
+                              backgroundColor: AppColors.green,
                               padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                               elevation: 0),
                           onPressed: () => _openAddTransaction(isIncome: false),
-                          icon: const Icon(Icons.arrow_upward_rounded,
-                              size: 16, color: Colors.white),
-                          label: const Text("Chiqim",
-                              style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white)),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 28, height: 28,
+                                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
+                                child: const Icon(Icons.arrow_upward_rounded, size: 16, color: Colors.white),
+                              ),
+                              const SizedBox(width: 8),
+                              const Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Chiqim', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
+                                  Text("Qo'shish", style: TextStyle(fontSize: 10, color: Colors.white70)),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ]),
@@ -1268,34 +1143,26 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                       style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.red,
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           elevation: 0),
                       onPressed: () => _openAddTransaction(isIncome: false),
-                      icon: const Icon(Icons.arrow_upward_rounded,
-                          size: 16, color: Colors.white),
-                      label: const Text("Pul tarqatish / yechib olish",
-                          style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white)),
+                      icon: const Icon(Icons.arrow_upward_rounded, size: 16, color: Colors.white),
+                      label: const Text('Pul tarqatish / yechib olish',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white)),
                     ),
                     const SizedBox(height: 20),
                   ],
 
-                  // Tabs: Tranzaksiyalar | Ishchilar | Fayllar
+                  // ── Loyiha ma'lumotlari ──
+                  _buildInfoSection(project, isDone, progress, left, startFmt, endFmt),
+                  const SizedBox(height: 20),
+
+                  // ── Tabs: Tranzaksiyalar | Ishchilar | Fayllar ──
                   Container(
                     decoration: BoxDecoration(
                         color: AppColors.card,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.border),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.01),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ]),
+                        border: Border.all(color: AppColors.border)),
                     child: Column(children: [
                       TabBar(
                         controller: _tabController,
@@ -1304,10 +1171,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                         indicatorColor: AppColors.accent,
                         indicatorSize: TabBarIndicatorSize.tab,
                         dividerColor: AppColors.border,
-                        labelStyle: const TextStyle(
-                            fontWeight: FontWeight.w800, fontSize: 13),
-                        unselectedLabelStyle: const TextStyle(
-                            fontWeight: FontWeight.w600, fontSize: 13),
+                        labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                         tabs: const [
                           Tab(text: 'Tranzaksiyalar'),
                           Tab(text: 'Ishchilar'),
@@ -1333,7 +1198,177 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
     );
   }
 
+
+  // ── Hero card: image overlay with project name, progress, members, days ──
+  Widget _buildHeroCard(Project project, bool isDone, int progress, int left) {
+    final hasImage = project.imageUrl != null && project.imageUrl!.isNotEmpty;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: SizedBox(
+        height: 200,
+        width: double.infinity,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Background
+            if (hasImage)
+              Image.network(project.imageUrl!, fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Color(0xFF1A237E), Color(0xFF283593)],
+                            begin: Alignment.topLeft, end: Alignment.bottomRight,
+                          ),
+                        ),
+                      ))
+            else
+              GestureDetector(
+                onTap: _pickAndUploadImage,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF1A237E), Color(0xFF283593)],
+                      begin: Alignment.topLeft, end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.add_photo_alternate_outlined,
+                        color: Colors.white38, size: 48),
+                  ),
+                ),
+              ),
+            // Gradient overlay for text readability
+            Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.transparent, Color(0xCC000000)],
+                  begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                ),
+              ),
+            ),
+            // Status badge (top-right)
+            Positioned(
+              top: 12, right: 12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isDone ? AppColors.green : AppColors.accent,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(isDone ? 'Yakunlangan' : 'Faol',
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.white)),
+              ),
+            ),
+            // Bottom info overlay
+            Positioned(
+              left: 14, right: 14, bottom: 12,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(project.nomi,
+                      style: const TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18, shadows: [Shadow(blurRadius: 4)])),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: (progress / 100).clamp(0.0, 1.0),
+                      minHeight: 5,
+                      backgroundColor: Colors.white24,
+                      color: isDone ? AppColors.green : AppColors.accent,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      // Member avatars
+                      ...(_members.take(4).map((m) {
+                        final color = colorForName(m.displayName);
+                        final initials = m.displayName.trim().isEmpty ? '?' : m.displayName.trim()[0].toUpperCase();
+                        return Container(
+                          width: 24, height: 24,
+                          margin: const EdgeInsets.only(right: 4),
+                          decoration: BoxDecoration(shape: BoxShape.circle, color: color, border: Border.all(color: Colors.white, width: 1.5)),
+                          child: Center(child: Text(initials, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.white))),
+                        );
+                      })),
+                      if (_members.length > 4)
+                        Text('+${_members.length - 4}', style: const TextStyle(fontSize: 11, color: Colors.white70)),
+                      if (_members.isNotEmpty)
+                        Text(' ${_members.length} ishchi', style: const TextStyle(fontSize: 11, color: Colors.white70)),
+                      const Spacer(),
+                      const Icon(Icons.access_time_rounded, size: 12, color: Colors.white70),
+                      const SizedBox(width: 4),
+                      Text(left == 0 ? "Muddati o'tgan" : '$left kun qoldi',
+                          style: const TextStyle(fontSize: 11, color: Colors.white70)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Loyiha ma'lumotlari: icon-row info section ──
+  Widget _buildInfoSection(Project project, bool isDone, int progress, int left,
+      String startFmt, String endFmt) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text("Loyiha ma'lumotlari",
+            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: AppColors.text)),
+        const SizedBox(height: 10),
+        Container(
+          decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border)),
+          child: Column(children: [
+            _InfoRow(icon: Icons.calendar_today_rounded, label: 'Boshlangan sana', trailing: Text(startFmt, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700))),
+            const Divider(color: AppColors.border, height: 1, indent: 48),
+            _InfoRow(icon: Icons.event_rounded, label: 'Tugash sanasi', trailing: Text(endFmt, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700))),
+            const Divider(color: AppColors.border, height: 1, indent: 48),
+            _InfoRow(
+              icon: Icons.speed_rounded,
+              label: 'Bajarilish darajasi',
+              trailing: SizedBox(
+                width: 120,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Text('$progress%', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      width: 60,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: (progress / 100).clamp(0.0, 1.0),
+                          minHeight: 5,
+                          backgroundColor: AppColors.border,
+                          color: isDone ? AppColors.green : AppColors.accent,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const Divider(color: AppColors.border, height: 1, indent: 48),
+            _InfoRow(icon: Icons.people_outline_rounded, label: 'Jami ishchi', trailing: Text('${_members.length}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700))),
+          ]),
+        ),
+      ],
+    );
+  }
+
+  // ── So'nggi faoliyat: last 4 transactions with 'Barchasi' link ──
+
   Widget _buildTransactionsTab() {
+
     return Column(children: [
       // Filter chips
       Padding(
@@ -1432,7 +1467,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                                       fontSize: 11, color: AppColors.muted)),
                             ])),
                         Text(
-                            '${isIncome ? '+' : '-'}${formatMoney(tx.summa)} so\'m',
+                            '${isIncome ? '+' : '-'}${formatTransactionAmount(tx)}',
                             style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
@@ -1510,13 +1545,13 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                         Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              Text('${formatMoney(m.ishaqi)} so\'m',
+                              Text(formatUzsToDisplay(m.ishaqi),
                                   style: const TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w700)),
                               Text(
                                 balance > 0
-                                    ? 'Qarzdor: ${formatMoney(balance)}'
+                                    ? 'Qarzdor: ${formatUzsToDisplay(balance)}'
                                     : 'Hisob-kitob',
                                 style: TextStyle(
                                     fontSize: 11,
@@ -1702,74 +1737,29 @@ class _WorkerInfoRow extends StatelessWidget {
   }
 }
 
-class _InfoChip extends StatelessWidget {
+
+
+class _InfoRow extends StatelessWidget {
+  final IconData icon;
   final String label;
-  final String value;
-  const _InfoChip({required this.label, required this.value});
+  final Widget trailing;
+  const _InfoRow({required this.icon, required this.label, required this.trailing});
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-        decoration: BoxDecoration(
-            color: AppColors.bg, borderRadius: BorderRadius.circular(12)),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 10,
-                  color: AppColors.muted,
-                  fontWeight: FontWeight.w600)),
-          const SizedBox(height: 3),
-          Text(value,
-              style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.text)),
-        ]),
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      child: Row(children: [
+        Icon(icon, size: 18, color: AppColors.muted),
+        const SizedBox(width: 12),
+        Expanded(child: Text(label, style: const TextStyle(fontSize: 13, color: AppColors.text2))),
+        trailing,
+      ]),
     );
   }
 }
 
-class _BalanceItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final num value;
-  final Color color;
-  const _BalanceItem(
-      {required this.icon,
-      required this.label,
-      required this.value,
-      required this.color});
-  @override
-  Widget build(BuildContext context) {
-    return Column(children: [
-      Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Container(
-          width: 24,
-          height: 24,
-          decoration: BoxDecoration(
-              color: color.withOpacity(0.12), shape: BoxShape.circle),
-          child: Icon(icon, size: 12, color: color),
-        ),
-        const SizedBox(width: 6),
-        Text(label,
-            style: TextStyle(
-                fontSize: 11,
-                color: color,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.5)),
-      ]),
-      const SizedBox(height: 6),
-      Text('${formatMoney(value)} so\'m',
-          style: const TextStyle(
-              fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white),
-          textAlign: TextAlign.center),
-    ]);
-  }
-}
-
 class _FilterChip extends StatelessWidget {
+
   final String label;
   final bool selected;
   final VoidCallback onTap;

@@ -1,6 +1,7 @@
 import '../main.dart';
 import '../models/profile.dart';
 import '../models/worker.dart';
+import '../services/currency_service.dart';
 
 class WorkerRepository {
   Future<List<Worker>> loadAll() async {
@@ -82,6 +83,46 @@ class WorkerRepository {
       }
     } catch (_) {}
 
+    final uids = result.keys.toList();
+    if (uids.isNotEmpty) {
+      try {
+        final txs = await supabase
+            .from('transactions')
+            .select('to_user,from_user,tx_date,created_at')
+            .or('to_user.in.(${uids.join(",")}),from_user.in.(${uids.join(",")})');
+
+        final lastDates = <String, DateTime>{};
+        for (final row in (txs as List)) {
+          final dtStr = row['tx_date'] ?? row['created_at'];
+          if (dtStr == null) continue;
+          final dt = DateTime.tryParse(dtStr.toString());
+          if (dt == null) continue;
+
+          final toU = row['to_user']?.toString();
+          final fromU = row['from_user']?.toString();
+
+          if (toU != null && uids.contains(toU)) {
+            final existing = lastDates[toU];
+            if (existing == null || dt.isAfter(existing)) {
+              lastDates[toU] = dt;
+            }
+          }
+          if (fromU != null && uids.contains(fromU)) {
+            final existing = lastDates[fromU];
+            if (existing == null || dt.isAfter(existing)) {
+              lastDates[fromU] = dt;
+            }
+          }
+        }
+
+        for (final uid in uids) {
+          if (lastDates.containsKey(uid)) {
+            result[uid]!.lastActive = lastDates[uid];
+          }
+        }
+      } catch (_) {}
+    }
+
     return result.values.toList();
   }
 
@@ -120,8 +161,20 @@ class WorkerRepository {
   }
 
   /// Records an advance ("avans") payment to a worker on a project; increases `olingan`.
-  Future<void> giveAvans({required String obId, required String toUserId, required num amount, String? izoh, DateTime? txDate}) async {
+  Future<void> giveAvans({
+    required String obId,
+    required String toUserId,
+    required num amount,
+    String? izoh,
+    DateTime? txDate,
+    String currency = 'UZS',
+  }) async {
     final userId = supabase.auth.currentUser?.id;
+    final liveRate = CurrencyService().usdToUzsRate;
+    final converted = CurrencyService().convert(amount.toDouble(), currency);
+    final amountUzs = converted['UZS']!;
+    final amountUsd = converted['USD']!;
+
     await supabase.from('transactions').insert({
       'ob_id': obId,
       'from_user': userId,
@@ -131,6 +184,10 @@ class WorkerRepository {
       'kategoriya': 'usta',
       'izoh': izoh?.isNotEmpty == true ? izoh : 'Avans',
       'tx_date': (txDate ?? DateTime.now()).toIso8601String(),
+      'currency': currency,
+      'exchange_rate': liveRate,
+      'summa_usd': amountUsd,
+      'summa_uzs': amountUzs,
     });
 
     final member = await supabase
@@ -143,7 +200,7 @@ class WorkerRepository {
     if (member != null) {
       await supabase
           .from('ob_members')
-          .update({'olingan': (member['olingan'] ?? 0) + amount})
+          .update({'olingan': (member['olingan'] ?? 0) + amountUzs})
           .eq('ob_id', obId)
           .eq('user_id', toUserId);
     } else {
@@ -152,15 +209,27 @@ class WorkerRepository {
         'user_id': toUserId,
         'role': 'member',
         'ishaqi': 0,
-        'olingan': amount,
+        'olingan': amountUzs,
         'balance': 0,
       });
     }
   }
 
   /// Records a wage ("ish haqi") entry for a worker on a project; increases `ishaqi`.
-  Future<void> giveIshHaqi({required String obId, required String toUserId, required num amount, String? izoh, DateTime? txDate}) async {
+  Future<void> giveIshHaqi({
+    required String obId,
+    required String toUserId,
+    required num amount,
+    String? izoh,
+    DateTime? txDate,
+    String currency = 'UZS',
+  }) async {
     final userId = supabase.auth.currentUser?.id;
+    final liveRate = CurrencyService().usdToUzsRate;
+    final converted = CurrencyService().convert(amount.toDouble(), currency);
+    final amountUzs = converted['UZS']!;
+    final amountUsd = converted['USD']!;
+
     await supabase.from('transactions').insert({
       'ob_id': obId,
       'from_user': userId,
@@ -170,6 +239,10 @@ class WorkerRepository {
       'kategoriya': 'usta',
       'izoh': izoh?.isNotEmpty == true ? izoh : 'Ish haqi',
       'tx_date': (txDate ?? DateTime.now()).toIso8601String(),
+      'currency': currency,
+      'exchange_rate': liveRate,
+      'summa_usd': amountUsd,
+      'summa_uzs': amountUzs,
     });
 
     final member = await supabase
@@ -182,7 +255,7 @@ class WorkerRepository {
     if (member != null) {
       await supabase
           .from('ob_members')
-          .update({'ishaqi': (member['ishaqi'] ?? 0) + amount})
+          .update({'ishaqi': (member['ishaqi'] ?? 0) + amountUzs})
           .eq('ob_id', obId)
           .eq('user_id', toUserId);
     } else {
@@ -190,7 +263,7 @@ class WorkerRepository {
         'ob_id': obId,
         'user_id': toUserId,
         'role': 'member',
-        'ishaqi': amount,
+        'ishaqi': amountUzs,
         'olingan': 0,
         'balance': 0,
       });
