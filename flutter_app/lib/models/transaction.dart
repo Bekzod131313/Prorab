@@ -7,6 +7,7 @@ class ProjectTransaction {
   final String? kategoriya;
   final String? toUser;
   final String? fromUser;
+  final String? createdBy;
   final DateTime date;
   final String currency;
   final double exchangeRate;
@@ -22,6 +23,7 @@ class ProjectTransaction {
     required this.kategoriya,
     required this.toUser,
     required this.fromUser,
+    this.createdBy,
     required this.date,
     required this.currency,
     required this.exchangeRate,
@@ -52,6 +54,7 @@ class ProjectTransaction {
       kategoriya: row['kategoriya'],
       toUser: row['to_user']?.toString(),
       fromUser: row['from_user']?.toString(),
+      createdBy: row['created_by']?.toString(),
       date: DateTime.tryParse(dt ?? '') ?? DateTime.now(),
       currency: currency,
       exchangeRate: rate.toDouble(),

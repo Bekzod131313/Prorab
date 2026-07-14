@@ -3,12 +3,15 @@ import '../models/transaction.dart';
 import '../services/currency_service.dart';
 
 class TransactionRepository {
-  Future<List<ProjectTransaction>> loadForProject(String obId) async {
-    final data = await supabase
+  Future<List<ProjectTransaction>> loadForProject(String obId, {String? createdBy}) async {
+    var query = supabase
         .from('transactions')
         .select('*')
-        .eq('ob_id', obId)
-        .order('tx_date', ascending: false);
+        .eq('ob_id', obId);
+    if (createdBy != null) {
+      query = query.eq('created_by', createdBy);
+    }
+    final data = await query.order('tx_date', ascending: false);
 
     return (data as List)
         .map((row) => ProjectTransaction.fromMap(row as Map<String, dynamic>))
@@ -48,16 +51,35 @@ class TransactionRepository {
         'exchange_rate': liveRate,
         'summa_usd': amountUsd,
         'summa_uzs': amountUzs,
+        'created_by': userId,
       });
 
-      final ob = await supabase
-          .from('obyektlar')
-          .select('kirim')
-          .eq('id', obId)
-          .single();
-      await supabase
-          .from('obyektlar')
-          .update({'kirim': (ob['kirim'] ?? 0) + amountUzs}).eq('id', obId);
+      if (userId != null) {
+        final member = await supabase
+            .from('ob_members')
+            .select('kirim, role')
+            .eq('ob_id', obId)
+            .eq('user_id', userId)
+            .maybeSingle();
+        if (member != null) {
+          await supabase
+              .from('ob_members')
+              .update({'kirim': ((member['kirim'] as num?) ?? 0) + amountUzs})
+              .eq('ob_id', obId)
+              .eq('user_id', userId);
+
+          if (member['role'] == 'owner') {
+            final ob = await supabase
+                .from('obyektlar')
+                .select('kirim')
+                .eq('id', obId)
+                .single();
+            await supabase
+                .from('obyektlar')
+                .update({'kirim': (ob['kirim'] ?? 0) + amountUzs}).eq('id', obId);
+          }
+        }
+      }
     } else {
       await supabase.from('transactions').insert({
         'ob_id': obId,
@@ -72,30 +94,54 @@ class TransactionRepository {
         'exchange_rate': liveRate,
         'summa_usd': amountUsd,
         'summa_uzs': amountUzs,
+        'created_by': userId,
       });
 
-      if (toUserId != null) {
+      if (userId != null) {
         final member = await supabase
             .from('ob_members')
-            .select('olingan')
+            .select('chiqim, role')
             .eq('ob_id', obId)
-            .eq('user_id', toUserId)
-            .single();
-        await supabase
-            .from('ob_members')
-            .update({'olingan': (member['olingan'] ?? 0) + amountUzs})
-            .eq('ob_id', obId)
-            .eq('user_id', toUserId);
+            .eq('user_id', userId)
+            .maybeSingle();
+        if (member != null) {
+          await supabase
+              .from('ob_members')
+              .update({'chiqim': ((member['chiqim'] as num?) ?? 0) + amountUzs})
+              .eq('ob_id', obId)
+              .eq('user_id', userId);
+
+          if (member['role'] == 'owner') {
+            final ob = await supabase
+                .from('obyektlar')
+                .select('chiqim')
+                .eq('id', obId)
+                .single();
+            await supabase
+                .from('obyektlar')
+                .update({'chiqim': (ob['chiqim'] ?? 0) + amountUzs}).eq('id', obId);
+          }
+        }
       }
 
-      final ob = await supabase
-          .from('obyektlar')
-          .select('chiqim')
-          .eq('id', obId)
-          .single();
-      await supabase
-          .from('obyektlar')
-          .update({'chiqim': (ob['chiqim'] ?? 0) + amountUzs}).eq('id', obId);
+      if (toUserId != null) {
+        final toMember = await supabase
+            .from('ob_members')
+            .select('olingan, kirim')
+            .eq('ob_id', obId)
+            .eq('user_id', toUserId)
+            .maybeSingle();
+        if (toMember != null) {
+          await supabase
+              .from('ob_members')
+              .update({
+                'olingan': ((toMember['olingan'] as num?) ?? 0) + amountUzs,
+                'kirim': ((toMember['kirim'] as num?) ?? 0) + amountUzs,
+              })
+              .eq('ob_id', obId)
+              .eq('user_id', toUserId);
+        }
+      }
     }
   }
 
@@ -130,19 +176,41 @@ class TransactionRepository {
       'exchange_rate': liveRate,
       'summa_usd': amountUsd,
       'summa_uzs': amountUzs,
+      'created_by': userId,
     });
 
-    final member = await supabase
+    if (userId != null) {
+      final fromMem = await supabase
+          .from('ob_members')
+          .select('chiqim')
+          .eq('ob_id', obId)
+          .eq('user_id', userId)
+          .maybeSingle();
+      if (fromMem != null) {
+        await supabase
+            .from('ob_members')
+            .update({'chiqim': ((fromMem['chiqim'] as num?) ?? 0) + amountUzs})
+            .eq('ob_id', obId)
+            .eq('user_id', userId);
+      }
+    }
+
+    final toMem = await supabase
         .from('ob_members')
-        .select('olingan')
+        .select('olingan, kirim')
         .eq('ob_id', obId)
         .eq('user_id', toUserId)
-        .single();
-    await supabase
-        .from('ob_members')
-        .update({'olingan': (member['olingan'] ?? 0) + amountUzs})
-        .eq('ob_id', obId)
-        .eq('user_id', toUserId);
+        .maybeSingle();
+    if (toMem != null) {
+      await supabase
+          .from('ob_members')
+          .update({
+            'olingan': ((toMem['olingan'] as num?) ?? 0) + amountUzs,
+            'kirim': ((toMem['kirim'] as num?) ?? 0) + amountUzs,
+          })
+          .eq('ob_id', obId)
+          .eq('user_id', toUserId);
+    }
   }
 
   /// A member (usta) withdraws part of their own already-received money for
@@ -175,16 +243,38 @@ class TransactionRepository {
       'exchange_rate': liveRate,
       'summa_usd': amountUsd,
       'summa_uzs': amountUzs,
+      'created_by': userId,
     });
+
+    if (userId != null) {
+      final mem = await supabase
+          .from('ob_members')
+          .select('chiqim')
+          .eq('ob_id', obId)
+          .eq('user_id', userId)
+          .maybeSingle();
+      if (mem != null) {
+        await supabase
+            .from('ob_members')
+            .update({'chiqim': ((mem['chiqim'] as num?) ?? 0) + amountUzs})
+            .eq('ob_id', obId)
+            .eq('user_id', userId);
+      }
+    }
   }
 
   Future<List<ProjectTransaction>> loadRecentForProjects(List<String> obIds,
       {int limit = 6}) async {
     if (obIds.isEmpty) return [];
-    final data = await supabase
+    final userId = supabase.auth.currentUser?.id;
+    var query = supabase
         .from('transactions')
         .select('*')
-        .inFilter('ob_id', obIds)
+        .inFilter('ob_id', obIds);
+    if (userId != null) {
+      query = query.eq('created_by', userId);
+    }
+    final data = await query
         .order('tx_date', ascending: false)
         .limit(limit);
 
@@ -218,6 +308,23 @@ class TransactionRepository {
       await supabase
           .from('obyektlar')
           .update({'kirim': newVal < 0 ? 0 : newVal}).eq('id', tx.obId);
+
+      if (tx.toUser != null) {
+        final mem = await supabase
+            .from('ob_members')
+            .select('kirim')
+            .eq('ob_id', tx.obId)
+            .eq('user_id', tx.toUser!)
+            .maybeSingle();
+        if (mem != null) {
+          final newK = ((mem['kirim'] as num?) ?? 0) - tx.summa;
+          await supabase
+              .from('ob_members')
+              .update({'kirim': newK < 0 ? 0 : newK})
+              .eq('ob_id', tx.obId)
+              .eq('user_id', tx.toUser!);
+        }
+      }
     } else if (tx.tur == 'spend') {
       final ob = await supabase
           .from('obyektlar')
@@ -229,35 +336,77 @@ class TransactionRepository {
           .from('obyektlar')
           .update({'chiqim': newVal < 0 ? 0 : newVal}).eq('id', tx.obId);
 
+      if (tx.fromUser != null) {
+        final mem = await supabase
+            .from('ob_members')
+            .select('chiqim')
+            .eq('ob_id', tx.obId)
+            .eq('user_id', tx.fromUser!)
+            .maybeSingle();
+        if (mem != null) {
+          final newC = ((mem['chiqim'] as num?) ?? 0) - tx.summa;
+          await supabase
+              .from('ob_members')
+              .update({'chiqim': newC < 0 ? 0 : newC})
+              .eq('ob_id', tx.obId)
+              .eq('user_id', tx.fromUser!);
+        }
+      }
+
       if (tx.toUser != null) {
         final mem = await supabase
             .from('ob_members')
-            .select('olingan')
+            .select('olingan, kirim')
             .eq('ob_id', tx.obId)
             .eq('user_id', tx.toUser!)
             .maybeSingle();
         if (mem != null) {
           final newO = ((mem['olingan'] as num?) ?? 0) - tx.summa;
+          final newK = ((mem['kirim'] as num?) ?? 0) - tx.summa;
           await supabase
               .from('ob_members')
-              .update({'olingan': newO < 0 ? 0 : newO})
+              .update({
+                'olingan': newO < 0 ? 0 : newO,
+                'kirim': newK < 0 ? 0 : newK,
+              })
               .eq('ob_id', tx.obId)
               .eq('user_id', tx.toUser!);
         }
       }
     } else if (tx.tur == 'send') {
+      if (tx.fromUser != null) {
+        final mem = await supabase
+            .from('ob_members')
+            .select('chiqim')
+            .eq('ob_id', tx.obId)
+            .eq('user_id', tx.fromUser!)
+            .maybeSingle();
+        if (mem != null) {
+          final newC = ((mem['chiqim'] as num?) ?? 0) - tx.summa;
+          await supabase
+              .from('ob_members')
+              .update({'chiqim': newC < 0 ? 0 : newC})
+              .eq('ob_id', tx.obId)
+              .eq('user_id', tx.fromUser!);
+        }
+      }
+
       if (tx.toUser != null && tx.toUser != tx.fromUser) {
         final mem = await supabase
             .from('ob_members')
-            .select('olingan')
+            .select('olingan, kirim')
             .eq('ob_id', tx.obId)
             .eq('user_id', tx.toUser!)
             .maybeSingle();
         if (mem != null) {
           final newO = ((mem['olingan'] as num?) ?? 0) - tx.summa;
+          final newK = ((mem['kirim'] as num?) ?? 0) - tx.summa;
           await supabase
               .from('ob_members')
-              .update({'olingan': newO < 0 ? 0 : newO})
+              .update({
+                'olingan': newO < 0 ? 0 : newO,
+                'kirim': newK < 0 ? 0 : newK,
+              })
               .eq('ob_id', tx.obId)
               .eq('user_id', tx.toUser!);
         }
@@ -266,15 +415,19 @@ class TransactionRepository {
       if (tx.toUser != null) {
         final mem = await supabase
             .from('ob_members')
-            .select('ishaqi')
+            .select('ishaqi, kirim')
             .eq('ob_id', tx.obId)
             .eq('user_id', tx.toUser!)
             .maybeSingle();
         if (mem != null) {
           final newI = ((mem['ishaqi'] as num?) ?? 0) - tx.summa;
+          final newK = ((mem['kirim'] as num?) ?? 0) - tx.summa;
           await supabase
               .from('ob_members')
-              .update({'ishaqi': newI < 0 ? 0 : newI})
+              .update({
+                'ishaqi': newI < 0 ? 0 : newI,
+                'kirim': newK < 0 ? 0 : newK,
+              })
               .eq('ob_id', tx.obId)
               .eq('user_id', tx.toUser!);
         }

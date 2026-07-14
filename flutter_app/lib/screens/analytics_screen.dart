@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../main.dart';
 import '../data/project_repository.dart';
 import '../data/transaction_repository.dart';
 import '../models/project.dart';
@@ -7,6 +8,7 @@ import '../models/transaction.dart';
 import '../theme/app_theme.dart';
 import '../widgets/pie_chart.dart';
 import '../widgets/project_card.dart' show formatUzsToDisplay;
+import '../widgets/shimmer.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({super.key});
@@ -33,10 +35,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
+    final userId = supabase.auth.currentUser?.id;
     try {
       final projects = await _projectRepo.loadProjects();
-      final txFutures = projects.where((p) => p.role == 'owner').map((p) async {
-        final txs = await _txRepo.loadForProject(p.id);
+      final txFutures = projects.map((p) async {
+        final txs = await _txRepo.loadForProject(p.id, createdBy: userId);
         return MapEntry(p.id, txs);
       });
       final entries = await Future.wait(txFutures);
@@ -47,8 +50,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         _txsByProject = txMap;
         _loading = false;
         // Pre-select first project if none selected yet
-        if (_selectedProject == null && _ownerProjects.isNotEmpty) {
-          _selectedProject = _ownerProjects.first;
+        if (_selectedProject == null && _myProjects.isNotEmpty) {
+          _selectedProject = _myProjects.first;
         }
       });
     } catch (e) {
@@ -56,12 +59,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     }
   }
 
-  List<Project> get _ownerProjects => _projects.where((p) => p.role == 'owner').toList();
-  List<Project> get _active => _ownerProjects.where((p) => p.status != 'done').toList();
-  List<Project> get _done => _ownerProjects.where((p) => p.status == 'done').toList();
+  List<Project> get _myProjects => _projects;
+  List<Project> get _active => _myProjects.where((p) => p.status != 'done').toList();
+  List<Project> get _done => _myProjects.where((p) => p.status == 'done').toList();
 
-  num get _totalKirim => _ownerProjects.fold(0, (s, p) => s + p.kirim);
-  num get _totalChiqim => _ownerProjects.fold(0, (s, p) => s + p.chiqim);
+  num get _totalKirim => _myProjects.fold(0, (s, p) => s + p.kirim);
+  num get _totalChiqim => _myProjects.fold(0, (s, p) => s + p.chiqim);
   num get _totalBalance => _totalKirim - _totalChiqim;
 
   Map<String, num> get _byCategory {
@@ -112,14 +115,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       body: RefreshIndicator(
         onRefresh: _load,
         child: _loading
-            ? const Center(child: CircularProgressIndicator())
+            ? _buildShimmerLoading()
             : ListView(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
                 children: [
                   // Summary cards
                   Row(
                     children: [
-                      _SummaryCard(label: 'Jami', value: '${_ownerProjects.length}', sub: 'Loyiha', color: AppColors.accent),
+                      _SummaryCard(label: 'Jami', value: '${_myProjects.length}', sub: 'Loyiha', color: AppColors.accent),
                       const SizedBox(width: 10),
                       _SummaryCard(label: 'Faol', value: '${_active.length}', sub: 'Loyiha', color: AppColors.green),
                       const SizedBox(width: 10),
@@ -188,7 +191,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   ],
 
                   // ──────── Per-project statistics ────────
-                  if (_ownerProjects.isNotEmpty) ...[
+                  if (_myProjects.isNotEmpty) ...[
                     // Section header
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
@@ -221,7 +224,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.text),
                           dropdownColor: AppColors.card,
                           borderRadius: BorderRadius.circular(14),
-                          items: _ownerProjects.map((p) => DropdownMenuItem(
+                          items: _myProjects.map((p) => DropdownMenuItem(
                             value: p,
                             child: Text(p.nomi, overflow: TextOverflow.ellipsis),
                           )).toList(),
@@ -469,6 +472,27 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       ],
     );
   }
+
+  Widget _buildShimmerLoading() {
+    return Shimmer(
+      child: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        children: const [
+          Row(
+            children: [
+              Expanded(child: ShimmerBox(height: 70, borderRadius: 14)),
+              SizedBox(width: 10),
+              Expanded(child: ShimmerBox(height: 70, borderRadius: 14)),
+            ],
+          ),
+          SizedBox(height: 24),
+          ShimmerBox(height: 220, borderRadius: 18),
+          SizedBox(height: 24),
+          ShimmerBox(height: 180, borderRadius: 18),
+        ],
+      ),
+    );
+  }
 }
 
 // ─────────── Sub-widgets ───────────
@@ -572,6 +596,7 @@ class _TxCountChip extends StatelessWidget {
       ),
     );
   }
+
 }
 
 class _HealthGauge extends StatelessWidget {

@@ -6,6 +6,7 @@ import '../models/project.dart';
 import '../theme/app_theme.dart';
 import 'project_detail_screen.dart';
 import 'notifications_screen.dart';
+import '../widgets/shimmer.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -182,11 +183,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? _buildShimmerLoading()
           : RefreshIndicator(
               onRefresh: _load,
               child: _buildBody(),
             ),
+    );
+  }
+
+  Widget _buildShimmerLoading() {
+    return Shimmer(
+      child: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        children: const [
+          ShimmerBox(height: 200, borderRadius: 24),
+          SizedBox(height: 24),
+          Row(
+            children: [
+              ShimmerBox(width: 80, height: 16),
+              Spacer(),
+              ShimmerBox(width: 40, height: 16),
+            ],
+          ),
+          SizedBox(height: 16),
+          ShimmerBox(height: 100, borderRadius: 16),
+          SizedBox(height: 12),
+          ShimmerBox(height: 100, borderRadius: 16),
+        ],
+      ),
     );
   }
 

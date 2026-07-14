@@ -9,15 +9,18 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   supabase_flutter: ^2.5.0
   google_fonts: ^6.2.1
-  intl: ^0.19.0
+  intl: any
   http: ^1.2.0
   shared_preferences: ^2.2.0
   share_plus: ^10.1.4
   image_picker: ^1.1.2
   file_picker: ^8.1.2
   url_launcher: ^6.3.0
+  package_info_plus: any
   firebase_core: ^4.11.0
   firebase_messaging: ^16.4.1
 

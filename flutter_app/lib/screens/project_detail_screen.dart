@@ -23,6 +23,9 @@ import '../widgets/add_member_sheet.dart';
 import '../widgets/member_row.dart' show colorForName;
 import '../widgets/project_card.dart' show formatMoney, formatUzsToDisplay, formatTransactionAmount;
 import '../services/currency_service.dart';
+import '../widgets/shimmer.dart';
+import '../utils/price_formatter.dart';
+import '../utils/phone_formatter.dart';
 
 const _categoryIconChoices = [
   Icons.category_rounded,
@@ -104,6 +107,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
   bool _loading = true;
   bool _filesLoading = false;
   String _txFilter = 'all';
+  String _sortBy = 'date';
+  DateTimeRange? _dateRange;
 
   late TabController _tabController;
 
@@ -164,9 +169,10 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
   }
 
   Future<void> _loadSilent() async {
+    final userId = supabase.auth.currentUser?.id;
     try {
       final results = await Future.wait([
-        _txRepo.loadForProject(_project.id),
+        _txRepo.loadForProject(_project.id, createdBy: userId),
         _memberRepo.loadForProject(_project.id),
         _projectRepo.loadProjectById(_project.id),
       ]);
@@ -208,28 +214,29 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
   }
 
   List<ProjectTransaction> get _filteredTxs {
-    final userId = supabase.auth.currentUser?.id;
-    List<ProjectTransaction> base;
-    if (_project.role == 'owner') {
-      base = _txs
-          .where((tx) =>
-              tx.tur == 'income' ||
-              ((tx.tur == 'send' || tx.tur == 'spend' || tx.tur == 'ishhaqi') &&
-                  tx.fromUser == userId))
-          .toList();
-    } else {
-      base = _txs
-          .where((tx) => tx.fromUser == userId || tx.toUser == userId)
-          .toList();
-    }
+    var base = _txs;
     switch (_txFilter) {
       case 'income':
-        return base.where((tx) => tx.tur == 'income').toList();
+        base = base.where((tx) => tx.tur == 'income').toList();
+        break;
       case 'expense':
-        return base.where((tx) => tx.tur != 'income').toList();
-      default:
-        return base;
+        base = base.where((tx) => tx.tur != 'income').toList();
+        break;
     }
+
+    if (_dateRange != null) {
+      final startOfDay = DateTime(_dateRange!.start.year, _dateRange!.start.month, _dateRange!.start.day);
+      final endOfDay = DateTime(_dateRange!.end.year, _dateRange!.end.month, _dateRange!.end.day, 23, 59, 59);
+      base = base.where((tx) => tx.date.isAfter(startOfDay.subtract(const Duration(seconds: 1))) && tx.date.isBefore(endOfDay.add(const Duration(seconds: 1)))).toList();
+    }
+
+    if (_sortBy == 'price') {
+      base.sort((a, b) => b.summaUzs.compareTo(a.summaUzs));
+    } else {
+      base.sort((a, b) => b.date.compareTo(a.date));
+    }
+
+    return base;
   }
 
   Future<_ExpenseCategory?> _openAddCategoryDialog(BuildContext ctx) async {
@@ -295,6 +302,31 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
       nameCtrl.dispose();
     });
     return result;
+  }
+
+  Future<void> _selectDateRange() async {
+    final picked = await showDateRangePicker(
+      context: context,
+      initialDateRange: _dateRange,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+                  primary: AppColors.accent,
+                  onPrimary: Colors.white,
+                  surface: AppColors.card,
+                  onSurface: AppColors.text,
+                ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() => _dateRange = picked);
+    }
   }
 
   Future<void> _openAddTransaction(
@@ -391,10 +423,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                     TextField(
                         controller: amountCtrl,
                         keyboardType: TextInputType.number,
+                        inputFormatters: [PriceInputFormatter()],
                         autofocus: true,
                         decoration: InputDecoration(
                             hintText: selectedCurrencyCode == 'UZS' ? "Summa (so'm)" : "Summa (\$)",
-                            prefixIcon: const Icon(Icons.monetization_on_outlined,
+                            prefixIcon: const Icon(Icons.payments_outlined,
                                 size: 18))),
                     const SizedBox(height: 12),
                     if (!isIncome) ...[
@@ -738,7 +771,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                         const TextStyle(fontSize: 13, color: AppColors.muted)),
               if (m.profile?.phone.isNotEmpty == true) ...[
                 const SizedBox(height: 4),
-                Text(m.profile!.phone,
+                Text(PhoneFormatter.format(m.profile!.phone),
                     style:
                         const TextStyle(fontSize: 13, color: AppColors.accent)),
               ],
@@ -749,20 +782,28 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                     borderRadius: BorderRadius.circular(14)),
                 child: Column(children: [
                   _WorkerInfoRow(
-                      label: 'Maosh',
+                      label: 'Ish haqi',
                       value: formatUzsToDisplay(m.ishaqi),
                       color: AppColors.text),
                   const Divider(color: AppColors.border, height: 1, indent: 14),
                   _WorkerInfoRow(
-                      label: 'Olingan',
+                      label: "To'langan",
                       value: formatUzsToDisplay(m.olingan),
                       color: AppColors.green),
                   const Divider(color: AppColors.border, height: 1, indent: 14),
                   _WorkerInfoRow(
-                    label: 'Qarzdor',
+                    label: 'Qoldiq',
                     value: formatUzsToDisplay(balance),
                     color: balance > 0 ? AppColors.orange : AppColors.muted,
                   ),
+                  if (m.boshlanish != null && m.tugash != null) ...[
+                    const Divider(color: AppColors.border, height: 1, indent: 14),
+                    _WorkerInfoRow(
+                      label: 'Muddati',
+                      value: "${_dateFmt.format(m.boshlanish!)} - ${_dateFmt.format(m.tugash!)}",
+                      color: AppColors.text,
+                    ),
+                  ],
                 ]),
               ),
               const SizedBox(height: 16),
@@ -788,7 +829,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                                 child: const Text('Bekor')),
                             ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.red),
+                                    backgroundColor: AppColors.red,
+                                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10)),
                                 onPressed: () => Navigator.of(d).pop(true),
                                 child: const Text("O'chirish")),
                           ],
@@ -860,47 +902,61 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
           kasbCtrl: kasbCtrl,
           ishaqiCtrl: ishaqiCtrl,
           existingWorkers: existingWorkers,
+          defaultBoshlanish: _project.boshlanish,
+          defaultTugash: _project.tugash ?? (_project.boshlanish != null ? _project.boshlanish!.add(Duration(days: _project.muddat)) : null),
         ),
       ),
     );
 
-    if (result == true) {
-      try {
-        final ishaqi = num.tryParse(ishaqiCtrl.text.trim()) ?? 0;
-        await _memberRepo.addMember(
-            obId: _project.id,
-            phone: phoneCtrl.text.trim(),
-            kasb: kasbCtrl.text.trim(),
-            ishaqi: ishaqi);
-        _loadSilent();
-      } catch (e) {
-        if (mounted)
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text(e.toString())));
-      }
-    } else if (result is List<Worker>) {
-      int successCount = 0;
-      final errors = <String>[];
-      for (final w in result) {
+    if (result is Map) {
+      final boshlanish = result['boshlanish'] as DateTime?;
+      final tugash = result['tugash'] as DateTime?;
+      final isNew = result['isNew'] as bool;
+      if (isNew) {
         try {
-          if (w.profile?.phone != null) {
-            await _memberRepo.addMember(
-                obId: _project.id, phone: w.profile!.phone, kasb: w.kasb);
-            successCount++;
-          }
+          final ishaqi = num.tryParse(ishaqiCtrl.text.replaceAll(' ', '')) ?? 0;
+          await _memberRepo.addMember(
+              obId: _project.id,
+              phone: phoneCtrl.text.trim(),
+              kasb: kasbCtrl.text.trim(),
+              ishaqi: ishaqi,
+              boshlanish: boshlanish,
+              tugash: tugash);
+          _loadSilent();
         } catch (e) {
-          errors.add("${w.displayName}: $e");
+          if (mounted)
+            ScaffoldMessenger.of(context)
+                .showSnackBar(SnackBar(content: Text(e.toString())));
         }
-      }
-      _loadSilent();
-      if (mounted) {
-        if (errors.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text("$successCount ta ishchi jamoaga qo'shildi")));
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(
-                  "$successCount ta qo'shildi. Xatoliklar: ${errors.join(', ')}")));
+      } else {
+        final workers = result['workers'] as List<Worker>;
+        int successCount = 0;
+        final errors = <String>[];
+        for (final w in workers) {
+          try {
+            if (w.profile?.phone != null) {
+              await _memberRepo.addMember(
+                  obId: _project.id,
+                  phone: w.profile!.phone,
+                  kasb: w.kasb,
+                  boshlanish: boshlanish,
+                  tugash: tugash);
+              successCount++;
+            }
+          } catch (e) {
+            errors.add("${w.displayName}: $e");
+          }
+        }
+        _loadSilent();
+        if (mounted) {
+          if (errors.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text("$successCount ta ishchi jamoaga qo'shildi")));
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(
+                    "$successCount ta qo'shildi. Xatoliklar: ${errors.join(', ')}")));
+          }
         }
       }
     }
@@ -983,9 +1039,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
     final isDone = project.status == 'done';
     final startFmt =
         project.boshlanish != null ? _dateFmt.format(project.boshlanish!) : '—';
-    final endDate = project.boshlanish != null
+    final endDate = project.tugash ?? (project.boshlanish != null
         ? project.boshlanish!.add(Duration(days: project.muddat))
-        : null;
+        : null);
     final endFmt = endDate != null ? _dateFmt.format(endDate) : '—';
 
     return Scaffold(
@@ -1039,7 +1095,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                           child: const Text('Bekor')),
                       ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.red),
+                              backgroundColor: AppColors.red,
+                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10)),
                           onPressed: () => Navigator.of(ctx).pop(true),
                           child: const Text("O'chirish")),
                     ],
@@ -1066,7 +1123,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? _buildShimmerLoading()
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView(
@@ -1139,17 +1196,65 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                     ]),
                     const SizedBox(height: 20),
                   ] else if (_project.role == 'member') ...[
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.red,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          elevation: 0),
-                      onPressed: () => _openAddTransaction(isIncome: false),
-                      icon: const Icon(Icons.arrow_upward_rounded, size: 16, color: Colors.white),
-                      label: const Text('Pul tarqatish / yechib olish',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white)),
-                    ),
+                    Row(children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.accent,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              elevation: 0),
+                          onPressed: () => _openAddTransaction(isIncome: true),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 28, height: 28,
+                                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
+                                child: const Icon(Icons.arrow_downward_rounded, size: 16, color: Colors.white),
+                              ),
+                              const SizedBox(width: 8),
+                              const Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Kirim', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
+                                  Text("Qo'shish", style: TextStyle(fontSize: 10, color: Colors.white70)),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.red,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              elevation: 0),
+                          onPressed: () => _openAddTransaction(isIncome: false),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 28, height: 28,
+                                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
+                                child: const Icon(Icons.arrow_upward_rounded, size: 16, color: Colors.white),
+                              ),
+                              const SizedBox(width: 8),
+                              const Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Chiqim', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
+                                  Text("Qo'shish", style: TextStyle(fontSize: 10, color: Colors.white70)),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ]),
                     const SizedBox(height: 20),
                   ],
 
@@ -1390,6 +1495,121 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
               onTap: () => setState(() => _txFilter = 'expense')),
         ]),
       ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+        child: Row(
+          children: [
+            // Date range selector
+            Expanded(
+              child: InkWell(
+                onTap: _selectDateRange,
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: _dateRange != null
+                        ? AppColors.accent.withOpacity(0.08)
+                        : AppColors.border.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: _dateRange != null
+                          ? AppColors.accent.withOpacity(0.2)
+                          : AppColors.border,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_month_outlined,
+                        size: 14,
+                        color: _dateRange != null ? AppColors.accent : AppColors.text2,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          _dateRange == null
+                              ? "Sana oralig'i"
+                              : "${_dateFmt.format(_dateRange!.start)} - ${_dateFmt.format(_dateRange!.end)}",
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: _dateRange != null
+                                ? FontWeight.w700
+                                : FontWeight.normal,
+                            color: _dateRange != null
+                                ? AppColors.accent
+                                : AppColors.text2,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (_dateRange != null)
+                        GestureDetector(
+                          onTap: () {
+                            setState(() => _dateRange = null);
+                          },
+                          child: const Icon(
+                            Icons.close_rounded,
+                            size: 14,
+                            color: AppColors.accent,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Sort selection
+            InkWell(
+              onTap: () {
+                setState(() {
+                  _sortBy = _sortBy == 'date' ? 'price' : 'date';
+                });
+              },
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: _sortBy == 'price'
+                      ? AppColors.accent.withOpacity(0.08)
+                      : AppColors.border.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: _sortBy == 'price'
+                        ? AppColors.accent.withOpacity(0.2)
+                        : AppColors.border,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _sortBy == 'price'
+                          ? Icons.sort_by_alpha_rounded
+                          : Icons.sort_rounded,
+                      size: 14,
+                      color: _sortBy == 'price' ? AppColors.accent : AppColors.text2,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _sortBy == 'price' ? "Summa bo'yicha" : "Sana bo'yicha",
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: _sortBy == 'price'
+                            ? FontWeight.w700
+                            : FontWeight.normal,
+                        color: _sortBy == 'price'
+                            ? AppColors.accent
+                            : AppColors.text2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
       Expanded(
         child: _filteredTxs.isEmpty
             ? const Center(
@@ -1404,6 +1624,26 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                   final tx = _filteredTxs[i];
                   final isIncome = tx.tur == 'income';
                   final color = isIncome ? AppColors.green : AppColors.red;
+
+                  String displayCategory = tx.kategoriya ?? (isIncome ? 'Kirim' : 'Chiqim');
+                  if (displayCategory == 'usta') {
+                    displayCategory = 'Xodim';
+                  } else if (displayCategory == 'income') {
+                    displayCategory = 'Kirim';
+                  } else if (displayCategory == 'spend') {
+                    displayCategory = 'Chiqim';
+                  }
+
+                  if (tx.toUser != null) {
+                    final matchingMember = _members.cast<ObMember?>().firstWhere(
+                      (m) => m?.userId == tx.toUser,
+                      orElse: () => null,
+                    );
+                    if (matchingMember != null && matchingMember.displayName.isNotEmpty) {
+                      displayCategory = '$displayCategory: ${matchingMember.displayName}';
+                    }
+                  }
+
                   return Dismissible(
                     key: ValueKey(tx.id),
                     direction: DismissDirection.endToStart,
@@ -1425,7 +1665,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                               child: const Text('Bekor')),
                           ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.red),
+                                  backgroundColor: AppColors.red,
+                                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10)),
                               onPressed: () => Navigator.of(ctx).pop(true),
                               child: const Text("O'chirish")),
                         ],
@@ -1456,12 +1697,17 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                               Text(
-                                  tx.izoh ??
-                                      tx.kategoriya ??
-                                      (isIncome ? 'Kirim' : 'Chiqim'),
+                                  displayCategory,
                                   style: const TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600)),
+                              if (tx.izoh != null && tx.izoh!.isNotEmpty) ...[
+                                const SizedBox(height: 2),
+                                Text(tx.izoh!,
+                                    style: const TextStyle(
+                                        fontSize: 12, color: AppColors.text2)),
+                              ],
+                              const SizedBox(height: 2),
                               Text(_dateFmt.format(tx.date),
                                   style: const TextStyle(
                                       fontSize: 11, color: AppColors.muted)),
@@ -1541,6 +1787,15 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                                 Text(m.kasb!,
                                     style: const TextStyle(
                                         fontSize: 11, color: AppColors.muted)),
+                              if (m.boshlanish != null && m.tugash != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 2),
+                                  child: Text(
+                                    "${_dateFmt.format(m.boshlanish!)} - ${_dateFmt.format(m.tugash!)}",
+                                    style: const TextStyle(
+                                        fontSize: 10, color: AppColors.muted),
+                                  ),
+                                ),
                             ])),
                         Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
@@ -1589,7 +1844,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
         ),
       Expanded(
         child: _filesLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? _buildFilesShimmerLoading()
             : _files.isEmpty
                 ? Center(
                     child: Column(
@@ -1632,7 +1887,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                                   child: const Text('Bekor')),
                               ElevatedButton(
                                   style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.red),
+                                      backgroundColor: AppColors.red,
+                                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10)),
                                   onPressed: () => Navigator.of(ctx).pop(true),
                                   child: const Text("O'chirish")),
                             ],
@@ -1711,6 +1967,50 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
     return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+
+  Widget _buildShimmerLoading() {
+    return Shimmer(
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: const [
+          ShimmerBox(height: 180, borderRadius: 24),
+          SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(child: ShimmerBox(height: 54, borderRadius: 16)),
+              SizedBox(width: 12),
+              Expanded(child: ShimmerBox(height: 54, borderRadius: 16)),
+            ],
+          ),
+          SizedBox(height: 24),
+          ShimmerBox(height: 44, borderRadius: 12),
+          SizedBox(height: 16),
+          ShimmerBox(height: 70, borderRadius: 16),
+          SizedBox(height: 12),
+          ShimmerBox(height: 70, borderRadius: 16),
+          SizedBox(height: 12),
+          ShimmerBox(height: 70, borderRadius: 16),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilesShimmerLoading() {
+    return Shimmer(
+      child: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        children: const [
+          ShimmerBox(height: 56, borderRadius: 12),
+          SizedBox(height: 10),
+          ShimmerBox(height: 56, borderRadius: 12),
+          SizedBox(height: 10),
+          ShimmerBox(height: 56, borderRadius: 12),
+        ],
+      ),
+    );
   }
 }
 

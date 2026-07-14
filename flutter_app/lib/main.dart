@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'firebase_options.dart';
@@ -36,7 +37,7 @@ class MoliyaApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<String>(
       valueListenable: appLocaleNotifier,
-      builder: (_, __, ___) => ValueListenableBuilder<String>(
+      builder: (_, lang, ___) => ValueListenableBuilder<String>(
         valueListenable: CurrencyService().displayCurrencyNotifier,
         builder: (_, __, ___) => MaterialApp(
           navigatorKey: navigatorKey,
@@ -44,6 +45,17 @@ class MoliyaApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           theme: AppTheme.light,
           themeMode: ThemeMode.light,
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [
+            Locale('uz'),
+            Locale('ru'),
+            Locale('en'),
+          ],
+          locale: Locale(lang),
           home: const SplashScreen(),
         ),
       ),

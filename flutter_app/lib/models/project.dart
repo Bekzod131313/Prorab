@@ -4,6 +4,7 @@ class Project {
   final num kirim;
   final num chiqim;
   final DateTime? boshlanish;
+  final DateTime? tugash;
   final DateTime createdAt;
   final int muddat;
   final String role;
@@ -22,6 +23,7 @@ class Project {
     required this.kirim,
     required this.chiqim,
     required this.boshlanish,
+    this.tugash,
     required this.createdAt,
     required this.muddat,
     required this.role,
@@ -35,20 +37,38 @@ class Project {
     this.imageUrl,
   });
 
-  num get balance => role == 'owner' ? (kirim - chiqim) : (ishaqi - olingan);
+  num get balance => kirim - chiqim;
 
   factory Project.fromMember(Map<String, dynamic> row) {
     final ob = row['ob'] as Map<String, dynamic>;
+    final role = row['role'] ?? 'member';
+
+    final memberBoshlanish =
+        row['boshlanish'] != null ? DateTime.tryParse(row['boshlanish']) : null;
+    final memberTugash =
+        row['tugash'] != null ? DateTime.tryParse(row['tugash']) : null;
+
+    final start = (role == 'owner' ? null : memberBoshlanish) ??
+        (ob['boshlanish'] != null ? DateTime.tryParse(ob['boshlanish']) : null);
+    final end = (role == 'owner' ? null : memberTugash) ??
+        (ob['tugash'] != null ? DateTime.tryParse(ob['tugash']) : null);
+
+    int calcMuddat = ob['muddat'] ?? 30;
+    if (start != null && end != null) {
+      calcMuddat = end.difference(start).inDays;
+      if (calcMuddat <= 0) calcMuddat = 30;
+    }
+
     return Project(
       id: ob['id'].toString(),
       nomi: ob['nomi'] ?? '',
-      kirim: ob['kirim'] ?? 0,
-      chiqim: ob['chiqim'] ?? 0,
-      boshlanish:
-          ob['boshlanish'] != null ? DateTime.tryParse(ob['boshlanish']) : null,
+      kirim: role == 'owner' ? (ob['kirim'] ?? 0) : ((row['kirim'] as num?) ?? 0),
+      chiqim: role == 'owner' ? (ob['chiqim'] ?? 0) : ((row['chiqim'] as num?) ?? 0),
+      boshlanish: start,
+      tugash: end,
       createdAt: DateTime.tryParse(ob['created_at'] ?? '') ?? DateTime.now(),
-      muddat: ob['muddat'] ?? 30,
-      role: row['role'] ?? 'member',
+      muddat: calcMuddat,
+      role: role,
       myBalance: row['balance'] ?? 0,
       ishaqi: row['ishaqi'] ?? 0,
       olingan: row['olingan'] ?? 0,
@@ -67,6 +87,7 @@ class Project {
       kirim: kirim,
       chiqim: chiqim,
       boshlanish: boshlanish,
+      tugash: tugash,
       createdAt: createdAt,
       muddat: muddat,
       role: role,

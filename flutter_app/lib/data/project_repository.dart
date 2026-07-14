@@ -24,7 +24,7 @@ class ProjectRepository {
 
     final data = await supabase
         .from('ob_members')
-        .select('ob_id,role,balance,ishaqi,olingan,ob:obyektlar(*)')
+        .select('ob_id,role,balance,ishaqi,olingan,boshlanish,tugash,kirim,chiqim,ob:obyektlar(*)')
         .eq('user_id', userId);
 
     return (data as List)
@@ -74,6 +74,8 @@ class ProjectRepository {
       'balance': 0,
       'ishaqi': 0,
       'olingan': 0,
+      'kirim': 0,
+      'chiqim': 0,
     });
   }
 
@@ -117,7 +119,7 @@ class ProjectRepository {
     if (userId == null) return null;
     final row = await supabase
         .from('ob_members')
-        .select('ob_id,role,balance,ishaqi,olingan,ob:obyektlar(*)')
+        .select('ob_id,role,balance,ishaqi,olingan,boshlanish,tugash,kirim,chiqim,ob:obyektlar(*)')
         .eq('user_id', userId)
         .eq('ob_id', id)
         .maybeSingle();

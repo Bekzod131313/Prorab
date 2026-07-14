@@ -9,6 +9,9 @@ import '../theme/app_theme.dart';
 import '../widgets/member_row.dart' show colorForName;
 import '../widgets/project_card.dart' show formatMoney, formatUzsToDisplay, formatTransactionAmount;
 import '../services/currency_service.dart';
+import '../widgets/shimmer.dart';
+import '../utils/price_formatter.dart';
+import '../utils/phone_formatter.dart';
 
 class WorkerDetailScreen extends StatefulWidget {
   final Worker worker;
@@ -177,10 +180,11 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                 TextField(
                   controller: amountCtrl,
                   keyboardType: TextInputType.number,
+                  inputFormatters: [PriceInputFormatter()],
                   decoration: InputDecoration(
                       hintText: selectedCurrencyCode == 'UZS' ? "Miqdor (so'm)" : "Miqdor (\$)",
                       prefixIcon:
-                          const Icon(Icons.monetization_on_outlined, size: 18)),
+                          const Icon(Icons.payments_outlined, size: 18)),
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -254,7 +258,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
     );
 
     if (confirmed == true && selectedOb != null) {
-      final amount = num.tryParse(amountCtrl.text.trim()) ?? 0;
+      final amount = num.tryParse(amountCtrl.text.replaceAll(' ', '')) ?? 0;
       if (amount <= 0) return;
       try {
         await WorkerRepository().giveAvans(
@@ -394,10 +398,11 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                 TextField(
                   controller: amountCtrl,
                   keyboardType: TextInputType.number,
+                  inputFormatters: [PriceInputFormatter()],
                   decoration: InputDecoration(
                       hintText: selectedCurrencyCode == 'UZS' ? "Miqdor (so'm)" : "Miqdor (\$)",
                       prefixIcon:
-                          const Icon(Icons.monetization_on_outlined, size: 18)),
+                          const Icon(Icons.payments_outlined, size: 18)),
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -471,7 +476,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
     );
 
     if (confirmed == true && selectedOb != null) {
-      final amount = num.tryParse(amountCtrl.text.trim()) ?? 0;
+      final amount = num.tryParse(amountCtrl.text.replaceAll(' ', '')) ?? 0;
       if (amount <= 0) return;
       try {
         await WorkerRepository().giveIshHaqi(
@@ -548,54 +553,91 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                 child: ElevatedButton(
                   onPressed: _openAvansBerishSheet,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFEA580C),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    backgroundColor: AppColors.accent,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                        borderRadius: BorderRadius.circular(16)),
                     elevation: 0,
                   ),
-                  child: const Text("Avans berish",
-                      style:
-                          TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            shape: BoxShape.circle),
+                        child: const Icon(Icons.payments_outlined,
+                            size: 16, color: Colors.white),
+                      ),
+                      const SizedBox(width: 8),
+                      const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text("Avans",
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white)),
+                          Text("Berish",
+                              style: TextStyle(
+                                  fontSize: 9, color: Colors.white70)),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
               Expanded(
                 child: ElevatedButton(
                   onPressed: _openIshHaqiYozishSheet,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF16A34A),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    backgroundColor: AppColors.green,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                        borderRadius: BorderRadius.circular(16)),
                     elevation: 0,
                   ),
-                  child: const Text("Ish haqi yozish",
-                      style:
-                          TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            shape: BoxShape.circle),
+                        child: const Icon(Icons.edit_note_rounded,
+                            size: 18, color: Colors.white),
+                      ),
+                      const SizedBox(width: 8),
+                      const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text("Ish haqi",
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white)),
+                          Text("Yozish",
+                              style: TextStyle(
+                                  fontSize: 9, color: Colors.white70)),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              OutlinedButton(
-                onPressed: _showReport,
-                style: OutlinedButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  side: const BorderSide(color: AppColors.border),
-                ),
-                child: const Icon(Icons.receipt_long_outlined,
-                    color: AppColors.text, size: 20),
               ),
             ],
           ),
         ),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? _buildShimmerLoading()
           : ListView(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
               children: [
@@ -662,7 +704,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                                     worker.profile!.phone.isNotEmpty)
                                   Row(
                                     children: [
-                                      Text(worker.profile!.phone,
+                                      Text(PhoneFormatter.format(worker.profile!.phone),
                                           style: const TextStyle(
                                               fontSize: 12,
                                               color: AppColors.text2)),
@@ -888,6 +930,25 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                   ),
               ],
             ),
+    );
+  }
+
+  Widget _buildShimmerLoading() {
+    return Shimmer(
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: const [
+          ShimmerBox(height: 150, borderRadius: 18),
+          SizedBox(height: 16),
+          ShimmerBox(height: 180, borderRadius: 18),
+          SizedBox(height: 24),
+          ShimmerBox(height: 32, width: 120, borderRadius: 6),
+          SizedBox(height: 12),
+          ShimmerBox(height: 90, borderRadius: 14),
+          SizedBox(height: 12),
+          ShimmerBox(height: 90, borderRadius: 14),
+        ],
+      ),
     );
   }
 }

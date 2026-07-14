@@ -9,6 +9,10 @@ class ObMember {
   final String? kasb;
   final String? addedBy;
   final Profile? profile;
+  final DateTime? boshlanish;
+  final DateTime? tugash;
+  final num kirim;
+  final num chiqim;
 
   ObMember({
     required this.obId,
@@ -19,6 +23,10 @@ class ObMember {
     required this.kasb,
     required this.addedBy,
     required this.profile,
+    this.boshlanish,
+    this.tugash,
+    this.kirim = 0,
+    this.chiqim = 0,
   });
 
   num get balance => ishaqi - olingan;
@@ -34,6 +42,10 @@ class ObMember {
       kasb: row['kasb'],
       addedBy: row['added_by']?.toString(),
       profile: profileRow != null ? Profile.fromMap(profileRow) : null,
+      boshlanish: row['boshlanish'] != null ? DateTime.tryParse(row['boshlanish']) : null,
+      tugash: row['tugash'] != null ? DateTime.tryParse(row['tugash']) : null,
+      kirim: (row['kirim'] as num?) ?? 0,
+      chiqim: (row['chiqim'] as num?) ?? 0,
     );
   }
 

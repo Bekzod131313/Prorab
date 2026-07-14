@@ -9,6 +9,7 @@ import '../widgets/member_row.dart' show colorForName;
 import '../widgets/project_card.dart' show formatMoney, formatUzsToDisplay;
 import '../widgets/add_worker_global_sheet.dart';
 import 'worker_detail_screen.dart';
+import '../widgets/shimmer.dart';
 
 class WorkersScreen extends StatefulWidget {
   const WorkersScreen({super.key});
@@ -89,7 +90,13 @@ class _WorkersScreenState extends State<WorkersScreen> {
         content: Text("${selectedOb!.obNomi} loyihasi uchun ${formatMoney(selectedOb.balans)} so'm berilsinmi?"),
         actions: [
           TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Bekor')),
-          ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text("Ha, berish")),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text("Ha, berish"),
+          ),
         ],
       ),
     );
@@ -373,7 +380,7 @@ class _WorkersScreenState extends State<WorkersScreen> {
       body: RefreshIndicator(
         onRefresh: _load,
         child: _loading
-            ? const Center(child: CircularProgressIndicator())
+            ? _buildShimmerLoading()
             : ListView(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 children: [
@@ -539,6 +546,25 @@ class _WorkersScreenState extends State<WorkersScreen> {
                         ),
                 ],
               ),
+      ),
+    );
+  }
+
+  Widget _buildShimmerLoading() {
+    return Shimmer(
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: const [
+          ShimmerBox(height: 50, borderRadius: 24),
+          SizedBox(height: 20),
+          ShimmerBox(height: 80, borderRadius: 16),
+          SizedBox(height: 12),
+          ShimmerBox(height: 80, borderRadius: 16),
+          SizedBox(height: 12),
+          ShimmerBox(height: 80, borderRadius: 16),
+          SizedBox(height: 12),
+          ShimmerBox(height: 80, borderRadius: 16),
+        ],
       ),
     );
   }

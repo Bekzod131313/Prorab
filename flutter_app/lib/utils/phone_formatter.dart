@@ -12,4 +12,20 @@ class PhoneFormatter extends TextInputFormatter {
       selection: TextSelection.collapsed(offset: text.length),
     );
   }
+
+  static String format(String phone) {
+    var digits = phone.replaceAll(RegExp(r'\D'), '');
+    if (digits.length == 9) {
+      digits = '998$digits';
+    }
+    if (digits.length < 12) {
+      return phone;
+    }
+    final country = '+998';
+    final code = digits.substring(3, 5);
+    final part1 = digits.substring(5, 8);
+    final part2 = digits.substring(8, 10);
+    final part3 = digits.substring(10, 12);
+    return '$country $code $part1 $part2 $part3';
+  }
 }

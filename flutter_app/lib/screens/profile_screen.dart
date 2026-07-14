@@ -12,6 +12,7 @@ import '../theme/app_theme.dart';
 import '../widgets/project_card.dart' show formatMoney, formatUzsToDisplay;
 import 'splash_screen.dart';
 import 'admin_panel_screen.dart';
+import '../utils/phone_formatter.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -290,7 +291,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                             const Icon(Icons.phone_outlined, size: 14, color: AppColors.muted),
                             const SizedBox(width: 4),
-                            Text(_profile!.phone, style: const TextStyle(fontSize: 13, color: AppColors.text2)),
+                            Text(PhoneFormatter.format(_profile!.phone), style: const TextStyle(fontSize: 13, color: AppColors.text2)),
                           ]),
                         ],
                         const SizedBox(height: 16),
@@ -379,7 +380,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   title: Text(tr('confirm_delete')),
                                   actions: [
                                     TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(tr('cancel'))),
-                                    ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: AppColors.red), onPressed: () => Navigator.of(ctx).pop(true), child: Text(tr('delete'))),
+                                    ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: AppColors.red, padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10)), onPressed: () => Navigator.of(ctx).pop(true), child: Text(tr('delete'))),
                                   ],
                                 ),
                               );

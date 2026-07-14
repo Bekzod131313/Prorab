@@ -19,6 +19,8 @@ class MemberRepository {
     required String phone,
     String? kasb,
     num ishaqi = 0,
+    DateTime? boshlanish,
+    DateTime? tugash,
   }) async {
     final userId = supabase.auth.currentUser?.id;
 
@@ -60,6 +62,10 @@ class MemberRepository {
       'added_by': userId,
       'kasb': kasb?.isNotEmpty == true ? kasb : null,
       'ishaqi': ishaqi,
+      'boshlanish': boshlanish?.toIso8601String().substring(0, 10),
+      'tugash': tugash?.toIso8601String().substring(0, 10),
+      'kirim': 0,
+      'chiqim': 0,
     });
 
     if (ishaqi > 0) {

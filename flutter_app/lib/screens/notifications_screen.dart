@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
 import '../theme/app_theme.dart';
+import '../widgets/shimmer.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -83,7 +84,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? _buildShimmerLoading()
           : _notifs.isEmpty
               ? _buildEmptyState()
               : ListView.separated(
@@ -187,6 +188,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           const SizedBox(height: 4),
           const Text('Hozircha sizga hech qanday xabar kelmagan', style: TextStyle(fontSize: 12, color: AppColors.muted)),
         ],
+      ),
+    );
+  }
+
+  Widget _buildShimmerLoading() {
+    return Shimmer(
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        itemCount: 5,
+        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        itemBuilder: (_, __) => const ShimmerBox(height: 70, borderRadius: 14),
       ),
     );
   }

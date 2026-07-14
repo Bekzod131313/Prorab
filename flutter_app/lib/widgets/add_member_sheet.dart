@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../models/worker.dart';
 import '../theme/app_theme.dart';
 import '../utils/phone_formatter.dart';
+import '../utils/price_formatter.dart';
 import 'member_row.dart' show colorForName;
 
 class AddMemberSheet extends StatefulWidget {
@@ -10,6 +12,8 @@ class AddMemberSheet extends StatefulWidget {
   final TextEditingController kasbCtrl;
   final TextEditingController ishaqiCtrl;
   final List<Worker> existingWorkers;
+  final DateTime? defaultBoshlanish;
+  final DateTime? defaultTugash;
 
   const AddMemberSheet({
     super.key,
@@ -17,6 +21,8 @@ class AddMemberSheet extends StatefulWidget {
     required this.kasbCtrl,
     required this.ishaqiCtrl,
     required this.existingWorkers,
+    this.defaultBoshlanish,
+    this.defaultTugash,
   });
 
   @override
@@ -26,11 +32,15 @@ class AddMemberSheet extends StatefulWidget {
 class _AddMemberSheetState extends State<AddMemberSheet> {
   late bool _showNewWorkerFields;
   final Set<Worker> _selectedWorkers = {};
+  DateTime? _boshlanish;
+  DateTime? _tugash;
 
   @override
   void initState() {
     super.initState();
     _showNewWorkerFields = widget.existingWorkers.isEmpty;
+    _boshlanish = widget.defaultBoshlanish ?? DateTime.now();
+    _tugash = widget.defaultTugash ?? DateTime.now().add(const Duration(days: 30));
   }
 
   @override
@@ -83,11 +93,14 @@ class _AddMemberSheetState extends State<AddMemberSheet> {
             TextField(
               controller: widget.ishaqiCtrl,
               keyboardType: TextInputType.number,
+              inputFormatters: [PriceInputFormatter()],
               decoration: const InputDecoration(
                 hintText: "Ish haqi (so'm) (ixtiyoriy)",
-                prefixIcon: Icon(Icons.monetization_on_outlined, size: 18),
+                prefixIcon: Icon(Icons.payments_outlined, size: 18),
               ),
             ),
+            const SizedBox(height: 16),
+            _buildDatePickerRow(),
             const SizedBox(height: 16),
             Row(
               children: [
@@ -106,7 +119,11 @@ class _AddMemberSheetState extends State<AddMemberSheet> {
                 ],
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => Navigator.of(context).pop(true),
+                    onPressed: () => Navigator.of(context).pop({
+                      'isNew': true,
+                      'boshlanish': _boshlanish,
+                      'tugash': _tugash,
+                    }),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -208,8 +225,15 @@ class _AddMemberSheetState extends State<AddMemberSheet> {
             ),
             if (_selectedWorkers.isNotEmpty) ...[
               const SizedBox(height: 20),
+              _buildDatePickerRow(),
+              const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(_selectedWorkers.toList()),
+                onPressed: () => Navigator.of(context).pop({
+                  'isNew': false,
+                  'workers': _selectedWorkers.toList(),
+                  'boshlanish': _boshlanish,
+                  'tugash': _tugash,
+                }),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -224,6 +248,131 @@ class _AddMemberSheetState extends State<AddMemberSheet> {
             ],
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildDatePickerRow() {
+    final fmt = DateFormat('dd.MM.yyyy');
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.bg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 3,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: AppColors.accent,
+                  borderRadius: BorderRadius.circular(1.5),
+                ),
+              ),
+              const SizedBox(width: 6),
+              const Text(
+                "Ishlash muddati",
+                style: TextStyle(fontSize: 12, color: AppColors.text, fontWeight: FontWeight.w800),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _buildDatePickerButton(
+                  label: "Boshlanish",
+                  date: _boshlanish,
+                  formatter: fmt,
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: _boshlanish ?? DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2100),
+                    );
+                    if (picked != null) {
+                      setState(() {
+                        _boshlanish = picked;
+                        if (_tugash != null && _tugash!.isBefore(picked)) {
+                          _tugash = picked.add(const Duration(days: 30));
+                        }
+                      });
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildDatePickerButton(
+                  label: "Tugash",
+                  date: _tugash,
+                  formatter: fmt,
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: _tugash ?? DateTime.now().add(const Duration(days: 30)),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2100),
+                    );
+                    if (picked != null) {
+                      setState(() {
+                        _tugash = picked;
+                        if (_boshlanish != null && _boshlanish!.isAfter(picked)) {
+                          _boshlanish = picked.subtract(const Duration(days: 30));
+                        }
+                      });
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDatePickerButton({
+    required String label,
+    required DateTime? date,
+    required DateFormat formatter,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: const TextStyle(fontSize: 9, color: AppColors.muted)),
+                  const SizedBox(height: 2),
+                  Text(
+                    date != null ? formatter.format(date) : 'Tanlang',
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.text),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.calendar_month_outlined, size: 14, color: AppColors.accent),
+          ],
+        ),
       ),
     );
   }

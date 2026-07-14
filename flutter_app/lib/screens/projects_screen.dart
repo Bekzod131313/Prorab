@@ -5,6 +5,7 @@ import '../l10n/strings.dart';
 import '../models/project.dart';
 import '../theme/app_theme.dart';
 import 'project_detail_screen.dart';
+import '../widgets/shimmer.dart';
 
 class ProjectsScreen extends StatefulWidget {
   const ProjectsScreen({super.key});
@@ -183,7 +184,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
           content: Text('${project.nomi} ${tr("no_undo")}'),
           actions: [
             TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(tr('cancel'))),
-            ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: AppColors.red), onPressed: () => Navigator.of(ctx).pop(true), child: Text(tr('delete'))),
+            ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: AppColors.red, padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10)), onPressed: () => Navigator.of(ctx).pop(true), child: Text(tr('delete'))),
           ],
         ),
       );
@@ -218,7 +219,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
         body: RefreshIndicator(
           onRefresh: _load,
           child: _loading
-              ? const Center(child: CircularProgressIndicator())
+              ? _buildShimmerLoading()
               : CustomScrollView(
                   slivers: [
                     // Search
@@ -305,6 +306,23 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
       ),
     );
   }
+
+  Widget _buildShimmerLoading() {
+    return Shimmer(
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: const [
+          ShimmerBox(height: 50, borderRadius: 24),
+          SizedBox(height: 20),
+          ShimmerBox(height: 140, borderRadius: 22),
+          SizedBox(height: 12),
+          ShimmerBox(height: 140, borderRadius: 22),
+          SizedBox(height: 12),
+          ShimmerBox(height: 140, borderRadius: 22),
+        ],
+      ),
+    );
+  }
 }
 
 class _Chip extends StatelessWidget {
@@ -362,20 +380,8 @@ class _ProjectCard extends StatelessWidget {
     return gradients[idx];
   }
 
-  Color _statusColor() {
-    switch (project.status) {
-      case 'done': return AppColors.green;
-      case 'paused': return AppColors.orange;
-      default: return AppColors.accent;
-    }
-  }
-
   String _statusLabel() {
-    switch (project.status) {
-      case 'done': return tr('done');
-      case 'paused': return tr('paused');
-      default: return tr('active');
-    }
+    return project.status == 'done' ? tr('done') : tr('active');
   }
 
   @override
@@ -383,7 +389,6 @@ class _ProjectCard extends StatelessWidget {
     final (_, left, progress) = project.schedule;
     final isDone = project.status == 'done';
     final gradient = _gradient();
-    final statusColor = _statusColor();
     final indexLabel = '#${index.toString().padLeft(3, '0')}';
 
     return GestureDetector(
@@ -433,8 +438,11 @@ class _ProjectCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                   decoration: BoxDecoration(
-                    color: statusColor,
+                    color: isDone
+                        ? Colors.white.withOpacity(0.15)
+                        : const Color(0xFF10B981),
                     borderRadius: BorderRadius.circular(20),
+                    border: isDone ? Border.all(color: Colors.white.withOpacity(0.2), width: 1) : null,
                   ),
                   child: Text(_statusLabel(), style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
                 ),

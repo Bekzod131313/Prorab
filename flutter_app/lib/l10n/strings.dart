@@ -29,9 +29,9 @@ const _strings = <String, Map<String, String>>{
 
   // Projects screen
   'all':             {'uz': 'Barchasi',     'ru': 'Все',          'en': 'All'},
-  'active':          {'uz': 'Active',       'ru': 'Активные',     'en': 'Active'},
+  'active':          {'uz': 'Faol',         'ru': 'Активные',     'en': 'Active'},
   'paused':          {'uz': "To'xtatilgan", 'ru': 'Приостановлен','en': 'Paused'},
-  'done':            {'uz': 'Tugallangan',  'ru': 'Завершено',    'en': 'Done'},
+  'done':            {'uz': 'Yakunlangan',  'ru': 'Завершено',    'en': 'Done'},
   'projects':        {'uz': 'Loyihalar',    'ru': 'Объекты',      'en': 'Projects'},
   'search':          {'uz': 'Qidirish...',  'ru': 'Поиск...',     'en': 'Search...'},
   'workers_count':   {'uz': 'ishchi',       'ru': 'раб.',         'en': 'workers'},
