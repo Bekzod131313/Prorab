@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/strings.dart';
 import '../main.dart';
 import '../theme/app_theme.dart';
 import 'root_shell.dart';
@@ -38,7 +39,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   Future<void> _submit() async {
     final name = _nameCtrl.text.trim();
     if (name.isEmpty) {
-      setState(() => _error = 'Ismingizni kiriting');
+      setState(() => _error = tr('setup_name_error'));
       return;
     }
 
@@ -50,7 +51,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     try {
       final currentUser = supabase.auth.currentUser;
       final userId = currentUser?.id;
-      if (userId == null) throw Exception("Sessiya topilmadi");
+      if (userId == null) throw Exception(tr('session_not_found'));
 
       final phone = currentUser?.phone ?? '';
 
@@ -88,19 +89,19 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   style: TextStyle(fontSize: 72),
                 ),
                 const SizedBox(height: 20),
-                const Text(
-                  'Ismingiz',
-                  style: TextStyle(
+                  Text(
+                  tr('setup_title'),
+                  style: const TextStyle(
                     color: AppColors.text,
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Iltimos, ism va familiyangizni kiriting.',
+                  Text(
+                  tr('setup_subtitle'),
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: AppColors.text2,
                     fontSize: 14,
                   ),
@@ -119,7 +120,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   onSubmitted: (_) => _isActive ? _submit() : null,
                   decoration: InputDecoration(
                     filled: false,
-                    hintText: 'Ism va familiyangiz',
+                    hintText: tr('setup_hint'),
                     hintStyle: TextStyle(
                       color: AppColors.muted.withOpacity(0.4),
                       fontSize: 20,
@@ -164,9 +165,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
                         )
-                      : const Text(
-                          'Saqlash va Davom etish',
-                          style: TextStyle(
+                      : Text(
+                          tr('setup_save_continue'),
+                          style: const TextStyle(
                             fontWeight: FontWeight.w800,
                             fontSize: 16,
                           ),

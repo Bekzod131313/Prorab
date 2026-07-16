@@ -5,7 +5,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../main.dart';
 import '../theme/app_theme.dart';
-import '../widgets/moliya_logo.dart';
 import 'auth_screen.dart';
 import 'root_shell.dart';
 import 'profile_setup_screen.dart';
@@ -20,11 +19,6 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  @override
-  void initState() {
-    super.initState();
-    _route();
-  }
 
   bool _isVersionOlder(String current, String required) {
     final currentParts = current.split('.').map((e) => int.tryParse(e) ?? 0).toList();
@@ -219,12 +213,81 @@ class _SplashScreenState extends State<SplashScreen> {
     }
   }
 
+  String _version = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVersion();
+    _route();
+  }
+
+  Future<void> _loadVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() {
+          _version = 'v${info.version} (${info.buildNumber})';
+        });
+      }
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       backgroundColor: AppColors.bg,
-      body: Center(
-        child: MoliyaLogo(size: 140),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            // Centered logo + tagline
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Logo with rounded corners
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(28),
+                    child: Image.asset(
+                      'assets/logo.png',
+                      width: 140,
+                      height: 140,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Tagline
+                  const Text(
+                    'Qulay boshqaruv. Aniq natija.',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.text2,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Version at the bottom
+            if (_version.isNotEmpty)
+              Positioned(
+                bottom: 24,
+                left: 0,
+                right: 0,
+                child: Text(
+                  _version,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.muted,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

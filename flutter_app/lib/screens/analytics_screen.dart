@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/strings.dart';
 import '../main.dart';
 import '../data/project_repository.dart';
 import '../data/transaction_repository.dart';
@@ -115,9 +116,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ValueListenableBuilder<String>(
+      valueListenable: appLocaleNotifier,
+      builder: (_, __, ___) => Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(backgroundColor: AppColors.bg, title: const Text('Analitika')),
+      appBar: AppBar(backgroundColor: AppColors.bg, title: Text(tr('analytics'))),
       body: RefreshIndicator(
         onRefresh: _load,
         child: _loading
@@ -128,11 +131,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   // Summary cards
                   Row(
                     children: [
-                      _SummaryCard(label: 'Jami', value: '${_myProjects.length}', sub: 'Loyiha', color: AppColors.accent),
+                      _SummaryCard(label: tr('all'), value: '${_myProjects.length}', sub: tr('nav_projects'), color: AppColors.accent),
                       const SizedBox(width: 10),
-                      _SummaryCard(label: 'Faol', value: '${_active.length}', sub: 'Loyiha', color: AppColors.green),
+                      _SummaryCard(label: tr('active'), value: '${_active.length}', sub: tr('nav_projects'), color: AppColors.green),
                       const SizedBox(width: 10),
-                      _SummaryCard(label: 'Yakunlangan', value: '${_done.length}', sub: 'Loyiha', color: AppColors.muted),
+                      _SummaryCard(label: tr('done'), value: '${_done.length}', sub: tr('nav_projects'), color: AppColors.muted),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -169,7 +172,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Xarajat kategoriyalari', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.muted)),
+                          Text(tr('expense_by_category'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.muted)),
                           const SizedBox(height: 12),
                           MoliyaPieChart(
                             data: () {
@@ -208,7 +211,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                             decoration: BoxDecoration(color: AppColors.accent, borderRadius: BorderRadius.circular(2)),
                           ),
                           const SizedBox(width: 8),
-                          const Text('Loyiha tahlili', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: AppColors.text)),
+                          Text(tr('project_stats'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: AppColors.text)),
                         ],
                       ),
                     ),
@@ -245,6 +248,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 ],
               ),
       ),
+    ),
     );
   }
 
@@ -278,7 +282,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      p.status == 'done' ? 'Yakunlangan' : 'Faol',
+                      p.status == 'done' ? tr('done') : tr('active'),
                       style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: p.status == 'done' ? AppColors.green : AppColors.accent),
                     ),
                   ),
@@ -301,12 +305,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 ]),
               ],
               const Divider(color: AppColors.border, height: 20),
-              _FinRow(label: 'Kirim', value: income, color: AppColors.green, icon: Icons.arrow_downward_rounded),
+              _FinRow(label: tr('income'), value: income, color: AppColors.green, icon: Icons.arrow_downward_rounded),
               const SizedBox(height: 8),
-              _FinRow(label: 'Chiqim', value: spend, color: AppColors.red, icon: Icons.arrow_upward_rounded),
+              _FinRow(label: tr('expense'), value: spend, color: AppColors.red, icon: Icons.arrow_upward_rounded),
               const Divider(color: AppColors.border, height: 20),
               _FinRow(
-                label: 'Qoldiq',
+                label: tr('balance'),
                 value: balance,
                 color: balance >= 0 ? AppColors.green : AppColors.red,
                 icon: Icons.account_balance_rounded,
@@ -323,15 +327,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Jadval', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.muted)),
+              Text(tr('progress'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.muted)),
               const SizedBox(height: 12),
               Row(
                 children: [
-                  _TimeChip(label: 'O\'tgan', value: '$passed kun', color: AppColors.orange),
+                  _TimeChip(label: tr('progress'), value: '$passed ${tr("days_left")}', color: AppColors.orange),
                   const SizedBox(width: 8),
-                  _TimeChip(label: 'Qolgan', value: left == 0 ? 'Muddati o\'tgan' : '$left kun', color: left == 0 ? AppColors.red : AppColors.green),
+                  _TimeChip(label: tr('balance'), value: left == 0 ? tr('done') : '$left ${tr("days_left")}', color: left == 0 ? AppColors.red : AppColors.green),
                   const SizedBox(width: 8),
-                  _TimeChip(label: 'Muddat', value: '${p.muddat} kun', color: AppColors.accent),
+                  _TimeChip(label: tr('duration_days'), value: '${p.muddat} ${tr("days_left")}', color: AppColors.accent),
                 ],
               ),
               const SizedBox(height: 12),
@@ -345,7 +349,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 ),
               ),
               const SizedBox(height: 6),
-              Text('$progress% bajarildi', style: const TextStyle(fontSize: 11, color: AppColors.muted)),
+              Text('$progress% ${tr("completed")}', style: const TextStyle(fontSize: 11, color: AppColors.muted)),
             ],
           ),
         ),
@@ -359,7 +363,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Xarajat kategoriyalari', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.muted)),
+                Text(tr('expense_by_category'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.muted)),
                 const SizedBox(height: 12),
                 MoliyaPieChart(
                   data: () {
@@ -397,7 +401,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                             ],
                           ),
                           const SizedBox(height: 2),
-                          Text('${(ratio * 100).round()}% umumiy xarajatdan', style: const TextStyle(fontSize: 10, color: AppColors.muted)),
+                          Text('${(ratio * 100).round()}% ${tr("total_expense")}', style: const TextStyle(fontSize: 10, color: AppColors.muted)),
                         ],
                       ),
                     );
@@ -416,15 +420,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Tranzaksiyalar', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.muted)),
+              Text(tr('transactions'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.muted)),
               const SizedBox(height: 12),
               Row(
                 children: [
-                  _TxCountChip(label: 'Jami', count: txs.length, color: AppColors.accent),
+                  _TxCountChip(label: tr('all'), count: txs.length, color: AppColors.accent),
                   const SizedBox(width: 8),
-                  _TxCountChip(label: 'Kirim', count: txs.where((t) => t.tur == 'income').length, color: AppColors.green),
+                  _TxCountChip(label: tr('income'), count: txs.where((t) => t.tur == 'income').length, color: AppColors.green),
                   const SizedBox(width: 8),
-                  _TxCountChip(label: 'Chiqim', count: txs.where((t) => t.tur != 'income').length, color: AppColors.red),
+                  _TxCountChip(label: tr('expense'), count: txs.where((t) => t.tur != 'income').length, color: AppColors.red),
                 ],
               ),
             ],
@@ -432,49 +436,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         ),
         const SizedBox(height: 10),
 
-        // Health score
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Loyiha salomatligi', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.muted)),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  _HealthGauge(score: p.healthScore),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          p.healthScore >= 80 ? 'Yaxshi holat' : p.healthScore >= 50 ? "O'rtacha holat" : 'Muammoli holat',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 14,
-                            color: p.healthScore >= 80 ? AppColors.green : p.healthScore >= 50 ? AppColors.orange : AppColors.red,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          p.healthScore >= 80
-                              ? 'Loyiha belgilangan vaqt va byudjet doirasida'
-                              : p.healthScore >= 50
-                                  ? 'Bir qancha ko\'rsatkichlarni yaxshilash kerak'
-                                  : 'Muddati o\'tgan yoki byudjetdan oshgan',
-                          style: const TextStyle(fontSize: 11, color: AppColors.muted, height: 1.4),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 10),
       ],
     );
   }
@@ -603,30 +564,4 @@ class _TxCountChip extends StatelessWidget {
     );
   }
 
-}
-
-class _HealthGauge extends StatelessWidget {
-  final int score;
-  const _HealthGauge({required this.score});
-
-  Color get _color => score >= 80 ? AppColors.green : score >= 50 ? AppColors.orange : AppColors.red;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 70, height: 70,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          CircularProgressIndicator(
-            value: score / 100,
-            strokeWidth: 7,
-            backgroundColor: AppColors.border,
-            color: _color,
-          ),
-          Text('$score', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: _color)),
-        ],
-      ),
-    );
-  }
 }

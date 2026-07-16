@@ -386,71 +386,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     const SizedBox(height: 20),
 
-                    // Language switcher
-                    Container(
-                      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text(tr('language'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.text)),
-                          const SizedBox(height: 12),
-                          Row(children: [
-                            _LangBtn(code: 'uz', label: "O'zbek"),
-                            const SizedBox(width: 8),
-                            _LangBtn(code: 'ru', label: 'Русский'),
-                            const SizedBox(width: 8),
-                            _LangBtn(code: 'en', label: 'English'),
-                          ]),
-                        ]),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    // Currency switcher
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.card,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Valyuta',
-                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.text),
-                            ),
-                            const SizedBox(height: 12),
-                            ValueListenableBuilder<String>(
-                              valueListenable: CurrencyService().displayCurrencyNotifier,
-                              builder: (ctx, activeCurrency, _) => Row(
-                                children: [
-                                  Expanded(
-                                    child: _CurrencyBtn(
-                                      code: 'UZS',
-                                      label: "So'm (UZS)",
-                                      isSelected: activeCurrency == 'UZS',
-                                      onTap: () => CurrencyService().setDisplayCurrency('UZS'),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: _CurrencyBtn(
-                                      code: 'USD',
-                                      label: "Dollar (USD)",
-                                      isSelected: activeCurrency == 'USD',
-                                      onTap: () => CurrencyService().setDisplayCurrency('USD'),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
 
                     // Security Settings Panel
                     Container(
@@ -517,6 +452,71 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: 16),
 
+                    // Language switcher
+                    Container(
+                      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(tr('language'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.text)),
+                          const SizedBox(height: 12),
+                          Row(children: [
+                            _LangBtn(code: 'uz', label: "O'zbek"),
+                            const SizedBox(width: 8),
+                            _LangBtn(code: 'ru', label: 'Русский'),
+                          ]),
+                        ]),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Currency switcher
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.card,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Valyuta',
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.text),
+                            ),
+                            const SizedBox(height: 12),
+                            ValueListenableBuilder<String>(
+                              valueListenable: CurrencyService().displayCurrencyNotifier,
+                              builder: (ctx, activeCurrency, _) => Row(
+                                children: [
+                                  Expanded(
+                                    child: _CurrencyBtn(
+                                      code: 'UZS',
+                                      label: "So'm (UZS)",
+                                      isSelected: activeCurrency == 'UZS',
+                                      onTap: () => CurrencyService().setDisplayCurrency('UZS'),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: _CurrencyBtn(
+                                      code: 'USD',
+                                      label: "Dollar (USD)",
+                                      isSelected: activeCurrency == 'USD',
+                                      onTap: () => CurrencyService().setDisplayCurrency('USD'),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
                     if (_profile?.isAdmin == true) ...[
                       Container(
                         decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
@@ -534,21 +534,121 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 16),
                     ],
 
+                    // Logout button
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          side: const BorderSide(color: AppColors.border, width: 1.5),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          foregroundColor: AppColors.text,
+                        ),
+                        icon: const Icon(Icons.logout_rounded, size: 18, color: AppColors.text2),
+                        label: Text(tr('logout'), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.text)),
+                        onPressed: () async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text("Chiqishni tasdiqlang"),
+                              content: const Text("Hisobdan chiqishni xohlaysizmi?"),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Bekor')),
+                                ElevatedButton(
+                                  onPressed: () => Navigator.of(ctx).pop(true),
+                                  child: const Text("Chiqish"),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (confirm == true) {
+                            await Supabase.instance.client.auth.signOut();
+                            if (context.mounted) {
+                              Navigator.of(context).pushAndRemoveUntil(
+                                MaterialPageRoute(builder: (_) => const SplashScreen()),
+                                (_) => false,
+                              );
+                            }
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 10),
 
+                    // Delete account button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.red.withOpacity(0.08),
+                          foregroundColor: AppColors.red,
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            side: BorderSide(color: AppColors.red.withOpacity(0.3), width: 1.5),
+                          ),
+                          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                        ),
+                        icon: const Icon(Icons.delete_forever_rounded, size: 18),
+                        label: const Text("Hisobni o'chirish"),
+                        onPressed: () async {
+                          final confirm1 = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text("Hisobni o'chirishni tasdiqlang"),
+                              content: const Text(
+                                "Bu amalni qaytarib bo'lmaydi. Barcha ma'lumotlaringiz, loyihalaringiz va tranzaksiyalaringiz butunlay o'chiriladi.",
+                              ),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Bekor')),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.red),
+                                  onPressed: () => Navigator.of(ctx).pop(true),
+                                  child: const Text("Ha, o'chirish"),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (confirm1 != true || !context.mounted) return;
 
-                    // Logout
-                    Container(
-                      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-                      child: ListTile(
-                        leading: const Icon(Icons.logout_rounded, color: AppColors.red),
-                        title: Text(tr('logout'), style: const TextStyle(color: AppColors.red, fontWeight: FontWeight.w700)),
-                        onTap: () async {
-                          await Supabase.instance.client.auth.signOut();
-                          if (context.mounted) {
-                            Navigator.of(context).pushAndRemoveUntil(
-                              MaterialPageRoute(builder: (_) => const SplashScreen()),
-                              (_) => false,
-                            );
+                          // Second confirmation
+                          final confirm2 = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text("Oxirgi ogohlantirish!"),
+                              content: const Text("Rostdan ham hisobingizni butunlay o'chirmoqchimisiz? Bu amalni bekor qilib bo'lmaydi."),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Yo\'q, qaytish')),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.red),
+                                  onPressed: () => Navigator.of(ctx).pop(true),
+                                  child: const Text("Ha, o'chirish"),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (confirm2 != true || !context.mounted) return;
+
+                          try {
+                            final userId = Supabase.instance.client.auth.currentUser?.id;
+                            if (userId != null) {
+                              // Delete user data from profiles table
+                              await Supabase.instance.client.from('profiles').delete().eq('id', userId);
+                            }
+                            await Supabase.instance.client.auth.signOut();
+                            if (context.mounted) {
+                              Navigator.of(context).pushAndRemoveUntil(
+                                MaterialPageRoute(builder: (_) => const SplashScreen()),
+                                (_) => false,
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text("Xato: $e")),
+                              );
+                            }
                           }
                         },
                       ),

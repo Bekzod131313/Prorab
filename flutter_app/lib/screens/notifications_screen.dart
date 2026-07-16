@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/strings.dart';
 import '../main.dart';
 import '../theme/app_theme.dart';
 import '../widgets/shimmer.dart';
@@ -41,7 +42,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _loading = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Xatolik: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${tr("error_prefix").replaceFirst("{}", e.toString())}')));
       }
     }
   }
@@ -73,12 +74,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       backgroundColor: AppColors.bg,
       appBar: AppBar(
         backgroundColor: AppColors.bg,
-        title: const Text('Bildirishnomalar', style: TextStyle(fontWeight: FontWeight.w800)),
+        title: Text(tr('notifications'), style: const TextStyle(fontWeight: FontWeight.w800)),
         actions: [
           if (unreadCount > 0)
             TextButton(
               onPressed: _markAllAsRead,
-              child: const Text('O\'qilgan qilish', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.accent)),
+              child: Text(tr('mark_all_read'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.accent)),
             ),
           IconButton(icon: const Icon(Icons.refresh_rounded), onPressed: _load),
         ],
@@ -94,7 +95,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   itemBuilder: (_, i) {
                     final n = _notifs[i];
                     final id = n['id'].toString();
-                    final title = n['title'] ?? 'Bildirishnoma';
+                    final title = n['title'] ?? tr('notif_default_title');
                     final body = n['body'] ?? '';
                     final isRead = n['read'] == true;
                     final dateStr = n['created_at'] != null ? n['created_at'].toString().substring(0, 10) : '';
@@ -184,9 +185,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             child: const Icon(Icons.notifications_off_outlined, size: 28, color: AppColors.muted),
           ),
           const SizedBox(height: 16),
-          const Text('Bildirishnomalar yo\'q', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.text)),
-          const SizedBox(height: 4),
-          const Text('Hozircha sizga hech qanday xabar kelmagan', style: TextStyle(fontSize: 12, color: AppColors.muted)),
+          ValueListenableBuilder<String>(
+            valueListenable: appLocaleNotifier,
+            builder: (_, __, ___) => Column(
+              children: [
+                Text(tr('notif_empty'), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.text)),
+                const SizedBox(height: 4),
+                Text(tr('notif_empty_sub'), style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+              ],
+            ),
+          ),
         ],
       ),
     );

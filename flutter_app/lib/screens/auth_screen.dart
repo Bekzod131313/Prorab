@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../l10n/strings.dart';
 import '../main.dart';
 import '../theme/app_theme.dart';
 import '../utils/phone_formatter.dart';
@@ -76,7 +77,7 @@ class _AuthScreenState extends State<AuthScreen> {
     final phoneDigits = _phoneCtrl.text.replaceAll(RegExp(r'\D'), '');
 
     if (phoneDigits.length < 9) {
-      setState(() => _error = 'Telefon raqamini to\'liq kiriting');
+      setState(() => _error = tr('auth_phone_error'));
       return;
     }
 
@@ -108,7 +109,7 @@ class _AuthScreenState extends State<AuthScreen> {
     final code = _codeCtrl.text.trim();
 
     if (code.length < 6) {
-      setState(() => _error = 'Tasdiqlash kodini kiriting (6 ta raqam)');
+      setState(() => _error = tr('auth_code_error'));
       return;
     }
 
@@ -145,7 +146,7 @@ class _AuthScreenState extends State<AuthScreen> {
           );
         }
       } else {
-        setState(() => _error = "Tasdiqlash kodi xato");
+        setState(() => _error = tr('auth_code_wrong'));
       }
     } catch (e) {
       setState(() => _error = "Xatolik: ${e.toString()}");
@@ -222,7 +223,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      _otpSent ? 'Tasdiqlash' : 'Telefon',
+                      _otpSent ? tr('auth_verify_title') : tr('auth_phone_title'),
                       style: const TextStyle(
                         color: AppColors.text,
                         fontSize: 28,
@@ -234,8 +235,8 @@ class _AuthScreenState extends State<AuthScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Text(
                         _otpSent
-                            ? 'Kodni +998 ${_phoneCtrl.text} raqamiga yubordik.'
-                            : 'Telefon raqamingizni kiriting.',
+                            ? tr('auth_code_sent').replaceFirst('{}', _phoneCtrl.text)
+                            : tr('auth_phone_hint'),
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           color: AppColors.text2,
@@ -287,19 +288,19 @@ class _AuthScreenState extends State<AuthScreen> {
                               ),
                               const SizedBox(height: 24),
                               // Resend countdown
-                              _secondsRemaining > 0
-                                  ? Text(
-                                      'Kodni qayta yuborish: ${_secondsRemaining}s',
-                                      style: const TextStyle(color: AppColors.text2, fontSize: 13),
-                                    )
-                                  : TextButton(
-                                      onPressed: _sendOtp,
-                                      child: const Text(
-                                        'Kodni qayta yuborish',
-                                        style: TextStyle(
-                                          color: AppColors.accent,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                               _secondsRemaining > 0
+                                   ? Text(
+                                       tr('auth_resend_timer').replaceFirst('{}', '$_secondsRemaining'),
+                                       style: const TextStyle(color: AppColors.text2, fontSize: 13),
+                                     )
+                                   : TextButton(
+                                       onPressed: _sendOtp,
+                                       child: Text(
+                                         tr('auth_resend'),
+                                         style: const TextStyle(
+                                           color: AppColors.accent,
+                                           fontWeight: FontWeight.bold,
+                                         ),
                                       ),
                                     ),
                             ],
@@ -415,8 +416,8 @@ class _AuthScreenState extends State<AuthScreen> {
                               height: 20,
                               child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
                             )
-                          : Text(
-                              _otpSent ? 'Tasdiqlash va Kirish →' : 'Davom etish',
+                           : Text(
+                              _otpSent ? tr('auth_verify_btn') : tr('auth_continue'),
                               style: const TextStyle(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 16,

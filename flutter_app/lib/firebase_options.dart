@@ -51,7 +51,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyA7mGq4WfMwspLs1UARcVnuutWIw9fhaKE',
-    appId: '1:491421016877:android:68f2a8d4515c1a9115e9a4',
+    appId: '1:491421016877:android:b2504be39ff27fdb15e9a4',
     messagingSenderId: '491421016877',
     projectId: 'risq-91c54',
     storageBucket: 'risq-91c54.firebasestorage.app',
@@ -59,10 +59,11 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyD0GHq26paXqZEHx98iLlru0vYhR12J7pQ',
-    appId: '1:491421016877:ios:bf3e5dadbfb398da15e9a4',
+    appId: '1:491421016877:ios:60626b33f17f2d1e15e9a4',
     messagingSenderId: '491421016877',
     projectId: 'risq-91c54',
     storageBucket: 'risq-91c54.firebasestorage.app',
     iosBundleId: 'com.uzoratech.risq',
   );
+
 }
