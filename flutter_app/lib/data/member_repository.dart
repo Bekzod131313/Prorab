@@ -1,5 +1,6 @@
 import '../main.dart';
 import '../models/member.dart';
+import '../utils/phone_formatter.dart';
 
 class MemberRepository {
   Future<List<ObMember>> loadForProject(String obId) async {
@@ -24,8 +25,12 @@ class MemberRepository {
   }) async {
     final userId = supabase.auth.currentUser?.id;
 
-    final digits = phone.replaceAll(RegExp(r'\D'), '');
+    var digits = phone.replaceAll(RegExp(r'\D'), '');
     if (digits.isEmpty) throw "Raqam xato kiritildi";
+
+    if (digits.length == 9) {
+      digits = '998$digits';
+    }
 
     final phoneWithPlus = '+$digits';
     final phoneWithoutPlus = digits;
@@ -38,7 +43,8 @@ class MemberRepository {
         .maybeSingle();
 
     if (profileRow == null) {
-      throw "$phone topilmadi. Avval ro'yxatdan o'tishi kerak!";
+      final formatted = PhoneFormatter.format(phone);
+      throw "$formatted topilmadi. Avval ro'yxatdan o'tishi kerak!";
     }
 
     final newUserId = profileRow['id'].toString();

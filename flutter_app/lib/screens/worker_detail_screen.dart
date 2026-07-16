@@ -84,7 +84,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
               left: 20,
               right: 20,
               top: 24,
-              bottom: 24 + MediaQuery.of(context).viewInsets.bottom),
+              bottom: 24 + MediaQuery.of(ctx).viewInsets.bottom),
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -302,7 +302,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
               left: 20,
               right: 20,
               top: 24,
-              bottom: 24 + MediaQuery.of(context).viewInsets.bottom),
+              bottom: 24 + MediaQuery.of(ctx).viewInsets.bottom),
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,

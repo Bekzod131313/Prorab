@@ -6,10 +6,13 @@ import '../models/project.dart';
 import '../theme/app_theme.dart';
 import 'project_detail_screen.dart';
 import 'notifications_screen.dart';
+import 'root_shell.dart';
+import 'projects_screen.dart';
 import '../widgets/shimmer.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  final bool isActive;
+  const DashboardScreen({super.key, this.isActive = false});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -31,6 +34,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   @override
+  void didUpdateWidget(covariant DashboardScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) {
+      _load();
+    }
+  }
+
+  @override
   void dispose() {
     _pageCtrl.dispose();
     super.dispose();
@@ -44,10 +55,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final projects = await _repo.loadProjects();
       if (!mounted) return;
       setState(() {
-        _projects = projects;
+        _projects = projects.where((p) => p.status != 'done').toList();
         _loading = false;
-        if (_currentPage >= projects.length) {
-          _currentPage = projects.isNotEmpty ? 0 : 0;
+        if (_currentPage >= _projects.length) {
+          _currentPage = _projects.isNotEmpty ? 0 : 0;
           if (_pageCtrl.hasClients) {
             _pageCtrl.jumpToPage(_currentPage);
           }
@@ -690,10 +701,27 @@ class _EmptyProjectsCard extends StatelessWidget {
           const SizedBox(height: 12),
           const Text("Loyiha yo'q",
               style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
-          const SizedBox(height: 4),
-          const Text("Obyektlar bo'limidan yangi loyiha yarating",
-              style: TextStyle(fontSize: 13, color: AppColors.muted),
-              textAlign: TextAlign.center),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.accent,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              elevation: 0,
+            ),
+            onPressed: () {
+              ProjectsScreen.autoOpenCreate = true;
+              RootShell.of(context)?.setIndex(1);
+            },
+            child: const Text(
+              'Yaratish',
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 14,
+                color: Colors.white,
+              ),
+            ),
+          ),
         ],
       ),
     );

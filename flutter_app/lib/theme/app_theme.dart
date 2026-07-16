@@ -27,7 +27,7 @@ class AppColors {
 class AppTheme {
   static ThemeData get light {
     final base = ThemeData.light(useMaterial3: true);
-    final textTheme = GoogleFonts.manropeTextTheme(base.textTheme).apply(
+    final textTheme = GoogleFonts.montserratTextTheme(base.textTheme).apply(
       bodyColor: AppColors.text,
       displayColor: AppColors.text,
     );
@@ -71,7 +71,8 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.bg,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: AppColors.border),
@@ -92,7 +93,8 @@ class AppTheme {
           backgroundColor: AppColors.accent,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
           elevation: 0,
         ),
@@ -101,11 +103,13 @@ class AppTheme {
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.accent,
           side: const BorderSide(color: AppColors.border),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           padding: const EdgeInsets.symmetric(vertical: 14),
         ),
       ),
-      dividerTheme: const DividerThemeData(color: AppColors.border, thickness: 1),
+      dividerTheme:
+          const DividerThemeData(color: AppColors.border, thickness: 1),
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.bg,
         selectedColor: AppColors.accent.withOpacity(0.1),
@@ -123,7 +127,8 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
       dropdownMenuTheme: const DropdownMenuThemeData(
-        menuStyle: MenuStyle(backgroundColor: WidgetStatePropertyAll(Colors.white)),
+        menuStyle:
+            MenuStyle(backgroundColor: WidgetStatePropertyAll(Colors.white)),
       ),
     );
   }

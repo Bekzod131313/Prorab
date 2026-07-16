@@ -49,9 +49,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         _projects = projects;
         _txsByProject = txMap;
         _loading = false;
-        // Pre-select first project if none selected yet
-        if (_selectedProject == null && _myProjects.isNotEmpty) {
-          _selectedProject = _myProjects.first;
+        // Safely pre-select or update current selected project reference
+        if (_myProjects.isNotEmpty) {
+          if (_selectedProject == null || !_myProjects.contains(_selectedProject)) {
+            _selectedProject = _myProjects.first;
+          } else {
+            _selectedProject = _myProjects.firstWhere((p) => p.id == _selectedProject!.id);
+          }
+        } else {
+          _selectedProject = null;
         }
       });
     } catch (e) {

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../main.dart';
 import '../theme/app_theme.dart';
@@ -24,11 +25,12 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
   List<Map<String, dynamic>> _projects = [];
   List<Map<String, dynamic>> _members = [];
   List<Map<String, dynamic>> _transactions = [];
+  List<Map<String, dynamic>> _smsLogs = [];
 
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 4, vsync: this);
+    _tabCtrl = TabController(length: 5, vsync: this);
     _loadSettings();
     _loadAllData();
   }
@@ -61,12 +63,21 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
       final membersRes = await supabase.from('ob_members').select('*,profiles(*),ob:obyektlar(*)').order('created_at', ascending: false);
       final txRes = await supabase.from('transactions').select('*,ob:obyektlar(*)').order('tx_date', ascending: false);
 
+      List<Map<String, dynamic>> smsLogs = [];
+      try {
+        final smsRes = await supabase.from('sms_logs').select('*').order('created_at', ascending: false);
+        smsLogs = List<Map<String, dynamic>>.from(smsRes as List);
+      } catch (e) {
+        debugPrint('sms_logs table may not exist yet: $e');
+      }
+
       if (!mounted) return;
       setState(() {
         _profiles = List<Map<String, dynamic>>.from(profilesRes as List);
         _projects = List<Map<String, dynamic>>.from(projectsRes as List);
         _members = List<Map<String, dynamic>>.from(membersRes as List);
         _transactions = List<Map<String, dynamic>>.from(txRes as List);
+        _smsLogs = smsLogs;
         _loading = false;
       });
     } catch (e) {
@@ -292,6 +303,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
             Tab(text: 'Loyihalar'),
             Tab(text: 'Jamoalar'),
             Tab(text: 'Tranzaksiyalar'),
+            Tab(text: 'SMS loglari'),
           ],
         ),
       ),
@@ -304,6 +316,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                 _buildProjectsTab(),
                 _buildMembersTab(),
                 _buildTransactionsTab(),
+                _buildSmsTab(),
               ],
             ),
     );
@@ -637,6 +650,126 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
           ),
         );
       },
+    );
+  }
+
+  Widget _buildSmsTab() {
+    if (_smsLogs.isEmpty) {
+      return const Center(child: Text('SMS loglari topilmadi.\n(Jadval mavjudligini yoki SMS yuborilganini tekshiring)'));
+    }
+
+    final successCount = _smsLogs.where((log) => log['status'] == 'success').length;
+
+    return Column(
+      children: [
+        Container(
+          margin: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              Column(
+                children: [
+                  const Text('Jami SMS yuborilgan', style: TextStyle(color: AppColors.muted, fontSize: 13)),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${_smsLogs.length} ta',
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 20, color: AppColors.text),
+                  ),
+                ],
+              ),
+              Container(width: 1, height: 40, color: AppColors.border),
+              Column(
+                children: [
+                  const Text('Muvaffaqiyatli', style: TextStyle(color: AppColors.muted, fontSize: 13)),
+                  const SizedBox(height: 4),
+                  Text(
+                    '$successCount ta',
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 20, color: Color(0xFF16A34A)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            itemCount: _smsLogs.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 10),
+            itemBuilder: (_, i) {
+              final log = _smsLogs[i];
+              final phone = log['phone'] ?? 'Noma\'lum';
+              final msg = log['message'] ?? '';
+              final status = log['status'] ?? 'failed';
+              final createdAtStr = log['created_at'] != null
+                  ? DateFormat('dd.MM.yyyy HH:mm').format(DateTime.parse(log['created_at']).toLocal())
+                  : '';
+
+              final isSuccess = status == 'success';
+
+              return Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.card,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: (isSuccess ? const Color(0xFF16A34A) : const Color(0xFFEF4444)).withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        isSuccess ? Icons.check_circle_outline_rounded : Icons.highlight_off_rounded,
+                        color: isSuccess ? const Color(0xFF16A34A) : const Color(0xFFEF4444),
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                phone,
+                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                              ),
+                              Text(
+                                createdAtStr,
+                                style: const TextStyle(fontSize: 11, color: AppColors.muted),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            msg,
+                            style: const TextStyle(fontSize: 13, color: AppColors.text2),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

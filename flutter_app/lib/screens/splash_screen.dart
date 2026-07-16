@@ -8,6 +8,9 @@ import '../theme/app_theme.dart';
 import '../widgets/moliya_logo.dart';
 import 'auth_screen.dart';
 import 'root_shell.dart';
+import 'profile_setup_screen.dart';
+import 'pin_lock_screen.dart';
+import '../services/security_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -181,32 +184,47 @@ class _SplashScreenState extends State<SplashScreen> {
     }
 
     final session = supabase.auth.currentSession;
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => session == null ? const AuthScreen() : const RootShell(),
-      ),
-    );
+    if (session == null) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const AuthScreen()),
+      );
+    } else {
+      // Check if user has completed profile
+      String? fullName;
+      try {
+        final profileData = await supabase.from('profiles').select('full_name').eq('id', session.user.id).maybeSingle();
+        fullName = profileData?['full_name'] as String?;
+      } catch (e) {
+        debugPrint('Splash profile check error: $e');
+      }
+
+      if (!mounted) return;
+      if (fullName == null || fullName.trim().isEmpty) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const ProfileSetupScreen()),
+        );
+      } else {
+        final pinEnabled = await SecurityService.isPinEnabled();
+        if (!mounted) return;
+        if (pinEnabled) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const PinLockScreen(mode: PinLockMode.validation)),
+          );
+        } else {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const RootShell()),
+          );
+        }
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return const Scaffold(
       backgroundColor: AppColors.bg,
       body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const MoliyaLogo(size: 72),
-            const SizedBox(height: 16),
-            Text(
-              'Risq',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.5,
-                  ),
-            ),
-          ],
-        ),
+        child: MoliyaLogo(size: 140),
       ),
     );
   }

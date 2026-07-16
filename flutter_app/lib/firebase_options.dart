@@ -63,6 +63,6 @@ class DefaultFirebaseOptions {
     messagingSenderId: '491421016877',
     projectId: 'risq-91c54',
     storageBucket: 'risq-91c54.firebasestorage.app',
-    iosBundleId: 'com.example.app',
+    iosBundleId: 'com.uzoratech.risq',
   );
 }

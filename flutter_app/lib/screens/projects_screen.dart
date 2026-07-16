@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/project_repository.dart';
+import '../main.dart';
 import '../l10n/strings.dart';
 import '../models/project.dart';
 import '../theme/app_theme.dart';
@@ -8,6 +9,7 @@ import 'project_detail_screen.dart';
 import '../widgets/shimmer.dart';
 
 class ProjectsScreen extends StatefulWidget {
+  static bool autoOpenCreate = false;
   const ProjectsScreen({super.key});
 
   @override
@@ -21,6 +23,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   bool _loading = true;
   String _search = '';
   String _filter = 'all'; // all, active, paused, done
+  Map<String, DateTime> _lastActivities = {};
   final _searchCtrl = TextEditingController();
 
   @override
@@ -37,19 +40,80 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final projects = await _repo.loadProjects();
-    final ids = projects.map((p) => p.id).toList();
-    final counts = await loadMemberCounts(ids);
-    if (!mounted) return;
-    setState(() {
-      _projects = projects;
-      _memberCounts = counts;
-      _loading = false;
-    });
+    try {
+      final projects = await _repo.loadProjects();
+      final ids = projects.map((p) => p.id).toList();
+      final counts = await loadMemberCounts(ids);
+
+      // Fetch last activity dates from transactions, tasks, materials in parallel
+      final Map<String, DateTime> lastActivities = {};
+      if (ids.isNotEmpty) {
+        final List<dynamic> results = await Future.wait([
+          supabase.from('transactions').select('ob_id, tx_date'),
+          supabase.from('tasks').select('ob_id, created_at'),
+          supabase.from('materials').select('ob_id, created_at'),
+        ]);
+
+        // Process transactions
+        for (final row in results[0] as List) {
+          final obId = row['ob_id']?.toString();
+          final txDateStr = row['tx_date']?.toString();
+          if (obId != null && txDateStr != null) {
+            final date = DateTime.tryParse(txDateStr);
+            if (date != null) {
+              final current = lastActivities[obId];
+              if (current == null || date.isAfter(current)) {
+                lastActivities[obId] = date;
+              }
+            }
+          }
+        }
+
+        // Process tasks
+        for (final row in results[1] as List) {
+          final obId = row['ob_id']?.toString();
+          final createdAtStr = row['created_at']?.toString();
+          if (obId != null && createdAtStr != null) {
+            final date = DateTime.tryParse(createdAtStr);
+            if (date != null) {
+              final current = lastActivities[obId];
+              if (current == null || date.isAfter(current)) {
+                lastActivities[obId] = date;
+              }
+            }
+          }
+        }
+
+        // Process materials
+        for (final row in results[2] as List) {
+          final obId = row['ob_id']?.toString();
+          final createdAtStr = row['created_at']?.toString();
+          if (obId != null && createdAtStr != null) {
+            final date = DateTime.tryParse(createdAtStr);
+            if (date != null) {
+              final current = lastActivities[obId];
+              if (current == null || date.isAfter(current)) {
+                lastActivities[obId] = date;
+              }
+            }
+          }
+        }
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _projects = projects;
+        _memberCounts = counts;
+        _lastActivities = lastActivities;
+        _loading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   List<Project> get _filtered {
-    var list = _projects;
+    var list = List<Project>.from(_projects);
     // status filter
     if (_filter == 'active') {
       list = list.where((p) => p.status == 'active').toList();
@@ -66,6 +130,21 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
         (p.manzil ?? '').toLowerCase().contains(q) ||
         (p.mijoz ?? '').toLowerCase().contains(q)).toList();
     }
+
+    // Sort:
+    // 1. Finished projects (done) go last
+    // 2. Otherwise sort by last activity descending (most recent first)
+    list.sort((a, b) {
+      final aDone = a.status == 'done';
+      final bDone = b.status == 'done';
+      if (aDone != bDone) {
+        return aDone ? 1 : -1;
+      }
+      final aAct = _lastActivities[a.id] ?? a.createdAt;
+      final bAct = _lastActivities[b.id] ?? b.createdAt;
+      return bAct.compareTo(aAct);
+    });
+
     return list;
   }
 
@@ -83,37 +162,39 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSt) => Padding(
-          padding: EdgeInsets.only(left: 20, right: 20, top: 24, bottom: 24 + MediaQuery.of(context).viewInsets.bottom),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(tr('new_project'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
-              const SizedBox(height: 16),
-              TextField(controller: nameCtrl, autofocus: true, decoration: InputDecoration(hintText: '${tr("project_name")} *')),
-              const SizedBox(height: 12),
-              InkWell(
-                onTap: () async {
-                  final picked = await showDatePicker(context: ctx, initialDate: startDate, firstDate: DateTime(2020), lastDate: DateTime(2100));
-                  if (picked != null) setSt(() => startDate = picked);
-                },
-                child: InputDecorator(
-                  decoration: InputDecoration(labelText: tr('start_date'), prefixIcon: const Icon(Icons.calendar_today_rounded, size: 18)),
-                  child: Text('${startDate.year}-${startDate.month.toString().padLeft(2, '0')}-${startDate.day.toString().padLeft(2, '0')}'),
+          padding: EdgeInsets.only(left: 20, right: 20, top: 24, bottom: 24 + MediaQuery.of(ctx).viewInsets.bottom),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(tr('new_project'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
+                const SizedBox(height: 16),
+                TextField(controller: nameCtrl, autofocus: true, decoration: InputDecoration(hintText: '${tr("project_name")} *')),
+                const SizedBox(height: 12),
+                InkWell(
+                  onTap: () async {
+                    final picked = await showDatePicker(context: ctx, initialDate: startDate, firstDate: DateTime(2020), lastDate: DateTime(2100));
+                    if (picked != null) setSt(() => startDate = picked);
+                  },
+                  child: InputDecorator(
+                    decoration: InputDecoration(labelText: tr('start_date'), prefixIcon: const Icon(Icons.calendar_today_rounded, size: 18)),
+                    child: Text('${startDate.year}-${startDate.month.toString().padLeft(2, '0')}-${startDate.day.toString().padLeft(2, '0')}'),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextField(controller: daysCtrl, keyboardType: TextInputType.number, decoration: InputDecoration(hintText: tr('duration_days'), prefixIcon: const Icon(Icons.timer_outlined, size: 18))),
-              const SizedBox(height: 12),
-              TextField(controller: manzilCtrl, decoration: InputDecoration(hintText: '${tr("location")} ${tr("optional")}', prefixIcon: const Icon(Icons.location_on_outlined, size: 18))),
-              const SizedBox(height: 12),
-              TextField(controller: mijozCtrl, decoration: InputDecoration(hintText: '${tr("client")} ${tr("optional")}', prefixIcon: const Icon(Icons.person_outline_rounded, size: 18))),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () { if (nameCtrl.text.trim().isEmpty) return; Navigator.of(ctx).pop(true); },
-                child: Text(tr('create')),
-              ),
-            ],
+                const SizedBox(height: 12),
+                TextField(controller: daysCtrl, keyboardType: TextInputType.number, decoration: InputDecoration(hintText: tr('duration_days'), prefixIcon: const Icon(Icons.timer_outlined, size: 18))),
+                const SizedBox(height: 12),
+                TextField(controller: manzilCtrl, decoration: InputDecoration(hintText: '${tr("location")} ${tr("optional")}', prefixIcon: const Icon(Icons.location_on_outlined, size: 18))),
+                const SizedBox(height: 12),
+                TextField(controller: mijozCtrl, decoration: InputDecoration(hintText: '${tr("client")} ${tr("optional")}', prefixIcon: const Icon(Icons.person_outline_rounded, size: 18))),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () { if (nameCtrl.text.trim().isEmpty) return; Navigator.of(ctx).pop(true); },
+                  child: Text(tr('create')),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -194,6 +275,13 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (ProjectsScreen.autoOpenCreate) {
+      ProjectsScreen.autoOpenCreate = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _openAddProject();
+      });
+    }
+
     return ValueListenableBuilder<String>(
       valueListenable: appLocaleNotifier,
       builder: (_, __, ___) => Scaffold(

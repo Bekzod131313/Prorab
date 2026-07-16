@@ -132,4 +132,12 @@ class Project {
     final progress = ((passed / total) * 100).round().clamp(0, 100);
     return (passed, left, progress);
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Project && runtimeType == other.runtimeType && id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
 }

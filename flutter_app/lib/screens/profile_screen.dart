@@ -1,4 +1,3 @@
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -12,6 +11,8 @@ import '../theme/app_theme.dart';
 import '../widgets/project_card.dart' show formatMoney, formatUzsToDisplay;
 import 'splash_screen.dart';
 import 'admin_panel_screen.dart';
+import 'pin_lock_screen.dart';
+import '../services/security_service.dart';
 import '../utils/phone_formatter.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -29,43 +30,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _loading = true;
   bool _avatarUploading = false;
   bool _portfolioUploading = false;
+  bool _pinLockEnabled = false;
+  bool _biometricsEnabled = false;
+  bool _canUseBiometrics = false;
 
-  Future<void> _showFcmToken() async {
-    try {
-      final token = await FirebaseMessaging.instance.getToken();
-      if (token == null) return;
-      if (!mounted) return;
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text("FCM Token"),
-          content: SelectableText(token),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Clipboard.setData(ClipboardData(text: token));
-                Navigator.of(ctx).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("FCM Token nusxalandi")),
-                );
-              },
-              child: const Text("Ko'chirish"),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text("Yopish"),
-            ),
-          ],
-        ),
-      );
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Tokenni olib bo'lmadi: $e")),
-        );
-      }
-    }
-  }
+
 
   @override
   void initState() {
@@ -90,9 +59,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (_) {}
   }
 
+  Future<void> _loadSecuritySettings() async {
+    final pinEnabled = await SecurityService.isPinEnabled();
+    final bioEnabled = await SecurityService.isBiometricsEnabled();
+    final canBio = await SecurityService.canUseBiometrics();
+    if (mounted) {
+      setState(() {
+        _pinLockEnabled = pinEnabled;
+        _biometricsEnabled = bioEnabled;
+        _canUseBiometrics = canBio;
+      });
+    }
+  }
+
   Future<void> _load() async {
     setState(() => _loading = true);
-    await _loadSilent();
+    await Future.wait([
+      _loadSilent(),
+      _loadSecuritySettings(),
+    ]);
     if (mounted) {
       setState(() => _loading = false);
     }
@@ -155,11 +140,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: AppColors.card,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => Padding(
-        padding: EdgeInsets.only(left: 20, right: 20, top: 24, bottom: 24 + MediaQuery.of(context).viewInsets.bottom),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+        padding: EdgeInsets.only(left: 20, right: 20, top: 24, bottom: 24 + MediaQuery.of(ctx).viewInsets.bottom),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
             Row(children: [
               Expanded(child: Text(tr('edit_profile'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17))),
               IconButton(
@@ -188,7 +174,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       ),
-    );
+    ),
+  );
 
     if (saved == true) {
       try {
@@ -465,6 +452,71 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: 16),
 
+                    // Security Settings Panel
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.card,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+
+                            SwitchListTile(
+                              title: const Text(
+                                'PIN-kod qulflash',
+                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                              ),
+                              contentPadding: EdgeInsets.zero,
+                              value: _pinLockEnabled,
+                              activeColor: AppColors.accent,
+                              onChanged: (val) async {
+                                if (val) {
+                                  final setupSuccess = await Navigator.of(context).push<bool>(
+                                    MaterialPageRoute(
+                                      builder: (_) => const PinLockScreen(mode: PinLockMode.setup),
+                                    ),
+                                  );
+                                  if (setupSuccess == true) {
+                                    await _loadSecuritySettings();
+                                  }
+                                } else {
+                                  final disableSuccess = await Navigator.of(context).push<bool>(
+                                    MaterialPageRoute(
+                                      builder: (_) => const PinLockScreen(mode: PinLockMode.confirmDisable),
+                                    ),
+                                  );
+                                  if (disableSuccess == true) {
+                                    await _loadSecuritySettings();
+                                  }
+                                }
+                              },
+                            ),
+                            if (_pinLockEnabled && _canUseBiometrics) ...[
+                              const Divider(color: AppColors.border, height: 16),
+                              SwitchListTile(
+                                title: const Text(
+                                  'Face ID / Biometriya',
+                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                                ),
+                                contentPadding: EdgeInsets.zero,
+                                value: _biometricsEnabled,
+                                activeColor: AppColors.accent,
+                                onChanged: (val) async {
+                                  await SecurityService.setBiometricsEnabled(val);
+                                  await _loadSecuritySettings();
+                                },
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
                     if (_profile?.isAdmin == true) ...[
                       Container(
                         decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
@@ -482,17 +534,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 16),
                     ],
 
-                    // FCM Token (For testing)
-                    Container(
-                      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-                      child: ListTile(
-                        leading: const Icon(Icons.key_rounded, color: AppColors.accent),
-                        title: const Text("FCM Token", style: TextStyle(fontWeight: FontWeight.w700)),
-                        subtitle: const Text("Sinash / nusxalash uchun bosing", style: TextStyle(fontSize: 11)),
-                        onTap: _showFcmToken,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
+
 
                     // Logout
                     Container(

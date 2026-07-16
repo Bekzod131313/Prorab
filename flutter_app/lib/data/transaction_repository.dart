@@ -291,6 +291,84 @@ class TransactionRepository {
     }).eq('id', id);
   }
 
+  Future<void> updateTransaction({
+    required String id,
+    required num newAmount,
+    required String newKategoriya,
+    required String? newIzoh,
+    required DateTime newTxDate,
+    required String newCurrency,
+  }) async {
+    // 1. Load the original transaction
+    final row = await supabase.from('transactions').select('*').eq('id', id).single();
+    final oldTx = ProjectTransaction.fromMap(row);
+
+    // 2. Convert new amount to UZS and USD
+    final liveRate = CurrencyService().usdToUzsRate;
+    final converted = CurrencyService().convert(newAmount.toDouble(), newCurrency);
+    final newAmountUzs = converted['UZS']!;
+    final newAmountUsd = converted['USD']!;
+
+    // 3. Update the transaction row
+    await supabase.from('transactions').update({
+      'summa': newAmount,
+      'kategoriya': newKategoriya,
+      'izoh': newIzoh?.isNotEmpty == true ? newIzoh : null,
+      'tx_date': newTxDate.toIso8601String(),
+      'currency': newCurrency,
+      'exchange_rate': liveRate,
+      'summa_usd': newAmountUsd,
+      'summa_uzs': newAmountUzs,
+    }).eq('id', id);
+
+    // 4. Update project and member cache totals (subtract old amount, add new amount)
+    final diffUzs = newAmountUzs - oldTx.summaUzs;
+    if (diffUzs == 0) return; // No financial changes
+
+    if (oldTx.tur == 'income') {
+      // Update obyektlar kirim
+      final ob = await supabase.from('obyektlar').select('kirim').eq('id', oldTx.obId).single();
+      final newVal = ((ob['kirim'] as num?) ?? 0) + diffUzs;
+      await supabase.from('obyektlar').update({'kirim': newVal < 0 ? 0 : newVal}).eq('id', oldTx.obId);
+
+      // Update toUser member kirim
+      if (oldTx.toUser != null) {
+        final mem = await supabase.from('ob_members').select('kirim').eq('ob_id', oldTx.obId).eq('user_id', oldTx.toUser!).maybeSingle();
+        if (mem != null) {
+          final newK = ((mem['kirim'] as num?) ?? 0) + diffUzs;
+          await supabase.from('ob_members').update({'kirim': newK < 0 ? 0 : newK}).eq('ob_id', oldTx.obId).eq('user_id', oldTx.toUser!);
+        }
+      }
+    } else if (oldTx.tur == 'spend') {
+      // Update obyektlar chiqim
+      final ob = await supabase.from('obyektlar').select('chiqim').eq('id', oldTx.obId).single();
+      final newVal = ((ob['chiqim'] as num?) ?? 0) + diffUzs;
+      await supabase.from('obyektlar').update({'chiqim': newVal < 0 ? 0 : newVal}).eq('id', oldTx.obId);
+
+      // Update fromUser member chiqim
+      if (oldTx.fromUser != null) {
+        final mem = await supabase.from('ob_members').select('chiqim').eq('ob_id', oldTx.obId).eq('user_id', oldTx.fromUser!).maybeSingle();
+        if (mem != null) {
+          final newC = ((mem['chiqim'] as num?) ?? 0) + diffUzs;
+          await supabase.from('ob_members').update({'chiqim': newC < 0 ? 0 : newC}).eq('ob_id', oldTx.obId).eq('user_id', oldTx.fromUser!);
+        }
+      }
+
+      // Update toUser member olingan and kirim
+      if (oldTx.toUser != null) {
+        final mem = await supabase.from('ob_members').select('olingan, kirim').eq('ob_id', oldTx.obId).eq('user_id', oldTx.toUser!).maybeSingle();
+        if (mem != null) {
+          final newO = ((mem['olingan'] as num?) ?? 0) + diffUzs;
+          final newK = ((mem['kirim'] as num?) ?? 0) + diffUzs;
+          await supabase.from('ob_members').update({
+            'olingan': newO < 0 ? 0 : newO,
+            'kirim': newK < 0 ? 0 : newK,
+          }).eq('ob_id', oldTx.obId).eq('user_id', oldTx.toUser!);
+        }
+      }
+    }
+  }
+
   Future<void> deleteTransaction(String id) async {
     final row =
         await supabase.from('transactions').select('*').eq('id', id).single();

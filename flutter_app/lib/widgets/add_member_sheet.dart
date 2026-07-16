@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../models/worker.dart';
+import '../data/worker_repository.dart';
 import '../theme/app_theme.dart';
 import '../utils/phone_formatter.dart';
 import '../utils/price_formatter.dart';
@@ -11,7 +12,7 @@ class AddMemberSheet extends StatefulWidget {
   final TextEditingController phoneCtrl;
   final TextEditingController kasbCtrl;
   final TextEditingController ishaqiCtrl;
-  final List<Worker> existingWorkers;
+  final Set<String> currentMemberIds;
   final DateTime? defaultBoshlanish;
   final DateTime? defaultTugash;
 
@@ -20,7 +21,7 @@ class AddMemberSheet extends StatefulWidget {
     required this.phoneCtrl,
     required this.kasbCtrl,
     required this.ishaqiCtrl,
-    required this.existingWorkers,
+    required this.currentMemberIds,
     this.defaultBoshlanish,
     this.defaultTugash,
   });
@@ -34,13 +35,44 @@ class _AddMemberSheetState extends State<AddMemberSheet> {
   final Set<Worker> _selectedWorkers = {};
   DateTime? _boshlanish;
   DateTime? _tugash;
+  String _selectedCurrency = 'UZS';
+
+  List<Worker> _existingWorkers = [];
+  bool _loadingWorkers = true;
 
   @override
   void initState() {
     super.initState();
-    _showNewWorkerFields = widget.existingWorkers.isEmpty;
+    _showNewWorkerFields = false;
     _boshlanish = widget.defaultBoshlanish ?? DateTime.now();
     _tugash = widget.defaultTugash ?? DateTime.now().add(const Duration(days: 30));
+    _loadWorkers();
+  }
+
+  Future<void> _loadWorkers() async {
+    try {
+      final allWorkers = await WorkerRepository().loadAll();
+      final filtered = allWorkers
+          .where((w) =>
+              !widget.currentMemberIds.contains(w.userId) &&
+              w.profile?.phone.isNotEmpty == true)
+          .toList();
+      if (!mounted) return;
+      setState(() {
+        _existingWorkers = filtered;
+        _loadingWorkers = false;
+        if (filtered.isEmpty) {
+          _showNewWorkerFields = true;
+        }
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _loadingWorkers = false;
+          _showNewWorkerFields = true;
+        });
+      }
+    }
   }
 
   @override
@@ -75,9 +107,11 @@ class _AddMemberSheetState extends State<AddMemberSheet> {
             TextField(
               controller: widget.phoneCtrl,
               keyboardType: TextInputType.phone,
-              inputFormatters: [PhoneFormatter()],
+              inputFormatters: [LocalPhoneFormatter()],
               decoration: const InputDecoration(
-                hintText: 'Telefon raqam',
+                hintText: '90 123 45 67',
+                prefixText: '+998 ',
+                prefixStyle: TextStyle(color: AppColors.text),
                 prefixIcon: Icon(Icons.phone_outlined, size: 18),
               ),
             ),
@@ -90,13 +124,39 @@ class _AddMemberSheetState extends State<AddMemberSheet> {
               ),
             ),
             const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: ChoiceChip(
+                    label: const Text('so\'m (UZS)'),
+                    selected: _selectedCurrency == 'UZS',
+                    onSelected: (val) {
+                      if (val) setState(() => _selectedCurrency = 'UZS');
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ChoiceChip(
+                    label: const Text('Dollar (USD)'),
+                    selected: _selectedCurrency == 'USD',
+                    onSelected: (val) {
+                      if (val) setState(() => _selectedCurrency = 'USD');
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
             TextField(
               controller: widget.ishaqiCtrl,
               keyboardType: TextInputType.number,
               inputFormatters: [PriceInputFormatter()],
-              decoration: const InputDecoration(
-                hintText: "Ish haqi (so'm) (ixtiyoriy)",
-                prefixIcon: Icon(Icons.payments_outlined, size: 18),
+              decoration: InputDecoration(
+                hintText: _selectedCurrency == 'UZS'
+                    ? "Ish haqi (so'm) (ixtiyoriy)"
+                    : "Ish haqi (\$) (ixtiyoriy)",
+                prefixIcon: const Icon(Icons.payments_outlined, size: 18),
               ),
             ),
             const SizedBox(height: 16),
@@ -104,7 +164,7 @@ class _AddMemberSheetState extends State<AddMemberSheet> {
             const SizedBox(height: 16),
             Row(
               children: [
-                if (widget.existingWorkers.isNotEmpty) ...[
+                if (_existingWorkers.isNotEmpty) ...[
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => setState(() => _showNewWorkerFields = false),
@@ -123,6 +183,7 @@ class _AddMemberSheetState extends State<AddMemberSheet> {
                       'isNew': true,
                       'boshlanish': _boshlanish,
                       'tugash': _tugash,
+                      'currency': _selectedCurrency,
                     }),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
@@ -148,7 +209,10 @@ class _AddMemberSheetState extends State<AddMemberSheet> {
             ),
           ],
           
-          if (widget.existingWorkers.isNotEmpty && !_showNewWorkerFields) ...[
+          if (_loadingWorkers) ...[
+            const SizedBox(height: 24),
+            const Center(child: CircularProgressIndicator()),
+          ] else if (_existingWorkers.isNotEmpty && !_showNewWorkerFields) ...[
             const SizedBox(height: 24),
             Row(
               children: [
@@ -174,10 +238,10 @@ class _AddMemberSheetState extends State<AddMemberSheet> {
               ),
               child: ListView.separated(
                 shrinkWrap: true,
-                itemCount: widget.existingWorkers.length,
+                itemCount: _existingWorkers.length,
                 separatorBuilder: (_, __) => const Divider(color: AppColors.border, height: 1),
                 itemBuilder: (ctx, idx) {
-                  final worker = widget.existingWorkers[idx];
+                  final worker = _existingWorkers[idx];
                   final color = colorForName(worker.displayName);
                   final initials = worker.displayName.trim().isEmpty
                       ? '?'

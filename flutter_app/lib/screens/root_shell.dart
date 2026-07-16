@@ -8,14 +8,26 @@ import 'projects_screen.dart';
 import 'workers_screen.dart';
 import '../services/currency_service.dart';
 
+import '../utils/haptics.dart';
+
 class RootShell extends StatefulWidget {
   const RootShell({super.key});
+
+  static RootShellState? of(BuildContext context) {
+    return context.findAncestorStateOfType<RootShellState>();
+  }
+
   @override
-  State<RootShell> createState() => _RootShellState();
+  State<RootShell> createState() => RootShellState();
 }
 
-class _RootShellState extends State<RootShell> {
+class RootShellState extends State<RootShell> {
   int _index = 0;
+
+  void setIndex(int index) {
+    AppHaptics.selection();
+    setState(() => _index = index);
+  }
 
   static const _icons = [
     (Icons.home_outlined, Icons.home_rounded),
@@ -38,7 +50,10 @@ class _RootShellState extends State<RootShell> {
           body: IndexedStack(
             index: _index,
             children: [
-              DashboardScreen(key: ValueKey('db_$activeCurrency')),
+              DashboardScreen(
+                key: ValueKey('db_$activeCurrency'),
+                isActive: _index == 0,
+              ),
               ProjectsScreen(key: ValueKey('pr_$activeCurrency')),
               AnalyticsScreen(key: ValueKey('an_$activeCurrency')),
               WorkersScreen(key: ValueKey('wk_$activeCurrency')),
@@ -59,7 +74,10 @@ class _RootShellState extends State<RootShell> {
                   final selected = _index == i;
                   return Expanded(
                     child: InkWell(
-                      onTap: () => setState(() => _index = i),
+                       onTap: () {
+                         AppHaptics.selection();
+                         setState(() => _index = i);
+                       },
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [

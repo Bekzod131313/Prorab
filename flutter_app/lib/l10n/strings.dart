@@ -85,6 +85,19 @@ const _strings = <String, Map<String, String>>{
   // General
   'confirm_delete':  {'uz': "O'chirilsinmi?", 'ru': 'Удалить?',   'en': 'Delete?'},
   'no_undo':         {'uz': 'Bu amalni qaytarib bo\'lmaydi.', 'ru': 'Это действие нельзя отменить.', 'en': 'This cannot be undone.'},
+
+  // Security
+  'forgot_pin':      {'uz': 'PIN-kodni unutdim', 'ru': 'Не помню ПИН-код', 'en': 'Forgot PIN'},
+  'hello_user':      {'uz': 'Salom, {}', 'ru': 'Здравствуйте, {}', 'en': 'Hello, {}'},
+  'enter_pin':       {'uz': 'PIN-kodni kiriting', 'ru': 'Введите ПИН-код', 'en': 'Enter PIN'},
+  'create_pin':      {'uz': 'Yangi PIN-kod kiriting', 'ru': 'Введите новый ПИН-код', 'en': 'Enter new PIN'},
+  'confirm_pin':     {'uz': 'PIN-kodni tasdiqlang', 'ru': 'Подтвердите ПИН-код', 'en': 'Confirm PIN'},
+  'pin_no_match':    {'uz': 'PIN-kodlar mos kelmadi', 'ru': 'ПИН-коды не совпадают', 'en': 'PINs do not match'},
+  'wrong_pin':       {'uz': 'PIN-kod xato', 'ru': 'Неверный ПИН-код', 'en': 'Wrong PIN'},
+  'biometrics_failed': {'uz': 'Biometriya aniqlanmadi', 'ru': 'Лицо не распознано', 'en': 'Face not recognized'},
+  'try_again':       {'uz': 'Qayta urinib ko\'ring', 'ru': 'Повторите', 'en': 'Try again'},
+  'repeat_biometrics': {'uz': 'Qayta urinish', 'ru': 'Повторить Face ID', 'en': 'Retry Face ID'},
+  'cancel_btn':      {'uz': 'Bekor qilish', 'ru': 'Отменить', 'en': 'Cancel'},
 };
 
 // Widget that rebuilds when locale changes

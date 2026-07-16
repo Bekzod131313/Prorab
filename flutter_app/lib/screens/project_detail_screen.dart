@@ -1,10 +1,7 @@
-import 'dart:convert';
-
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show FileOptions;
 import 'package:url_launcher/url_launcher.dart';
 
@@ -13,7 +10,6 @@ import '../data/project_files_repository.dart';
 import '../data/project_repository.dart';
 import '../data/transaction_repository.dart';
 import '../main.dart';
-import '../data/worker_repository.dart';
 import '../models/worker.dart';
 import '../models/member.dart';
 import '../models/project.dart';
@@ -21,54 +17,35 @@ import '../models/transaction.dart';
 import '../theme/app_theme.dart';
 import '../widgets/add_member_sheet.dart';
 import '../widgets/member_row.dart' show colorForName;
-import '../widgets/project_card.dart' show formatMoney, formatUzsToDisplay, formatTransactionAmount;
+import '../widgets/project_card.dart' show formatUzsToDisplay, formatTransactionAmount;
 import '../services/currency_service.dart';
 import '../widgets/shimmer.dart';
 import '../utils/price_formatter.dart';
 import '../utils/phone_formatter.dart';
+import '../utils/haptics.dart';
 
-const _categoryIconChoices = [
-  Icons.category_rounded,
-  Icons.construction_rounded,
-  Icons.local_shipping_rounded,
-  Icons.build_rounded,
-  Icons.bolt_rounded,
-  Icons.water_drop_rounded,
-  Icons.shopping_cart_rounded,
-  Icons.handyman_rounded,
-  Icons.electrical_services_rounded,
-  Icons.plumbing_rounded,
-  Icons.inventory_2_rounded,
-  Icons.local_gas_station_rounded,
-  Icons.receipt_long_rounded,
-  Icons.attach_money_rounded,
-];
 
 class _ExpenseCategory {
   final String name;
   final IconData icon;
   final bool isWorker;
   const _ExpenseCategory(
-      {required this.name, required this.icon, this.isWorker = false});
-
-  Map<String, dynamic> toJson() => {'name': name, 'icon': icon.codePoint};
-  factory _ExpenseCategory.fromJson(Map<String, dynamic> json) =>
-      _ExpenseCategory(
-        name: json['name'] as String,
-        icon: IconData(json['icon'] as int, fontFamily: 'MaterialIcons'),
-      );
+      {required this.name, this.icon = Icons.category_rounded, this.isWorker = false});
 }
 
-const _kCustomCategoriesPrefsKey = 'expense_custom_categories';
-
 Future<List<_ExpenseCategory>> _loadCustomCategories() async {
-  final prefs = await SharedPreferences.getInstance();
-  final raw = prefs.getString(_kCustomCategoriesPrefsKey);
-  if (raw == null) return [];
   try {
-    final list = jsonDecode(raw) as List;
-    return list
-        .map((e) => _ExpenseCategory.fromJson(e as Map<String, dynamic>))
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) return [];
+    final data = await supabase
+        .from('categories')
+        .select('name')
+        .eq('user_id', userId);
+    return (data as List)
+        .map((row) => _ExpenseCategory(
+              name: row['name'] as String,
+              icon: Icons.category_rounded,
+            ))
         .toList();
   } catch (_) {
     return [];
@@ -76,9 +53,25 @@ Future<List<_ExpenseCategory>> _loadCustomCategories() async {
 }
 
 Future<void> _saveCustomCategories(List<_ExpenseCategory> categories) async {
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.setString(_kCustomCategoriesPrefsKey,
-      jsonEncode(categories.map((c) => c.toJson()).toList()));
+  try {
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) return;
+    final customCats = categories.where((c) => !c.isWorker && c.name != "O'zim").toList();
+    if (customCats.isEmpty) return;
+    final last = customCats.last;
+    final existing = await supabase
+        .from('categories')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('name', last.name)
+        .maybeSingle();
+    if (existing == null) {
+      await supabase.from('categories').insert({
+        'user_id': userId,
+        'name': last.name,
+      });
+    }
+  } catch (_) {}
 }
 
 class ProjectDetailScreen extends StatefulWidget {
@@ -241,62 +234,43 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
 
   Future<_ExpenseCategory?> _openAddCategoryDialog(BuildContext ctx) async {
     final nameCtrl = TextEditingController();
-    IconData selectedIcon = _categoryIconChoices.first;
     final result = await showDialog<_ExpenseCategory>(
       context: ctx,
-      builder: (dctx) => StatefulBuilder(
-          builder: (dctx, setSt) => AlertDialog(
-                title: const Text('Yangi kategoriya'),
-                content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      TextField(
-                          controller: nameCtrl,
-                          autofocus: true,
-                          decoration: const InputDecoration(
-                              hintText: 'Kategoriya nomi')),
-                      const SizedBox(height: 16),
-                      Wrap(
-                          spacing: 10,
-                          runSpacing: 10,
-                          children: _categoryIconChoices.map((icon) {
-                            final selected = icon == selectedIcon;
-                            return GestureDetector(
-                              onTap: () => setSt(() => selectedIcon = icon),
-                              child: Container(
-                                width: 42,
-                                height: 42,
-                                decoration: BoxDecoration(
-                                  color: selected
-                                      ? AppColors.accent
-                                      : AppColors.accent.withOpacity(0.08),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Icon(icon,
-                                    color: selected
-                                        ? Colors.white
-                                        : AppColors.accent,
-                                    size: 20),
-                              ),
-                            );
-                          }).toList()),
-                    ]),
-                actions: [
-                  TextButton(
-                      onPressed: () => Navigator.of(dctx).pop(),
-                      child: const Text('Bekor qilish')),
-                  ElevatedButton(
-                    onPressed: () {
-                      final name = nameCtrl.text.trim();
-                      if (name.isEmpty) return;
-                      Navigator.of(dctx).pop(
-                          _ExpenseCategory(name: name, icon: selectedIcon));
-                    },
-                    child: const Text('Saqlash'),
-                  ),
-                ],
-              )),
+      builder: (dctx) => AlertDialog(
+        title: const Text('Yangi kategoriya'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: nameCtrl,
+              autofocus: true,
+              decoration: const InputDecoration(
+                hintText: 'Kategoriya nomi',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dctx).pop(),
+            child: const Text('Bekor qilish'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            onPressed: () {
+              final name = nameCtrl.text.trim();
+              if (name.isEmpty) return;
+              Navigator.of(dctx).pop(
+                _ExpenseCategory(name: name, icon: Icons.category_rounded),
+              );
+            },
+            child: const Text('Saqlash'),
+          ),
+        ],
+      ),
     );
     Future.delayed(const Duration(milliseconds: 350), () {
       nameCtrl.dispose();
@@ -343,7 +317,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
         : [
             _ExpenseCategory(
                 name: 'Xodim', icon: Icons.engineering_rounded, isWorker: true),
-            _ExpenseCategory(name: "O'zim", icon: Icons.person_rounded),
             ...customCategories,
           ];
 
@@ -370,11 +343,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                     left: 20,
                     right: 20,
                     top: 24,
-                    bottom: 24 + MediaQuery.of(context).viewInsets.bottom),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
+                    bottom: 24 + MediaQuery.of(ctx).viewInsets.bottom),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
                     Row(children: [
                       Container(
                         width: 36,
@@ -443,6 +417,51 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                               selectedCategory = c;
                               if (!c.isWorker) selectedToUserId = null;
                             }),
+                            onLongPress: (!c.isWorker && c.name != "Xodim")
+                                ? () async {
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (dctx) => AlertDialog(
+                                        title: const Text('Kategoriyani o\'chirish'),
+                                        content: Text('"${c.name}" kategoriyasini o\'chirishni xohlaysizmi?'),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.of(dctx).pop(false),
+                                            child: const Text('Yo\'q'),
+                                          ),
+                                          ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: AppColors.red,
+                                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                            ),
+                                            onPressed: () => Navigator.of(dctx).pop(true),
+                                            child: const Text('O\'chirish'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                    if (confirm == true) {
+                                      try {
+                                        final userId = supabase.auth.currentUser?.id;
+                                        if (userId != null) {
+                                          await supabase
+                                              .from('categories')
+                                              .delete()
+                                              .eq('user_id', userId)
+                                              .eq('name', c.name);
+                                        }
+                                        setSt(() {
+                                          customCategories.removeWhere((item) => item.name == c.name);
+                                          categories.removeWhere((item) => item.name == c.name);
+                                          if (selectedCategory?.name == c.name) {
+                                            selectedCategory = categories.isNotEmpty ? categories.first : null;
+                                            selectedToUserId = null;
+                                          }
+                                        });
+                                      } catch (_) {}
+                                    }
+                                  }
+                                : null,
                             child: Container(
                               width: 72,
                               height: 64,
@@ -524,17 +543,85 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                                   style: TextStyle(
                                       fontSize: 12, color: AppColors.muted)))
                         else ...[
-                          DropdownButtonFormField<String>(
-                            value: selectedToUserId,
-                            decoration: const InputDecoration(
-                                labelText: 'Ishchini tanlang'),
-                            hint: const Text("Ishchi tanlang"),
-                            items: workers
-                                .map((w) => DropdownMenuItem(
-                                    value: w.userId,
-                                    child: Text(w.displayName)))
-                                .toList(),
-                            onChanged: (v) => setSt(() => selectedToUserId = v),
+                           GestureDetector(
+                            onTap: () async {
+                              final selected = await showModalBottomSheet<String>(
+                                context: context,
+                                backgroundColor: AppColors.card,
+                                shape: const RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                                ),
+                                builder: (bctx) => SafeArea(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Padding(
+                                        padding: EdgeInsets.symmetric(vertical: 16),
+                                        child: Text(
+                                          'Ishchini tanlang',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w800,
+                                            color: AppColors.text,
+                                          ),
+                                        ),
+                                      ),
+                                      const Divider(height: 1),
+                                      Flexible(
+                                        child: ListView.builder(
+                                          shrinkWrap: true,
+                                          itemCount: workers.length,
+                                          itemBuilder: (lctx, index) {
+                                            final w = workers[index];
+                                            return ListTile(
+                                              title: Text(w.displayName, style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.text)),
+                                              trailing: selectedToUserId == w.userId
+                                                  ? const Icon(Icons.check_circle_rounded, color: AppColors.accent)
+                                                  : null,
+                                              onTap: () => Navigator.of(lctx).pop(w.userId),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                              if (selected != null) {
+                                setSt(() => selectedToUserId = selected);
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: AppColors.bg,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: AppColors.border),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'Ishchi',
+                                          style: TextStyle(fontSize: 11, color: AppColors.muted, fontWeight: FontWeight.w500),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          selectedToUserId != null
+                                              ? workers.firstWhere((w) => w.userId == selectedToUserId, orElse: () => workers.first).displayName
+                                              : 'Tanlang...',
+                                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.text),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.muted),
+                                ],
+                              ),
+                            ),
                           ),
                           const SizedBox(height: 12),
                         ],
@@ -565,7 +652,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                     ),
                   ],
                 ),
-              )),
+              ))),
     );
 
     final amountText = amountCtrl.text.trim();
@@ -578,6 +665,86 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
     if (confirmed != true) return;
     final amount = num.tryParse(amountText.replaceAll(' ', '')) ?? 0;
     if (amount <= 0) return;
+
+    // Save originals for rollback
+    final originalTxs = List<ProjectTransaction>.from(_txs);
+    final originalProject = _project;
+    final originalMembers = List<ObMember>.from(_members);
+
+    // Prepare optimistic updates
+    final rate = CurrencyService().usdToUzsRate;
+    final converted = CurrencyService().convert(amount.toDouble(), selectedCurrencyCode);
+    final amountUzs = converted['UZS']!;
+    final amountUsd = converted['USD']!;
+
+    final tempTx = ProjectTransaction(
+      id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
+      obId: _project.id,
+      tur: isIncome ? 'income' : 'spend',
+      summa: amount,
+      izoh: noteText.isNotEmpty ? noteText : null,
+      kategoriya: isIncome ? 'Kirim' : (selectedCategory?.name ?? 'Boshqa'),
+      toUser: isIncome ? null : selectedToUserId,
+      fromUser: isIncome ? supabase.auth.currentUser?.id : null,
+      createdBy: supabase.auth.currentUser?.id,
+      date: DateTime.now(),
+      currency: selectedCurrencyCode,
+      exchangeRate: rate,
+      summaUsd: amountUsd,
+      summaUzs: amountUzs,
+    );
+
+    final updatedProject = Project(
+      id: _project.id,
+      nomi: _project.nomi,
+      kirim: _project.kirim + (isIncome ? amount : 0),
+      chiqim: _project.chiqim + (isIncome ? 0 : amount),
+      boshlanish: _project.boshlanish,
+      tugash: _project.tugash,
+      createdAt: _project.createdAt,
+      muddat: _project.muddat,
+      role: _project.role,
+      myBalance: _project.myBalance + (isIncome ? amount : -amount),
+      ishaqi: _project.ishaqi,
+      olingan: _project.olingan + ((!isIncome && selectedCategory?.isWorker == true) ? amount : 0),
+      status: _project.status,
+      manzil: _project.manzil,
+      mijoz: _project.mijoz,
+      bosqich: _project.bosqich,
+      imageUrl: _project.imageUrl,
+    );
+
+    List<ObMember> updatedMembers = _members;
+    if (!isIncome && selectedCategory?.isWorker == true && selectedToUserId != null) {
+      updatedMembers = _members.map((m) {
+        if (m.userId == selectedToUserId) {
+          return ObMember(
+            obId: m.obId,
+            userId: m.userId,
+            role: m.role,
+            ishaqi: m.ishaqi,
+            olingan: m.olingan + amount,
+            kasb: m.kasb,
+            addedBy: m.addedBy,
+            profile: m.profile,
+            boshlanish: m.boshlanish,
+            tugash: m.tugash,
+            kirim: m.kirim,
+            chiqim: m.chiqim,
+          );
+        }
+        return m;
+      }).toList();
+    }
+
+    // Apply optimistic updates instantly
+    AppHaptics.medium();
+    setState(() {
+      _txs = [tempTx, ..._txs];
+      _project = updatedProject;
+      _members = updatedMembers;
+    });
+
     try {
       if (!isIncome && isMember) {
         if (selectedCategory?.isWorker == true && selectedToUserId != null) {
@@ -608,11 +775,20 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
           currency: selectedCurrencyCode,
         );
       }
-      if (mounted) _loadSilent();
+      // Re-load silently to keep UI clean and replace temp data
+      await _loadSilent();
     } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Xato: $e')));
+      // Rollback on error
+      if (mounted) {
+        setState(() {
+          _txs = originalTxs;
+          _project = originalProject;
+          _members = originalMembers;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Xato: $e')),
+        );
+      }
     }
   }
 
@@ -635,11 +811,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                     left: 20,
                     right: 20,
                     top: 24,
-                    bottom: 24 + MediaQuery.of(context).viewInsets.bottom),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
+                    bottom: 24 + MediaQuery.of(ctx).viewInsets.bottom),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
                     Row(children: [
                       const Expanded(
                           child: Text('Loyihani tahrirlash',
@@ -710,7 +887,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                     ),
                   ],
                 ),
-              )),
+              ))),
     );
 
     if (saved == true) {
@@ -871,20 +1048,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
     final kasbCtrl = TextEditingController();
     final ishaqiCtrl = TextEditingController();
 
-    // Show loading indicator or load silently before opening sheet
-    List<Worker> existingWorkers = [];
-    try {
-      final allWorkers = await WorkerRepository().loadAll();
-      final currentMemberIds = _members.map((m) => m.userId).toSet();
-      existingWorkers = allWorkers
-          .where((w) =>
-              !currentMemberIds.contains(w.userId) &&
-              w.profile?.phone.isNotEmpty == true)
-          .toList();
-    } catch (_) {}
-
-    if (!mounted) return;
-
     final result = await showModalBottomSheet<dynamic>(
       context: context,
       isScrollControlled: true,
@@ -896,12 +1059,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
             left: 20,
             right: 20,
             top: 24,
-            bottom: 24 + MediaQuery.of(context).viewInsets.bottom),
+            bottom: 24 + MediaQuery.of(ctx).viewInsets.bottom),
         child: AddMemberSheet(
           phoneCtrl: phoneCtrl,
           kasbCtrl: kasbCtrl,
           ishaqiCtrl: ishaqiCtrl,
-          existingWorkers: existingWorkers,
+          currentMemberIds: _members.map((m) => m.userId).toSet(),
           defaultBoshlanish: _project.boshlanish,
           defaultTugash: _project.tugash ?? (_project.boshlanish != null ? _project.boshlanish!.add(Duration(days: _project.muddat)) : null),
         ),
@@ -912,9 +1075,14 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
       final boshlanish = result['boshlanish'] as DateTime?;
       final tugash = result['tugash'] as DateTime?;
       final isNew = result['isNew'] as bool;
+      final currency = (result['currency'] as String?) ?? 'UZS';
       if (isNew) {
         try {
-          final ishaqi = num.tryParse(ishaqiCtrl.text.replaceAll(' ', '')) ?? 0;
+          var ishaqi = num.tryParse(ishaqiCtrl.text.replaceAll(' ', '')) ?? 0;
+          if (currency == 'USD') {
+            final converted = CurrencyService().convert(ishaqi.toDouble(), 'USD');
+            ishaqi = converted['UZS'] ?? (ishaqi * CurrencyService().usdToUzsRate);
+          }
           await _memberRepo.addMember(
               obId: _project.id,
               phone: phoneCtrl.text.trim(),
@@ -969,14 +1137,532 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
   }
 
   Future<void> _deleteTransaction(ProjectTransaction tx) async {
+    final originalTxs = List<ProjectTransaction>.from(_txs);
+    final originalProject = _project;
+    final originalMembers = List<ObMember>.from(_members);
+
+    final isIncome = tx.tur == 'income';
+    final amount = tx.summa;
+    final updatedProject = Project(
+      id: _project.id,
+      nomi: _project.nomi,
+      kirim: _project.kirim - (isIncome ? amount : 0),
+      chiqim: _project.chiqim - (isIncome ? 0 : amount),
+      boshlanish: _project.boshlanish,
+      tugash: _project.tugash,
+      createdAt: _project.createdAt,
+      muddat: _project.muddat,
+      role: _project.role,
+      myBalance: _project.myBalance - (isIncome ? amount : -amount),
+      ishaqi: _project.ishaqi,
+      olingan: _project.olingan - ((!isIncome && tx.toUser != null) ? amount : 0),
+      status: _project.status,
+      manzil: _project.manzil,
+      mijoz: _project.mijoz,
+      bosqich: _project.bosqich,
+      imageUrl: _project.imageUrl,
+    );
+
+    List<ObMember> updatedMembers = _members;
+    if (!isIncome && tx.toUser != null) {
+      updatedMembers = _members.map((m) {
+        if (m.userId == tx.toUser) {
+          return ObMember(
+            obId: m.obId,
+            userId: m.userId,
+            role: m.role,
+            ishaqi: m.ishaqi,
+            olingan: m.olingan - amount,
+            kasb: m.kasb,
+            addedBy: m.addedBy,
+            profile: m.profile,
+            boshlanish: m.boshlanish,
+            tugash: m.tugash,
+            kirim: m.kirim,
+            chiqim: m.chiqim,
+          );
+        }
+        return m;
+      }).toList();
+    }
+
+    AppHaptics.heavy();
+    setState(() {
+      _txs = _txs.where((t) => t.id != tx.id).toList();
+      _project = updatedProject;
+      _members = updatedMembers;
+    });
+
     try {
       await _txRepo.deleteTransaction(tx.id);
       _loadSilent();
     } catch (e) {
-      if (mounted)
+      if (mounted) {
+        setState(() {
+          _txs = originalTxs;
+          _project = originalProject;
+          _members = originalMembers;
+        });
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.toString())));
+            .showSnackBar(SnackBar(content: Text('Xato: $e')));
+      }
     }
+  }
+
+  Future<void> _showTransactionDetails(ProjectTransaction tx) async {
+    final isIncome = tx.tur == 'income';
+    final color = isIncome ? AppColors.green : AppColors.red;
+    
+    String displayCategory = tx.kategoriya ?? (isIncome ? 'Kirim' : 'Chiqim');
+    if (displayCategory == 'usta') {
+      displayCategory = 'Xodim';
+    } else if (displayCategory == 'income') {
+      displayCategory = 'Kirim';
+    } else if (displayCategory == 'spend') {
+      displayCategory = 'Chiqim';
+    }
+
+    if (tx.toUser != null) {
+      final matchingMember = _members.cast<ObMember?>().firstWhere(
+        (m) => m?.userId == tx.toUser,
+        orElse: () => null,
+      );
+      if (matchingMember != null && matchingMember.displayName.isNotEmpty) {
+        displayCategory = '$displayCategory: ${matchingMember.displayName}';
+      }
+    }
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 24,
+          bottom: 24 + MediaQuery.of(ctx).viewInsets.bottom,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Tranzaksiya tafsilotlari',
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.of(ctx).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Big amount display card
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: color.withOpacity(0.15)),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      '${isIncome ? '+' : '-'}${formatTransactionAmount(tx)}',
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
+                        color: color,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      tx.currency,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.muted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Info rows
+              _buildDetailRow('Turi', isIncome ? 'Kirim' : 'Chiqim'),
+              _buildDetailRow('Kategoriya', displayCategory),
+              _buildDetailRow('Sana', _dateFmt.format(tx.date)),
+              if (tx.izoh != null && tx.izoh!.isNotEmpty)
+                _buildDetailRow('Izoh', tx.izoh!),
+
+              const SizedBox(height: 28),
+
+              // Actions
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        side: const BorderSide(color: AppColors.border),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        _openEditTransaction(tx);
+                      },
+                      icon: const Icon(Icons.edit_outlined, size: 18),
+                      label: const Text('Tahrirlash', style: TextStyle(fontWeight: FontWeight.w800)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.red,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        elevation: 0,
+                      ),
+                      onPressed: () async {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (c) => AlertDialog(
+                            title: const Text("O'chirilsinmi?"),
+                            content: const Text("Ushbu tranzaksiya o'chiriladi."),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(c).pop(false),
+                                child: const Text('Bekor'),
+                              ),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.red,
+                                ),
+                                onPressed: () => Navigator.of(c).pop(true),
+                                child: const Text("O'chirish"),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirm == true) {
+                          Navigator.of(ctx).pop();
+                          _deleteTransaction(tx);
+                        }
+                      },
+                      icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.white),
+                      label: const Text("O'chirish", style: TextStyle(fontWeight: FontWeight.w800, color: Colors.white)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              label,
+              style: const TextStyle(fontSize: 13, color: AppColors.muted, fontWeight: FontWeight.w500),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.text),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openEditTransaction(ProjectTransaction tx) async {
+    final isIncome = tx.tur == 'income';
+    final amountCtrl = TextEditingController(text: tx.summa.toString());
+    final noteCtrl = TextEditingController(text: tx.izoh ?? '');
+    DateTime txDate = tx.date;
+    String selectedCurrencyCode = tx.currency;
+    
+    // Setup categories
+    final List<_ExpenseCategory> customCategories = await _loadCustomCategories();
+    
+    final categories = isIncome
+        ? <_ExpenseCategory>[]
+        : <_ExpenseCategory>[
+            const _ExpenseCategory(name: 'Xodim', icon: Icons.construction_rounded, isWorker: true),
+            ...customCategories,
+          ];
+          
+    _ExpenseCategory? selectedCategory;
+    try {
+      selectedCategory = categories.firstWhere(
+        (c) => c.name == tx.kategoriya || (c.isWorker && tx.toUser != null),
+      );
+    } catch (_) {
+      selectedCategory = categories.isNotEmpty ? categories.first : null;
+    }
+    String? selectedToUserId = tx.toUser;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSt) => Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 24,
+            bottom: 24 + MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      isIncome ? "Kirimni tahrirlash" : "Chiqimni tahrirlash",
+                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Currency selector
+                Row(
+                  children: [
+                    Expanded(
+                      child: ChoiceChip(
+                        label: const Text('so\'m (UZS)'),
+                        selected: selectedCurrencyCode == 'UZS',
+                        onSelected: (val) {
+                          if (val) setSt(() => selectedCurrencyCode = 'UZS');
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ChoiceChip(
+                        label: const Text('Dollar (USD)'),
+                        selected: selectedCurrencyCode == 'USD',
+                        onSelected: (val) {
+                          if (val) setSt(() => selectedCurrencyCode = 'USD');
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Amount
+                TextField(
+                  controller: amountCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'Summa',
+                    prefixIcon: Icon(Icons.money_rounded, size: 18),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Categories (for expenses)
+                if (!isIncome && categories.isNotEmpty) ...[
+                  const Text('Kategoriya', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.muted)),
+                  const SizedBox(height: 6),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: categories.map((c) {
+                        final sel = selectedCategory?.name == c.name;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: InkWell(
+                            onTap: () => setSt(() {
+                              selectedCategory = c;
+                              if (!c.isWorker) selectedToUserId = null;
+                            }),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: sel ? AppColors.accent.withOpacity(0.1) : AppColors.card,
+                                border: Border.all(color: sel ? AppColors.accent : AppColors.border),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(c.icon, size: 16, color: sel ? AppColors.accent : AppColors.muted),
+                                  const SizedBox(width: 6),
+                                  Text(c.name, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: sel ? AppColors.accent : AppColors.text)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Sub-worker dropdown
+                  if (selectedCategory?.isWorker == true) ...[
+                    InkWell(
+                      onTap: () async {
+                        final selected = await showModalBottomSheet<String>(
+                          context: context,
+                          backgroundColor: AppColors.card,
+                          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+                          builder: (lctx) => Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                const Text('Ishchini tanlang', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                                const SizedBox(height: 12),
+                                Expanded(
+                                  child: ListView.builder(
+                                    shrinkWrap: true,
+                                    itemCount: _members.length,
+                                    itemBuilder: (lctx, index) {
+                                      final w = _members[index];
+                                      return ListTile(
+                                        title: Text(w.displayName, style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.text)),
+                                        trailing: selectedToUserId == w.userId
+                                            ? const Icon(Icons.check_circle_rounded, color: AppColors.accent)
+                                            : null,
+                                        onTap: () => Navigator.of(lctx).pop(w.userId),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                        if (selected != null) {
+                          setSt(() => selectedToUserId = selected);
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: AppColors.bg,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              selectedToUserId != null
+                                  ? _members.firstWhere((m) => m.userId == selectedToUserId, orElse: () => _members.first).displayName
+                                  : 'Ishchini tanlang',
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                            ),
+                            const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.muted),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                ],
+
+                // Date Picker
+                InkWell(
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: ctx,
+                      initialDate: txDate,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2100),
+                    );
+                    if (picked != null) setSt(() => txDate = picked);
+                  },
+                  child: InputDecorator(
+                    decoration: const InputDecoration(labelText: 'Sana', prefixIcon: Icon(Icons.calendar_today_rounded, size: 18)),
+                    child: Text('${txDate.year}-${txDate.month.toString().padLeft(2, '0')}-${txDate.day.toString().padLeft(2, '0')}'),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Note/Comment
+                TextField(
+                  controller: noteCtrl,
+                  decoration: const InputDecoration(hintText: 'Izoh (ixtiyoriy)'),
+                ),
+                const SizedBox(height: 20),
+
+                // Save button
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isIncome ? AppColors.green : AppColors.red,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  onPressed: () async {
+                    final amountText = amountCtrl.text.trim();
+                    final amount = num.tryParse(amountText.replaceAll(' ', '')) ?? 0;
+                    if (amount <= 0) return;
+                    
+                    AppHaptics.medium();
+                    Navigator.of(ctx).pop();
+                    
+                    try {
+                      await _txRepo.updateTransaction(
+                        id: tx.id,
+                        newAmount: amount,
+                        newKategoriya: isIncome ? 'Kirim' : (selectedCategory?.name ?? 'Boshqa'),
+                        newIzoh: noteCtrl.text.trim(),
+                        newTxDate: txDate,
+                        newCurrency: selectedCurrencyCode,
+                      );
+                      _loadSilent();
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Xato: $e')));
+                    }
+                  },
+                  child: const Text('Saqlash'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _uploadFile() async {
@@ -1131,6 +1817,123 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                 children: [
                   // ── Hero card (image + overlay info) ──
                   _buildHeroCard(project, isDone, progress, left),
+                  const SizedBox(height: 16),
+
+                  // ── Statistics cards row ──
+                  Row(
+                    children: [
+                      // Kirim card
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                          decoration: BoxDecoration(
+                            color: AppColors.card,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: AppColors.border),
+                          ),
+                          child: Column(
+                            children: [
+                              const Text(
+                                'Kirim',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.muted,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  formatUzsToDisplay(project.kirim),
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.green,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Chiqim card
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                          decoration: BoxDecoration(
+                            color: AppColors.card,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: AppColors.border),
+                          ),
+                          child: Column(
+                            children: [
+                              const Text(
+                                'Chiqim',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.muted,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  formatUzsToDisplay(project.chiqim),
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.red,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Balans card
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                          decoration: BoxDecoration(
+                            color: AppColors.card,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: AppColors.border),
+                          ),
+                          child: Column(
+                            children: [
+                              const Text(
+                                'Balans',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.muted,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  formatUzsToDisplay(project.balance),
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
+                                    color: project.balance >= 0 ? AppColors.accent : AppColors.red,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 16),
 
                   // ── Action buttons ──
@@ -1673,52 +2476,58 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                       ),
                     ),
                     onDismissed: (_) => _deleteTransaction(tx),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 12),
-                      child: Row(children: [
-                        Container(
-                          width: 36,
-                          height: 36,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                              color: color.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(10)),
-                          child: Icon(
-                              isIncome
-                                  ? Icons.arrow_downward_rounded
-                                  : Icons.arrow_upward_rounded,
-                              size: 18,
-                              color: color),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                            child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                              Text(
-                                  displayCategory,
-                                  style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600)),
-                              if (tx.izoh != null && tx.izoh!.isNotEmpty) ...[
-                                const SizedBox(height: 2),
-                                Text(tx.izoh!,
+                    child: InkWell(
+                      onTap: () {
+                        AppHaptics.selection();
+                        _showTransactionDetails(tx);
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        child: Row(children: [
+                          Container(
+                            width: 36,
+                            height: 36,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                                color: color.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(10)),
+                            child: Icon(
+                                isIncome
+                                    ? Icons.arrow_downward_rounded
+                                    : Icons.arrow_upward_rounded,
+                                size: 18,
+                                color: color),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                              child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                Text(
+                                    displayCategory,
                                     style: const TextStyle(
-                                        fontSize: 12, color: AppColors.text2)),
-                              ],
-                              const SizedBox(height: 2),
-                              Text(_dateFmt.format(tx.date),
-                                  style: const TextStyle(
-                                      fontSize: 11, color: AppColors.muted)),
-                            ])),
-                        Text(
-                            '${isIncome ? '+' : '-'}${formatTransactionAmount(tx)}',
-                            style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: color)),
-                      ]),
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600)),
+                                if (tx.izoh != null && tx.izoh!.isNotEmpty) ...[
+                                  const SizedBox(height: 2),
+                                  Text(tx.izoh!,
+                                      style: const TextStyle(
+                                          fontSize: 12, color: AppColors.text2)),
+                                ],
+                                const SizedBox(height: 2),
+                                Text(_dateFmt.format(tx.date),
+                                    style: const TextStyle(
+                                        fontSize: 11, color: AppColors.muted)),
+                              ])),
+                          Text(
+                              '${isIncome ? '+' : '-'}${formatTransactionAmount(tx)}',
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: color)),
+                        ]),
+                      ),
                     ),
                   );
                 },

@@ -26,20 +26,24 @@ class ProfileRepository {
   Future<void> updateFullName(String fullName) async {
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) return;
-    await supabase.from('profiles').update({'full_name': fullName}).eq('id', userId);
+    await supabase.from('profiles').upsert({
+      'id': userId,
+      'full_name': fullName,
+    });
   }
 
   Future<void> updateProfile({required String fullName, required String phone, required int staj, String? kasb, String? avatarUrl}) async {
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) return;
     final data = <String, dynamic>{
+      'id': userId,
       'full_name': fullName,
       'phone': phone,
       'staj': staj,
     };
     if (kasb != null) data['kasb'] = kasb.isNotEmpty ? kasb : null;
     if (avatarUrl != null) data['avatar_url'] = avatarUrl;
-    await supabase.from('profiles').update(data).eq('id', userId);
+    await supabase.from('profiles').upsert(data);
   }
 
   Future<String> uploadAvatar(String userId, Uint8List bytes) async {
