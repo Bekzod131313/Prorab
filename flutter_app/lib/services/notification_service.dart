@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import '../main.dart';
+import '../l10n/strings.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -43,6 +44,30 @@ class NotificationService {
 
       // 5. Handle app opened via notification clicks
       _setupInteractionListeners();
+
+      // 6. Subscribe to topics based on active language
+      await updateTopicSubscriptions(appLocaleNotifier.value);
+
+      // Listen for language changes at runtime and update subscriptions
+      appLocaleNotifier.addListener(() {
+        updateTopicSubscriptions(appLocaleNotifier.value);
+      });
+    }
+  }
+
+  static Future<void> updateTopicSubscriptions(String lang) async {
+    try {
+      if (lang == 'uz') {
+        await _messaging.subscribeToTopic('all_uz');
+        await _messaging.unsubscribeFromTopic('all_ru');
+        print("Subscribed to all_uz, unsubscribed from all_ru");
+      } else if (lang == 'ru') {
+        await _messaging.subscribeToTopic('all_ru');
+        await _messaging.unsubscribeFromTopic('all_uz');
+        print("Subscribed to all_ru, unsubscribed from all_uz");
+      }
+    } catch (e) {
+      print("Error updating topic subscriptions: $e");
     }
   }
 
