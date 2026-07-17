@@ -4,6 +4,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../main.dart';
+import '../l10n/strings.dart';
 import '../theme/app_theme.dart';
 import 'auth_screen.dart';
 import 'root_shell.dart';
@@ -59,16 +60,16 @@ class _SplashScreenState extends State<SplashScreen> {
                 child: const Icon(Icons.system_update_rounded, color: AppColors.orange, size: 24),
               ),
               const SizedBox(width: 12),
-              const Text("Yangilash zarur", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+              Text(tr('update_required'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
             ],
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                "Ilovani ishlatishni davom ettirish uchun uni eng so'nggi talqinga yangilashingiz lozim. Yangi imkoniyatlar va xavfsizlik yangilanishlaridan foydalaning.",
-                style: TextStyle(fontSize: 13, color: AppColors.text2, height: 1.4),
+              Text(
+                tr('update_msg'),
+                style: const TextStyle(fontSize: 13, color: AppColors.text2, height: 1.4),
               ),
               const SizedBox(height: 20),
               Container(
@@ -82,7 +83,7 @@ class _SplashScreenState extends State<SplashScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text("Joriy talqin:", style: TextStyle(fontSize: 12, color: AppColors.muted)),
+                        Text(tr('current_version'), style: const TextStyle(fontSize: 12, color: AppColors.muted)),
                         Text("$currentVersion ($currentBuild)", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.text)),
                       ],
                     ),
@@ -90,7 +91,7 @@ class _SplashScreenState extends State<SplashScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text("Yangi talqin:", style: TextStyle(fontSize: 12, color: AppColors.muted)),
+                        Text(tr('new_version'), style: const TextStyle(fontSize: 12, color: AppColors.muted)),
                         Text("$requiredVersion ($requiredBuild)", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.green)),
                       ],
                     ),
@@ -115,7 +116,7 @@ class _SplashScreenState extends State<SplashScreen> {
                     await launchUrl(uri, mode: LaunchMode.externalApplication);
                   }
                 },
-                child: const Text("Yangilash", style: TextStyle(fontWeight: FontWeight.w800, color: Colors.white)),
+                child: Text(tr('update_btn'), style: const TextStyle(fontWeight: FontWeight.w800, color: Colors.white)),
               ),
             ),
           ],
@@ -235,60 +236,65 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bg,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            // Centered logo + tagline
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Logo with rounded corners
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(28),
-                    child: Image.asset(
-                      'assets/logo.png',
-                      width: 140,
-                      height: 140,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  // Tagline
-                  const Text(
-                    'Qulay boshqaruv. Aniq natija.',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.text2,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Version at the bottom
-            if (_version.isNotEmpty)
-              Positioned(
-                bottom: 24,
-                left: 0,
-                right: 0,
-                child: Text(
-                  _version,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.muted,
-                    fontWeight: FontWeight.w500,
+    return ValueListenableBuilder<String>(
+      valueListenable: appLocaleNotifier,
+      builder: (context, locale, _) {
+        return Scaffold(
+          backgroundColor: AppColors.bg,
+          body: SafeArea(
+            child: Stack(
+              children: [
+                // Centered logo + tagline
+                Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Logo with rounded corners
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(28),
+                        child: Image.asset(
+                          'assets/logo.png',
+                          width: 140,
+                          height: 140,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      // Tagline
+                      Text(
+                        tr('tagline'),
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.text2,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-          ],
-        ),
-      ),
+
+                // Version at the bottom
+                if (_version.isNotEmpty)
+                  Positioned(
+                    bottom: 24,
+                    left: 0,
+                    right: 0,
+                    child: Text(
+                      _version,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.muted,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

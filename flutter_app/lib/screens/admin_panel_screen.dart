@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../main.dart';
+import '../l10n/strings.dart';
 import '../theme/app_theme.dart';
 import '../widgets/project_card.dart' show formatMoney, formatUzsToDisplay, formatTransactionAmount;
 import '../widgets/member_row.dart' show colorForName;
@@ -393,7 +394,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                             ],
                           ),
                           Text(phone, style: const TextStyle(fontSize: 11, color: AppColors.text2)),
-                          Text('$kasb • Tajriba: $staj yil', style: const TextStyle(fontSize: 11, color: AppColors.muted)),
+                          Text('$kasb • ${tr('experience_label')}: $staj ${tr('years_suffix')}', style: const TextStyle(fontSize: 11, color: AppColors.muted)),
                         ],
                       ),
                     ),

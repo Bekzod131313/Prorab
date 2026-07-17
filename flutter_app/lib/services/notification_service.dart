@@ -28,6 +28,13 @@ class NotificationService {
 
     if (settings.authorizationStatus == AuthorizationStatus.authorized ||
         settings.authorizationStatus == AuthorizationStatus.provisional) {
+      // Set presentation options for iOS when app is in foreground
+      await _messaging.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+
       // 3. Get FCM token
       await _refreshToken();
 

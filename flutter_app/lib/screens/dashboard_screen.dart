@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../l10n/strings.dart';
 import '../data/project_repository.dart';
 import '../models/project.dart';
 import '../theme/app_theme.dart';
@@ -105,7 +106,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         .toList();
     if (activeProjects.isEmpty) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Faol loyiha yo'q")));
+          .showSnackBar(SnackBar(content: Text(tr('no_active_project'))));
       return;
     }
     if (activeProjects.length == 1) {
@@ -125,8 +126,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Text(
                     isIncome
-                        ? 'Kirim — Loyiha tanlang'
-                        : 'Chiqim — Loyiha tanlang',
+                        ? '${tr("income")} — ${tr("select_project")}'
+                        : '${tr("expense")} — ${tr("select_project")}',
                     style: const TextStyle(
                         fontWeight: FontWeight.w800, fontSize: 16)),
                 const SizedBox(height: 12),
@@ -159,15 +160,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ValueListenableBuilder<String>(
+      valueListenable: appLocaleNotifier,
+      builder: (_, __, ___) {
+        return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
         backgroundColor: AppColors.bg,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         titleSpacing: 16,
-        title: const Text('Asosiy',
-            style: TextStyle(
+        title: Text(tr('home'),
+            style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
                 color: AppColors.text)),
@@ -199,6 +203,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               onRefresh: _load,
               child: _buildBody(),
             ),
+        );
+      },
     );
   }
 
@@ -339,7 +345,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     border: done ? Border.all(color: Colors.white.withOpacity(0.2), width: 1) : null,
                                   ),
                                   child: Text(
-                                    done ? 'Yakunlandi' : 'Faol',
+                                    done ? tr('done') : tr('active'),
                                     style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 11,
@@ -377,7 +383,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 const Icon(Icons.calendar_today_rounded,
                                     size: 12, color: Colors.white70),
                                 const SizedBox(width: 4),
-                                Text('$left kun qoldi',
+                                Text(tr('days_remaining').replaceFirst('{}', '$left'),
                                     style: const TextStyle(
                                         color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w500)),
                               ],
@@ -396,8 +402,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       children: [
                         Expanded(
                           child: _HeroActionBtn(
-                            label: 'Kirim',
-                            subtitle: "Qo'shish",
+                            label: tr('income'),
+                            subtitle: tr('create'),
                             icon: Icons.arrow_downward_rounded,
                             color: AppColors.accent,
                             onTap: () => _openQuickAdd(
@@ -409,8 +415,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: _HeroActionBtn(
-                            label: 'Chiqim',
-                            subtitle: "Qo'shish",
+                            label: tr('expense'),
+                            subtitle: tr('create'),
                             icon: Icons.arrow_upward_rounded,
                             color: AppColors.green,
                             onTap: () => _openQuickAdd(
@@ -456,8 +462,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                const Text("Loyiha ma'lumotlari",
-                                    style: TextStyle(
+                                Text(tr('project_info'),
+                                    style: const TextStyle(
                                         fontWeight: FontWeight.w800,
                                         fontSize: 14,
                                         color: AppColors.text)),
@@ -467,19 +473,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           const Divider(color: AppColors.border, height: 1),
                           _InfoRow(
                             icon: Icons.calendar_today_rounded,
-                            label: 'Boshlangan sana',
+                            label: tr('start_date'),
                             value: startFmt,
                           ),
                           const Divider(color: AppColors.border, height: 1, indent: 56),
                           _InfoRow(
                             icon: Icons.access_time_rounded,
-                            label: 'Tugash sanasi',
+                            label: tr('completed'),
                             value: endFmt,
                           ),
                           const Divider(color: AppColors.border, height: 1, indent: 56),
                           _InfoRowProgress(
                             icon: Icons.bar_chart_rounded,
-                            label: 'Bajarilish darajasi',
+                            label: tr('progress'),
                             progress: prog.toInt(),
                           ),
                         ],
@@ -699,8 +705,8 @@ class _EmptyProjectsCard extends StatelessWidget {
                 size: 28, color: AppColors.accent),
           ),
           const SizedBox(height: 12),
-          const Text("Loyiha yo'q",
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+          Text(tr('no_projects'),
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
           const SizedBox(height: 16),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -713,9 +719,9 @@ class _EmptyProjectsCard extends StatelessWidget {
               ProjectsScreen.autoOpenCreate = true;
               RootShell.of(context)?.setIndex(1);
             },
-            child: const Text(
-              'Yaratish',
-              style: TextStyle(
+            child: Text(
+              tr('create'),
+              style: const TextStyle(
                 fontWeight: FontWeight.w800,
                 fontSize: 14,
                 color: Colors.white,

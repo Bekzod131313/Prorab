@@ -1,6 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../l10n/strings.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show FileOptions;
 import 'package:url_launcher/url_launcher.dart';
@@ -92,6 +93,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
   final _projectRepo = ProjectRepository();
   final _filesRepo = ProjectFilesRepository();
   final _dateFmt = DateFormat('dd MMM yyyy');
+  String _formatDate(DateTime date) => DateFormat('dd MMM yyyy', appLocaleNotifier.value).format(date);
 
   late Project _project;
   List<ProjectTransaction> _txs = [];
@@ -153,11 +155,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
         _project = _project.copyWith(imageUrl: publicUrl);
       });
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Rasm yuklandi')));
+          .showSnackBar(SnackBar(content: Text(tr('image_uploaded'))));
     } catch (e) {
       if (mounted)
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Xato: $e')));
+            .showSnackBar(SnackBar(content: Text('${tr('error')}: $e')));
     }
   }
 
@@ -237,7 +239,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
     final result = await showDialog<_ExpenseCategory>(
       context: ctx,
       builder: (dctx) => AlertDialog(
-        title: const Text('Yangi kategoriya'),
+        title: Text(tr('new_category')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -245,8 +247,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
             TextField(
               controller: nameCtrl,
               autofocus: true,
-              decoration: const InputDecoration(
-                hintText: 'Kategoriya nomi',
+              decoration: InputDecoration(
+                hintText: tr('category_name'),
               ),
             ),
           ],
@@ -254,7 +256,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dctx).pop(),
-            child: const Text('Bekor qilish'),
+            child: Text(tr('cancel')),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -267,7 +269,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                 _ExpenseCategory(name: name, icon: Icons.category_rounded),
               );
             },
-            child: const Text('Saqlash'),
+            child: Text(tr('save')),
           ),
         ],
       ),
@@ -365,16 +367,16 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                             size: 18),
                       ),
                       const SizedBox(width: 10),
-                      Text(isIncome ? "Kirim qo'shish" : "Chiqim qo'shish",
+                      Text(isIncome ? tr('add_income') : tr('add_expense'),
                           style: const TextStyle(
                               fontWeight: FontWeight.w800, fontSize: 17)),
                     ]),
                     const SizedBox(height: 16),
-                    Row(
+                     Row(
                       children: [
                         Expanded(
                           child: ChoiceChip(
-                            label: const Text('so\'m (UZS)'),
+                            label: Text(tr('currency_uzs')),
                             selected: selectedCurrencyCode == 'UZS',
                             onSelected: (val) {
                               if (val) setSt(() => selectedCurrencyCode = 'UZS');
@@ -384,7 +386,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                         const SizedBox(width: 8),
                         Expanded(
                           child: ChoiceChip(
-                            label: const Text('Dollar (USD)'),
+                            label: Text(tr('currency_usd')),
                             selected: selectedCurrencyCode == 'USD',
                             onSelected: (val) {
                               if (val) setSt(() => selectedCurrencyCode = 'USD');
@@ -400,14 +402,14 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                         inputFormatters: [PriceInputFormatter()],
                         autofocus: true,
                         decoration: InputDecoration(
-                            hintText: selectedCurrencyCode == 'UZS' ? "Summa (so'm)" : "Summa (\$)",
+                            hintText: selectedCurrencyCode == 'UZS' ? "${tr('amount')} (${tr('currency_uzs')})" : "${tr('amount')} (\$)",
                             prefixIcon: const Icon(Icons.payments_outlined,
                                 size: 18))),
                     const SizedBox(height: 12),
                     if (!isIncome) ...[
-                      const Text('Kategoriya',
+                      Text(tr('category'),
                           style:
-                              TextStyle(fontSize: 12, color: AppColors.muted)),
+                              const TextStyle(fontSize: 12, color: AppColors.muted)),
                       const SizedBox(height: 8),
                       Wrap(spacing: 10, runSpacing: 10, children: [
                         ...categories.map((c) {
@@ -417,17 +419,17 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                               selectedCategory = c;
                               if (!c.isWorker) selectedToUserId = null;
                             }),
-                            onLongPress: (!c.isWorker && c.name != "Xodim")
+                            onLongPress: (!c.isWorker && c.name != tr('worker'))
                                 ? () async {
                                     final confirm = await showDialog<bool>(
                                       context: context,
                                       builder: (dctx) => AlertDialog(
-                                        title: const Text('Kategoriyani o\'chirish'),
-                                        content: Text('"${c.name}" kategoriyasini o\'chirishni xohlaysizmi?'),
+                                        title: Text(tr('delete_category')),
+                                        content: Text(tr('delete_category_q').replaceFirst('{}', c.name)),
                                         actions: [
                                           TextButton(
                                             onPressed: () => Navigator.of(dctx).pop(false),
-                                            child: const Text('Yo\'q'),
+                                            child: Text(tr('no')),
                                           ),
                                           ElevatedButton(
                                             style: ElevatedButton.styleFrom(
@@ -435,7 +437,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                                             ),
                                             onPressed: () => Navigator.of(dctx).pop(true),
-                                            child: const Text('O\'chirish'),
+                                            child: Text(tr('delete')),
                                           ),
                                         ],
                                       ),
@@ -486,7 +488,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                                             ? AppColors.red
                                             : AppColors.text2),
                                     const SizedBox(height: 4),
-                                    Text(c.name,
+                                    Text(c.name == 'Xodim' ? tr('xodim_category') : c.name,
                                         textAlign: TextAlign.center,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
@@ -519,14 +521,14 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(color: AppColors.border),
                             ),
-                            child: const Column(
+                            child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.add_rounded,
+                                  const Icon(Icons.add_rounded,
                                       size: 20, color: AppColors.accent),
-                                  SizedBox(height: 4),
-                                  Text('Boshqa',
-                                      style: TextStyle(
+                                  const SizedBox(height: 4),
+                                  Text(tr('other'),
+                                      style: const TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.w700,
                                           color: AppColors.accent)),
@@ -537,10 +539,10 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                       const SizedBox(height: 12),
                       if (selectedCategory?.isWorker == true) ...[
                         if (workers.isEmpty)
-                          const Padding(
-                              padding: EdgeInsets.only(bottom: 12),
-                              child: Text('Bu obyektda ishchilar yo\'q',
-                                  style: TextStyle(
+                          Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Text(tr('no_workers_in_project'),
+                                  style: const TextStyle(
                                       fontSize: 12, color: AppColors.muted)))
                         else ...[
                            GestureDetector(
@@ -555,11 +557,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Padding(
-                                        padding: EdgeInsets.symmetric(vertical: 16),
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 16),
                                         child: Text(
-                                          'Ishchini tanlang',
-                                          style: TextStyle(
+                                          tr('select_worker'),
+                                          style: const TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w800,
                                             color: AppColors.text,
@@ -604,15 +606,15 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        const Text(
-                                          'Ishchi',
-                                          style: TextStyle(fontSize: 11, color: AppColors.muted, fontWeight: FontWeight.w500),
+                                        Text(
+                                          tr('worker'),
+                                          style: const TextStyle(fontSize: 11, color: AppColors.muted, fontWeight: FontWeight.w500),
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
                                           selectedToUserId != null
                                               ? workers.firstWhere((w) => w.userId == selectedToUserId, orElse: () => workers.first).displayName
-                                              : 'Tanlang...',
+                                              : tr('select_worker'),
                                           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.text),
                                         ),
                                       ],
@@ -629,8 +631,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                     ],
                     TextField(
                         controller: noteCtrl,
-                        decoration: const InputDecoration(
-                            hintText: 'Izoh (ixtiyoriy)')),
+                        decoration: InputDecoration(
+                            hintText: tr('comment_hint'))),
                     const SizedBox(height: 20),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
@@ -641,14 +643,14 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                         if (!isIncome &&
                             selectedCategory?.isWorker == true &&
                             selectedToUserId == null) {
-                          ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
-                              content: Text('Ishchini tanlang')));
+                          ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                              content: Text(tr('select_worker'))));
                           return;
                         }
                         Navigator.of(ctx).pop(true);
                       },
                       child:
-                          Text(isIncome ? "Kirim qo'shish" : "Chiqim qo'shish"),
+                          Text(isIncome ? tr('add_income') : tr('add_expense')),
                     ),
                   ],
                 ),
@@ -818,14 +820,14 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                     Row(children: [
-                      const Expanded(
-                          child: Text('Loyihani tahrirlash',
-                              style: TextStyle(
+                      Expanded(
+                          child: Text(tr('edit_project_title'),
+                              style: const TextStyle(
                                   fontWeight: FontWeight.w800, fontSize: 17))),
                       IconButton(
                         icon: const Icon(Icons.camera_alt_outlined,
                             color: AppColors.accent),
-                        tooltip: 'Rasm yuklash',
+                        tooltip: tr('upload_photo'),
                         onPressed: () async {
                           Navigator.of(ctx).pop();
                           await _pickAndUploadImage();
@@ -836,8 +838,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                     TextField(
                         controller: nameCtrl,
                         autofocus: true,
-                        decoration: const InputDecoration(
-                            hintText: 'Loyiha nomi *', labelText: 'Nom')),
+                        decoration: InputDecoration(
+                            hintText: '${tr('project_name')} *', labelText: tr('project_name'))),
                     const SizedBox(height: 12),
                     InkWell(
                       onTap: () async {
@@ -849,10 +851,10 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                         if (picked != null) setSt(() => startDate = picked);
                       },
                       child: InputDecorator(
-                        decoration: const InputDecoration(
-                            labelText: 'Boshlanish sanasi',
+                        decoration: InputDecoration(
+                            labelText: tr('start_date'),
                             prefixIcon:
-                                Icon(Icons.calendar_today_rounded, size: 18)),
+                                const Icon(Icons.calendar_today_rounded, size: 18)),
                         child: Text(DateFormat('dd.MM.yyyy').format(startDate)),
                       ),
                     ),
@@ -860,30 +862,30 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                     TextField(
                         controller: daysCtrl,
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                            labelText: 'Muddat (kun)',
-                            prefixIcon: Icon(Icons.timer_outlined, size: 18))),
+                        decoration: InputDecoration(
+                            labelText: tr('duration_days'),
+                            prefixIcon: const Icon(Icons.timer_outlined, size: 18))),
                     const SizedBox(height: 12),
                     TextField(
                         controller: manzilCtrl,
-                        decoration: const InputDecoration(
-                            labelText: 'Manzil',
+                        decoration: InputDecoration(
+                            labelText: tr('location'),
                             prefixIcon:
-                                Icon(Icons.location_on_outlined, size: 18))),
+                                const Icon(Icons.location_on_outlined, size: 18))),
                     const SizedBox(height: 12),
                     TextField(
                         controller: mijozCtrl,
-                        decoration: const InputDecoration(
-                            labelText: 'Mijoz',
+                        decoration: InputDecoration(
+                            labelText: tr('client'),
                             prefixIcon:
-                                Icon(Icons.person_outline_rounded, size: 18))),
+                                const Icon(Icons.person_outline_rounded, size: 18))),
                     const SizedBox(height: 20),
                     ElevatedButton(
                       onPressed: () {
                         if (nameCtrl.text.trim().isEmpty) return;
                         Navigator.of(ctx).pop(true);
                       },
-                      child: const Text('Saqlash'),
+                      child: Text(tr('save')),
                     ),
                   ],
                 ),
@@ -959,25 +961,25 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                     borderRadius: BorderRadius.circular(14)),
                 child: Column(children: [
                   _WorkerInfoRow(
-                      label: 'Ish haqi',
+                      label: tr('salary'),
                       value: formatUzsToDisplay(m.ishaqi),
                       color: AppColors.text),
                   const Divider(color: AppColors.border, height: 1, indent: 14),
                   _WorkerInfoRow(
-                      label: "To'langan",
+                      label: tr('received'),
                       value: formatUzsToDisplay(m.olingan),
                       color: AppColors.green),
                   const Divider(color: AppColors.border, height: 1, indent: 14),
                   _WorkerInfoRow(
-                    label: 'Qoldiq',
+                    label: tr('balance'),
                     value: formatUzsToDisplay(balance),
                     color: balance > 0 ? AppColors.orange : AppColors.muted,
                   ),
                   if (m.boshlanish != null && m.tugash != null) ...[
                     const Divider(color: AppColors.border, height: 1, indent: 14),
                     _WorkerInfoRow(
-                      label: 'Muddati',
-                      value: "${_dateFmt.format(m.boshlanish!)} - ${_dateFmt.format(m.tugash!)}",
+                      label: tr('duration_days').replaceAll(' (kun)', ''), // Muddat/Muddati fallback
+                      value: "${_formatDate(m.boshlanish!)} - ${_formatDate(m.tugash!)}",
                       color: AppColors.text,
                     ),
                   ],
@@ -991,25 +993,24 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                         foregroundColor: AppColors.red,
                         side: const BorderSide(color: AppColors.red)),
                     icon: const Icon(Icons.person_remove_outlined, size: 16),
-                    label: const Text("O'chirish"),
+                    label: Text(tr('delete')),
                     onPressed: () async {
                       Navigator.of(ctx).pop();
                       final confirm = await showDialog<bool>(
                         context: context,
                         builder: (d) => AlertDialog(
-                          title: const Text("Ishchini o'chirish"),
-                          content: Text(
-                              "${m.displayName} loyihadan olib tashlansinmi?"),
+                          title: Text(tr('delete_worker_title')),
+                          content: Text(tr('delete_worker_q').replaceFirst('{}', m.displayName)),
                           actions: [
                             TextButton(
                                 onPressed: () => Navigator.of(d).pop(false),
-                                child: const Text('Bekor')),
+                                child: Text(tr('cancel'))),
                             ElevatedButton(
                                 style: ElevatedButton.styleFrom(
                                     backgroundColor: AppColors.red,
                                     padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10)),
                                 onPressed: () => Navigator.of(d).pop(true),
-                                child: const Text("O'chirish")),
+                                child: Text(tr('delete'))),
                           ],
                         ),
                       );
@@ -1027,7 +1028,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                     style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.accent),
                     icon: const Icon(Icons.payments_outlined, size: 16),
-                    label: const Text('To\'lash'),
+                    label: Text(tr('pay')),
                     onPressed: () {
                       Navigator.of(ctx).pop();
                       _openAddTransaction(
@@ -1213,13 +1214,13 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
     final isIncome = tx.tur == 'income';
     final color = isIncome ? AppColors.green : AppColors.red;
     
-    String displayCategory = tx.kategoriya ?? (isIncome ? 'Kirim' : 'Chiqim');
-    if (displayCategory == 'usta') {
-      displayCategory = 'Xodim';
-    } else if (displayCategory == 'income') {
-      displayCategory = 'Kirim';
-    } else if (displayCategory == 'spend') {
-      displayCategory = 'Chiqim';
+    String displayCategory = tx.kategoriya ?? (isIncome ? tr('income') : tr('expense'));
+    if (displayCategory == 'usta' || displayCategory == 'Xodim') {
+      displayCategory = tr('worker_default_role');
+    } else if (displayCategory == 'income' || displayCategory == 'Kirim') {
+      displayCategory = tr('income');
+    } else if (displayCategory == 'spend' || displayCategory == 'Chiqim') {
+      displayCategory = tr('expense');
     }
 
     if (tx.toUser != null) {
@@ -1255,9 +1256,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Tranzaksiya tafsilotlari',
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
+                  Text(
+                    appLocaleNotifier.value == 'ru' ? 'Детали транзакции' : 'Tranzaksiya tafsilotlari',
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close_rounded),
@@ -1300,11 +1301,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
               const SizedBox(height: 20),
 
               // Info rows
-              _buildDetailRow('Turi', isIncome ? 'Kirim' : 'Chiqim'),
-              _buildDetailRow('Kategoriya', displayCategory),
-              _buildDetailRow('Sana', _dateFmt.format(tx.date)),
+              _buildDetailRow(appLocaleNotifier.value == 'ru' ? 'Тип' : 'Turi', isIncome ? tr('income') : tr('expense')),
+              _buildDetailRow(appLocaleNotifier.value == 'ru' ? 'Категория' : 'Kategoriya', displayCategory),
+              _buildDetailRow(appLocaleNotifier.value == 'ru' ? 'Дата' : 'Sana', _formatDate(tx.date)),
               if (tx.izoh != null && tx.izoh!.isNotEmpty)
-                _buildDetailRow('Izoh', tx.izoh!),
+                _buildDetailRow(appLocaleNotifier.value == 'ru' ? 'Комментарий' : 'Izoh', tx.izoh!),
 
               const SizedBox(height: 28),
 
@@ -1323,7 +1324,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                         _openEditTransaction(tx);
                       },
                       icon: const Icon(Icons.edit_outlined, size: 18),
-                      label: const Text('Tahrirlash', style: TextStyle(fontWeight: FontWeight.w800)),
+                      label: Text(tr('edit'), style: const TextStyle(fontWeight: FontWeight.w800)),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -1339,19 +1340,19 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                         final confirm = await showDialog<bool>(
                           context: context,
                           builder: (c) => AlertDialog(
-                            title: const Text("O'chirilsinmi?"),
-                            content: const Text("Ushbu tranzaksiya o'chiriladi."),
+                            title: Text(tr('tx_delete_title')),
+                            content: Text(tr('tx_delete_body')),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.of(c).pop(false),
-                                child: const Text('Bekor'),
+                                child: Text(tr('cancel_btn')),
                               ),
                               ElevatedButton(
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.red,
                                 ),
                                 onPressed: () => Navigator.of(c).pop(true),
-                                child: const Text("O'chirish"),
+                                child: Text(tr('delete')),
                               ),
                             ],
                           ),
@@ -1362,7 +1363,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                         }
                       },
                       icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.white),
-                      label: const Text("O'chirish", style: TextStyle(fontWeight: FontWeight.w800, color: Colors.white)),
+                      label: Text(tr('delete'), style: const TextStyle(fontWeight: FontWeight.w800, color: Colors.white)),
                     ),
                   ),
                 ],
@@ -1525,7 +1526,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                                 children: [
                                   Icon(c.icon, size: 16, color: sel ? AppColors.accent : AppColors.muted),
                                   const SizedBox(width: 6),
-                                  Text(c.name, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: sel ? AppColors.accent : AppColors.text)),
+                                  Text(c.name == 'Xodim' ? tr('xodim_category') : c.name, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: sel ? AppColors.accent : AppColors.text)),
                                 ],
                               ),
                             ),
@@ -1720,17 +1721,20 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
 
   @override
   Widget build(BuildContext context) {
-    final project = _project;
-    final (_, left, progress) = project.schedule;
-    final isDone = project.status == 'done';
-    final startFmt =
-        project.boshlanish != null ? _dateFmt.format(project.boshlanish!) : '—';
-    final endDate = project.tugash ?? (project.boshlanish != null
-        ? project.boshlanish!.add(Duration(days: project.muddat))
-        : null);
-    final endFmt = endDate != null ? _dateFmt.format(endDate) : '—';
+    return ValueListenableBuilder<String>(
+      valueListenable: appLocaleNotifier,
+      builder: (context, locale, _) {
+        final project = _project;
+        final (_, left, progress) = project.schedule;
+        final isDone = project.status == 'done';
+        final startFmt =
+            project.boshlanish != null ? _formatDate(project.boshlanish!) : '—';
+        final endDate = project.tugash ?? (project.boshlanish != null
+            ? project.boshlanish!.add(Duration(days: project.muddat))
+            : null);
+        final endFmt = endDate != null ? _formatDate(endDate) : '—';
 
-    return Scaffold(
+        return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
         backgroundColor: AppColors.bg,
@@ -1748,7 +1752,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
           if (_project.role == 'owner') ...[
             IconButton(
               icon: const Icon(Icons.edit_outlined, size: 20),
-              tooltip: 'Tahrirlash',
+              tooltip: appLocaleNotifier.value == 'ru' ? 'Редактировать' : 'Tahrirlash',
               onPressed: _openEditProject,
             ),
           ],
@@ -1768,23 +1772,23 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                 );
                 if (mounted)
                   ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Nusxa yaratildi')));
+                      SnackBar(content: Text(appLocaleNotifier.value == 'ru' ? 'Копия создана' : 'Nusxa yaratildi')));
               } else if (action == 'delete') {
                 final confirm = await showDialog<bool>(
                   context: context,
                   builder: (ctx) => AlertDialog(
-                    title: const Text("O'chirilsinmi?"),
-                    content: Text("${project.nomi} o'chiriladi."),
+                    title: Text(tr('tx_delete_title')),
+                    content: Text(appLocaleNotifier.value == 'ru' ? 'Объект ${project.nomi} будет удален.' : "${project.nomi} o'chiriladi."),
                     actions: [
                       TextButton(
                           onPressed: () => Navigator.of(ctx).pop(false),
-                          child: const Text('Bekor')),
+                          child: Text(tr('cancel'))),
                       ElevatedButton(
                           style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.red,
                               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10)),
                           onPressed: () => Navigator.of(ctx).pop(true),
-                          child: const Text("O'chirish")),
+                          child: Text(tr('delete'))),
                     ],
                   ),
                 );
@@ -1797,13 +1801,13 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
             itemBuilder: (_) => [
               PopupMenuItem(
                   value: 'toggleDone',
-                  child: Text(isDone ? 'Faolga qaytarish' : 'Yakunlandi')),
-              const PopupMenuItem(
-                  value: 'duplicate', child: Text("Nusxa ko'chirish")),
-              const PopupMenuItem(
+                  child: Text(isDone ? (appLocaleNotifier.value == 'ru' ? 'Вернуть в активные' : 'Faolga qaytarish') : (appLocaleNotifier.value == 'ru' ? 'Завершить' : 'Yakunlash'))),
+              PopupMenuItem(
+                  value: 'duplicate', child: Text(appLocaleNotifier.value == 'ru' ? 'Дублировать' : "Nusxa ko'chirish")),
+              PopupMenuItem(
                   value: 'delete',
-                  child: Text("O'chirish",
-                      style: TextStyle(color: AppColors.red))),
+                  child: Text(tr('delete'),
+                      style: const TextStyle(color: AppColors.red))),
             ],
           ),
         ],
@@ -1833,9 +1837,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                           ),
                           child: Column(
                             children: [
-                              const Text(
-                                'Kirim',
-                                style: TextStyle(
+                              Text(
+                                tr('income'),
+                                style: const TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w800,
                                   color: AppColors.muted,
@@ -1870,9 +1874,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                           ),
                           child: Column(
                             children: [
-                              const Text(
-                                'Chiqim',
-                                style: TextStyle(
+                              Text(
+                                tr('expense'),
+                                style: const TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w800,
                                   color: AppColors.muted,
@@ -1907,9 +1911,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                           ),
                           child: Column(
                             children: [
-                              const Text(
-                                'Balans',
-                                style: TextStyle(
+                              Text(
+                                tr('balance'),
+                                style: const TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w800,
                                   color: AppColors.muted,
@@ -1956,11 +1960,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                                 child: const Icon(Icons.arrow_downward_rounded, size: 16, color: Colors.white),
                               ),
                               const SizedBox(width: 8),
-                              const Column(
+                              Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Kirim', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
-                                  Text("Qo'shish", style: TextStyle(fontSize: 10, color: Colors.white70)),
+                                  Text(tr('income'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
+                                  Text(appLocaleNotifier.value == 'ru' ? 'Добавить' : "Qo'shish", style: const TextStyle(fontSize: 10, color: Colors.white70)),
                                 ],
                               ),
                             ],
@@ -1985,11 +1989,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                                 child: const Icon(Icons.arrow_upward_rounded, size: 16, color: Colors.white),
                               ),
                               const SizedBox(width: 8),
-                              const Column(
+                              Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Chiqim', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
-                                  Text("Qo'shish", style: TextStyle(fontSize: 10, color: Colors.white70)),
+                                  Text(tr('expense'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
+                                  Text(appLocaleNotifier.value == 'ru' ? 'Добавить' : "Qo'shish", style: const TextStyle(fontSize: 10, color: Colors.white70)),
                                 ],
                               ),
                             ],
@@ -2017,11 +2021,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                                 child: const Icon(Icons.arrow_downward_rounded, size: 16, color: Colors.white),
                               ),
                               const SizedBox(width: 8),
-                              const Column(
+                              Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Kirim', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
-                                  Text("Qo'shish", style: TextStyle(fontSize: 10, color: Colors.white70)),
+                                  Text(tr('income'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
+                                  Text(appLocaleNotifier.value == 'ru' ? 'Добавить' : "Qo'shish", style: const TextStyle(fontSize: 10, color: Colors.white70)),
                                 ],
                               ),
                             ],
@@ -2046,11 +2050,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                                 child: const Icon(Icons.arrow_upward_rounded, size: 16, color: Colors.white),
                               ),
                               const SizedBox(width: 8),
-                              const Column(
+                              Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Chiqim', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
-                                  Text("Qo'shish", style: TextStyle(fontSize: 10, color: Colors.white70)),
+                                  Text(tr('expense'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
+                                  Text(appLocaleNotifier.value == 'ru' ? 'Добавить' : "Qo'shish", style: const TextStyle(fontSize: 10, color: Colors.white70)),
                                 ],
                               ),
                             ],
@@ -2081,10 +2085,10 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                         dividerColor: AppColors.border,
                         labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
                         unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                        tabs: const [
-                          Tab(text: 'Tranzaksiyalar'),
-                          Tab(text: 'Ishchilar'),
-                          Tab(text: 'Fayllar'),
+                        tabs: [
+                          Tab(text: tr('transactions')),
+                          Tab(text: tr('workers')),
+                          Tab(text: tr('files')),
                         ],
                       ),
                       SizedBox(
@@ -2103,6 +2107,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                 ],
               ),
             ),
+    );
+      },
     );
   }
 
@@ -2160,10 +2166,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: isDone ? AppColors.green : AppColors.accent,
+                  color: isDone ? Colors.white.withOpacity(0.15) : const Color(0xFF10B981),
                   borderRadius: BorderRadius.circular(20),
+                  border: isDone ? Border.all(color: Colors.white.withOpacity(0.2), width: 1) : null,
                 ),
-                child: Text(isDone ? 'Yakunlangan' : 'Faol',
+                child: Text(isDone ? tr('done') : tr('active'),
                     style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.white)),
               ),
             ),
@@ -2203,11 +2210,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                       if (_members.length > 4)
                         Text('+${_members.length - 4}', style: const TextStyle(fontSize: 11, color: Colors.white70)),
                       if (_members.isNotEmpty)
-                        Text(' ${_members.length} ishchi', style: const TextStyle(fontSize: 11, color: Colors.white70)),
+                        Text(' ${_members.length} ${tr('workers_count')}', style: const TextStyle(fontSize: 11, color: Colors.white70)),
                       const Spacer(),
                       const Icon(Icons.access_time_rounded, size: 12, color: Colors.white70),
                       const SizedBox(width: 4),
-                      Text(left == 0 ? "Muddati o'tgan" : '$left kun qoldi',
+                      Text(left == 0 ? (appLocaleNotifier.value == 'ru' ? 'Срок истек' : "Muddati o'tgan") : tr('days_remaining').replaceFirst('{}', '$left'),
                           style: const TextStyle(fontSize: 11, color: Colors.white70)),
                     ],
                   ),
@@ -2226,8 +2233,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("Loyiha ma'lumotlari",
-            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: AppColors.text)),
+        Text(tr('project_info'),
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: AppColors.text)),
         const SizedBox(height: 10),
         Container(
           decoration: BoxDecoration(
@@ -2235,13 +2242,13 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: AppColors.border)),
           child: Column(children: [
-            _InfoRow(icon: Icons.calendar_today_rounded, label: 'Boshlangan sana', trailing: Text(startFmt, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700))),
+            _InfoRow(icon: Icons.calendar_today_rounded, label: tr('start_date'), trailing: Text(startFmt, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700))),
             const Divider(color: AppColors.border, height: 1, indent: 48),
-            _InfoRow(icon: Icons.event_rounded, label: 'Tugash sanasi', trailing: Text(endFmt, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700))),
+            _InfoRow(icon: Icons.event_rounded, label: tr('completed'), trailing: Text(endFmt, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700))),
             const Divider(color: AppColors.border, height: 1, indent: 48),
             _InfoRow(
               icon: Icons.speed_rounded,
-              label: 'Bajarilish darajasi',
+              label: tr('progress'),
               trailing: SizedBox(
                 width: 120,
                 child: Row(
@@ -2266,7 +2273,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
               ),
             ),
             const Divider(color: AppColors.border, height: 1, indent: 48),
-            _InfoRow(icon: Icons.people_outline_rounded, label: 'Jami ishchi', trailing: Text('${_members.length}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700))),
+            _InfoRow(icon: Icons.people_outline_rounded, label: tr('total_workers'), trailing: Text('${_members.length}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700))),
           ]),
         ),
       ],
@@ -2283,17 +2290,17 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
         child: Row(children: [
           _FilterChip(
-              label: 'Barchasi',
+              label: tr('all'),
               selected: _txFilter == 'all',
               onTap: () => setState(() => _txFilter = 'all')),
           const SizedBox(width: 6),
           _FilterChip(
-              label: 'Kirim',
+              label: tr('income'),
               selected: _txFilter == 'income',
               onTap: () => setState(() => _txFilter = 'income')),
           const SizedBox(width: 6),
           _FilterChip(
-              label: 'Chiqim',
+              label: tr('expense'),
               selected: _txFilter == 'expense',
               onTap: () => setState(() => _txFilter = 'expense')),
         ]),
@@ -2331,8 +2338,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                       Expanded(
                         child: Text(
                           _dateRange == null
-                              ? "Sana oralig'i"
-                              : "${_dateFmt.format(_dateRange!.start)} - ${_dateFmt.format(_dateRange!.end)}",
+                              ? (appLocaleNotifier.value == 'ru' ? "Диапазон дат" : "Sana oralig'i")
+                              : "${_formatDate(_dateRange!.start)} - ${_formatDate(_dateRange!.end)}",
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: _dateRange != null
@@ -2395,7 +2402,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      _sortBy == 'price' ? "Summa bo'yicha" : "Sana bo'yicha",
+                      _sortBy == 'price' ? (appLocaleNotifier.value == 'ru' ? "По сумме" : "Summa bo'yicha") : (appLocaleNotifier.value == 'ru' ? "По дате" : "Sana bo'yicha"),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: _sortBy == 'price'
@@ -2415,9 +2422,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
       ),
       Expanded(
         child: _filteredTxs.isEmpty
-            ? const Center(
-                child: Text("Tranzaksiyalar yo'q",
-                    style: TextStyle(color: AppColors.muted, fontSize: 13)))
+            ? Center(
+                child: Text(tr('no_transactions'),
+                    style: const TextStyle(color: AppColors.muted, fontSize: 13)))
             : ListView.separated(
                 padding: const EdgeInsets.only(bottom: 12),
                 itemCount: _filteredTxs.length,
@@ -2428,16 +2435,16 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                   final isIncome = tx.tur == 'income';
                   final color = isIncome ? AppColors.green : AppColors.red;
 
-                  String displayCategory = tx.kategoriya ?? (isIncome ? 'Kirim' : 'Chiqim');
-                  if (displayCategory == 'usta') {
-                    displayCategory = 'Xodim';
-                  } else if (displayCategory == 'income') {
-                    displayCategory = 'Kirim';
-                  } else if (displayCategory == 'spend') {
-                    displayCategory = 'Chiqim';
+                  String displayCategory = tx.kategoriya ?? (isIncome ? tr('income') : tr('expense'));
+                  if (displayCategory == 'usta' || displayCategory == 'Xodim') {
+                    displayCategory = tr('xodim_category');
+                  } else if (displayCategory == 'income' || displayCategory == 'Kirim') {
+                    displayCategory = tr('income');
+                  } else if (displayCategory == 'spend' || displayCategory == 'Chiqim') {
+                    displayCategory = tr('expense');
                   }
 
-                  if (tx.toUser != null) {
+                  if (tx.toUser != null && !isIncome) {
                     final matchingMember = _members.cast<ObMember?>().firstWhere(
                       (m) => m?.userId == tx.toUser,
                       orElse: () => null,
@@ -2460,18 +2467,18 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                     confirmDismiss: (_) => showDialog<bool>(
                       context: context,
                       builder: (ctx) => AlertDialog(
-                        title: const Text("O'chirilsinmi?"),
-                        content: const Text("Tranzaksiya o'chiriladi."),
+                        title: Text(tr('tx_delete_title')),
+                        content: Text(tr('tx_delete_body')),
                         actions: [
                           TextButton(
                               onPressed: () => Navigator.of(ctx).pop(false),
-                              child: const Text('Bekor')),
+                              child: Text(tr('cancel'))),
                           ElevatedButton(
                               style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.red,
                                   padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10)),
                               onPressed: () => Navigator.of(ctx).pop(true),
-                              child: const Text("O'chirish")),
+                              child: Text(tr('delete'))),
                         ],
                       ),
                     ),
@@ -2516,7 +2523,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                                           fontSize: 12, color: AppColors.text2)),
                                 ],
                                 const SizedBox(height: 2),
-                                Text(_dateFmt.format(tx.date),
+                                Text(_formatDate(tx.date),
                                     style: const TextStyle(
                                         fontSize: 11, color: AppColors.muted)),
                               ])),
@@ -2546,16 +2553,16 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
             onPressed: _openAddMember,
             icon: const Icon(Icons.person_add_outlined, size: 16),
             label:
-                const Text("Ishchi qo'shish", style: TextStyle(fontSize: 12)),
+                Text(tr('add_worker'), style: const TextStyle(fontSize: 12)),
             style: TextButton.styleFrom(foregroundColor: AppColors.accent),
           ),
         ),
       ),
       Expanded(
         child: _visibleMembers.isEmpty
-            ? const Center(
-                child: Text("Ishchilar yo'q",
-                    style: TextStyle(color: AppColors.muted, fontSize: 13)))
+            ? Center(
+                child: Text(tr('no_workers'),
+                    style: const TextStyle(color: AppColors.muted, fontSize: 13)))
             : ListView.separated(
                 padding: const EdgeInsets.only(bottom: 12),
                 itemCount: _visibleMembers.length,
@@ -2615,8 +2622,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                                       fontWeight: FontWeight.w700)),
                               Text(
                                 balance > 0
-                                    ? 'Qarzdor: ${formatUzsToDisplay(balance)}'
-                                    : 'Hisob-kitob',
+                                    ? '${appLocaleNotifier.value == 'ru' ? 'Долг' : 'Qarzdor'}: ${formatUzsToDisplay(balance)}'
+                                    : (appLocaleNotifier.value == 'ru' ? 'Расчёт' : 'Hisob-kitob'),
                                 style: TextStyle(
                                     fontSize: 11,
                                     color: balance > 0
@@ -2646,7 +2653,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
             child: TextButton.icon(
               onPressed: _uploadFile,
               icon: const Icon(Icons.upload_file_outlined, size: 16),
-              label: const Text("Fayl yuklash", style: TextStyle(fontSize: 12)),
+              label: Text(tr('upload_file'), style: const TextStyle(fontSize: 12)),
               style: TextButton.styleFrom(foregroundColor: AppColors.accent),
             ),
           ),
@@ -2658,12 +2665,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                 ? Center(
                     child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                        Icon(Icons.folder_open_rounded,
+                        children: [
+                        const Icon(Icons.folder_open_rounded,
                             size: 36, color: AppColors.muted),
-                        SizedBox(height: 8),
-                        Text("Fayllar yo'q",
-                            style: TextStyle(
+                        const SizedBox(height: 8),
+                        Text(tr('no_files'),
+                            style: const TextStyle(
                                 color: AppColors.muted, fontSize: 13)),
                       ]))
                 : ListView.separated(
@@ -2688,18 +2695,18 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                         confirmDismiss: (_) => showDialog<bool>(
                           context: context,
                           builder: (ctx) => AlertDialog(
-                            title: const Text("O'chirilsinmi?"),
-                            content: Text('${f.name} o\'chiriladi.'),
+                            title: Text(tr('tx_delete_title')),
+                            content: Text(appLocaleNotifier.value == 'ru' ? 'Файл ${f.name} будет удален.' : '${f.name} o\'chiriladi.'),
                             actions: [
                               TextButton(
                                   onPressed: () => Navigator.of(ctx).pop(false),
-                                  child: const Text('Bekor')),
+                                  child: Text(tr('cancel'))),
                               ElevatedButton(
                                   style: ElevatedButton.styleFrom(
                                       backgroundColor: AppColors.red,
                                       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10)),
                                   onPressed: () => Navigator.of(ctx).pop(true),
-                                  child: const Text("O'chirish")),
+                                  child: Text(tr('delete'))),
                             ],
                           ),
                         ),

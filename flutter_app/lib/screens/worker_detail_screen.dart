@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../l10n/strings.dart';
 import '../data/transaction_repository.dart';
 import '../data/worker_repository.dart';
 import '../models/transaction.dart';
@@ -25,6 +26,7 @@ class WorkerDetailScreen extends StatefulWidget {
 class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
   final _txRepo = TransactionRepository();
   final _dateFmt = DateFormat('dd.MM.yyyy');
+  String _formatDate(DateTime date) => DateFormat('dd.MM.yyyy', appLocaleNotifier.value).format(date);
   final _timeFmt = DateFormat('HH:mm');
   List<ProjectTransaction> _payments = [];
   bool _loading = true;
@@ -100,16 +102,16 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                         borderRadius: BorderRadius.circular(2)),
                   ),
                 ),
-                Text(
-                  "Avans berish",
+                 Text(
+                  tr('pay_advance'),
                   style: Theme.of(context)
                       .textTheme
                       .titleMedium
                       ?.copyWith(fontWeight: FontWeight.w900, fontSize: 18),
                 ),
                 const SizedBox(height: 16),
-                const Text("Kimga berilmoqda?",
-                    style: TextStyle(
+                Text(tr('to_whom_give'),
+                    style: const TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 12,
                         color: AppColors.text2)),
@@ -127,15 +129,15 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                           fontWeight: FontWeight.w700, fontSize: 14)),
                 ),
                 const SizedBox(height: 16),
-                const Text("Qaysi obyekt uchun?",
-                    style: TextStyle(
+                Text(tr('for_which_project'),
+                    style: const TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 12,
                         color: AppColors.text2)),
                 const SizedBox(height: 6),
                 if (_worker.obsList.isEmpty)
-                  const Text("Ishchi hech qaysi obyektda yo'q",
-                      style: TextStyle(color: AppColors.red, fontSize: 13))
+                  Text(tr('worker_no_projects_short'),
+                      style: const TextStyle(color: AppColors.red, fontSize: 13))
                 else
                   DropdownButtonFormField<WorkerProject>(
                     value: selectedOb,
@@ -157,7 +159,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                   children: [
                     Expanded(
                       child: ChoiceChip(
-                        label: const Text('so\'m (UZS)'),
+                        label: Text(tr('currency_uzs')),
                         selected: selectedCurrencyCode == 'UZS',
                         onSelected: (val) {
                           if (val) setSt(() => selectedCurrencyCode = 'UZS');
@@ -167,7 +169,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: ChoiceChip(
-                        label: const Text('Dollar (USD)'),
+                        label: Text(tr('currency_usd')),
                         selected: selectedCurrencyCode == 'USD',
                         onSelected: (val) {
                           if (val) setSt(() => selectedCurrencyCode = 'USD');
@@ -182,20 +184,20 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                   keyboardType: TextInputType.number,
                   inputFormatters: [PriceInputFormatter()],
                   decoration: InputDecoration(
-                      hintText: selectedCurrencyCode == 'UZS' ? "Miqdor (so'm)" : "Miqdor (\$)",
+                      hintText: selectedCurrencyCode == 'UZS' ? "${tr('amount')} (${tr('currency_uzs')})" : "${tr('amount')} (\$)",
                       prefixIcon:
                           const Icon(Icons.payments_outlined, size: 18)),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: noteCtrl,
-                  decoration: const InputDecoration(
-                      hintText: "Izoh (ixtiyoriy)",
-                      prefixIcon: Icon(Icons.description_outlined, size: 18)),
+                  decoration: InputDecoration(
+                      hintText: tr('comment_hint'),
+                      prefixIcon: const Icon(Icons.description_outlined, size: 18)),
                 ),
                 const SizedBox(height: 16),
-                const Text("Sana",
-                    style: TextStyle(
+                Text(appLocaleNotifier.value == 'ru' ? 'Дата' : 'Sana',
+                    style: const TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 12,
                         color: AppColors.text2)),
@@ -247,8 +249,8 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14)),
                   ),
-                  child: const Text("Tasdiqlash",
-                      style: TextStyle(fontWeight: FontWeight.w800)),
+                  child: Text(tr('confirm'),
+                      style: const TextStyle(fontWeight: FontWeight.w800)),
                 ),
               ],
             ),
@@ -319,15 +321,15 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                   ),
                 ),
                 Text(
-                  "Ish haqi yozish",
+                  tr('write_salary'),
                   style: Theme.of(context)
                       .textTheme
                       .titleMedium
                       ?.copyWith(fontWeight: FontWeight.w900, fontSize: 18),
                 ),
                 const SizedBox(height: 16),
-                const Text("Kimga yozilmoqda?",
-                    style: TextStyle(
+                Text(tr('to_whom_write'),
+                    style: const TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 12,
                         color: AppColors.text2)),
@@ -345,15 +347,15 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                           fontWeight: FontWeight.w700, fontSize: 14)),
                 ),
                 const SizedBox(height: 16),
-                const Text("Qaysi obyekt uchun?",
-                    style: TextStyle(
+                Text(tr('for_which_project'),
+                    style: const TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 12,
                         color: AppColors.text2)),
                 const SizedBox(height: 6),
                 if (_worker.obsList.isEmpty)
-                  const Text("Ishchi hech qaysi obyektda yo'q",
-                      style: TextStyle(color: AppColors.red, fontSize: 13))
+                  Text(tr('worker_no_projects_short'),
+                      style: const TextStyle(color: AppColors.red, fontSize: 13))
                 else
                   DropdownButtonFormField<WorkerProject>(
                     value: selectedOb,
@@ -375,7 +377,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                   children: [
                     Expanded(
                       child: ChoiceChip(
-                        label: const Text('so\'m (UZS)'),
+                        label: Text(tr('currency_uzs')),
                         selected: selectedCurrencyCode == 'UZS',
                         onSelected: (val) {
                           if (val) setSt(() => selectedCurrencyCode = 'UZS');
@@ -385,7 +387,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: ChoiceChip(
-                        label: const Text('Dollar (USD)'),
+                        label: Text(tr('currency_usd')),
                         selected: selectedCurrencyCode == 'USD',
                         onSelected: (val) {
                           if (val) setSt(() => selectedCurrencyCode = 'USD');
@@ -400,20 +402,20 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                   keyboardType: TextInputType.number,
                   inputFormatters: [PriceInputFormatter()],
                   decoration: InputDecoration(
-                      hintText: selectedCurrencyCode == 'UZS' ? "Miqdor (so'm)" : "Miqdor (\$)",
+                      hintText: selectedCurrencyCode == 'UZS' ? "${tr('amount')} (${tr('currency_uzs')})" : "${tr('amount')} (\$)",
                       prefixIcon:
                           const Icon(Icons.payments_outlined, size: 18)),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: noteCtrl,
-                  decoration: const InputDecoration(
-                      hintText: "Izoh (ixtiyoriy)",
-                      prefixIcon: Icon(Icons.description_outlined, size: 18)),
+                  decoration: InputDecoration(
+                      hintText: tr('comment_hint'),
+                      prefixIcon: const Icon(Icons.description_outlined, size: 18)),
                 ),
                 const SizedBox(height: 16),
-                const Text("Sana",
-                    style: TextStyle(
+                Text(appLocaleNotifier.value == 'ru' ? 'Дата' : 'Sana',
+                    style: const TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 12,
                         color: AppColors.text2)),
@@ -530,15 +532,18 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final worker = _worker;
-    final initials = worker.displayName.trim().isEmpty
-        ? '?'
-        : worker.displayName.trim()[0].toUpperCase();
-    final color = colorForName(worker.displayName);
-    final balans = worker.balans;
-    final isPositive = balans > 0;
+    return ValueListenableBuilder<String>(
+      valueListenable: appLocaleNotifier,
+      builder: (context, locale, _) {
+        final worker = _worker;
+        final initials = worker.displayName.trim().isEmpty
+            ? '?'
+            : worker.displayName.trim()[0].toUpperCase();
+        final color = colorForName(worker.displayName);
+        final balans = worker.balans;
+        final isPositive = balans > 0;
 
-    return Scaffold(
+        return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
         backgroundColor: AppColors.bg,
@@ -572,17 +577,17 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                             size: 16, color: Colors.white),
                       ),
                       const SizedBox(width: 8),
-                      const Column(
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text("Avans",
-                              style: TextStyle(
+                          Text(tr('advance'),
+                              style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w800,
                                   color: Colors.white)),
-                          Text("Berish",
-                              style: TextStyle(
+                          Text(tr('give'),
+                              style: const TextStyle(
                                   fontSize: 9, color: Colors.white70)),
                         ],
                       ),
@@ -614,17 +619,17 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                             size: 18, color: Colors.white),
                       ),
                       const SizedBox(width: 8),
-                      const Column(
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text("Ish haqi",
-                              style: TextStyle(
+                          Text(tr('salary'),
+                              style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w800,
                                   color: Colors.white)),
-                          Text("Yozish",
-                              style: TextStyle(
+                          Text(tr('write'),
+                              style: const TextStyle(
                                   fontSize: 9, color: Colors.white70)),
                         ],
                       ),
@@ -682,9 +687,9 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                                             .withOpacity(0.1),
                                         borderRadius: BorderRadius.circular(6),
                                       ),
-                                      child: const Text(
-                                        "Faol",
-                                        style: TextStyle(
+                                      child: Text(
+                                        appLocaleNotifier.value == 'ru' ? 'Активен' : "Faol",
+                                        style: const TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.w800,
                                           color: Color(0xFF22C55E),
@@ -722,21 +727,21 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                       Row(
                         children: [
                           _StatCard(
-                            label: 'Ish haqi',
+                            label: tr('salary'),
                             value: formatUzsToDisplay(worker.ishaqi),
                             color: const Color(0xFF2563EB),
                             bgColor: const Color(0xFF2563EB).withOpacity(0.06),
                           ),
                           const SizedBox(width: 8),
                           _StatCard(
-                            label: 'Olingan',
+                            label: appLocaleNotifier.value == 'ru' ? 'Получено' : 'Olingan',
                             value: formatUzsToDisplay(worker.olingan),
                             color: const Color(0xFFEA580C),
                             bgColor: const Color(0xFFEA580C).withOpacity(0.06),
                           ),
                           const SizedBox(width: 8),
                           _StatCard(
-                            label: 'Balans',
+                            label: tr('balance'),
                             value:
                                 '${isPositive ? "" : "-"}${formatUzsToDisplay(balans.abs())}',
                             color: isPositive
@@ -756,10 +761,10 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
 
                 // Projects
                 if (worker.obsList.isNotEmpty) ...[
-                  const Padding(
-                    padding: EdgeInsets.only(bottom: 8),
-                    child: Text('Loyihalar',
-                        style: TextStyle(
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(tr('projects'),
+                        style: const TextStyle(
                             fontWeight: FontWeight.w800,
                             fontSize: 13,
                             color: AppColors.muted)),
@@ -819,24 +824,23 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('So\'nggi operatsiyalar',
-                          style: TextStyle(
+                      Text(tr('recent_operations'),
+                          style: const TextStyle(
                               fontWeight: FontWeight.w800,
                               fontSize: 13,
                               color: AppColors.muted)),
-                      Text('${_payments.length} ta',
+                      Text(appLocaleNotifier.value == 'ru' ? '${_payments.length} шт' : '${_payments.length} ta',
                           style: const TextStyle(
                               fontSize: 12, color: AppColors.muted)),
                     ],
                   ),
                 ),
                 if (_payments.isEmpty)
-                  const Center(
+                  Center(
                     child: Padding(
-                      padding: EdgeInsets.all(32),
-                      child: Text('Operatsiyalar yo\'q',
-                          style:
-                              TextStyle(color: AppColors.muted, fontSize: 14)),
+                      padding: const EdgeInsets.all(32),
+                      child: Text(tr('no_operations'),
+                          style: const TextStyle(color: AppColors.muted, fontSize: 14)),
                     ),
                   )
                 else
@@ -930,6 +934,8 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                   ),
               ],
             ),
+    );
+      },
     );
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../l10n/strings.dart';
 import '../data/transaction_repository.dart';
 import '../data/worker_repository.dart';
 import '../models/worker.dart';
@@ -64,8 +65,8 @@ class _WorkersScreenState extends State<WorkersScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text("To'lov uchun loyihani tanlang",
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                Text(tr('select_project_pay'),
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
                 const SizedBox(height: 12),
                 for (final op in listToChoose)
                   ListTile(
@@ -86,8 +87,8 @@ class _WorkersScreenState extends State<WorkersScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text("${worker.displayName}ga to'lash"),
-        content: Text("${selectedOb!.obNomi} loyihasi uchun ${formatMoney(selectedOb.balans)} so'm berilsinmi?"),
+        title: Text(tr('pay_confirm_title').replaceFirst('{}', worker.displayName)),
+        content: Text('${selectedOb!.obNomi}: ${formatMoney(selectedOb.balans)} ${tr("currency_uzs")}?'),
         actions: [
           TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Bekor')),
           ElevatedButton(
@@ -95,7 +96,7 @@ class _WorkersScreenState extends State<WorkersScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text("Ha, berish"),
+            child: Text(tr('pay_yes')),
           ),
         ],
       ),
@@ -140,7 +141,7 @@ class _WorkersScreenState extends State<WorkersScreen> {
         );
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Yangi ishchi muvaffaqiyatli qo'shildi")),
+            SnackBar(content: Text(tr('payment_success'))),
           );
         }
         _load();
@@ -171,19 +172,19 @@ class _WorkersScreenState extends State<WorkersScreen> {
   }
 
   String formatLastActive(DateTime? date) {
-    if (date == null) return "Faoliyat yo'q";
+    if (date == null) return tr('no_workers');
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
     final compareDate = DateTime(date.year, date.month, date.day);
 
     if (compareDate == today) {
-      return "Bugun";
+      return appLocaleNotifier.value == 'ru' ? 'Сегодня' : 'Bugun';
     } else if (compareDate == yesterday) {
-      return "Kecha";
+      return appLocaleNotifier.value == 'ru' ? 'Вчера' : 'Kecha';
     } else {
       final diff = today.difference(compareDate).inDays;
-      return "$diff kun oldin";
+      return appLocaleNotifier.value == 'ru' ? '$diff дн. назад' : '$diff kun oldin';
     }
   }
 
@@ -206,16 +207,23 @@ class _WorkersScreenState extends State<WorkersScreen> {
   }
 
   Widget _buildFilterChips() {
-    final filters = ["Hammasi", "Musbat", "Manfiy", "Faol"];
+    final filterLabels = [
+      tr('all'),
+      appLocaleNotifier.value == 'ru' ? 'Плюс' : 'Musbat',
+      appLocaleNotifier.value == 'ru' ? 'Минус' : 'Manfiy',
+      tr('active'),
+    ];
+    final filterValues = ['Hammasi', 'Musbat', 'Manfiy', 'Faol'];
     return SizedBox(
       height: 38,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
-        itemCount: filters.length,
+        itemCount: filterValues.length,
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
-          final f = filters[index];
+          final f = filterValues[index];
+          final label = filterLabels[index];
           final selected = _selectedFilter == f;
           return InkWell(
             onTap: () => setState(() => _selectedFilter = f),
@@ -229,7 +237,7 @@ class _WorkersScreenState extends State<WorkersScreen> {
               ),
               child: Center(
                 child: Text(
-                  f,
+                  label,
                   style: TextStyle(
                     color: selected ? Colors.white : const Color(0xFF475569),
                     fontWeight: FontWeight.w700,
@@ -250,19 +258,21 @@ class _WorkersScreenState extends State<WorkersScreen> {
     required int manfiy,
     required int nol,
   }) {
+    final isRu = appLocaleNotifier.value == 'ru';
+    final countSuffix = isRu ? 'чел.' : 'ta';
     return SizedBox(
       height: 64,
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
-          _buildStatCard("Jami ishchi", "$total ta", const Color(0xFF0F172A)),
+          _buildStatCard(isRu ? 'Всего рабочих' : 'Jami ishchi', "$total $countSuffix", const Color(0xFF0F172A)),
           const SizedBox(width: 8),
-          _buildStatCard("Musbat balans", "$musbat ta", const Color(0xFF22C55E)),
+          _buildStatCard(isRu ? 'Плюс баланс' : 'Musbat balans', "$musbat $countSuffix", const Color(0xFF22C55E)),
           const SizedBox(width: 8),
-          _buildStatCard("Manfiy balans", "$manfiy ta", const Color(0xFFEF4444)),
+          _buildStatCard(isRu ? 'Минус баланс' : 'Manfiy balans', "$manfiy $countSuffix", const Color(0xFFEF4444)),
           const SizedBox(width: 8),
-          _buildStatCard("Nol balans", "$nol ta", const Color(0xFF64748B)),
+          _buildStatCard(isRu ? 'Нулевой баланс' : 'Nol balans', "$nol $countSuffix", const Color(0xFF64748B)),
         ],
       ),
     );
@@ -332,6 +342,9 @@ class _WorkersScreenState extends State<WorkersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return ValueListenableBuilder<String>(
+      valueListenable: appLocaleNotifier,
+      builder: (_, __, ___) {
     final totalWorkers = _workers.length;
     final musbatCount = _workers.where((w) => w.balans > 0).length;
     final manfiyCount = _workers.where((w) => w.balans < 0).length;
@@ -361,9 +374,9 @@ class _WorkersScreenState extends State<WorkersScreen> {
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         centerTitle: true,
-        title: const Text(
-          'Ishchilar',
-          style: TextStyle(
+        title: Text(
+          tr('nav_workers'),
+          style: const TextStyle(
             color: Color(0xFF0F172A),
             fontSize: 18,
             fontWeight: FontWeight.w800,
@@ -390,7 +403,7 @@ class _WorkersScreenState extends State<WorkersScreen> {
                     child: TextField(
                       onChanged: (val) => setState(() => _searchQuery = val),
                       decoration: InputDecoration(
-                        hintText: "Qidirish...",
+                        hintText: tr('search'),
                         prefixIcon: const Icon(Icons.search_rounded, color: AppColors.muted, size: 20),
                         filled: true,
                         fillColor: Colors.white,
@@ -427,12 +440,12 @@ class _WorkersScreenState extends State<WorkersScreen> {
 
                   // 4. Workers List
                   filtered.isEmpty
-                      ? const Center(
+                      ? Center(
                           child: Padding(
-                            padding: EdgeInsets.symmetric(vertical: 40.0),
+                            padding: const EdgeInsets.symmetric(vertical: 40.0),
                             child: Text(
-                              "Ishchilar topilmadi",
-                              style: TextStyle(color: AppColors.muted),
+                              tr('worker_not_found'),
+                              style: const TextStyle(color: AppColors.muted),
                             ),
                           ),
                         )
@@ -492,7 +505,7 @@ class _WorkersScreenState extends State<WorkersScreen> {
                                               Text(
                                                 worker.kasb?.isNotEmpty == true
                                                     ? worker.kasb!
-                                                    : 'Usta / Ishchi',
+                                                    : tr('worker_default_role'),
                                                 style: const TextStyle(
                                                   fontSize: 12,
                                                   fontWeight: FontWeight.w500,
@@ -520,19 +533,19 @@ class _WorkersScreenState extends State<WorkersScreen> {
                                       children: [
                                         Expanded(
                                           child: _buildGridItem(
-                                            "Ish haqi",
+                                            tr('salary'),
                                             formatCurrency(worker.ishaqi),
                                           ),
                                         ),
                                         Expanded(
                                           child: _buildGridItem(
-                                            "Olingan",
+                                            tr('received'),
                                             formatCurrency(worker.olingan),
                                           ),
                                         ),
                                         Expanded(
                                           child: _buildGridItem(
-                                            "Oxirgi faoliyat",
+                                            tr('last_activity'),
                                             formatLastActive(worker.lastActive),
                                           ),
                                         ),
@@ -547,6 +560,8 @@ class _WorkersScreenState extends State<WorkersScreen> {
                 ],
               ),
       ),
+    );
+      },
     );
   }
 

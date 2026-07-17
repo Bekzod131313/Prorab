@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../l10n/strings.dart';
 import '../models/worker.dart';
 import '../data/worker_repository.dart';
 import '../theme/app_theme.dart';
@@ -77,7 +78,10 @@ class _AddMemberSheetState extends State<AddMemberSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
+    return ValueListenableBuilder<String>(
+      valueListenable: appLocaleNotifier,
+      builder: (context, locale, _) {
+        return SingleChildScrollView(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -95,7 +99,7 @@ class _AddMemberSheetState extends State<AddMemberSheet> {
             ),
           ),
           Text(
-            "Jamoaga qo'shish",
+            tr('add_to_team'),
             style: Theme.of(context)
                 .textTheme
                 .titleMedium
@@ -118,9 +122,9 @@ class _AddMemberSheetState extends State<AddMemberSheet> {
             const SizedBox(height: 12),
             TextField(
               controller: widget.kasbCtrl,
-              decoration: const InputDecoration(
-                hintText: "Kasbi (Masalan: Santexnik, Elektrik)",
-                prefixIcon: Icon(Icons.work_outline_rounded, size: 18),
+              decoration: InputDecoration(
+                hintText: tr('profession_hint'),
+                prefixIcon: const Icon(Icons.work_outline_rounded, size: 18),
               ),
             ),
             const SizedBox(height: 12),
@@ -128,7 +132,7 @@ class _AddMemberSheetState extends State<AddMemberSheet> {
               children: [
                 Expanded(
                   child: ChoiceChip(
-                    label: const Text('so\'m (UZS)'),
+                    label: Text(tr('currency_uzs')),
                     selected: _selectedCurrency == 'UZS',
                     onSelected: (val) {
                       if (val) setState(() => _selectedCurrency = 'UZS');
@@ -138,7 +142,7 @@ class _AddMemberSheetState extends State<AddMemberSheet> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: ChoiceChip(
-                    label: const Text('Dollar (USD)'),
+                    label: Text(tr('currency_usd')),
                     selected: _selectedCurrency == 'USD',
                     onSelected: (val) {
                       if (val) setState(() => _selectedCurrency = 'USD');
@@ -154,8 +158,8 @@ class _AddMemberSheetState extends State<AddMemberSheet> {
               inputFormatters: [PriceInputFormatter()],
               decoration: InputDecoration(
                 hintText: _selectedCurrency == 'UZS'
-                    ? "Ish haqi (so'm) (ixtiyoriy)"
-                    : "Ish haqi (\$) (ixtiyoriy)",
+                    ? "${tr('salary')} (${tr('currency_uzs')}) (${tr('optional')})"
+                    : "${tr('salary')} (\$) (${tr('optional')})",
                 prefixIcon: const Icon(Icons.payments_outlined, size: 18),
               ),
             ),
@@ -172,7 +176,7 @@ class _AddMemberSheetState extends State<AddMemberSheet> {
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
-                      child: const Text("Orqaga", style: TextStyle(fontWeight: FontWeight.w800)),
+                      child: Text(tr('back'), style: const TextStyle(fontWeight: FontWeight.w800)),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -189,7 +193,7 @@ class _AddMemberSheetState extends State<AddMemberSheet> {
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
-                    child: const Text("Qo'shish", style: TextStyle(fontWeight: FontWeight.w800)),
+                    child: Text(tr('add'), style: const TextStyle(fontWeight: FontWeight.w800)),
                   ),
                 ),
               ],
@@ -197,7 +201,7 @@ class _AddMemberSheetState extends State<AddMemberSheet> {
           ] else ...[
             ElevatedButton.icon(
               icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
-              label: const Text("Yangi ishchi qo'shish", style: TextStyle(fontWeight: FontWeight.w800)),
+              label: Text(tr('add_new_worker'), style: const TextStyle(fontWeight: FontWeight.w800)),
               onPressed: () => setState(() => _showNewWorkerFields = true),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
@@ -225,9 +229,9 @@ class _AddMemberSheetState extends State<AddMemberSheet> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                const Text(
-                  "Mavjud ishchilardan tanlash",
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.text2),
+                Text(
+                  tr('choose_from_existing'),
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.text2),
                 ),
               ],
             ),
@@ -304,8 +308,9 @@ class _AddMemberSheetState extends State<AddMemberSheet> {
                   backgroundColor: AppColors.accent,
                   foregroundColor: Colors.white,
                 ),
-                child: Text(
-                  "Tanlanganlarni qo'shish (${_selectedWorkers.length} ta)",
+                 child: Text(
+                  tr('add_selected')
+                      .replaceFirst('{}', '${_selectedWorkers.length}'),
                   style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
               ),
@@ -313,6 +318,8 @@ class _AddMemberSheetState extends State<AddMemberSheet> {
           ],
         ],
       ),
+    );
+      },
     );
   }
 
@@ -339,9 +346,9 @@ class _AddMemberSheetState extends State<AddMemberSheet> {
                 ),
               ),
               const SizedBox(width: 6),
-              const Text(
-                "Ishlash muddati",
-                style: TextStyle(fontSize: 12, color: AppColors.text, fontWeight: FontWeight.w800),
+              Text(
+                tr('work_duration'),
+                style: const TextStyle(fontSize: 12, color: AppColors.text, fontWeight: FontWeight.w800),
               ),
             ],
           ),
@@ -350,7 +357,7 @@ class _AddMemberSheetState extends State<AddMemberSheet> {
             children: [
               Expanded(
                 child: _buildDatePickerButton(
-                  label: "Boshlanish",
+                  label: tr('start_date'),
                   date: _boshlanish,
                   formatter: fmt,
                   onTap: () async {
@@ -374,7 +381,7 @@ class _AddMemberSheetState extends State<AddMemberSheet> {
               const SizedBox(width: 10),
               Expanded(
                 child: _buildDatePickerButton(
-                  label: "Tugash",
+                  label: tr('end_date'),
                   date: _tugash,
                   formatter: fmt,
                   onTap: () async {
@@ -427,7 +434,7 @@ class _AddMemberSheetState extends State<AddMemberSheet> {
                   Text(label, style: const TextStyle(fontSize: 9, color: AppColors.muted)),
                   const SizedBox(height: 2),
                   Text(
-                    date != null ? formatter.format(date) : 'Tanlang',
+                    date != null ? formatter.format(date) : tr('select'),
                     style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.text),
                   ),
                 ],

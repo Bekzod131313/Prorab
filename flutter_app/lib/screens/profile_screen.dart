@@ -104,7 +104,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _avatarUploading = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Xato: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('error_short').replaceFirst('{}', e.toString()))));
       }
     }
   }
@@ -123,7 +123,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _portfolioUploading = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Xato: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('error_short').replaceFirst('{}', e.toString()))));
       }
     }
   }
@@ -187,7 +187,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
         _load();
       } catch (e) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Xato: $e')));
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('error_short').replaceFirst('{}', e.toString()))));
       }
     }
     Future.delayed(const Duration(milliseconds: 350), () {
@@ -288,7 +288,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           _Divider(),
                           _StatCol(label: tr('workers'), value: '${_stats?.peopleCount ?? 0}'),
                           _Divider(),
-                          _StatCol(label: tr('experience'), value: '${_profile?.staj ?? 0} yil'),
+                          _StatCol(label: tr('experience_label'), value: '${_profile?.staj ?? 0} ${tr('years_suffix')}'),
                         ]),
                       ]),
                     ),
@@ -401,9 +401,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           children: [
 
                             SwitchListTile(
-                              title: const Text(
-                                'PIN-kod qulflash',
-                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                              title: Text(
+                                tr('pin_lock'),
+                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
                               ),
                               contentPadding: EdgeInsets.zero,
                               value: _pinLockEnabled,
@@ -433,9 +433,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             if (_pinLockEnabled && _canUseBiometrics) ...[
                               const Divider(color: AppColors.border, height: 16),
                               SwitchListTile(
-                                title: const Text(
-                                  'Face ID / Biometriya',
-                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                                title: Text(
+                                  tr('biometrics'),
+                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
                                 ),
                                 contentPadding: EdgeInsets.zero,
                                 value: _biometricsEnabled,
@@ -482,9 +482,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Valyuta',
-                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.text),
+                            Text(
+                              tr('currency'),
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.text),
                             ),
                             const SizedBox(height: 12),
                             ValueListenableBuilder<String>(
@@ -494,7 +494,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   Expanded(
                                     child: _CurrencyBtn(
                                       code: 'UZS',
-                                      label: "So'm (UZS)",
+                                      label: tr('currency_uzs'),
                                       isSelected: activeCurrency == 'UZS',
                                       onTap: () => CurrencyService().setDisplayCurrency('UZS'),
                                     ),
@@ -503,7 +503,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   Expanded(
                                     child: _CurrencyBtn(
                                       code: 'USD',
-                                      label: "Dollar (USD)",
+                                      label: tr('currency_usd'),
                                       isSelected: activeCurrency == 'USD',
                                       onTap: () => CurrencyService().setDisplayCurrency('USD'),
                                     ),
@@ -523,7 +523,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: ListTile(
                           leading: const Icon(Icons.admin_panel_settings_rounded, color: AppColors.orange),
                           title: const Text("Admin Panel", style: TextStyle(fontWeight: FontWeight.w700)),
-                          subtitle: const Text("Tizim ma'lumotlarini boshqarish", style: TextStyle(fontSize: 11)),
+                          subtitle: Text(tr('admin_panel_sub'), style: const TextStyle(fontSize: 11)),
                           onTap: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(builder: (_) => const AdminPanelScreen()),
@@ -550,13 +550,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           final confirm = await showDialog<bool>(
                             context: context,
                             builder: (ctx) => AlertDialog(
-                              title: const Text("Chiqishni tasdiqlang"),
-                              content: const Text("Hisobdan chiqishni xohlaysizmi?"),
+                              title: Text(tr('logout_confirm_title')),
+                              content: Text(tr('logout_confirm_body')),
                               actions: [
-                                TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Bekor')),
+                                TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(tr('cancel'))),
                                 ElevatedButton(
                                   onPressed: () => Navigator.of(ctx).pop(true),
-                                  child: const Text("Chiqish"),
+                                  child: Text(tr('logout_yes')),
                                 ),
                               ],
                             ),
@@ -591,21 +591,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
                         ),
                         icon: const Icon(Icons.delete_forever_rounded, size: 18),
-                        label: const Text("Hisobni o'chirish"),
+                        label: Text(tr('delete_account')),
                         onPressed: () async {
                           final confirm1 = await showDialog<bool>(
                             context: context,
                             builder: (ctx) => AlertDialog(
-                              title: const Text("Hisobni o'chirishni tasdiqlang"),
-                              content: const Text(
-                                "Bu amalni qaytarib bo'lmaydi. Barcha ma'lumotlaringiz, loyihalaringiz va tranzaksiyalaringiz butunlay o'chiriladi.",
-                              ),
+                              title: Text(tr('delete_account_title')),
+                              content: Text(tr('delete_account_body')),
                               actions: [
-                                TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Bekor')),
+                                TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(tr('cancel'))),
                                 ElevatedButton(
                                   style: ElevatedButton.styleFrom(backgroundColor: AppColors.red),
                                   onPressed: () => Navigator.of(ctx).pop(true),
-                                  child: const Text("Ha, o'chirish"),
+                                  child: Text(tr('delete_yes')),
                                 ),
                               ],
                             ),
@@ -616,14 +614,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           final confirm2 = await showDialog<bool>(
                             context: context,
                             builder: (ctx) => AlertDialog(
-                              title: const Text("Oxirgi ogohlantirish!"),
-                              content: const Text("Rostdan ham hisobingizni butunlay o'chirmoqchimisiz? Bu amalni bekor qilib bo'lmaydi."),
+                              title: Text(tr('delete_account_warn')),
+                              content: Text(tr('delete_account_warn2')),
                               actions: [
-                                TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Yo\'q, qaytish')),
+                                TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(tr('no_go_back'))),
                                 ElevatedButton(
                                   style: ElevatedButton.styleFrom(backgroundColor: AppColors.red),
                                   onPressed: () => Navigator.of(ctx).pop(true),
-                                  child: const Text("Ha, o'chirish"),
+                                  child: Text(tr('delete_yes')),
                                 ),
                               ],
                             ),

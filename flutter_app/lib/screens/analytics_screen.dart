@@ -147,14 +147,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Moliyaviy holat', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.muted)),
+                        Text(tr('all_projects'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.muted)),
                         const SizedBox(height: 12),
-                        _FinRow(label: 'Jami kirim', value: _totalKirim, color: AppColors.green, icon: Icons.arrow_downward_rounded),
+                        _FinRow(label: tr('total_income'), value: _totalKirim, color: AppColors.green, icon: Icons.arrow_downward_rounded),
                         const SizedBox(height: 8),
-                        _FinRow(label: 'Jami chiqim', value: _totalChiqim, color: AppColors.red, icon: Icons.arrow_upward_rounded),
+                        _FinRow(label: tr('total_expense'), value: _totalChiqim, color: AppColors.red, icon: Icons.arrow_upward_rounded),
                         const Divider(color: AppColors.border, height: 20),
                         _FinRow(
-                          label: 'Jami qoldiq',
+                          label: tr('total_balance'),
                           value: _totalBalance,
                           color: _totalBalance >= 0 ? AppColors.green : AppColors.red,
                           icon: Icons.account_balance_rounded,

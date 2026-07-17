@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../l10n/strings.dart';
 import '../models/project.dart';
 import '../models/transaction.dart';
 import '../services/currency_service.dart';
@@ -60,21 +61,25 @@ class ProjectCard extends StatelessWidget {
 
   const ProjectCard({super.key, required this.project, this.onTap, this.onLongPress, this.isPinned = false});
 
-  static const _roleLabels = {
-    'owner': 'Egasi',
-    'member': 'Usta',
-    'worker': 'Ishchi',
-  };
 
   @override
   Widget build(BuildContext context) {
-    final color = colorForProject(project.nomi);
-    final bal = project.balance;
-    final balColor = bal >= 0 ? const Color(0xFF16A34A) : const Color(0xFFEF4444);
-    final (_, left, progress) = project.schedule;
-    final initial = project.nomi.isNotEmpty ? project.nomi[0].toUpperCase() : '?';
+    return ValueListenableBuilder<String>(
+      valueListenable: appLocaleNotifier,
+      builder: (context, locale, _) {
+        final color = colorForProject(project.nomi);
+        final bal = project.balance;
+        final balColor = bal >= 0 ? const Color(0xFF16A34A) : const Color(0xFFEF4444);
+        final (_, left, progress) = project.schedule;
+        final initial = project.nomi.isNotEmpty ? project.nomi[0].toUpperCase() : '?';
 
-    return InkWell(
+        final roleLabels = {
+          'owner': tr('role_owner'),
+          'member': tr('role_member'),
+          'worker': tr('role_worker'),
+        };
+
+        return InkWell(
       onTap: onTap,
       onLongPress: onLongPress,
       borderRadius: BorderRadius.circular(22),
@@ -138,10 +143,10 @@ class ProjectCard extends StatelessWidget {
                       const SizedBox(height: 5),
                       Row(
                         children: [
-                          _RoleBadge(label: _roleLabels[project.role] ?? project.role),
+                          _RoleBadge(label: roleLabels[project.role] ?? project.role),
                           if (project.status == 'done') ...[
                             const SizedBox(width: 6),
-                            const _RoleBadge(label: 'Yakunlandi', color: Color(0xFF22C55E)),
+                            _RoleBadge(label: tr('yakunlandi'), color: const Color(0xFF22C55E)),
                           ],
                         ],
                       ),
@@ -155,7 +160,7 @@ class ProjectCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: _StatItem(
-                    label: 'QOLDIQ',
+                    label: tr('balance').toUpperCase(),
                     value: '${bal >= 0 ? '+' : ''}${formatUzsToDisplay(bal)}',
                     color: balColor,
                   ),
@@ -163,7 +168,7 @@ class ProjectCard extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: _StatItem(
-                    label: 'KIRIM',
+                    label: tr('income').toUpperCase(),
                     value: formatUzsToDisplay(project.kirim),
                     color: const Color(0xFF16A34A),
                   ),
@@ -192,12 +197,14 @@ class ProjectCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              '$left kun qoldi',
+              '$left ${tr('days_left')}',
               style: const TextStyle(color: AppColors.muted, fontSize: 12, fontWeight: FontWeight.w500),
             ),
           ],
         ),
       ),
+    );
+      },
     );
   }
 }
