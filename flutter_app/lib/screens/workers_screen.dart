@@ -32,9 +32,17 @@ class _WorkersScreenState extends State<WorkersScreen> {
   void initState() {
     super.initState();
     _load();
+    projectUpdateNotifier.addListener(_load);
+  }
+
+  @override
+  void dispose() {
+    projectUpdateNotifier.removeListener(_load);
+    super.dispose();
   }
 
   Future<void> _load() async {
+    if (!mounted) return;
     setState(() => _loading = true);
     final workers = await _repo.loadAll();
     if (!mounted) return;
@@ -474,13 +482,15 @@ class _WorkersScreenState extends State<WorkersScreen> {
                                 border: Border.all(color: AppColors.border),
                               ),
                               child: InkWell(
-                                onTap: () async {
-                                  await Navigator.of(context).push(
+                                onTap: () {
+                                  Navigator.of(context).push(
                                     MaterialPageRoute(
-                                      builder: (_) => WorkerDetailScreen(worker: worker),
+                                      builder: (_) => WorkerDetailScreen(
+                                        worker: worker,
+                                        onAction: _load,
+                                      ),
                                     ),
                                   );
-                                  _load();
                                 },
                                 child: Column(
                                   children: [

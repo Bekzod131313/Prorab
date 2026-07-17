@@ -2,6 +2,7 @@ import '../main.dart';
 import '../models/profile.dart';
 import '../models/worker.dart';
 import '../services/currency_service.dart';
+import 'transaction_repository.dart';
 
 class WorkerRepository {
   Future<List<Worker>> loadAll() async {
@@ -130,8 +131,12 @@ class WorkerRepository {
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) return;
 
-    final digits = phone.replaceAll(RegExp(r'\D'), '');
+    var digits = phone.replaceAll(RegExp(r'\D'), '');
     if (digits.isEmpty) throw "Raqam xato kiritildi";
+
+    if (digits.length == 9) {
+      digits = '998$digits';
+    }
 
     final phoneWithPlus = '+$digits';
     final phoneWithoutPlus = digits;
@@ -213,6 +218,15 @@ class WorkerRepository {
         'balance': 0,
       });
     }
+
+    TransactionRepository().sendWorkerNotification(
+      obId: obId,
+      toUserId: toUserId,
+      amount: amount,
+      currency: currency,
+    ).catchError((e) {
+      print("Error sending worker notification from giveAvans: $e");
+    });
   }
 
   /// Records a wage ("ish haqi") entry for a worker on a project; increases `ishaqi`.

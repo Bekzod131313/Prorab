@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../main.dart';
 import '../l10n/strings.dart';
 
@@ -12,6 +13,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 class NotificationService {
   static final _messaging = FirebaseMessaging.instance;
+  static String? _lastSubscribedUserId;
 
   static Future<void> initialize() async {
     // 1. Set background message handler
@@ -52,22 +54,74 @@ class NotificationService {
       appLocaleNotifier.addListener(() {
         updateTopicSubscriptions(appLocaleNotifier.value);
       });
+
+      // 7. Listen for auth state changes to update subscriptions and tokens
+      supabase.auth.onAuthStateChange.listen((data) async {
+        final event = data.event;
+        if (event == AuthChangeEvent.signedIn) {
+          await _refreshToken();
+          await updateTopicSubscriptions(appLocaleNotifier.value);
+        } else if (event == AuthChangeEvent.signedOut) {
+          await _unsubscribeFromAll();
+        }
+      });
     }
   }
 
   static Future<void> updateTopicSubscriptions(String lang) async {
     try {
+      final userId = supabase.auth.currentUser?.id;
+
       if (lang == 'uz') {
         await _messaging.subscribeToTopic('all_uz');
         await _messaging.unsubscribeFromTopic('all_ru');
         print("Subscribed to all_uz, unsubscribed from all_ru");
+
+        if (userId != null) {
+          await _messaging.subscribeToTopic('user_${userId}_uz');
+          await _messaging.unsubscribeFromTopic('user_${userId}_ru');
+          print("Subscribed to user_${userId}_uz, unsubscribed from user_${userId}_ru");
+          _lastSubscribedUserId = userId;
+        }
       } else if (lang == 'ru') {
         await _messaging.subscribeToTopic('all_ru');
         await _messaging.unsubscribeFromTopic('all_uz');
         print("Subscribed to all_ru, unsubscribed from all_uz");
+
+        if (userId != null) {
+          await _messaging.subscribeToTopic('user_${userId}_ru');
+          await _messaging.unsubscribeFromTopic('user_${userId}_uz');
+          print("Subscribed to user_${userId}_ru, unsubscribed from user_${userId}_uz");
+          _lastSubscribedUserId = userId;
+        }
+      }
+
+      // If we have an old user ID tracked and it changed, clean up its old subscriptions
+      if (userId != null && _lastSubscribedUserId != null && _lastSubscribedUserId != userId) {
+        await _messaging.unsubscribeFromTopic('user_${_lastSubscribedUserId}_uz');
+        await _messaging.unsubscribeFromTopic('user_${_lastSubscribedUserId}_ru');
+        print("Unsubscribed from old user topics for: $_lastSubscribedUserId");
+        _lastSubscribedUserId = userId;
       }
     } catch (e) {
       print("Error updating topic subscriptions: $e");
+    }
+  }
+
+  static Future<void> _unsubscribeFromAll() async {
+    try {
+      await _messaging.unsubscribeFromTopic('all_uz');
+      await _messaging.unsubscribeFromTopic('all_ru');
+      print("Unsubscribed from all_uz and all_ru");
+
+      if (_lastSubscribedUserId != null) {
+        await _messaging.unsubscribeFromTopic('user_${_lastSubscribedUserId}_uz');
+        await _messaging.unsubscribeFromTopic('user_${_lastSubscribedUserId}_ru');
+        print("Unsubscribed from user_${_lastSubscribedUserId}_uz and user_${_lastSubscribedUserId}_ru");
+        _lastSubscribedUserId = null;
+      }
+    } catch (e) {
+      print("Error unsubscribing from topics: $e");
     }
   }
 

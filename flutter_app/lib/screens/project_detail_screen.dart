@@ -130,6 +130,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
   @override
   void dispose() {
     _tabController.dispose();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      projectUpdateNotifier.value++;
+    });
     super.dispose();
   }
 
@@ -340,7 +343,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => StatefulBuilder(
-          builder: (ctx, setSt) => Padding(
+          builder: (builderCtx, setSt) => Padding(
                 padding: EdgeInsets.only(
                     left: 20,
                     right: 20,
@@ -808,7 +811,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => StatefulBuilder(
-          builder: (ctx, setSt) => Padding(
+          builder: (builderCtx, setSt) => Padding(
                 padding: EdgeInsets.only(
                     left: 20,
                     right: 20,
@@ -1435,7 +1438,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSt) => Padding(
+        builder: (builderCtx, setSt) => Padding(
           padding: EdgeInsets.only(
             left: 20,
             right: 20,

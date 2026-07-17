@@ -16,8 +16,9 @@ import '../utils/phone_formatter.dart';
 
 class WorkerDetailScreen extends StatefulWidget {
   final Worker worker;
+  final VoidCallback? onAction;
 
-  const WorkerDetailScreen({super.key, required this.worker});
+  const WorkerDetailScreen({super.key, required this.worker, this.onAction});
 
   @override
   State<WorkerDetailScreen> createState() => _WorkerDetailScreenState();
@@ -77,11 +78,12 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
+      enableDrag: false,
       backgroundColor: AppColors.card,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSt) => Padding(
+        builder: (builderCtx, setSt) => Padding(
           padding: EdgeInsets.only(
               left: 20,
               right: 20,
@@ -92,16 +94,6 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 20),
-                    decoration: BoxDecoration(
-                        color: AppColors.border,
-                        borderRadius: BorderRadius.circular(2)),
-                  ),
-                ),
                  Text(
                   tr('pay_advance'),
                   style: Theme.of(context)
@@ -272,6 +264,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
           currency: selectedCurrencyCode,
         );
         _load();
+        widget.onAction?.call();
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context)
@@ -295,11 +288,12 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
+      enableDrag: false,
       backgroundColor: AppColors.card,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSt) => Padding(
+        builder: (builderCtx, setSt) => Padding(
           padding: EdgeInsets.only(
               left: 20,
               right: 20,
@@ -310,16 +304,6 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 20),
-                    decoration: BoxDecoration(
-                        color: AppColors.border,
-                        borderRadius: BorderRadius.circular(2)),
-                  ),
-                ),
                 Text(
                   tr('write_salary'),
                   style: Theme.of(context)
@@ -490,6 +474,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
           currency: selectedCurrencyCode,
         );
         _load();
+        widget.onAction?.call();
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context)
@@ -874,6 +859,12 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                                     ? "Kecha"
                                     : _dateFmt.format(tx.date);
 
+                        final matchedOb = _worker.obsList.firstWhere(
+                          (ob) => ob.obId == tx.obId,
+                          orElse: () => WorkerProject(obId: '', obNomi: '', balans: 0),
+                        );
+                        final projectName = matchedOb.obNomi;
+
                         return Column(
                           children: [
                             Padding(
@@ -903,11 +894,34 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                                               fontSize: 13,
                                               fontWeight: FontWeight.w600),
                                         ),
-                                        Text(
-                                          "$dateStr, $timeStr",
-                                          style: const TextStyle(
-                                              fontSize: 11,
-                                              color: AppColors.muted),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              "$dateStr, $timeStr",
+                                              style: const TextStyle(
+                                                  fontSize: 11,
+                                                  color: AppColors.muted),
+                                            ),
+                                            if (projectName.isNotEmpty) ...[
+                                              const SizedBox(width: 6),
+                                              Container(
+                                                width: 3,
+                                                height: 3,
+                                                decoration: const BoxDecoration(
+                                                  color: AppColors.muted,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                projectName,
+                                                style: const TextStyle(
+                                                    fontSize: 11,
+                                                    color: AppColors.muted,
+                                                    fontWeight: FontWeight.w500),
+                                              ),
+                                            ],
+                                          ],
                                         ),
                                       ],
                                     ),

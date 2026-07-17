@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:printing/printing.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:intl/intl.dart';
 
 import '../l10n/strings.dart';
 import '../main.dart';
@@ -32,9 +36,17 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   void initState() {
     super.initState();
     _load();
+    projectUpdateNotifier.addListener(_load);
+  }
+
+  @override
+  void dispose() {
+    projectUpdateNotifier.removeListener(_load);
+    super.dispose();
   }
 
   Future<void> _load() async {
+    if (!mounted) return;
     setState(() => _loading = true);
     final userId = supabase.auth.currentUser?.id;
     try {
@@ -120,7 +132,19 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       valueListenable: appLocaleNotifier,
       builder: (_, __, ___) => Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(backgroundColor: AppColors.bg, title: Text(tr('analytics'))),
+      appBar: AppBar(
+        backgroundColor: AppColors.bg,
+        title: Text(tr('analytics')),
+        actions: _loading || _selectedProject == null
+            ? null
+            : [
+                IconButton(
+                  icon: const Icon(Icons.download_rounded, color: AppColors.text),
+                  onPressed: _downloadPdf,
+                  tooltip: tr('download_pdf'),
+                ),
+              ],
+      ),
       body: RefreshIndicator(
         onRefresh: _load,
         child: _loading
@@ -241,14 +265,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                      const SizedBox(height: 12),
 
-                    if (_selectedProject != null) _buildProjectStats(_selectedProject!),
+                      if (_selectedProject != null) _buildProjectStats(_selectedProject!),
+                    ],
                   ],
-                ],
-              ),
+                ),
+        ),
       ),
-    ),
     );
   }
 
@@ -459,6 +483,504 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _downloadPdf() async {
+    final project = _selectedProject;
+    if (project == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(tr('no_active_project'))),
+      );
+      return;
+    }
+
+    final user = supabase.auth.currentSession?.user;
+    String prorabName = '';
+    String prorabPhone = '';
+    try {
+      if (user != null) {
+        final profileData = await supabase
+            .from('profiles')
+            .select('full_name, phone')
+            .eq('id', user.id)
+            .maybeSingle();
+        if (profileData != null) {
+          prorabName = profileData['full_name'] as String? ?? '';
+          prorabPhone = profileData['phone'] as String? ?? '';
+        }
+      }
+    } catch (_) {}
+
+    final income = _selIncome;
+    final spend = _selSpend;
+    final balance = income - spend;
+    final byCat = _selByCategory;
+    final txs = _selTxs;
+
+    final endDate = project.tugash ??
+        (project.boshlanish != null
+            ? project.boshlanish!.add(Duration(days: project.muddat))
+            : null);
+
+    final startStr = project.boshlanish != null
+        ? DateFormat('dd.MM.yyyy').format(project.boshlanish!)
+        : '-';
+    final endStr = endDate != null ? DateFormat('dd.MM.yyyy').format(endDate) : '-';
+    final todayStr = DateFormat('dd.MM.yyyy').format(DateTime.now());
+
+    final List<num> runningBalances = [];
+    num runningBalance = 0;
+    final sortedTxs = List<ProjectTransaction>.from(txs)
+      ..sort((a, b) => a.date.compareTo(b.date));
+    for (final tx in sortedTxs) {
+      if (tx.tur == 'income') {
+        runningBalance += tx.summaUzs;
+      } else {
+        runningBalance -= tx.summaUzs;
+      }
+      runningBalances.add(runningBalance);
+    }
+
+    // Color definitions
+    final navyColor = PdfColor.fromHex('#0d1b2e');
+    final greenColor = PdfColor.fromHex('#16a34a');
+    final greenBgColor = PdfColor.fromHex('#eefbf3');
+    final redColor = PdfColor.fromHex('#dc2626');
+    final redBgColor = PdfColor.fromHex('#fef2f2');
+    final borderColor = PdfColor.fromHex('#e4e8ee');
+    final mutedColor = PdfColor.fromHex('#68758a');
+    final bgSoftColor = PdfColor.fromHex('#f7f9fc');
+
+    final catColors = [
+      PdfColor.fromHex('#3B82F6'),
+      PdfColor.fromHex('#14B8A6'),
+      PdfColor.fromHex('#F97316'),
+      PdfColor.fromHex('#EF4444'),
+      PdfColor.fromHex('#8B5CF6'),
+      PdfColor.fromHex('#22C55E'),
+      PdfColor.fromHex('#EC4899'),
+      PdfColor.fromHex('#F59E0B'),
+    ];
+
+    final pdf = pw.Document();
+    final fontNormal = pw.Font.helvetica();
+    final fontBold = pw.Font.helveticaBold();
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(36),
+        build: (pw.Context context) {
+          final List<pw.Widget> breakdownRows = [];
+          int ci = 0;
+          byCat.forEach((cat, amt) {
+            final ratio = spend > 0 ? amt / spend : 0.0;
+            final pct = (ratio * 100).round();
+            final color = catColors[ci++ % catColors.length];
+            breakdownRows.add(
+              pw.Padding(
+                padding: const pw.EdgeInsets.symmetric(vertical: 4),
+                child: pw.Row(
+                  children: [
+                    pw.Container(
+                      width: 120,
+                      child: pw.Text(cat, style: pw.TextStyle(font: fontBold, fontSize: 10, color: navyColor)),
+                    ),
+                    pw.Expanded(
+                      child: pw.Container(
+                        height: 7,
+                        decoration: pw.BoxDecoration(
+                          color: PdfColor.fromHex('#eef1f5'),
+                          borderRadius: pw.BorderRadius.all(pw.Radius.circular(4)),
+                        ),
+                        alignment: pw.Alignment.centerLeft,
+                        child: ratio > 0
+                            ? pw.Row(
+                                children: [
+                                  pw.Expanded(
+                                    flex: pct,
+                                    child: pw.Container(
+                                      height: 7,
+                                      decoration: pw.BoxDecoration(
+                                        color: color,
+                                        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+                                      ),
+                                    ),
+                                  ),
+                                  pw.Expanded(
+                                    flex: (100 - pct).clamp(0, 100),
+                                    child: pw.SizedBox(),
+                                  ),
+                                ],
+                              )
+                            : pw.SizedBox(),
+                      ),
+                    ),
+                    pw.SizedBox(width: 12),
+                    pw.Container(
+                      width: 90,
+                      alignment: pw.Alignment.centerRight,
+                      child: pw.Text(_formatReportMoney(amt), style: pw.TextStyle(font: fontBold, fontSize: 10, color: navyColor)),
+                    ),
+                    pw.Container(
+                      width: 40,
+                      alignment: pw.Alignment.centerRight,
+                      child: pw.Text('$pct%', style: pw.TextStyle(font: fontBold, fontSize: 9, color: mutedColor)),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          });
+
+          final List<pw.TableRow> tableRows = [];
+          // Table Header
+          tableRows.add(
+            pw.TableRow(
+              decoration: pw.BoxDecoration(color: navyColor),
+              children: [
+                pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(tr('date_col'), style: pw.TextStyle(font: fontBold, fontSize: 8, color: PdfColors.white))),
+                pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(tr('desc_col'), style: pw.TextStyle(font: fontBold, fontSize: 8, color: PdfColors.white))),
+                pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(tr('category_col'), style: pw.TextStyle(font: fontBold, fontSize: 8, color: PdfColors.white))),
+                pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(tr('amount_col'), style: pw.TextStyle(font: fontBold, fontSize: 8, color: PdfColors.white), textAlign: pw.TextAlign.right)),
+                pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(tr('balance_col'), style: pw.TextStyle(font: fontBold, fontSize: 8, color: PdfColors.white), textAlign: pw.TextAlign.right)),
+              ],
+            ),
+          );
+
+          // Table Body
+          int rowIdx = 0;
+          for (final tx in sortedTxs) {
+            final isEven = rowIdx % 2 == 0;
+            final dateStr = DateFormat('dd.MM').format(tx.date);
+            final desc = tx.izoh ?? '';
+            final sub = tx.toUser ?? tx.fromUser ?? '';
+            final toifa = tx.kategoriya ?? (tx.tur == 'income' ? tr('income') : 'Boshqa');
+            final amtSign = tx.tur == 'income' ? '+' : '-';
+            final amtColor = tx.tur == 'income' ? greenColor : redColor;
+
+            tableRows.add(
+              pw.TableRow(
+                decoration: pw.BoxDecoration(
+                  color: isEven ? bgSoftColor : PdfColors.white,
+                  border: pw.Border(bottom: pw.BorderSide(color: PdfColor.fromHex('#eef0f4'), width: 0.5)),
+                ),
+                children: [
+                  pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(dateStr, style: pw.TextStyle(font: fontNormal, fontSize: 9, color: mutedColor))),
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.all(6),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(desc, style: pw.TextStyle(font: fontBold, fontSize: 9, color: navyColor)),
+                        if (sub.isNotEmpty)
+                          pw.Text(sub, style: pw.TextStyle(font: fontNormal, fontSize: 8, color: mutedColor)),
+                      ],
+                    ),
+                  ),
+                  pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(toifa, style: pw.TextStyle(font: fontBold, fontSize: 8, color: PdfColor.fromHex('#1e2f47')))),
+                  pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('$amtSign${_formatReportMoney(tx.summaUzs)}', style: pw.TextStyle(font: fontBold, fontSize: 9, color: amtColor), textAlign: pw.TextAlign.right)),
+                  pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(_formatReportMoney(runningBalances[rowIdx]), style: pw.TextStyle(font: fontBold, fontSize: 9, color: mutedColor), textAlign: pw.TextAlign.right)),
+                ],
+              ),
+            );
+            rowIdx++;
+          }
+
+          return [
+            // Header
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.RichText(
+                  text: pw.TextSpan(
+                    children: [
+                      pw.TextSpan(text: 'R', style: pw.TextStyle(font: fontBold, color: PdfColor.fromHex('#10B981'), fontSize: 26)),
+                      pw.TextSpan(text: 'isq', style: pw.TextStyle(font: fontBold, color: navyColor, fontSize: 26)),
+                    ],
+                  ),
+                ),
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.end,
+                  children: [
+                    pw.Text(tr('report_num').toUpperCase(), style: pw.TextStyle(font: fontBold, fontSize: 9, color: mutedColor)),
+                    pw.SizedBox(height: 2),
+                    pw.Text('No. ${project.id.substring(0, 4).toUpperCase()} - $todayStr', style: pw.TextStyle(font: fontBold, fontSize: 11, color: navyColor)),
+                  ],
+                ),
+              ],
+            ),
+            pw.SizedBox(height: 4),
+            pw.Container(height: 2, color: navyColor),
+            pw.SizedBox(height: 12),
+
+            // Hero Section
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text("Obyekt bo'yicha hisob-kitob", style: pw.TextStyle(font: fontBold, fontSize: 22, color: navyColor)),
+                    pw.SizedBox(height: 4),
+                    pw.Text('${tr('report_period')}: $startStr - $endStr', style: pw.TextStyle(font: fontNormal, fontSize: 11, color: mutedColor)),
+                  ],
+                ),
+                pw.Container(
+                  padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  decoration: pw.BoxDecoration(
+                    color: project.status == 'done' ? bgSoftColor : greenBgColor,
+                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(20)),
+                  ),
+                  child: pw.Text(
+                    project.status == 'done' ? tr('done') : tr('active'),
+                    style: pw.TextStyle(font: fontBold, fontSize: 9, color: project.status == 'done' ? mutedColor : greenColor),
+                  ),
+                ),
+              ],
+            ),
+            pw.SizedBox(height: 12),
+
+            // Info Grid
+            pw.Container(
+              decoration: pw.BoxDecoration(
+                border: pw.Border.all(color: borderColor),
+                borderRadius: const pw.BorderRadius.all(pw.Radius.circular(10)),
+              ),
+              child: pw.ClipRRect(
+                horizontalRadius: 10,
+                verticalRadius: 10,
+                child: pw.Row(
+                  children: [
+                    pw.Expanded(child: _buildGridCell(tr('nav_projects'), project.nomi, fontNormal, fontBold, borderColor, mutedColor, navyColor, showBorderRight: true)),
+                    pw.Expanded(child: _buildGridCell(tr('owner'), project.mijoz ?? '-', fontNormal, fontBold, borderColor, mutedColor, navyColor, showBorderRight: true)),
+                    pw.Expanded(child: _buildGridCell(tr('prorab'), prorabName, fontNormal, fontBold, borderColor, mutedColor, navyColor, showBorderRight: true)),
+                    pw.Expanded(child: _buildGridCell(tr('phone'), prorabPhone.isNotEmpty ? prorabPhone : '-', fontNormal, fontBold, borderColor, mutedColor, navyColor, showBorderRight: false)),
+                  ],
+                ),
+              ),
+            ),
+            pw.SizedBox(height: 12),
+
+            // Summary Cards
+            pw.Row(
+              children: [
+                pw.Expanded(
+                  child: _buildSummaryCard(
+                    label: tr('total_income'),
+                    amount: '+${_formatReportMoney(income)}',
+                    desc: tr('total_income_desc'),
+                    bgColor: greenBgColor,
+                    textColor: greenColor,
+                    amtColor: PdfColor.fromHex('#0d7a37'),
+                    bold: fontBold,
+                    normal: fontNormal,
+                    borderColor: borderColor,
+                  ),
+                ),
+                pw.SizedBox(width: 10),
+                pw.Expanded(
+                  child: _buildSummaryCard(
+                    label: tr('total_expense'),
+                    amount: '-${_formatReportMoney(spend)}',
+                    desc: tr('total_expense_desc'),
+                    bgColor: redBgColor,
+                    textColor: redColor,
+                    amtColor: PdfColor.fromHex('#b91c1c'),
+                    bold: fontBold,
+                    normal: fontNormal,
+                    borderColor: borderColor,
+                  ),
+                ),
+                pw.SizedBox(width: 10),
+                pw.Expanded(
+                  child: _buildSummaryCard(
+                    label: tr('total_balance'),
+                    amount: (balance >= 0 ? '+' : '') + _formatReportMoney(balance),
+                    desc: tr('total_balance_desc'),
+                    bgColor: navyColor,
+                    textColor: PdfColor.fromHex('#9fb3cc'),
+                    amtColor: PdfColors.white,
+                    bold: fontBold,
+                    normal: fontNormal,
+                    borderColor: borderColor,
+                  ),
+                ),
+              ],
+            ),
+            pw.SizedBox(height: 12),
+
+            // Breakdown
+            if (byCat.isNotEmpty) ...[
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text("Chiqimlar taqsimoti", style: pw.TextStyle(font: fontBold, fontSize: 11, color: navyColor)),
+                  pw.Text(tr('distribution_by_category'), style: pw.TextStyle(font: fontNormal, fontSize: 8, color: mutedColor)),
+                ],
+              ),
+              pw.SizedBox(height: 6),
+              pw.Container(
+                decoration: pw.BoxDecoration(
+                  border: pw.Border.all(color: borderColor),
+                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(10)),
+                ),
+                padding: const pw.EdgeInsets.all(12),
+                child: pw.Column(children: breakdownRows),
+              ),
+              pw.SizedBox(height: 12),
+            ],
+
+            // Detailed Operations
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text(tr('detailed_operations'), style: pw.TextStyle(font: fontBold, fontSize: 11, color: navyColor)),
+                pw.Text('${sortedTxs.length} ${tr('records_count')}', style: pw.TextStyle(font: fontNormal, fontSize: 8, color: mutedColor)),
+              ],
+            ),
+            pw.SizedBox(height: 6),
+            pw.Table(
+              columnWidths: const {
+                0: pw.FractionColumnWidth(0.12),
+                1: pw.FractionColumnWidth(0.40),
+                2: pw.FractionColumnWidth(0.18),
+                3: pw.FractionColumnWidth(0.15),
+                4: pw.FractionColumnWidth(0.15),
+              },
+              children: tableRows,
+            ),
+            pw.SizedBox(height: 16),
+
+            // Signatures
+            pw.Row(
+              children: [
+                pw.Expanded(
+                  child: pw.Container(
+                    decoration: pw.BoxDecoration(border: pw.Border(top: pw.BorderSide(color: navyColor))),
+                    padding: const pw.EdgeInsets.only(top: 6),
+                    child: pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text(tr('prorab'), style: pw.TextStyle(font: fontBold, fontSize: 8, color: mutedColor)),
+                        pw.Text(prorabName, style: pw.TextStyle(font: fontNormal, fontSize: 9, color: navyColor)),
+                      ],
+                    ),
+                  ),
+                ),
+                pw.SizedBox(width: 40),
+                pw.Expanded(
+                  child: pw.Container(
+                    decoration: pw.BoxDecoration(border: pw.Border(top: pw.BorderSide(color: navyColor))),
+                    padding: const pw.EdgeInsets.only(top: 6),
+                    child: pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text(tr('owner'), style: pw.TextStyle(font: fontBold, fontSize: 8, color: mutedColor)),
+                        pw.Text(project.mijoz ?? '', style: pw.TextStyle(font: fontNormal, fontSize: 9, color: navyColor)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ];
+        },
+        footer: (pw.Context context) {
+          return pw.Container(
+            margin: const pw.EdgeInsets.only(top: 12),
+            padding: const pw.EdgeInsets.only(top: 8),
+            decoration: pw.BoxDecoration(
+              border: pw.Border(top: pw.BorderSide(color: borderColor)),
+            ),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.RichText(
+                  text: pw.TextSpan(
+                    children: [
+                      pw.TextSpan(text: 'R', style: pw.TextStyle(font: fontBold, color: PdfColor.fromHex('#10B981'), fontSize: 10)),
+                      pw.TextSpan(text: 'isq', style: pw.TextStyle(font: fontBold, color: navyColor, fontSize: 10)),
+                      pw.TextSpan(text: '  -  ${tr('system_note')}', style: pw.TextStyle(font: fontNormal, color: mutedColor, fontSize: 8)),
+                    ],
+                  ),
+                ),
+                pw.Text(
+                  '${context.pageNumber} / ${context.pagesCount} ${tr('page_indicator')}',
+                  style: pw.TextStyle(font: fontNormal, fontSize: 8, color: PdfColor.fromHex('#a3adbd')),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => await pdf.save(),
+    );
+  }
+
+  pw.Widget _buildGridCell(String label, String value, pw.Font normal, pw.Font bold, PdfColor borderColor, PdfColor mutedColor, PdfColor navyColor, {required bool showBorderRight}) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: pw.BoxDecoration(
+        border: showBorderRight ? pw.Border(right: pw.BorderSide(color: borderColor)) : null,
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(label.toUpperCase(), style: pw.TextStyle(font: bold, fontSize: 8, color: mutedColor)),
+          pw.SizedBox(height: 2),
+          pw.Text(value, style: pw.TextStyle(font: bold, fontSize: 10, color: navyColor)),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _buildSummaryCard({
+    required String label,
+    required String amount,
+    required String desc,
+    required PdfColor bgColor,
+    required PdfColor textColor,
+    required PdfColor amtColor,
+    required pw.Font bold,
+    required pw.Font normal,
+    required PdfColor borderColor,
+  }) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: bgColor,
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(10)),
+        border: pw.Border.all(color: borderColor),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            children: [
+              pw.Container(
+                width: 6, height: 6,
+                decoration: pw.BoxDecoration(color: textColor, shape: pw.BoxShape.circle),
+              ),
+              pw.SizedBox(width: 4),
+              pw.Text(label.toUpperCase(), style: pw.TextStyle(font: bold, fontSize: 8, color: textColor)),
+            ],
+          ),
+          pw.SizedBox(height: 4),
+          pw.Text(amount, style: pw.TextStyle(font: bold, fontSize: 16, color: amtColor)),
+          pw.SizedBox(height: 2),
+          pw.Text(desc, style: pw.TextStyle(font: normal, fontSize: 8, color: textColor)),
+        ],
+      ),
+    );
+  }
+
+  String _formatReportMoney(num value) {
+    final formatter = NumberFormat('#,###', 'uz');
+    return formatter.format(value).replaceAll(',', ' ').replaceAll('.', ' ');
   }
 }
 

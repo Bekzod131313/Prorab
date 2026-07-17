@@ -1,6 +1,10 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import '../main.dart';
 import '../models/transaction.dart';
 import '../services/currency_service.dart';
+import '../l10n/strings.dart';
 
 class TransactionRepository {
   Future<List<ProjectTransaction>> loadForProject(String obId, {String? createdBy}) async {
@@ -141,6 +145,15 @@ class TransactionRepository {
               .eq('ob_id', obId)
               .eq('user_id', toUserId);
         }
+
+        sendWorkerNotification(
+          obId: obId,
+          toUserId: toUserId,
+          amount: amount,
+          currency: currency,
+        ).catchError((e) {
+          print("Error sending worker notification: $e");
+        });
       }
     }
   }
@@ -210,6 +223,102 @@ class TransactionRepository {
           })
           .eq('ob_id', obId)
           .eq('user_id', toUserId);
+    }
+
+    sendWorkerNotification(
+      obId: obId,
+      toUserId: toUserId,
+      amount: amount,
+      currency: currency,
+    ).catchError((e) {
+      print("Error sending worker notification: $e");
+    });
+  }
+
+  /// Sends a push notification to user_{id}_uz and user_{id}_ru topics,
+  /// and saves it in the database notifications table.
+  Future<void> sendWorkerNotification({
+    required String obId,
+    required String toUserId,
+    required num amount,
+    required String currency,
+  }) async {
+    try {
+      final senderId = supabase.auth.currentUser?.id;
+      if (senderId == null || toUserId == senderId) return;
+
+      // 1. Fetch sender name
+      final senderData = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', senderId)
+          .maybeSingle();
+      final senderName = senderData?['full_name'] ?? 'Tizim';
+
+      // 2. Fetch project name
+      final obData = await supabase
+          .from('obyektlar')
+          .select('nomi')
+          .eq('id', obId)
+          .maybeSingle();
+      final projectName = obData?['nomi'] ?? 'Loyiha';
+
+      // 3. Format the amount
+      final f = NumberFormat.decimalPattern('uz');
+      final formattedAmount = currency == 'USD' 
+          ? '\$${f.format(amount)}' 
+          : f.format(amount);
+
+      // 4. Construct messages
+      final titleUz = 'Kirim';
+      final bodyUz = '+ $formattedAmount (${senderName}dan, $projectName loyihasi)';
+
+      final titleRu = 'Приход';
+      final bodyRu = '+ $formattedAmount (от $senderName, проект $projectName)';
+
+      // 5. Save to database notifications table
+      final currentLang = appLocaleNotifier.value;
+      final titleDb = currentLang == 'ru' ? titleRu : titleUz;
+      final bodyDb = currentLang == 'ru' ? bodyRu : bodyUz;
+
+      await supabase.from('notifications').insert({
+        'user_id': toUserId,
+        'title': titleDb,
+        'body': bodyDb,
+      });
+
+      // 6. Send push notifications via Firebase Cloud Function
+      const cfUrl = 'https://us-central1-risq-91c54.cloudfunctions.net/sendPushNotification';
+
+      try {
+        // Send Uzbek notification to topic user_${toUserId}_uz
+        final resUz = await http.post(
+          Uri.parse(cfUrl),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'topic': 'user_${toUserId}_uz',
+            'title': titleUz,
+            'body': bodyUz,
+          }),
+        );
+        print("Uz FCM Response: ${resUz.statusCode} - ${resUz.body}");
+
+        // Send Russian notification to topic user_${toUserId}_ru
+        final resRu = await http.post(
+          Uri.parse(cfUrl),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'topic': 'user_${toUserId}_ru',
+            'title': titleRu,
+            'body': bodyRu,
+          }),
+        );
+        print("Ru FCM Response: ${resRu.statusCode} - ${resRu.body}");
+      } catch (e) {
+        print("Error calling sendPushNotification function: $e");
+      }
+    } catch (e) {
+      print('Error in sendWorkerNotification: $e');
     }
   }
 

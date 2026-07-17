@@ -4,6 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 // Global notifier for language
 final appLocaleNotifier = ValueNotifier<String>('uz');
 
+// Global notifier to trigger UI updates when project details change
+final projectUpdateNotifier = ValueNotifier<int>(0);
+
 Future<void> loadSavedLocale() async {
   final prefs = await SharedPreferences.getInstance();
   final lang = prefs.getString('lang') ?? 'uz';
@@ -245,6 +248,7 @@ const _strings = <String, Map<String, String>>{
   'new_version':           {'uz': 'Yangi talqin:',       'ru': 'Новая версия:'},
   'update_btn':            {'uz': 'Yangilash',           'ru': 'Обновить'},
   'pay_advance':           {'uz': 'Avans berish',        'ru': 'Выдать аванс'},
+  'advance':               {'uz': 'Avans',               'ru': 'Аванс'},
   'write_salary':          {'uz': 'Ish haqi yozish',     'ru': 'Начислить з/п'},
   'give':                  {'uz': 'Berish',              'ru': 'Выдать'},
   'write':                 {'uz': 'Yozish',              'ru': 'Начислить'},
@@ -275,6 +279,25 @@ const _strings = <String, Map<String, String>>{
   'tagline':               {'uz': 'Qulay boshqaruv. Aniq natija.', 'ru': 'Удобное управление. Точный результат.'},
   'years_suffix':          {'uz': 'yil',                 'ru': 'лет'},
   'experience_label':      {'uz': 'Tajriba',             'ru': 'Опыт'},
+  'download_pdf':          {'uz': 'PDF yuklab olish',    'ru': 'Скачать PDF'},
+  'report_num':            {'uz': 'MOLIYAVIY HISOBOT №',  'ru': 'ФИНАНСОВЫЙ ОТЧЕТ №'},
+  'report_period':         {'uz': 'Hisobot davri',       'ru': 'Период отчета'},
+  'owner':                 {'uz': 'Uy egasi',            'ru': 'Владелец'},
+  'prorab':                {'uz': 'Prorab',              'ru': 'Прораб'},
+  'total_income_desc':     {'uz': "so'm · uy egasidan olingan", 'ru': 'сум · получено от владельца'},
+  'total_expense_desc':    {'uz': "so'm · ishchi, material va h.k.", 'ru': 'сум · рабочий, материал и т.д.'},
+  'total_balance_desc':    {'uz': "so'm · joriy holat",  'ru': 'сум · текущее состояние'},
+  'distribution_by_category': {'uz': "kategoriya bo'yicha", 'ru': 'по категориям'},
+  'detailed_operations':   {'uz': 'Batafsil operatsiyalar', 'ru': 'Детальные операции'},
+  'records_count':         {'uz': 'ta yozuv',            'ru': 'записей'},
+  'date_col':              {'uz': 'SANA',                'ru': 'ДАТА'},
+  'desc_col':              {'uz': 'TAVSIF',              'ru': 'ОПИСАНИЕ'},
+  'category_col':          {'uz': 'TOIFA',               'ru': 'КАТЕГОРИЯ'},
+  'amount_col':            {'uz': 'SUMMA',               'ru': 'СУММА'},
+  'balance_col':           {'uz': 'QOLDIQ',              'ru': 'ОСТАТОК'},
+  'sum_label':             {'uz': 'Jami',                'ru': 'Итого'},
+  'system_note':           {'uz': 'tizim orqali avtomatik shakllantirilgan', 'ru': 'сформировано автоматически через систему'},
+  'page_indicator':        {'uz': 'bet',                 'ru': 'стр.'},
 };
 
 // Widget that rebuilds when locale changes

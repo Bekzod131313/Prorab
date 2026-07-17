@@ -1,1 +1,48 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"risq-91c54","appId":"1:491421016877:android:b2504be39ff27fdb15e9a4","fileOutput":"android/app/google-services.json"}},"ios":{"default":{"projectId":"risq-91c54","appId":"1:491421016877:ios:60626b33f17f2d1e15e9a4","uploadDebugSymbols":false,"fileOutput":"ios/Runner/GoogleService-Info.plist"}},"dart":{"lib/firebase_options.dart":{"projectId":"risq-91c54","configurations":{"android":"1:491421016877:android:b2504be39ff27fdb15e9a4","ios":"1:491421016877:ios:60626b33f17f2d1e15e9a4"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "risq-91c54",
+          "appId": "1:491421016877:android:b2504be39ff27fdb15e9a4",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "risq-91c54",
+          "appId": "1:491421016877:ios:60626b33f17f2d1e15e9a4",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "risq-91c54",
+          "configurations": {
+            "android": "1:491421016877:android:b2504be39ff27fdb15e9a4",
+            "ios": "1:491421016877:ios:60626b33f17f2d1e15e9a4"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run lint",
+        "npm --prefix \"$RESOURCE_DIR\" run build"
+      ]
+    }
+  ]
+}
