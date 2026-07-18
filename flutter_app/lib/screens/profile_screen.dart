@@ -16,7 +16,8 @@ import '../services/security_service.dart';
 import '../utils/phone_formatter.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final String? userId;
+  const ProfileScreen({super.key, this.userId});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -34,8 +35,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _biometricsEnabled = false;
   bool _canUseBiometrics = false;
 
-
-
   @override
   void initState() {
     super.initState();
@@ -44,16 +43,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadSilent() async {
     try {
-      final userId = Supabase.instance.client.auth.currentUser?.id ?? '';
+      final currentUserId = Supabase.instance.client.auth.currentUser?.id ?? '';
+      final targetUserId = widget.userId ?? currentUserId;
+      final isOwnProfile = widget.userId == null || widget.userId == currentUserId;
+
       final results = await Future.wait([
-        _repo.loadCurrent(),
-        _repo.loadStats(),
-        _repo.loadPortfolio(userId),
+        isOwnProfile ? _repo.loadCurrent() : _repo.loadById(targetUserId),
+        isOwnProfile ? _repo.loadStats() : Future.value(null),
+        _repo.loadPortfolio(targetUserId),
       ]);
       if (!mounted) return;
       setState(() {
         _profile = results[0] as Profile?;
-        _stats = results[1] as ProfileStats;
+        _stats = results[1] as ProfileStats?;
         _portfolio = results[2] as List<String>;
       });
     } catch (_) {}
@@ -202,6 +204,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final user = Supabase.instance.client.auth.currentUser;
     final email = user?.email ?? '';
+    final isOwnProfile = widget.userId == null || widget.userId == user?.id;
 
     return ValueListenableBuilder<String>(
       valueListenable: appLocaleNotifier,
@@ -213,12 +216,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           elevation: 0,
           titleSpacing: 16,
           title: Text(tr('profile'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.text)),
-          actions: [
-            TextButton(
-              onPressed: _openEditProfile,
-              child: Text(tr('edit_profile'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.accent)),
-            ),
-          ],
+          actions: !isOwnProfile 
+              ? null 
+              : [
+                  TextButton(
+                    onPressed: _openEditProfile,
+                    child: Text(tr('edit_profile'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.accent)),
+                  ),
+                ],
         ),
         body: _loading
             ? const Center(child: CircularProgressIndicator())
@@ -234,7 +239,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: Column(children: [
                         // Avatar
                         GestureDetector(
-                          onTap: _avatarUploading ? null : _pickAvatar,
+                          onTap: (isOwnProfile && !_avatarUploading) ? _pickAvatar : null,
                           child: Stack(children: [
                             CircleAvatar(
                               radius: 40,
@@ -250,7 +255,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       ? Text(_profile?.initial ?? '?', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: AppColors.accent))
                                       : null,
                             ),
-                            if (!_avatarUploading)
+                            if (isOwnProfile && !_avatarUploading)
                               Positioned(
                                 bottom: 0, right: 0,
                                 child: Container(
@@ -262,8 +267,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ]),
                         ),
                         const SizedBox(height: 12),
-                        Text(_profile?.displayName ?? email, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-                        if (email.isNotEmpty)
+                        Text(_profile?.displayName ?? (isOwnProfile ? email : ''), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                        if (isOwnProfile && email.isNotEmpty)
                           Text(email, style: const TextStyle(fontSize: 12, color: AppColors.muted)),
                         if (_profile?.kasb?.isNotEmpty == true) ...[
                           const SizedBox(height: 4),
@@ -283,13 +288,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ],
                         const SizedBox(height: 16),
                         // Stats row
-                        Row(children: [
-                          _StatCol(label: tr('projects_count'), value: '${_stats?.obsCount ?? 0}'),
-                          _Divider(),
-                          _StatCol(label: tr('workers'), value: '${_stats?.peopleCount ?? 0}'),
-                          _Divider(),
-                          _StatCol(label: tr('experience_label'), value: '${_profile?.staj ?? 0} ${tr('years_suffix')}'),
-                        ]),
+                        if (isOwnProfile)
+                          Row(children: [
+                            _StatCol(label: tr('projects_count'), value: '${_stats?.obsCount ?? 0}'),
+                            _Divider(),
+                            _StatCol(label: tr('workers'), value: '${_stats?.peopleCount ?? 0}'),
+                            _Divider(),
+                            _StatCol(label: tr('experience_label'), value: '${_profile?.staj ?? 0} ${tr('years_suffix')}'),
+                          ])
+                        else if (_profile?.staj != null)
+                          Row(children: [
+                            Expanded(
+                              child: _StatCol(label: tr('experience_label'), value: '${_profile!.staj} ${tr('years_suffix')}'),
+                            ),
+                          ]),
                       ]),
                     ),
                     const SizedBox(height: 16),
@@ -315,12 +327,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Row(children: [
                       Text(tr('portfolio'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.text)),
                       const Spacer(),
-                      TextButton.icon(
-                        onPressed: _pickPortfolioPhoto,
-                        icon: const Icon(Icons.add_photo_alternate_outlined, size: 16),
-                        label: Text(tr('portfolio_add'), style: const TextStyle(fontSize: 12)),
-                        style: TextButton.styleFrom(foregroundColor: AppColors.accent),
-                      ),
+                      if (isOwnProfile)
+                        TextButton.icon(
+                          onPressed: _pickPortfolioPhoto,
+                          icon: const Icon(Icons.add_photo_alternate_outlined, size: 16),
+                          label: Text(tr('portfolio_add'), style: const TextStyle(fontSize: 12)),
+                          style: TextButton.styleFrom(foregroundColor: AppColors.accent),
+                        ),
                     ]),
                     const SizedBox(height: 8),
                     if (_portfolio.isEmpty)
@@ -360,7 +373,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           final idx = _portfolioUploading ? i - 1 : i;
                           final url = _portfolio[idx];
                           return GestureDetector(
-                            onLongPress: () async {
+                            onLongPress: !isOwnProfile ? null : () async {
                               final confirm = await showDialog<bool>(
                                 context: context,
                                 builder: (ctx) => AlertDialog(
@@ -387,137 +400,138 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 20),
 
 
-                    // Security Settings Panel
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.card,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-
-                            SwitchListTile(
-                              title: Text(
-                                tr('pin_lock'),
-                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-                              ),
-                              contentPadding: EdgeInsets.zero,
-                              value: _pinLockEnabled,
-                              activeColor: AppColors.accent,
-                              onChanged: (val) async {
-                                if (val) {
-                                  final setupSuccess = await Navigator.of(context).push<bool>(
-                                    MaterialPageRoute(
-                                      builder: (_) => const PinLockScreen(mode: PinLockMode.setup),
-                                    ),
-                                  );
-                                  if (setupSuccess == true) {
-                                    await _loadSecuritySettings();
-                                  }
-                                } else {
-                                  final disableSuccess = await Navigator.of(context).push<bool>(
-                                    MaterialPageRoute(
-                                      builder: (_) => const PinLockScreen(mode: PinLockMode.confirmDisable),
-                                    ),
-                                  );
-                                  if (disableSuccess == true) {
-                                    await _loadSecuritySettings();
-                                  }
-                                }
-                              },
-                            ),
-                            if (_pinLockEnabled && _canUseBiometrics) ...[
-                              const Divider(color: AppColors.border, height: 16),
+                    if (isOwnProfile) ...[
+                      // Security Settings Panel
+                      Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.card,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                               SwitchListTile(
                                 title: Text(
-                                  tr('biometrics'),
+                                  tr('pin_lock'),
                                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
                                 ),
                                 contentPadding: EdgeInsets.zero,
-                                value: _biometricsEnabled,
+                                value: _pinLockEnabled,
                                 activeColor: AppColors.accent,
                                 onChanged: (val) async {
-                                  await SecurityService.setBiometricsEnabled(val);
-                                  await _loadSecuritySettings();
+                                  if (val) {
+                                    final setupSuccess = await Navigator.of(context).push<bool>(
+                                      MaterialPageRoute(
+                                        builder: (_) => const PinLockScreen(mode: PinLockMode.setup),
+                                      ),
+                                    );
+                                    if (setupSuccess == true) {
+                                      await _loadSecuritySettings();
+                                    }
+                                  } else {
+                                    final disableSuccess = await Navigator.of(context).push<bool>(
+                                      MaterialPageRoute(
+                                        builder: (_) => const PinLockScreen(mode: PinLockMode.confirmDisable),
+                                      ),
+                                    );
+                                    if (disableSuccess == true) {
+                                      await _loadSecuritySettings();
+                                    }
+                                  }
                                 },
                               ),
+                              if (_pinLockEnabled && _canUseBiometrics) ...[
+                                const Divider(color: AppColors.border, height: 16),
+                                SwitchListTile(
+                                  title: Text(
+                                    tr('biometrics'),
+                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                                  ),
+                                  contentPadding: EdgeInsets.zero,
+                                  value: _biometricsEnabled,
+                                  activeColor: AppColors.accent,
+                                  onChanged: (val) async {
+                                    await SecurityService.setBiometricsEnabled(val);
+                                    await _loadSecuritySettings();
+                                  },
+                                ),
+                              ],
                             ],
-                          ],
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                    // Language switcher
-                    Container(
-                      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text(tr('language'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.text)),
-                          const SizedBox(height: 12),
-                          Row(children: [
-                            _LangBtn(code: 'uz', label: "O'zbek"),
-                            const SizedBox(width: 8),
-                            _LangBtn(code: 'ru', label: 'Русский'),
-                          ]),
-                        ]),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Currency switcher
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.card,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              tr('currency'),
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.text),
-                            ),
+                      // Language switcher
+                      Container(
+                        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(tr('language'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.text)),
                             const SizedBox(height: 12),
-                            ValueListenableBuilder<String>(
-                              valueListenable: CurrencyService().displayCurrencyNotifier,
-                              builder: (ctx, activeCurrency, _) => Row(
-                                children: [
-                                  Expanded(
-                                    child: _CurrencyBtn(
-                                      code: 'UZS',
-                                      label: tr('currency_uzs'),
-                                      isSelected: activeCurrency == 'UZS',
-                                      onTap: () => CurrencyService().setDisplayCurrency('UZS'),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: _CurrencyBtn(
-                                      code: 'USD',
-                                      label: tr('currency_usd'),
-                                      isSelected: activeCurrency == 'USD',
-                                      onTap: () => CurrencyService().setDisplayCurrency('USD'),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                            Row(children: [
+                              _LangBtn(code: 'uz', label: "O'zbek"),
+                              const SizedBox(width: 8),
+                              _LangBtn(code: 'ru', label: 'Русский'),
+                            ]),
+                          ]),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                    if (_profile?.isAdmin == true) ...[
+                      // Currency switcher
+                      Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.card,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                tr('currency'),
+                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.text),
+                              ),
+                              const SizedBox(height: 12),
+                              ValueListenableBuilder<String>(
+                                valueListenable: CurrencyService().displayCurrencyNotifier,
+                                builder: (ctx, activeCurrency, _) => Row(
+                                  children: [
+                                    Expanded(
+                                      child: _CurrencyBtn(
+                                        code: 'UZS',
+                                        label: tr('currency_uzs'),
+                                        isSelected: activeCurrency == 'UZS',
+                                        onTap: () => CurrencyService().setDisplayCurrency('UZS'),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: _CurrencyBtn(
+                                        code: 'USD',
+                                        label: tr('currency_usd'),
+                                        isSelected: activeCurrency == 'USD',
+                                        onTap: () => CurrencyService().setDisplayCurrency('USD'),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    if (isOwnProfile && _profile?.isAdmin == true) ...[
                       Container(
                         decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
                         child: ListTile(
@@ -534,123 +548,125 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 16),
                     ],
 
-                    // Logout button
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 15),
-                          side: const BorderSide(color: AppColors.border, width: 1.5),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          foregroundColor: AppColors.text,
-                        ),
-                        icon: const Icon(Icons.logout_rounded, size: 18, color: AppColors.text2),
-                        label: Text(tr('logout'), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.text)),
-                        onPressed: () async {
-                          final confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              title: Text(tr('logout_confirm_title')),
-                              content: Text(tr('logout_confirm_body')),
-                              actions: [
-                                TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(tr('cancel'))),
-                                ElevatedButton(
-                                  onPressed: () => Navigator.of(ctx).pop(true),
-                                  child: Text(tr('logout_yes')),
-                                ),
-                              ],
-                            ),
-                          );
-                          if (confirm == true) {
-                            await Supabase.instance.client.auth.signOut();
-                            if (context.mounted) {
-                              Navigator.of(context).pushAndRemoveUntil(
-                                MaterialPageRoute(builder: (_) => const SplashScreen()),
-                                (_) => false,
-                              );
-                            }
-                          }
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-
-                    // Delete account button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.red.withOpacity(0.08),
-                          foregroundColor: AppColors.red,
-                          padding: const EdgeInsets.symmetric(vertical: 15),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            side: BorderSide(color: AppColors.red.withOpacity(0.3), width: 1.5),
+                    if (isOwnProfile) ...[
+                      // Logout button
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 15),
+                            side: const BorderSide(color: AppColors.border, width: 1.5),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            foregroundColor: AppColors.text,
                           ),
-                          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                          icon: const Icon(Icons.logout_rounded, size: 18, color: AppColors.text2),
+                          label: Text(tr('logout'), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.text)),
+                          onPressed: () async {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: Text(tr('logout_confirm_title')),
+                                content: Text(tr('logout_confirm_body')),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(tr('cancel'))),
+                                  ElevatedButton(
+                                    onPressed: () => Navigator.of(ctx).pop(true),
+                                    child: Text(tr('logout_yes')),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (confirm == true) {
+                              await Supabase.instance.client.auth.signOut();
+                              if (context.mounted) {
+                                Navigator.of(context).pushAndRemoveUntil(
+                                  MaterialPageRoute(builder: (_) => const SplashScreen()),
+                                  (_) => false,
+                                );
+                              }
+                            }
+                          },
                         ),
-                        icon: const Icon(Icons.delete_forever_rounded, size: 18),
-                        label: Text(tr('delete_account')),
-                        onPressed: () async {
-                          final confirm1 = await showDialog<bool>(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              title: Text(tr('delete_account_title')),
-                              content: Text(tr('delete_account_body')),
-                              actions: [
-                                TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(tr('cancel'))),
-                                ElevatedButton(
-                                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.red),
-                                  onPressed: () => Navigator.of(ctx).pop(true),
-                                  child: Text(tr('delete_yes')),
-                                ),
-                              ],
-                            ),
-                          );
-                          if (confirm1 != true || !context.mounted) return;
-
-                          // Second confirmation
-                          final confirm2 = await showDialog<bool>(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              title: Text(tr('delete_account_warn')),
-                              content: Text(tr('delete_account_warn2')),
-                              actions: [
-                                TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(tr('no_go_back'))),
-                                ElevatedButton(
-                                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.red),
-                                  onPressed: () => Navigator.of(ctx).pop(true),
-                                  child: Text(tr('delete_yes')),
-                                ),
-                              ],
-                            ),
-                          );
-                          if (confirm2 != true || !context.mounted) return;
-
-                          try {
-                            final userId = Supabase.instance.client.auth.currentUser?.id;
-                            if (userId != null) {
-                              // Delete user data from profiles table
-                              await Supabase.instance.client.from('profiles').delete().eq('id', userId);
-                            }
-                            await Supabase.instance.client.auth.signOut();
-                            if (context.mounted) {
-                              Navigator.of(context).pushAndRemoveUntil(
-                                MaterialPageRoute(builder: (_) => const SplashScreen()),
-                                (_) => false,
-                              );
-                            }
-                          } catch (e) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text("Xato: $e")),
-                              );
-                            }
-                          }
-                        },
                       ),
-                    ),
+                      const SizedBox(height: 10),
+
+                      // Delete account button
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.red.withOpacity(0.08),
+                            foregroundColor: AppColors.red,
+                            padding: const EdgeInsets.symmetric(vertical: 15),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              side: BorderSide(color: AppColors.red.withOpacity(0.3), width: 1.5),
+                            ),
+                            textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                          ),
+                          icon: const Icon(Icons.delete_forever_rounded, size: 18),
+                          label: Text(tr('delete_account')),
+                          onPressed: () async {
+                            final confirm1 = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: Text(tr('delete_account_title')),
+                                content: Text(tr('delete_account_body')),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(tr('cancel'))),
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.red),
+                                    onPressed: () => Navigator.of(ctx).pop(true),
+                                    child: Text(tr('delete_yes')),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (confirm1 != true || !context.mounted) return;
+
+                            // Second confirmation
+                            final confirm2 = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: Text(tr('delete_account_warn')),
+                                content: Text(tr('delete_account_warn2')),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(tr('no_go_back'))),
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.red),
+                                    onPressed: () => Navigator.of(ctx).pop(true),
+                                    child: Text(tr('delete_yes')),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (confirm2 != true || !context.mounted) return;
+
+                            try {
+                              final userId = Supabase.instance.client.auth.currentUser?.id;
+                              if (userId != null) {
+                                // Delete user data from profiles table
+                                await Supabase.instance.client.from('profiles').delete().eq('id', userId);
+                              }
+                              await Supabase.instance.client.auth.signOut();
+                              if (context.mounted) {
+                                Navigator.of(context).pushAndRemoveUntil(
+                                  MaterialPageRoute(builder: (_) => const SplashScreen()),
+                                  (_) => false,
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text("Xato: $e")),
+                                );
+                              }
+                            }
+                          },
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 32),
                   ],
                 ),

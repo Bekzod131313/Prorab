@@ -9,6 +9,7 @@ import '../theme/app_theme.dart';
 import '../widgets/project_card.dart' show formatMoney, formatUzsToDisplay, formatTransactionAmount;
 import '../widgets/member_row.dart' show colorForName;
 import '../models/transaction.dart';
+import 'create_notification_screen.dart';
 
 class AdminPanelScreen extends StatefulWidget {
   const AdminPanelScreen({super.key});
@@ -132,129 +133,32 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
     }
   }
 
-  void _openSendDialog(Map<String, dynamic> user) {
+  void _openSendDialog(Map<String, dynamic> user) async {
     final token = user['fcm_token'] as String?;
-    final userId = user['id'] as String;
     if (token == null || token.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ushbu foydalanuvchida FCM token mavjud emas.')));
       return;
     }
 
-    final titleCtrl = TextEditingController(text: 'Risq tizimi');
-    final bodyCtrl = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('${user['full_name'] ?? 'Foydalanuvchi'}ga bildirishnoma'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: 'Sarlavha (Title)')),
-            const SizedBox(height: 12),
-            TextField(controller: bodyCtrl, decoration: const InputDecoration(labelText: 'Xabar matni (Body)')),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Bekor')),
-          ElevatedButton(
-            onPressed: () {
-              if (titleCtrl.text.trim().isEmpty || bodyCtrl.text.trim().isEmpty) return;
-              Navigator.of(ctx).pop();
-              _sendNotification(userId, token, titleCtrl.text.trim(), bodyCtrl.text.trim());
-            },
-            child: const Text('Yuborish'),
-          ),
-        ],
+    final success = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => CreateNotificationScreen(targetUser: user),
       ),
     );
+    if (success == true) {
+      _loadAllData();
+    }
   }
 
-  void _openSendAllDialog(List<Map<String, dynamic>> users) {
-    final titleCtrl = TextEditingController(text: 'Risq tizimi');
-    final bodyCtrl = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Barcha ${users.length} ta foydalanuvchiga xabar'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: 'Sarlavha (Title)')),
-            const SizedBox(height: 12),
-            TextField(controller: bodyCtrl, decoration: const InputDecoration(labelText: 'Xabar matni (Body)')),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Bekor')),
-          ElevatedButton(
-            onPressed: () async {
-              if (titleCtrl.text.trim().isEmpty || bodyCtrl.text.trim().isEmpty) return;
-              Navigator.of(ctx).pop();
-
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (_) => const Center(child: CircularProgressIndicator()),
-              );
-
-              int dbSavedCount = 0;
-              int pushSuccessCount = 0;
-              String? dbError;
-
-              for (final u in users) {
-                final token = u['fcm_token'] as String;
-                final userId = u['id'] as String;
-
-                // 1. Always save to Supabase notifications table first
-                try {
-                  await supabase.from('notifications').insert({
-                    'user_id': userId,
-                    'title': titleCtrl.text.trim(),
-                    'body': bodyCtrl.text.trim(),
-                  });
-                  dbSavedCount++;
-                } catch (e) {
-                  dbError = e.toString();
-                  print('Database Save Error: $e');
-                }
-
-                // 2. Try to send FCM push notification
-                try {
-                  final response = await http.post(
-                    Uri.parse(_cfUrl),
-                    headers: {'Content-Type': 'application/json'},
-                    body: jsonEncode({
-                      'token': token,
-                      'title': titleCtrl.text.trim(),
-                      'body': bodyCtrl.text.trim(),
-                    }),
-                  );
-                  if (response.statusCode == 200) {
-                    pushSuccessCount++;
-                  }
-                } catch (_) {}
-              }
-
-              if (mounted) {
-                Navigator.of(context).pop(); // Close loading dialog
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Bildirishnomalar saqlandi: $dbSavedCount / ${users.length} ta.${dbError != null ? '\nXato: $dbError' : ''}\n'
-                      'Push yuborildi: $pushSuccessCount / ${users.length} ta.',
-                    ),
-                    duration: const Duration(seconds: 8),
-                  ),
-                );
-              }
-            },
-            child: const Text('Yuborish'),
-          ),
-        ],
+  void _openSendAllDialog(List<Map<String, dynamic>> users) async {
+    final success = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => CreateNotificationScreen(allUsers: users),
       ),
     );
+    if (success == true) {
+      _loadAllData();
+    }
   }
 
   void _openSettingsDialog() {

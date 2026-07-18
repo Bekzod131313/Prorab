@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/member.dart';
 import '../theme/app_theme.dart';
+import '../screens/profile_screen.dart';
 import 'project_card.dart' show formatMoney, formatUzsToDisplay;
 
 const _avatarColors = [
@@ -46,31 +47,49 @@ class MemberRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              initial,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16),
+          GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ProfileScreen(userId: member.userId),
+                ),
+              );
+            },
+            child: Container(
+              width: 40,
+              height: 40,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                initial,
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16),
+              ),
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 2),
-                Text(
-                  member.kasb?.isNotEmpty == true ? member.kasb! : member.roleLabel,
-                  style: const TextStyle(fontSize: 12, color: AppColors.text2),
-                ),
-              ],
+            child: GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ProfileScreen(userId: member.userId),
+                  ),
+                );
+              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 2),
+                  Text(
+                    member.kasb?.isNotEmpty == true ? member.kasb! : member.roleLabel,
+                    style: const TextStyle(fontSize: 12, color: AppColors.text2),
+                  ),
+                ],
+              ),
             ),
           ),
           Builder(builder: (_) {

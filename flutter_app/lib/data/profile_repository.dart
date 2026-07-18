@@ -23,6 +23,12 @@ class ProfileRepository {
     return Profile.fromMap(data);
   }
 
+  Future<Profile?> loadById(String id) async {
+    final data = await supabase.from('profiles').select('*').eq('id', id).maybeSingle();
+    if (data == null) return null;
+    return Profile.fromMap(data);
+  }
+
   Future<void> updateFullName(String fullName) async {
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) return;

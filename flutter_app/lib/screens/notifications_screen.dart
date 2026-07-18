@@ -77,11 +77,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         title: Text(tr('notifications'), style: const TextStyle(fontWeight: FontWeight.w800)),
         actions: [
           if (unreadCount > 0)
-            TextButton(
+            IconButton(
+              icon: const Icon(Icons.done_all_rounded, color: AppColors.accent),
               onPressed: _markAllAsRead,
-              child: Text(tr('mark_all_read'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.accent)),
+              tooltip: tr('mark_all_read'),
             ),
-          IconButton(icon: const Icon(Icons.refresh_rounded), onPressed: _load),
         ],
       ),
       body: _loading
@@ -95,8 +95,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   itemBuilder: (_, i) {
                     final n = _notifs[i];
                     final id = n['id'].toString();
-                    final title = n['title'] ?? tr('notif_default_title');
-                    final body = n['body'] ?? '';
+                    final isRu = appLocaleNotifier.value == 'ru';
+                    final title = isRu
+                        ? (n['title_ru'] ?? n['title'] ?? tr('notif_default_title'))
+                        : (n['title_uz'] ?? n['title'] ?? tr('notif_default_title'));
+                    final body = isRu
+                        ? (n['body_ru'] ?? n['body'] ?? '')
+                        : (n['body_uz'] ?? n['body'] ?? '');
                     final isRead = n['read'] == true;
                     final dateStr = n['created_at'] != null ? n['created_at'].toString().substring(0, 10) : '';
 

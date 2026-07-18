@@ -13,7 +13,7 @@ class TransactionRepository {
         .select('*')
         .eq('ob_id', obId);
     if (createdBy != null) {
-      query = query.eq('created_by', createdBy);
+      query = query.or('created_by.eq.$createdBy,to_user.eq.$createdBy,from_user.eq.$createdBy');
     }
     final data = await query.order('tx_date', ascending: false);
 
@@ -85,6 +85,19 @@ class TransactionRepository {
         }
       }
     } else {
+      String? finalIzoh = izoh;
+      if (toUserId != null && userId != null) {
+        final profile = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', userId)
+            .maybeSingle();
+        final senderName = profile?['full_name']?.toString();
+        if (senderName != null) {
+          finalIzoh = izoh?.isNotEmpty == true ? "$senderName: $izoh" : senderName;
+        }
+      }
+
       await supabase.from('transactions').insert({
         'ob_id': obId,
         'from_user': userId,
@@ -92,7 +105,7 @@ class TransactionRepository {
         'summa': amount,
         'tur': 'spend',
         'kategoriya': kategoriya,
-        'izoh': izoh,
+        'izoh': finalIzoh,
         'tx_date': txDate0,
         'currency': currency,
         'exchange_rate': liveRate,
@@ -176,6 +189,19 @@ class TransactionRepository {
     final amountUzs = converted['UZS']!;
     final amountUsd = converted['USD']!;
 
+    String? finalIzoh = izoh;
+    if (userId != null) {
+      final profile = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', userId)
+          .maybeSingle();
+      final senderName = profile?['full_name']?.toString();
+      if (senderName != null) {
+        finalIzoh = izoh?.isNotEmpty == true ? "$senderName: $izoh" : senderName;
+      }
+    }
+
     await supabase.from('transactions').insert({
       'ob_id': obId,
       'from_user': userId,
@@ -183,7 +209,7 @@ class TransactionRepository {
       'summa': amount,
       'tur': 'send',
       'kategoriya': 'usta',
-      'izoh': izoh,
+      'izoh': finalIzoh,
       'tx_date': (txDate ?? DateTime.now()).toIso8601String(),
       'currency': currency,
       'exchange_rate': liveRate,
@@ -285,6 +311,10 @@ class TransactionRepository {
         'user_id': toUserId,
         'title': titleDb,
         'body': bodyDb,
+        'title_uz': titleUz,
+        'body_uz': bodyUz,
+        'title_ru': titleRu,
+        'body_ru': bodyRu,
       });
 
       // 6. Send push notifications via Firebase Cloud Function
@@ -381,7 +411,7 @@ class TransactionRepository {
         .select('*')
         .inFilter('ob_id', obIds);
     if (userId != null) {
-      query = query.eq('created_by', userId);
+      query = query.or('created_by.eq.$userId,to_user.eq.$userId,from_user.eq.$userId');
     }
     final data = await query
         .order('tx_date', ascending: false)

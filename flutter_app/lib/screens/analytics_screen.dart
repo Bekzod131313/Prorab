@@ -13,6 +13,7 @@ import '../models/transaction.dart';
 import '../theme/app_theme.dart';
 import '../widgets/pie_chart.dart';
 import '../widgets/project_card.dart' show formatUzsToDisplay;
+import '../services/currency_service.dart';
 import '../widgets/shimmer.dart';
 
 class AnalyticsScreen extends StatefulWidget {
@@ -87,9 +88,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   num get _totalBalance => _totalKirim - _totalChiqim;
 
   Map<String, num> get _byCategory {
+    final userId = supabase.auth.currentUser?.id ?? '';
     final map = <String, num>{};
     for (final txs in _txsByProject.values) {
-      for (final tx in txs.where((t) => t.tur != 'income')) {
+      for (final tx in txs.where((t) => t.isExpenseFor(userId))) {
         final cat = tx.kategoriya ?? 'Boshqa';
         map[cat] = (map[cat] ?? 0) + tx.summaUzs;
       }
@@ -103,8 +105,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       _selectedProject != null ? (_txsByProject[_selectedProject!.id] ?? []) : [];
 
   Map<String, num> get _selByCategory {
+    final userId = supabase.auth.currentUser?.id ?? '';
     final map = <String, num>{};
-    for (final tx in _selTxs.where((t) => t.tur != 'income')) {
+    for (final tx in _selTxs.where((t) => t.isExpenseFor(userId))) {
       final cat = tx.kategoriya ?? 'Boshqa';
       map[cat] = (map[cat] ?? 0) + tx.summaUzs;
     }
@@ -112,8 +115,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     return Map.fromEntries(sorted);
   }
 
-  num get _selIncome => _selTxs.where((t) => t.tur == 'income').fold(0, (s, t) => s + t.summaUzs);
-  num get _selSpend  => _selTxs.where((t) => t.tur != 'income').fold(0, (s, t) => s + t.summaUzs);
+  num get _selIncome {
+    final userId = supabase.auth.currentUser?.id ?? '';
+    return _selTxs.where((t) => t.isIncomeFor(userId)).fold(0, (s, t) => s + t.summaUzs);
+  }
+
+  num get _selSpend {
+    final userId = supabase.auth.currentUser?.id ?? '';
+    return _selTxs.where((t) => t.isExpenseFor(userId)).fold(0, (s, t) => s + t.summaUzs);
+  }
 
   static const _catColors = [
     Color(0xFF3B82F6),
@@ -135,15 +145,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.bg,
         title: Text(tr('analytics')),
-        actions: _loading || _selectedProject == null
-            ? null
-            : [
-                IconButton(
-                  icon: const Icon(Icons.download_rounded, color: AppColors.text),
-                  onPressed: _downloadPdf,
-                  tooltip: tr('download_pdf'),
-                ),
-              ],
+        actions: null,
       ),
       body: RefreshIndicator(
         onRefresh: _load,
@@ -236,6 +238,21 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                           ),
                           const SizedBox(width: 8),
                           Text(tr('project_stats'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: AppColors.text)),
+                          const Spacer(),
+                          if (_selectedProject != null)
+                            TextButton.icon(
+                              onPressed: _downloadPdf,
+                              icon: const Icon(Icons.download_rounded, size: 16, color: AppColors.accent),
+                              label: Text(
+                                tr('download'),
+                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.accent),
+                              ),
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -277,6 +294,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   Widget _buildProjectStats(Project p) {
+    final userId = supabase.auth.currentUser?.id ?? '';
     final txs = _selTxs;
     final income = _selIncome;
     final spend = _selSpend;
@@ -450,9 +468,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 children: [
                   _TxCountChip(label: tr('all'), count: txs.length, color: AppColors.accent),
                   const SizedBox(width: 8),
-                  _TxCountChip(label: tr('income'), count: txs.where((t) => t.tur == 'income').length, color: AppColors.green),
+                  _TxCountChip(label: tr('income'), count: txs.where((t) => t.isIncomeFor(userId)).length, color: AppColors.green),
                   const SizedBox(width: 8),
-                  _TxCountChip(label: tr('expense'), count: txs.where((t) => t.tur != 'income').length, color: AppColors.red),
+                  _TxCountChip(label: tr('expense'), count: txs.where((t) => t.isExpenseFor(userId)).length, color: AppColors.red),
                 ],
               ),
             ],
@@ -511,11 +529,44 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       }
     } catch (_) {}
 
-    final income = _selIncome;
-    final spend = _selSpend;
+    final userId = supabase.auth.currentUser?.id ?? '';
+    final service = CurrencyService();
+    final isUsd = service.displayCurrency == 'USD';
+
+    final income = _selTxs.where((t) => t.isIncomeFor(userId)).fold(0.0, (s, t) => s + (isUsd ? t.summaUsd : t.summaUzs));
+    final spend = _selTxs.where((t) => t.isExpenseFor(userId)).fold(0.0, (s, t) => s + (isUsd ? t.summaUsd : t.summaUzs));
     final balance = income - spend;
-    final byCat = _selByCategory;
     final txs = _selTxs;
+
+    final byCat = <String, num>{};
+    for (final tx in _selTxs.where((t) => t.isExpenseFor(userId))) {
+      final cat = tx.kategoriya ?? 'Boshqa';
+      final amt = isUsd ? tx.summaUsd : tx.summaUzs;
+      byCat[cat] = (byCat[cat] ?? 0) + amt;
+    }
+    final sortedCatEntries = byCat.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    final sortedByCat = Map.fromEntries(sortedCatEntries);
+
+    String formatPdfMoney(num value) {
+      if (isUsd) {
+        final formatter = NumberFormat('#,##0.00', 'en_US');
+        return '\$${formatter.format(value)}';
+      } else {
+        final formatter = NumberFormat('#,###', 'uz');
+        final suffix = tr('currency_suffix');
+        return '${formatter.format(value).replaceAll(',', ' ').replaceAll('.', ' ')} $suffix';
+      }
+    }
+
+    final String incomeDesc = isUsd 
+        ? (appLocaleNotifier.value == 'ru' ? 'USD · получено от владельца' : 'USD · uy egasidan olingan')
+        : tr('total_income_desc');
+    final String expenseDesc = isUsd 
+        ? (appLocaleNotifier.value == 'ru' ? 'USD · рабочий, материал и т.д.' : 'USD · ishchi, material va h.k.')
+        : tr('total_expense_desc');
+    final String balanceDesc = isUsd 
+        ? (appLocaleNotifier.value == 'ru' ? 'USD · текущее состояние' : 'USD · joriy holat')
+        : tr('total_balance_desc');
 
     final endDate = project.tugash ??
         (project.boshlanish != null
@@ -533,10 +584,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final sortedTxs = List<ProjectTransaction>.from(txs)
       ..sort((a, b) => a.date.compareTo(b.date));
     for (final tx in sortedTxs) {
-      if (tx.tur == 'income') {
-        runningBalance += tx.summaUzs;
+      final amt = isUsd ? tx.summaUsd : tx.summaUzs;
+      if (tx.isIncomeFor(userId)) {
+        runningBalance += amt;
       } else {
-        runningBalance -= tx.summaUzs;
+        runningBalance -= amt;
       }
       runningBalances.add(runningBalance);
     }
@@ -573,7 +625,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         build: (pw.Context context) {
           final List<pw.Widget> breakdownRows = [];
           int ci = 0;
-          byCat.forEach((cat, amt) {
+          sortedByCat.forEach((cat, amt) {
             final ratio = spend > 0 ? amt / spend : 0.0;
             final pct = (ratio * 100).round();
             final color = catColors[ci++ % catColors.length];
@@ -620,7 +672,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     pw.Container(
                       width: 90,
                       alignment: pw.Alignment.centerRight,
-                      child: pw.Text(_formatReportMoney(amt), style: pw.TextStyle(font: fontBold, fontSize: 10, color: navyColor)),
+                      child: pw.Text(formatPdfMoney(amt), style: pw.TextStyle(font: fontBold, fontSize: 10, color: navyColor)),
                     ),
                     pw.Container(
                       width: 40,
@@ -655,9 +707,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             final dateStr = DateFormat('dd.MM').format(tx.date);
             final desc = tx.izoh ?? '';
             final sub = tx.toUser ?? tx.fromUser ?? '';
-            final toifa = tx.kategoriya ?? (tx.tur == 'income' ? tr('income') : 'Boshqa');
-            final amtSign = tx.tur == 'income' ? '+' : '-';
-            final amtColor = tx.tur == 'income' ? greenColor : redColor;
+            final isTxIncome = tx.isIncomeFor(userId);
+            final toifa = tx.kategoriya ?? (isTxIncome ? tr('income') : tr('boshqa'));
+            final amtSign = isTxIncome ? '+' : '-';
+            final amtColor = isTxIncome ? greenColor : redColor;
 
             tableRows.add(
               pw.TableRow(
@@ -679,8 +732,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     ),
                   ),
                   pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(toifa, style: pw.TextStyle(font: fontBold, fontSize: 8, color: PdfColor.fromHex('#1e2f47')))),
-                  pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('$amtSign${_formatReportMoney(tx.summaUzs)}', style: pw.TextStyle(font: fontBold, fontSize: 9, color: amtColor), textAlign: pw.TextAlign.right)),
-                  pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(_formatReportMoney(runningBalances[rowIdx]), style: pw.TextStyle(font: fontBold, fontSize: 9, color: mutedColor), textAlign: pw.TextAlign.right)),
+                  pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('$amtSign${formatPdfMoney(isUsd ? tx.summaUsd : tx.summaUzs)}', style: pw.TextStyle(font: fontBold, fontSize: 9, color: amtColor), textAlign: pw.TextAlign.right)),
+                  pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(formatPdfMoney(runningBalances[rowIdx]), style: pw.TextStyle(font: fontBold, fontSize: 9, color: mutedColor), textAlign: pw.TextAlign.right)),
                 ],
               ),
             );
@@ -721,7 +774,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    pw.Text("Obyekt bo'yicha hisob-kitob", style: pw.TextStyle(font: fontBold, fontSize: 22, color: navyColor)),
+                    pw.Text(tr('project_report_title'), style: pw.TextStyle(font: fontBold, fontSize: 22, color: navyColor)),
                     pw.SizedBox(height: 4),
                     pw.Text('${tr('report_period')}: $startStr - $endStr', style: pw.TextStyle(font: fontNormal, fontSize: 11, color: mutedColor)),
                   ],
@@ -768,8 +821,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 pw.Expanded(
                   child: _buildSummaryCard(
                     label: tr('total_income'),
-                    amount: '+${_formatReportMoney(income)}',
-                    desc: tr('total_income_desc'),
+                    amount: '+${formatPdfMoney(income)}',
+                    desc: incomeDesc,
                     bgColor: greenBgColor,
                     textColor: greenColor,
                     amtColor: PdfColor.fromHex('#0d7a37'),
@@ -782,8 +835,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 pw.Expanded(
                   child: _buildSummaryCard(
                     label: tr('total_expense'),
-                    amount: '-${_formatReportMoney(spend)}',
-                    desc: tr('total_expense_desc'),
+                    amount: '-${formatPdfMoney(spend)}',
+                    desc: expenseDesc,
                     bgColor: redBgColor,
                     textColor: redColor,
                     amtColor: PdfColor.fromHex('#b91c1c'),
@@ -796,8 +849,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 pw.Expanded(
                   child: _buildSummaryCard(
                     label: tr('total_balance'),
-                    amount: (balance >= 0 ? '+' : '') + _formatReportMoney(balance),
-                    desc: tr('total_balance_desc'),
+                    amount: (balance >= 0 ? '+' : '') + formatPdfMoney(balance),
+                    desc: balanceDesc,
                     bgColor: navyColor,
                     textColor: PdfColor.fromHex('#9fb3cc'),
                     amtColor: PdfColors.white,
@@ -815,7 +868,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text("Chiqimlar taqsimoti", style: pw.TextStyle(font: fontBold, fontSize: 11, color: navyColor)),
+                  pw.Text(tr('expense_distribution'), style: pw.TextStyle(font: fontBold, fontSize: 11, color: navyColor)),
                   pw.Text(tr('distribution_by_category'), style: pw.TextStyle(font: fontNormal, fontSize: 8, color: mutedColor)),
                 ],
               ),

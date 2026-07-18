@@ -10,6 +10,7 @@ import '../widgets/member_row.dart' show colorForName;
 import '../widgets/project_card.dart' show formatMoney, formatUzsToDisplay;
 import '../widgets/add_worker_global_sheet.dart';
 import 'worker_detail_screen.dart';
+import 'profile_screen.dart';
 import '../widgets/shimmer.dart';
 
 class WorkersScreen extends StatefulWidget {
@@ -497,32 +498,50 @@ class _WorkersScreenState extends State<WorkersScreen> {
                                     // Top Row: Avatar + Name/Profession + Balance
                                     Row(
                                       children: [
-                                        _buildAvatar(worker, initials, color),
+                                        GestureDetector(
+                                          onTap: () {
+                                            Navigator.of(context).push(
+                                              MaterialPageRoute(
+                                                builder: (_) => ProfileScreen(userId: worker.userId),
+                                              ),
+                                            );
+                                          },
+                                          child: _buildAvatar(worker, initials, color),
+                                        ),
                                         const SizedBox(width: 12),
                                         Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                worker.displayName,
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.w800,
-                                                  fontSize: 15,
-                                                  color: Color(0xFF0F172A),
+                                          child: GestureDetector(
+                                            onTap: () {
+                                              Navigator.of(context).push(
+                                                MaterialPageRoute(
+                                                  builder: (_) => ProfileScreen(userId: worker.userId),
                                                 ),
-                                              ),
-                                              const SizedBox(height: 2),
-                                              Text(
-                                                worker.kasb?.isNotEmpty == true
-                                                    ? worker.kasb!
-                                                    : tr('worker_default_role'),
-                                                style: const TextStyle(
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.w500,
-                                                  color: Color(0xFF64748B),
+                                              );
+                                            },
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  worker.displayName,
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.w800,
+                                                    fontSize: 15,
+                                                    color: Color(0xFF0F172A),
+                                                  ),
                                                 ),
-                                              ),
-                                            ],
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  worker.kasb?.isNotEmpty == true
+                                                      ? worker.kasb!
+                                                      : tr('worker_default_role'),
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: Color(0xFF64748B),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ),
                                         Text(

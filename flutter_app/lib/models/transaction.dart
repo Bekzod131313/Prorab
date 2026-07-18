@@ -64,9 +64,9 @@ class ProjectTransaction {
   }
 
   bool isIncomeFor(String userId) =>
-      tur == 'income' ||
-      ((tur == 'send' || tur == 'ishhaqi') && toUser == userId);
+      (tur != 'ishhaqi') &&
+      ((toUser == userId) || (tur == 'income' && toUser == null));
   bool isExpenseFor(String userId) =>
-      tur == 'spend' ||
-      ((tur == 'send' || tur == 'ishhaqi') && fromUser == userId);
+      (tur != 'ishhaqi') &&
+      ((fromUser == userId) || (tur == 'spend' && fromUser == null));
 }

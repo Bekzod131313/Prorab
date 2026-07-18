@@ -9,6 +9,7 @@ import 'project_detail_screen.dart';
 import 'notifications_screen.dart';
 import 'root_shell.dart';
 import 'projects_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/shimmer.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -24,6 +25,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   List<Project> _projects = [];
   bool _loading = true;
+  int _unreadNotifsCount = 0;
 
   final _pageCtrl = PageController();
   int _currentPage = 0;
@@ -54,9 +56,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
     try {
       final projects = await _repo.loadProjects();
+
+      int unread = 0;
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId != null) {
+        final countRes = await Supabase.instance.client
+            .from('notifications')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('read', false);
+        unread = (countRes as List).length;
+      }
+
       if (!mounted) return;
       setState(() {
         _projects = projects.where((p) => p.status != 'done').toList();
+        _unreadNotifsCount = unread;
         _loading = false;
         if (_currentPage >= _projects.length) {
           _currentPage = _projects.isNotEmpty ? 0 : 0;
@@ -177,21 +192,53 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 color: AppColors.text)),
         actions: [
           IconButton(
-            icon: Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: AppColors.card,
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.border),
-              ),
-              child: const Icon(Icons.notifications_none_rounded,
-                  size: 20, color: AppColors.text2),
+            icon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: const Icon(Icons.notifications_none_rounded,
+                      size: 20, color: AppColors.text2),
+                ),
+                if (_unreadNotifsCount > 0)
+                  Positioned(
+                    right: -2,
+                    top: -2,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(
+                        color: AppColors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Center(
+                        child: Text(
+                          '$_unreadNotifsCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
-            onPressed: () {
-              Navigator.of(context).push(
+            onPressed: () async {
+              await Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const NotificationsScreen()),
               );
+              _load();
             },
           ),
           const SizedBox(width: 8),

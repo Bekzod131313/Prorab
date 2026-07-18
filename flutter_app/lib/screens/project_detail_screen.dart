@@ -22,6 +22,7 @@ import '../widgets/project_card.dart' show formatUzsToDisplay, formatTransaction
 import '../services/currency_service.dart';
 import '../widgets/shimmer.dart';
 import '../utils/price_formatter.dart';
+import 'profile_screen.dart';
 import '../utils/phone_formatter.dart';
 import '../utils/haptics.dart';
 
@@ -175,13 +176,22 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
         _projectRepo.loadProjectById(_project.id),
       ]);
       if (!mounted) return;
+      
+      final loadedTxs = results[0] as List<ProjectTransaction>;
+      print("DEBUG: Loaded ${loadedTxs.length} transactions for user $userId");
+      for (final tx in loadedTxs) {
+        print("DEBUG Tx: id=${tx.id}, tur=${tx.tur}, summa=${tx.summa}, toUser=${tx.toUser}, fromUser=${tx.fromUser}, createdBy=${tx.createdBy}");
+      }
+
       setState(() {
-        _txs = results[0] as List<ProjectTransaction>;
+        _txs = loadedTxs;
         _members = results[1] as List<ObMember>;
         final refreshed = results[2] as Project?;
         if (refreshed != null) _project = refreshed;
       });
-    } catch (_) {}
+    } catch (e) {
+      print("DEBUG: Error loading project data: $e");
+    }
   }
 
   Future<void> _load() async {
@@ -212,13 +222,14 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
   }
 
   List<ProjectTransaction> get _filteredTxs {
+    final userId = supabase.auth.currentUser?.id ?? '';
     var base = _txs;
     switch (_txFilter) {
       case 'income':
-        base = base.where((tx) => tx.tur == 'income').toList();
+        base = base.where((tx) => tx.isIncomeFor(userId)).toList();
         break;
       case 'expense':
-        base = base.where((tx) => tx.tur != 'income').toList();
+        base = base.where((tx) => tx.isExpenseFor(userId)).toList();
         break;
     }
 
@@ -934,19 +945,39 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
             mainAxisSize: MainAxisSize.min,
             children: [
               // Avatar
-              CircleAvatar(
-                radius: 32,
-                backgroundColor: color.withOpacity(0.15),
-                child: Text(initials,
-                    style: TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                        color: color)),
+              GestureDetector(
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => ProfileScreen(userId: m.userId),
+                    ),
+                  );
+                },
+                child: CircleAvatar(
+                  radius: 32,
+                  backgroundColor: color.withOpacity(0.15),
+                  child: Text(initials,
+                      style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w800,
+                          color: color)),
+                ),
               ),
               const SizedBox(height: 12),
-              Text(m.displayName,
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.w800)),
+              GestureDetector(
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => ProfileScreen(userId: m.userId),
+                    ),
+                  );
+                },
+                child: Text(m.displayName,
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.w800)),
+              ),
               if (m.kasb != null && m.kasb!.isNotEmpty)
                 Text(m.kasb!,
                     style:
@@ -1214,7 +1245,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
   }
 
   Future<void> _showTransactionDetails(ProjectTransaction tx) async {
-    final isIncome = tx.tur == 'income';
+    final userId = supabase.auth.currentUser?.id ?? '';
+    final isIncome = tx.isIncomeFor(userId);
     final color = isIncome ? AppColors.green : AppColors.red;
     
     String displayCategory = tx.kategoriya ?? (isIncome ? tr('income') : tr('expense'));
@@ -2286,7 +2318,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
   // ── So'nggi faoliyat: last 4 transactions with 'Barchasi' link ──
 
   Widget _buildTransactionsTab() {
-
+    final userId = supabase.auth.currentUser?.id ?? '';
     return Column(children: [
       // Filter chips
       Padding(
@@ -2435,7 +2467,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                     color: AppColors.border, height: 1, indent: 60),
                 itemBuilder: (ctx, i) {
                   final tx = _filteredTxs[i];
-                  final isIncome = tx.tur == 'income';
+                  final isIncome = tx.isIncomeFor(userId);
                   final color = isIncome ? AppColors.green : AppColors.red;
 
                   String displayCategory = tx.kategoriya ?? (isIncome ? tr('income') : tr('expense'));
