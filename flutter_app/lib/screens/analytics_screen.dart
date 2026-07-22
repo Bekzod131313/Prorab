@@ -548,13 +548,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final sortedByCat = Map.fromEntries(sortedCatEntries);
 
     String formatPdfMoney(num value) {
+      final rounded = value.round();
       if (isUsd) {
-        final formatter = NumberFormat('#,##0.00', 'en_US');
-        return '\$${formatter.format(value)}';
+        final formatter = NumberFormat('#,##0', 'en_US');
+        return '\$${formatter.format(rounded)}';
       } else {
         final formatter = NumberFormat('#,###', 'uz');
         final suffix = tr('currency_suffix');
-        return '${formatter.format(value).replaceAll(',', ' ').replaceAll('.', ' ')} $suffix';
+        return '${formatter.format(rounded).replaceAll(',', ' ').replaceAll('.', ' ')} $suffix';
       }
     }
 

@@ -61,37 +61,67 @@ class RootShellState extends State<RootShell> {
             ],
           ),
         bottomNavigationBar: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: Colors.white,
-            border: Border(top: BorderSide(color: AppColors.border)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
+            border: const Border(top: BorderSide(color: AppColors.border, width: 1.2)),
           ),
           child: SafeArea(
             child: SizedBox(
-              height: 60,
-              child: Row(
-                children: List.generate(_icons.length, (i) {
-                  final (outIcon, selIcon) = _icons[i];
-                  final selected = _index == i;
-                  return Expanded(
-                    child: InkWell(
-                       onTap: () {
-                         AppHaptics.selection();
-                         setState(() => _index = i);
-                       },
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(selected ? selIcon : outIcon, size: 22,
-                            color: selected ? AppColors.accent : AppColors.muted),
-                          const SizedBox(height: 2),
-                          Text(tr(_keys[i]), style: TextStyle(fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: selected ? AppColors.accent : AppColors.muted)),
-                        ],
+              height: 72,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                child: Row(
+                  children: List.generate(_icons.length, (i) {
+                    final (outIcon, selIcon) = _icons[i];
+                    final selected = _index == i;
+                    return Expanded(
+                      child: InkWell(
+                        onTap: () {
+                          AppHaptics.selection();
+                          setState(() => _index = i);
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          decoration: BoxDecoration(
+                            color: selected ? AppColors.accent.withOpacity(0.12) : Colors.transparent,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                selected ? selIcon : outIcon,
+                                size: selected ? 26 : 24,
+                                color: selected ? AppColors.accent : const Color(0xFF475569),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                tr(_keys[i]),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
+                                  color: selected ? AppColors.accent : const Color(0xFF475569),
+                                  letterSpacing: -0.2,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
-                  );
-                }),
+                    );
+                  }),
+                ),
               ),
             ),
           ),

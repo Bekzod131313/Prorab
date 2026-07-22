@@ -1,18 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../data/profile_repository.dart';
 import '../l10n/strings.dart';
 import '../models/profile.dart';
-import '../services/currency_service.dart';
 import '../theme/app_theme.dart';
-import '../widgets/project_card.dart' show formatMoney, formatUzsToDisplay;
-import 'splash_screen.dart';
-import 'admin_panel_screen.dart';
-import 'pin_lock_screen.dart';
-import '../services/security_service.dart';
+import '../widgets/project_card.dart' show formatUzsToDisplay;
+import '../widgets/shimmer.dart';
+import 'settings_screen.dart';
 import '../utils/phone_formatter.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -31,9 +27,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _loading = true;
   bool _avatarUploading = false;
   bool _portfolioUploading = false;
-  bool _pinLockEnabled = false;
-  bool _biometricsEnabled = false;
-  bool _canUseBiometrics = false;
 
   @override
   void initState() {
@@ -61,25 +54,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (_) {}
   }
 
-  Future<void> _loadSecuritySettings() async {
-    final pinEnabled = await SecurityService.isPinEnabled();
-    final bioEnabled = await SecurityService.isBiometricsEnabled();
-    final canBio = await SecurityService.canUseBiometrics();
-    if (mounted) {
-      setState(() {
-        _pinLockEnabled = pinEnabled;
-        _biometricsEnabled = bioEnabled;
-        _canUseBiometrics = canBio;
-      });
+  Future<void> _load({bool silent = false}) async {
+    if (!silent && _profile == null) {
+      setState(() => _loading = true);
     }
-  }
-
-  Future<void> _load() async {
-    setState(() => _loading = true);
-    await Future.wait([
-      _loadSilent(),
-      _loadSecuritySettings(),
-    ]);
+    await _loadSilent();
     if (mounted) {
       setState(() => _loading = false);
     }
@@ -106,7 +85,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _avatarUploading = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('error_short').replaceFirst('{}', e.toString()))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(tr('error_short').replaceFirst('{}', e.toString()))),
+        );
       }
     }
   }
@@ -125,7 +106,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _portfolioUploading = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('error_short').replaceFirst('{}', e.toString()))));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(tr('error_short').replaceFirst('{}', e.toString()))),
+        );
       }
     }
   }
@@ -148,36 +131,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-            Row(children: [
-              Expanded(child: Text(tr('edit_profile'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17))),
-              IconButton(
-                icon: const Icon(Icons.camera_alt_outlined, color: AppColors.accent),
-                onPressed: () async {
-                  Navigator.of(ctx).pop();
-                  await _pickAvatar();
-                },
+              Row(children: [
+                Expanded(child: Text(tr('edit_profile'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17))),
+                IconButton(
+                  icon: const Icon(Icons.camera_alt_outlined, color: AppColors.accent),
+                  onPressed: () async {
+                    Navigator.of(ctx).pop();
+                    await _pickAvatar();
+                  },
+                ),
+              ]),
+              const SizedBox(height: 12),
+              TextField(controller: nameCtrl, decoration: InputDecoration(labelText: tr('full_name'), prefixIcon: const Icon(Icons.person_outline_rounded, size: 18))),
+              const SizedBox(height: 12),
+              TextField(controller: phoneCtrl, keyboardType: TextInputType.phone,
+                decoration: InputDecoration(labelText: tr('phone'), prefixIcon: const Icon(Icons.phone_outlined, size: 18))),
+              const SizedBox(height: 12),
+              TextField(controller: kasbCtrl, decoration: InputDecoration(labelText: tr('profession'), prefixIcon: const Icon(Icons.work_outline_rounded, size: 18))),
+              const SizedBox(height: 12),
+              TextField(controller: stajCtrl, keyboardType: TextInputType.number,
+                decoration: InputDecoration(labelText: tr('experience'), prefixIcon: const Icon(Icons.timeline_rounded, size: 18))),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: Text(tr('save')),
               ),
-            ]),
-            const SizedBox(height: 12),
-            TextField(controller: nameCtrl, decoration: InputDecoration(labelText: tr('full_name'), prefixIcon: const Icon(Icons.person_outline_rounded, size: 18))),
-            const SizedBox(height: 12),
-            TextField(controller: phoneCtrl, keyboardType: TextInputType.phone,
-              decoration: InputDecoration(labelText: tr('phone'), prefixIcon: const Icon(Icons.phone_outlined, size: 18))),
-            const SizedBox(height: 12),
-            TextField(controller: kasbCtrl, decoration: InputDecoration(labelText: tr('profession'), prefixIcon: const Icon(Icons.work_outline_rounded, size: 18))),
-            const SizedBox(height: 12),
-            TextField(controller: stajCtrl, keyboardType: TextInputType.number,
-              decoration: InputDecoration(labelText: tr('experience'), prefixIcon: const Icon(Icons.timeline_rounded, size: 18))),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: Text(tr('save')),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
 
     if (saved == true) {
       try {
@@ -200,6 +183,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
+  Widget _buildShimmerLoading() {
+    return Shimmer(
+      child: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        children: [
+          const SizedBox(height: 12),
+          // Avatar & user info skeleton
+          const Center(
+            child: Column(
+              children: [
+                ShimmerBox(
+                  width: 96,
+                  height: 96,
+                  borderRadius: 48,
+                ),
+                SizedBox(height: 14),
+                ShimmerBox(
+                  width: 140,
+                  height: 22,
+                  borderRadius: 8,
+                ),
+                SizedBox(height: 8),
+                ShimmerBox(
+                  width: 180,
+                  height: 14,
+                  borderRadius: 6,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          // Stats & Balance skeleton
+          const ShimmerBox(
+            height: 110,
+            borderRadius: 16,
+          ),
+          const SizedBox(height: 16),
+          // Portfolio section skeleton
+          const ShimmerBox(
+            height: 160,
+            borderRadius: 16,
+          ),
+          const SizedBox(height: 16),
+          // Settings entry tile skeleton
+          const ShimmerBox(
+            height: 56,
+            borderRadius: 16,
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = Supabase.instance.client.auth.currentUser;
@@ -208,470 +244,446 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return ValueListenableBuilder<String>(
       valueListenable: appLocaleNotifier,
-      builder: (_, __, ___) => Scaffold(
+      builder: (_, lang, ___) => Scaffold(
         backgroundColor: AppColors.bg,
         appBar: AppBar(
           backgroundColor: AppColors.bg,
           surfaceTintColor: Colors.transparent,
           elevation: 0,
-          titleSpacing: 16,
-          title: Text(tr('profile'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.text)),
-          actions: !isOwnProfile 
-              ? null 
+          leading: !isOwnProfile && Navigator.of(context).canPop()
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: AppColors.text),
+                  onPressed: () => Navigator.of(context).pop(),
+                )
+              : null,
+          title: Text(
+            tr('profile'),
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.text),
+          ),
+          centerTitle: true,
+          actions: !isOwnProfile
+              ? null
               : [
-                  TextButton(
+                  IconButton(
+                    icon: const Icon(Icons.edit_rounded, color: AppColors.accent, size: 22),
                     onPressed: _openEditProfile,
-                    child: Text(tr('edit_profile'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.accent)),
+                    tooltip: tr('edit_profile'),
                   ),
                 ],
         ),
         body: _loading
-            ? const Center(child: CircularProgressIndicator())
+            ? _buildShimmerLoading()
             : RefreshIndicator(
                 onRefresh: _load,
                 child: ListView(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   children: [
-                    // Avatar + info card
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-                      child: Column(children: [
-                        // Avatar
+                    // ── Telegram Header (Avatar + Name + Subtitle) ──────────
+                    const SizedBox(height: 8),
+                    Column(
+                      children: [
                         GestureDetector(
                           onTap: (isOwnProfile && !_avatarUploading) ? _pickAvatar : null,
-                          child: Stack(children: [
-                            CircleAvatar(
-                              radius: 40,
-                              backgroundColor: AppColors.accent.withOpacity(0.12),
-                              backgroundImage: _profile?.avatarUrl != null ? NetworkImage(_profile!.avatarUrl!) : null,
-                              child: _avatarUploading
-                                  ? const SizedBox(
-                                      width: 24,
-                                      height: 24,
-                                      child: CircularProgressIndicator(strokeWidth: 2),
-                                    )
-                                  : _profile?.avatarUrl == null
-                                      ? Text(_profile?.initial ?? '?', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: AppColors.accent))
-                                      : null,
-                            ),
-                            if (isOwnProfile && !_avatarUploading)
-                              Positioned(
-                                bottom: 0, right: 0,
-                                child: Container(
-                                  width: 26, height: 26,
-                                  decoration: BoxDecoration(color: AppColors.accent, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
-                                  child: const Icon(Icons.camera_alt_rounded, size: 13, color: Colors.white),
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(3),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppColors.accent.withOpacity(0.3),
+                                    width: 2.5,
+                                  ),
+                                ),
+                                child: CircleAvatar(
+                                  radius: 46,
+                                  backgroundColor: AppColors.accent,
+                                  backgroundImage: _profile?.avatarUrl != null ? NetworkImage(_profile!.avatarUrl!) : null,
+                                  child: _avatarUploading
+                                      ? const SizedBox(
+                                          width: 28,
+                                          height: 28,
+                                          child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                                        )
+                                      : _profile?.avatarUrl == null
+                                          ? Text(
+                                              _profile?.initial ?? '?',
+                                              style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: Colors.white),
+                                            )
+                                          : null,
                                 ),
                               ),
-                          ]),
+                              if (isOwnProfile && !_avatarUploading)
+                                Positioned(
+                                  bottom: 2,
+                                  right: 2,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.accent,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: AppColors.card, width: 2),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.12),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: const Icon(Icons.camera_alt_rounded, size: 14, color: Colors.white),
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
                         const SizedBox(height: 12),
-                        Text(_profile?.displayName ?? (isOwnProfile ? email : ''), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-                        if (isOwnProfile && email.isNotEmpty)
-                          Text(email, style: const TextStyle(fontSize: 12, color: AppColors.muted)),
-                        if (_profile?.kasb?.isNotEmpty == true) ...[
-                          const SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                            decoration: BoxDecoration(color: AppColors.accent.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-                            child: Text(_profile!.kasb!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.accent)),
+                        Text(
+                          _profile?.displayName ?? (isOwnProfile ? email : ''),
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.text,
+                            letterSpacing: -0.3,
                           ),
-                        ],
-                        if (_profile?.phone.isNotEmpty == true) ...[
-                          const SizedBox(height: 6),
-                          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                            const Icon(Icons.phone_outlined, size: 14, color: AppColors.muted),
-                            const SizedBox(width: 4),
-                            Text(PhoneFormatter.format(_profile!.phone), style: const TextStyle(fontSize: 13, color: AppColors.text2)),
-                          ]),
-                        ],
-                        const SizedBox(height: 16),
-                        // Stats row
-                        if (isOwnProfile)
-                          Row(children: [
-                            _StatCol(label: tr('projects_count'), value: '${_stats?.obsCount ?? 0}'),
-                            _Divider(),
-                            _StatCol(label: tr('workers'), value: '${_stats?.peopleCount ?? 0}'),
-                            _Divider(),
-                            _StatCol(label: tr('experience_label'), value: '${_profile?.staj ?? 0} ${tr('years_suffix')}'),
-                          ])
-                        else if (_profile?.staj != null)
-                          Row(children: [
-                            Expanded(
-                              child: _StatCol(label: tr('experience_label'), value: '${_profile!.staj} ${tr('years_suffix')}'),
-                            ),
-                          ]),
-                      ]),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _profile?.phone.isNotEmpty == true
+                              ? '${PhoneFormatter.format(_profile!.phone)}${_profile?.kasb?.isNotEmpty == true ? " • ${_profile!.kasb}" : ""}'
+                              : (email.isNotEmpty ? email : ''),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.muted,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 16),
 
-                    // Balance summary
-                    if (_stats != null)
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-                        child: Row(children: [
-                          const Icon(Icons.account_balance_wallet_outlined, size: 20, color: AppColors.accent),
-                          const SizedBox(width: 10),
-                          Expanded(child: Text(tr('balance'), style: const TextStyle(fontSize: 14, color: AppColors.text2))),
-                          Text(
-                            formatUzsToDisplay(_stats!.totalBalance),
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _stats!.totalBalance >= 0 ? AppColors.green : AppColors.red),
-                          ),
-                        ]),
-                      ),
-                    const SizedBox(height: 16),
-
-                    // Portfolio section
-                    Row(children: [
-                      Text(tr('portfolio'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.text)),
-                      const Spacer(),
-                      if (isOwnProfile)
-                        TextButton.icon(
-                          onPressed: _pickPortfolioPhoto,
-                          icon: const Icon(Icons.add_photo_alternate_outlined, size: 16),
-                          label: Text(tr('portfolio_add'), style: const TextStyle(fontSize: 12)),
-                          style: TextButton.styleFrom(foregroundColor: AppColors.accent),
-                        ),
-                    ]),
-                    const SizedBox(height: 8),
-                    if (_portfolio.isEmpty)
-                      Container(
-                        padding: const EdgeInsets.all(28),
-                        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-                        child: Column(children: [
-                          const Icon(Icons.photo_library_outlined, size: 32, color: AppColors.muted),
-                          const SizedBox(height: 8),
-                          Text(tr('portfolio_empty'), style: const TextStyle(color: AppColors.muted, fontSize: 13)),
-                        ]),
-                      )
-                    else
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3, crossAxisSpacing: 8, mainAxisSpacing: 8,
-                        ),
-                        itemCount: _portfolio.length + (_portfolioUploading ? 1 : 0),
-                        itemBuilder: (_, i) {
-                          if (_portfolioUploading && i == 0) {
-                            return Container(
-                              decoration: BoxDecoration(
-                                color: AppColors.border.withOpacity(0.3),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Center(
-                                child: SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                ),
-                              ),
-                            );
-                          }
-                          final idx = _portfolioUploading ? i - 1 : i;
-                          final url = _portfolio[idx];
-                          return GestureDetector(
-                            onLongPress: !isOwnProfile ? null : () async {
-                              final confirm = await showDialog<bool>(
-                                context: context,
-                                builder: (ctx) => AlertDialog(
-                                  title: Text(tr('confirm_delete')),
-                                  actions: [
-                                    TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(tr('cancel'))),
-                                    ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: AppColors.red, padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10)), onPressed: () => Navigator.of(ctx).pop(true), child: Text(tr('delete'))),
-                                  ],
-                                ),
-                              );
-                              if (confirm == true) {
-                                final userId = Supabase.instance.client.auth.currentUser?.id ?? '';
-                                await _repo.deletePortfolioImage(userId, url);
-                                _load();
-                              }
-                            },
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: Image.network(url, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(color: AppColors.border, child: const Icon(Icons.broken_image_outlined, color: AppColors.muted))),
-                            ),
-                          );
-                        },
-                      ),
                     const SizedBox(height: 20),
 
-
-                    if (isOwnProfile) ...[
-                      // Security Settings Panel
-                      Container(
-                        decoration: BoxDecoration(
-                          color: AppColors.card,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                    // ── Card 1: Stats & Balance ──────────────────────────────
+                    _TelegramGroupCard(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                          child: Row(
                             children: [
-                              SwitchListTile(
-                                title: Text(
-                                  tr('pin_lock'),
-                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-                                ),
-                                contentPadding: EdgeInsets.zero,
-                                value: _pinLockEnabled,
-                                activeColor: AppColors.accent,
-                                onChanged: (val) async {
-                                  if (val) {
-                                    final setupSuccess = await Navigator.of(context).push<bool>(
-                                      MaterialPageRoute(
-                                        builder: (_) => const PinLockScreen(mode: PinLockMode.setup),
-                                      ),
-                                    );
-                                    if (setupSuccess == true) {
-                                      await _loadSecuritySettings();
-                                    }
-                                  } else {
-                                    final disableSuccess = await Navigator.of(context).push<bool>(
-                                      MaterialPageRoute(
-                                        builder: (_) => const PinLockScreen(mode: PinLockMode.confirmDisable),
-                                      ),
-                                    );
-                                    if (disableSuccess == true) {
-                                      await _loadSecuritySettings();
-                                    }
-                                  }
-                                },
-                              ),
-                              if (_pinLockEnabled && _canUseBiometrics) ...[
-                                const Divider(color: AppColors.border, height: 16),
-                                SwitchListTile(
-                                  title: Text(
-                                    tr('biometrics'),
-                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-                                  ),
-                                  contentPadding: EdgeInsets.zero,
-                                  value: _biometricsEnabled,
-                                  activeColor: AppColors.accent,
-                                  onChanged: (val) async {
-                                    await SecurityService.setBiometricsEnabled(val);
-                                    await _loadSecuritySettings();
-                                  },
-                                ),
-                              ],
+                              _StatCol(label: tr('projects_count'), value: '${_stats?.obsCount ?? 0}'),
+                              _Divider(),
+                              _StatCol(label: tr('workers'), value: '${_stats?.peopleCount ?? 0}'),
+                              _Divider(),
+                              _StatCol(label: tr('experience_label'), value: '${_profile?.staj ?? 0} ${tr('years_suffix')}'),
                             ],
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Language switcher
-                      Container(
-                        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text(tr('language'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.text)),
-                            const SizedBox(height: 12),
-                            Row(children: [
-                              _LangBtn(code: 'uz', label: "O'zbek"),
-                              const SizedBox(width: 8),
-                              _LangBtn(code: 'ru', label: 'Русский'),
-                            ]),
-                          ]),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Currency switcher
-                      Container(
-                        decoration: BoxDecoration(
-                          color: AppColors.card,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                tr('currency'),
-                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.text),
-                              ),
-                              const SizedBox(height: 12),
-                              ValueListenableBuilder<String>(
-                                valueListenable: CurrencyService().displayCurrencyNotifier,
-                                builder: (ctx, activeCurrency, _) => Row(
-                                  children: [
-                                    Expanded(
-                                      child: _CurrencyBtn(
-                                        code: 'UZS',
-                                        label: tr('currency_uzs'),
-                                        isSelected: activeCurrency == 'UZS',
-                                        onTap: () => CurrencyService().setDisplayCurrency('UZS'),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: _CurrencyBtn(
-                                        code: 'USD',
-                                        label: tr('currency_usd'),
-                                        isSelected: activeCurrency == 'USD',
-                                        onTap: () => CurrencyService().setDisplayCurrency('USD'),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-
-                    if (isOwnProfile && _profile?.isAdmin == true) ...[
-                      Container(
-                        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-                        child: ListTile(
-                          leading: const Icon(Icons.admin_panel_settings_rounded, color: AppColors.orange),
-                          title: const Text("Admin Panel", style: TextStyle(fontWeight: FontWeight.w700)),
-                          subtitle: Text(tr('admin_panel_sub'), style: const TextStyle(fontSize: 11)),
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(builder: (_) => const AdminPanelScreen()),
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-
-                    if (isOwnProfile) ...[
-                      // Logout button
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 15),
-                            side: const BorderSide(color: AppColors.border, width: 1.5),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                            foregroundColor: AppColors.text,
-                          ),
-                          icon: const Icon(Icons.logout_rounded, size: 18, color: AppColors.text2),
-                          label: Text(tr('logout'), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.text)),
-                          onPressed: () async {
-                            final confirm = await showDialog<bool>(
-                              context: context,
-                              builder: (ctx) => AlertDialog(
-                                title: Text(tr('logout_confirm_title')),
-                                content: Text(tr('logout_confirm_body')),
-                                actions: [
-                                  TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(tr('cancel'))),
-                                  ElevatedButton(
-                                    onPressed: () => Navigator.of(ctx).pop(true),
-                                    child: Text(tr('logout_yes')),
-                                  ),
-                                ],
-                              ),
-                            );
-                            if (confirm == true) {
-                              await Supabase.instance.client.auth.signOut();
-                              if (context.mounted) {
-                                Navigator.of(context).pushAndRemoveUntil(
-                                  MaterialPageRoute(builder: (_) => const SplashScreen()),
-                                  (_) => false,
-                                );
-                              }
-                            }
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-
-                      // Delete account button
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.red.withOpacity(0.08),
-                            foregroundColor: AppColors.red,
-                            padding: const EdgeInsets.symmetric(vertical: 15),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                              side: BorderSide(color: AppColors.red.withOpacity(0.3), width: 1.5),
+                        if (_stats != null)
+                          _TelegramTile(
+                            leading: const _TelegramIconBadge(
+                              icon: Icons.account_balance_wallet_rounded,
+                              color: Color(0xFF007AFF),
                             ),
-                            textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                            title: tr('balance'),
+                            trailing: Text(
+                              formatUzsToDisplay(_stats!.totalBalance),
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: _stats!.totalBalance >= 0 ? AppColors.green : AppColors.red,
+                              ),
+                            ),
                           ),
-                          icon: const Icon(Icons.delete_forever_rounded, size: 18),
-                          label: Text(tr('delete_account')),
-                          onPressed: () async {
-                            final confirm1 = await showDialog<bool>(
-                              context: context,
-                              builder: (ctx) => AlertDialog(
-                                title: Text(tr('delete_account_title')),
-                                content: Text(tr('delete_account_body')),
-                                actions: [
-                                  TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(tr('cancel'))),
-                                  ElevatedButton(
-                                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.red),
-                                    onPressed: () => Navigator.of(ctx).pop(true),
-                                    child: Text(tr('delete_yes')),
-                                  ),
-                                ],
-                              ),
-                            );
-                            if (confirm1 != true || !context.mounted) return;
+                      ],
+                    ),
 
-                            // Second confirmation
-                            final confirm2 = await showDialog<bool>(
-                              context: context,
-                              builder: (ctx) => AlertDialog(
-                                title: Text(tr('delete_account_warn')),
-                                content: Text(tr('delete_account_warn2')),
-                                actions: [
-                                  TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(tr('no_go_back'))),
-                                  ElevatedButton(
-                                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.red),
-                                    onPressed: () => Navigator.of(ctx).pop(true),
-                                    child: Text(tr('delete_yes')),
-                                  ),
-                                ],
-                              ),
-                            );
-                            if (confirm2 != true || !context.mounted) return;
+                    const SizedBox(height: 16),
 
-                            try {
-                              final userId = Supabase.instance.client.auth.currentUser?.id;
-                              if (userId != null) {
-                                // Delete user data from profiles table
-                                await Supabase.instance.client.from('profiles').delete().eq('id', userId);
-                              }
-                              await Supabase.instance.client.auth.signOut();
-                              if (context.mounted) {
-                                Navigator.of(context).pushAndRemoveUntil(
-                                  MaterialPageRoute(builder: (_) => const SplashScreen()),
-                                  (_) => false,
-                                );
-                              }
-                            } catch (e) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text("Xato: $e")),
-                                );
-                              }
-                            }
-                          },
+                    // ── Card 2: Portfolio ────────────────────────────────────
+                    _TelegramGroupCard(
+                      children: [
+                        _TelegramTile(
+                          leading: const _TelegramIconBadge(
+                            icon: Icons.photo_library_rounded,
+                            color: Color(0xFF34C759),
+                          ),
+                          title: tr('portfolio'),
+                          subtitle: _portfolio.isEmpty ? tr('portfolio_empty') : '${_portfolio.length} ta foto',
+                          trailing: isOwnProfile
+                              ? InkWell(
+                                  onTap: _pickPortfolioPhoto,
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.accent.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.add_photo_alternate_outlined, size: 16, color: AppColors.accent),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          tr('portfolio_add'),
+                                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.accent),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              : const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.muted),
                         ),
+                        if (_portfolio.isNotEmpty || _portfolioUploading)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                            child: GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 3,
+                                crossAxisSpacing: 8,
+                                mainAxisSpacing: 8,
+                              ),
+                              itemCount: _portfolio.length + (_portfolioUploading ? 1 : 0),
+                              itemBuilder: (ctx, i) {
+                                if (_portfolioUploading && i == 0) {
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      color: AppColors.border.withOpacity(0.3),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Center(
+                                      child: SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      ),
+                                    ),
+                                  );
+                                }
+                                final idx = _portfolioUploading ? i - 1 : i;
+                                final url = _portfolio[idx];
+                                return GestureDetector(
+                                  onLongPress: !isOwnProfile
+                                      ? null
+                                      : () async {
+                                          final confirm = await showDialog<bool>(
+                                            context: context,
+                                            builder: (ctx) => AlertDialog(
+                                              title: Text(tr('confirm_delete')),
+                                              actions: [
+                                                TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(tr('cancel'))),
+                                                ElevatedButton(
+                                                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.red),
+                                                  onPressed: () => Navigator.of(ctx).pop(true),
+                                                  child: Text(tr('delete')),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                          if (confirm == true) {
+                                            final userId = Supabase.instance.client.auth.currentUser?.id ?? '';
+                                            await _repo.deletePortfolioImage(userId, url);
+                                            _load();
+                                          }
+                                        },
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Image.network(
+                                      url,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => Container(
+                                        color: AppColors.border,
+                                        child: const Icon(Icons.broken_image_outlined, color: AppColors.muted),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // ── Card 3: Sozlamalar (Settings Screen Entry) ───────────
+                    if (isOwnProfile) ...[
+                      _TelegramGroupCard(
+                        children: [
+                          _TelegramTile(
+                            leading: const _TelegramIconBadge(
+                              icon: Icons.settings_rounded,
+                              color: Color(0xFF6366F1),
+                            ),
+                            title: tr('settings'),
+                            subtitle: lang == 'uz'
+                                ? "Xavfsizlik, til, valyuta va hisob"
+                                : "Безопасность, язык, валюта и аккаунт",
+                            trailing: const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.muted),
+                            onTap: () async {
+                              final changed = await Navigator.of(context).push<bool>(
+                                MaterialPageRoute(builder: (_) => SettingsScreen(profile: _profile)),
+                              );
+                              if (changed == true) {
+                                _loadSilent();
+                              }
+                            },
+                          ),
+                        ],
                       ),
                     ],
+
                     const SizedBox(height: 32),
                   ],
                 ),
               ),
       ),
+    );
+  }
+}
+
+class _TelegramIconBadge extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+
+  const _TelegramIconBadge({
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 30,
+      height: 30,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(7),
+      ),
+      child: Icon(
+        icon,
+        color: Colors.white,
+        size: 17,
+      ),
+    );
+  }
+}
+
+class _TelegramTile extends StatelessWidget {
+  final Widget leading;
+  final String title;
+  final Color? titleColor;
+  final String? subtitle;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+
+  const _TelegramTile({
+    required this.leading,
+    required this.title,
+    this.titleColor,
+    this.subtitle,
+    this.trailing,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            leading,
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: titleColor ?? AppColors.text,
+                    ),
+                  ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle!,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.muted,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (trailing != null) trailing!,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TelegramGroupCard extends StatelessWidget {
+  final List<Widget> children;
+  final String? headerTitle;
+
+  const _TelegramGroupCard({
+    required this.children,
+    this.headerTitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (headerTitle != null) ...[
+          Padding(
+            padding: const EdgeInsets.only(left: 16, bottom: 6, top: 4),
+            child: Text(
+              headerTitle!.toUpperCase(),
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.muted,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+        ],
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Column(
+            children: [
+              for (int i = 0; i < children.length; i++) ...[
+                children[i],
+                if (i < children.length - 1)
+                  const Padding(
+                    padding: EdgeInsets.only(left: 60),
+                    child: Divider(height: 1, thickness: 0.8, color: AppColors.border),
+                  ),
+              ],
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -682,80 +694,23 @@ class _StatCol extends StatelessWidget {
   const _StatCol({required this.label, required this.value});
   @override
   Widget build(BuildContext context) {
-    return Expanded(child: Column(children: [
-      Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.text)),
-      const SizedBox(height: 2),
-      Text(label, style: const TextStyle(fontSize: 11, color: AppColors.muted)),
-    ]));
+    return Expanded(
+      child: Column(
+        children: [
+          Text(value, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.text)),
+          const SizedBox(height: 2),
+          Text(label, style: const TextStyle(fontSize: 11, color: AppColors.muted)),
+        ],
+      ),
+    );
   }
 }
 
 class _Divider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container(width: 1, height: 32, color: AppColors.border);
+    return Container(width: 1, height: 28, color: AppColors.border);
   }
 }
 
-class _LangBtn extends StatelessWidget {
-  final String code;
-  final String label;
-  const _LangBtn({required this.code, required this.label});
-  @override
-  Widget build(BuildContext context) {
-    final selected = appLocaleNotifier.value == code;
-    return GestureDetector(
-      onTap: () => setLocale(code),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.accent : AppColors.bg,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: selected ? AppColors.accent : AppColors.border),
-        ),
-        child: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: selected ? Colors.white : AppColors.text2)),
-      ),
-    );
-  }
-}
 
-class _CurrencyBtn extends StatelessWidget {
-  final String code;
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _CurrencyBtn({
-    required this.code,
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        height: 38,
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.accent : AppColors.bg,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: isSelected ? AppColors.accent : AppColors.border),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              color: isSelected ? Colors.white : AppColors.text2,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}

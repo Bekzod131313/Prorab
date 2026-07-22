@@ -27,7 +27,7 @@ String tr(String key) => _strings[key]?[appLocaleNotifier.value] ?? _strings[key
 const _strings = <String, Map<String, String>>{
   // ── Navigation ──────────────────────────────────────────────────────────
   'nav_home':              {'uz': 'Asosiy',             'ru': 'Главная'},
-  'nav_projects':          {'uz': 'Obyektlar',           'ru': 'Объекты'},
+  'nav_projects':          {'uz': 'Loyihalar',           'ru': 'Проекты'},
   'nav_report':            {'uz': 'Hisobot',             'ru': 'Отчёт'},
   'nav_workers':           {'uz': 'Ishchilar',           'ru': 'Люди'},
   'nav_profile':           {'uz': 'Profil',              'ru': 'Профиль'},
@@ -37,7 +37,9 @@ const _strings = <String, Map<String, String>>{
   'active':                {'uz': 'Faol',                'ru': 'Активные'},
   'paused':                {'uz': "To'xtatilgan",        'ru': 'Приостановлен'},
   'done':                  {'uz': 'Yakunlangan',         'ru': 'Завершено'},
-  'projects':              {'uz': 'Loyihalar',           'ru': 'Объекты'},
+  'projects':              {'uz': 'Loyihalar',           'ru': 'Проекты'},
+  'swipe_hint':             {'uz': '← Surtib almashtiring →', 'ru': '← Смахните для смены →'},
+  'swipe_page_hint':        {'uz': "Barmog'ingiz bilan surib o'tkazishingiz mumkin", 'ru': 'Вы можете листать пальцем'},
   'search':                {'uz': 'Qidirish...',         'ru': 'Поиск...'},
   'workers_count':         {'uz': 'ishchi',              'ru': 'раб.'},
   'days_left':             {'uz': 'kun qoldi',           'ru': 'дн. осталось'},
@@ -64,6 +66,7 @@ const _strings = <String, Map<String, String>>{
   'experience':            {'uz': 'Tajriba (yil)',       'ru': 'Опыт (лет)'},
   'portfolio':             {'uz': 'Portfolio',           'ru': 'Портфолио'},
   'upload_photo':          {'uz': 'Rasm yuklash',        'ru': 'Загрузить фото'},
+  'settings':              {'uz': 'Sozlamalar',          'ru': 'Настройки'},
   'logout':                {'uz': 'Chiqish',             'ru': 'Выйти'},
   'language':              {'uz': 'Til',                 'ru': 'Язык'},
   'projects_count':        {'uz': 'Loyihalar',           'ru': 'Объекты'},
@@ -105,6 +108,7 @@ const _strings = <String, Map<String, String>>{
   // ── Project detail / transactions ─────────────────────────────────────────
   'income':                {'uz': 'Kirim',               'ru': 'Доход'},
   'expense':               {'uz': 'Chiqim',              'ru': 'Расход'},
+  'umumiy':                {'uz': 'Umumiy',              'ru': 'Общее'},
   'transactions':          {'uz': 'Tranzaksiyalar',      'ru': 'Транзакции'},
   'files':                 {'uz': 'Fayllar',             'ru': 'Файлы'},
   'add_income':            {'uz': "Kirim qo'shish",      'ru': 'Добавить доход'},

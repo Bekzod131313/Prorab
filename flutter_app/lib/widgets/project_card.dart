@@ -25,12 +25,13 @@ Color colorForProject(String nomi) {
 
 String formatMoney(num value, {String? currency}) {
   final activeCurrency = currency ?? CurrencyService().displayCurrency;
+  final rounded = value.round();
   if (activeCurrency == 'USD') {
     final f = NumberFormat.decimalPattern('en_US');
-    return '\$${f.format(value)}';
+    return '\$${f.format(rounded)}';
   } else {
     final f = NumberFormat.decimalPattern('uz');
-    return '${f.format(value)} so\'m';
+    return "${f.format(rounded)} so'm";
   }
 }
 
@@ -43,13 +44,13 @@ String formatUzsToDisplay(num valueUzs) {
 String formatTransactionAmount(ProjectTransaction tx) {
   final service = CurrencyService();
   if (service.displayCurrency == 'USD') {
-    final usdVal = tx.summaUsd;
+    final usdVal = tx.summaUsd.round();
     final f = NumberFormat.decimalPattern('en_US');
     return '\$${f.format(usdVal)}';
   } else {
-    final uzsVal = tx.summaUzs;
+    final uzsVal = tx.summaUzs.round();
     final f = NumberFormat.decimalPattern('uz');
-    return '${f.format(uzsVal)} so\'m';
+    return "${f.format(uzsVal)} so'm";
   }
 }
 
@@ -175,26 +176,10 @@ class ProjectCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: LinearProgressIndicator(
-                      value: progress / 100,
-                      minHeight: 5,
-                      backgroundColor: AppColors.border,
-                      valueColor: const AlwaysStoppedAnimation(AppColors.accentTeal),
-                    ),
-                  ),
-                ),
-                if (project.role == 'owner') ...[
-                  const SizedBox(width: 10),
-                  _HealthBadge(score: project.healthScore),
-                ],
-              ],
-            ),
+            if (project.role == 'owner') ...[
+              const SizedBox(height: 10),
+              _HealthBadge(score: project.healthScore),
+            ],
             const SizedBox(height: 8),
             Text(
               '$left ${tr('days_left')}',

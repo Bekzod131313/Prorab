@@ -292,8 +292,8 @@ class TransactionRepository {
       // 3. Format the amount
       final f = NumberFormat.decimalPattern('uz');
       final formattedAmount = currency == 'USD' 
-          ? '\$${f.format(amount)}' 
-          : f.format(amount);
+          ? '\$${f.format(amount.round())}' 
+          : f.format(amount.round());
 
       // 4. Construct messages
       final titleUz = 'Kirim';

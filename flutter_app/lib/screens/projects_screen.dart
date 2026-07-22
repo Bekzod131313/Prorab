@@ -7,6 +7,9 @@ import '../models/project.dart';
 import '../theme/app_theme.dart';
 import 'project_detail_screen.dart';
 import '../widgets/shimmer.dart';
+import '../widgets/project_hero_card.dart';
+import '../data/member_repository.dart';
+import '../models/member.dart';
 
 class ProjectsScreen extends StatefulWidget {
   static bool autoOpenCreate = false;
@@ -18,8 +21,10 @@ class ProjectsScreen extends StatefulWidget {
 
 class _ProjectsScreenState extends State<ProjectsScreen> {
   final _repo = ProjectRepository();
+  final _memberRepo = MemberRepository();
   List<Project> _projects = [];
   Map<String, int> _memberCounts = {};
+  Map<String, List<ObMember>> _projectMembers = {};
   bool _loading = true;
   String _search = '';
   String _filter = 'all'; // all, active, paused, done
@@ -38,12 +43,21 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
     super.dispose();
   }
 
-  Future<void> _load() async {
-    setState(() => _loading = true);
+  Future<void> _load({bool silent = false}) async {
+    if (!silent && _projects.isEmpty) {
+      setState(() => _loading = true);
+    }
     try {
       final projects = await _repo.loadProjects();
       final ids = projects.map((p) => p.id).toList();
       final counts = await loadMemberCounts(ids);
+
+      final projectMembers = <String, List<ObMember>>{};
+      await Future.wait(projects.map((p) async {
+        try {
+          projectMembers[p.id] = await _memberRepo.loadForProject(p.id);
+        } catch (_) {}
+      }));
 
       // Fetch last activity dates from transactions, tasks, materials in parallel
       final Map<String, DateTime> lastActivities = {};
@@ -104,6 +118,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
       setState(() {
         _projects = projects;
         _memberCounts = counts;
+        _projectMembers = projectMembers;
         _lastActivities = lastActivities;
         _loading = false;
       });
@@ -376,10 +391,13 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                               return _ProjectCard(
                                 project: p,
                                 index: idx + 1,
+                                members: _projectMembers[p.id] ?? [],
                                 memberCount: _memberCounts[p.id] ?? 0,
                                 onTap: () async {
-                                  await Navigator.of(context).push(MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: p)));
-                                  _load();
+                                  final changed = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => ProjectDetailScreen(project: p)));
+                                  if (changed == true) {
+                                    _load(silent: true);
+                                  }
                                 },
                                 onLongPress: () => _openProjectMenu(p),
                               );
@@ -443,6 +461,7 @@ class _Chip extends StatelessWidget {
 class _ProjectCard extends StatelessWidget {
   final Project project;
   final int index;
+  final List<ObMember> members;
   final int memberCount;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
@@ -450,149 +469,26 @@ class _ProjectCard extends StatelessWidget {
   const _ProjectCard({
     required this.project,
     required this.index,
+    required this.members,
     required this.memberCount,
     required this.onTap,
     required this.onLongPress,
   });
 
-  List<Color> _gradient() {
-    final gradients = [
-      [const Color(0xFF1E3A5F), const Color(0xFF2563EB)],
-      [const Color(0xFF064E3B), const Color(0xFF059669)],
-      [const Color(0xFF7C2D12), const Color(0xFFDC2626)],
-      [const Color(0xFF4C1D95), const Color(0xFF7C3AED)],
-      [const Color(0xFF0C4A6E), const Color(0xFF0891B2)],
-      [const Color(0xFF1E1B4B), const Color(0xFF4338CA)],
-    ];
-    final idx = project.id.codeUnits.fold(0, (a, b) => a + b) % gradients.length;
-    return gradients[idx];
-  }
-
-  String _statusLabel() {
-    return project.status == 'done' ? tr('done') : tr('active');
-  }
-
   @override
   Widget build(BuildContext context) {
-    final (_, left, progress) = project.schedule;
-    final isDone = project.status == 'done';
-    final gradient = _gradient();
-    final indexLabel = '#${index.toString().padLeft(3, '0')}';
+    Widget card = ProjectHeroCard(
+      project: project,
+      members: members,
+      memberCount: memberCount,
+      height: 120,
+      margin: const EdgeInsets.only(bottom: 14),
+      onTap: onTap,
+    );
 
     return GestureDetector(
-      onTap: onTap,
       onLongPress: onLongPress,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 14),
-        height: 200,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: gradient,
-          ),
-          image: project.imageUrl != null
-              ? DecorationImage(image: NetworkImage(project.imageUrl!), fit: BoxFit.cover,
-                  onError: (_, __) {},
-                  colorFilter: ColorFilter.mode(Colors.black.withOpacity(0.35), BlendMode.darken))
-              : null,
-        ),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Colors.transparent, Colors.black.withOpacity(0.65)],
-              stops: const [0.4, 1.0],
-            ),
-          ),
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Top row: index badge + status badge
-              Row(children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.35),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(indexLabel, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
-                ),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: isDone
-                        ? Colors.white.withOpacity(0.15)
-                        : const Color(0xFF10B981),
-                    borderRadius: BorderRadius.circular(20),
-                    border: isDone ? Border.all(color: Colors.white.withOpacity(0.2), width: 1) : null,
-                  ),
-                  child: Text(_statusLabel(), style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
-                ),
-              ]),
-              const Spacer(),
-              // Project name
-              Text(project.nomi, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900), overflow: TextOverflow.ellipsis, maxLines: 1),
-              const SizedBox(height: 8),
-              // Progress
-              Row(children: [
-                Text('$progress%', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: (progress / 100).clamp(0.0, 1.0),
-                      minHeight: 5,
-                      backgroundColor: Colors.white.withOpacity(0.25),
-                      valueColor: AlwaysStoppedAnimation(isDone ? AppColors.green : Colors.white),
-                    ),
-                  ),
-                ),
-              ]),
-              const SizedBox(height: 10),
-              // Bottom: workers + days
-              Row(children: [
-                // Avatar stack
-                if (memberCount > 0) ...[
-                  SizedBox(
-                    width: memberCount.clamp(1, 3) * 18.0 + 10,
-                    height: 22,
-                    child: Stack(
-                      children: List.generate(memberCount.clamp(1, 3), (i) => Positioned(
-                        left: i * 14.0,
-                        child: Container(
-                          width: 22, height: 22,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.3),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 1.5),
-                          ),
-                          child: const Icon(Icons.person, size: 11, color: Colors.white),
-                        ),
-                      )),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                ],
-                Text('$memberCount ${tr("workers_count")}', style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
-                const Spacer(),
-                const Icon(Icons.calendar_today_rounded, size: 12, color: Colors.white70),
-                const SizedBox(width: 4),
-                Text(
-                  isDone ? tr('days_left_done') : '$left ${tr("days_left")}',
-                  style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600),
-                ),
-              ]),
-            ],
-          ),
-        ),
-      ),
+      child: card,
     );
   }
 }
