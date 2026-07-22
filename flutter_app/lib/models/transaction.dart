@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class ProjectTransaction {
   final String id;
   final String obId;
@@ -13,6 +15,7 @@ class ProjectTransaction {
   final double exchangeRate;
   final double summaUsd;
   final double summaUzs;
+  final List<String> files;
 
   ProjectTransaction({
     required this.id,
@@ -29,6 +32,7 @@ class ProjectTransaction {
     required this.exchangeRate,
     required this.summaUsd,
     required this.summaUzs,
+    this.files = const [],
   });
 
   factory ProjectTransaction.fromMap(Map<String, dynamic> row) {
@@ -36,14 +40,37 @@ class ProjectTransaction {
     final summa = (row['summa'] ?? 0) as num;
     final currency = row['currency']?.toString() ?? 'UZS';
     final rate = (row['exchange_rate'] ?? 1.0) as num;
-    
-    final double uzsVal = row['summa_uzs'] != null 
+
+    final double uzsVal = row['summa_uzs'] != null
         ? (row['summa_uzs'] as num).toDouble()
-        : (currency == 'UZS' ? summa.toDouble() : summa.toDouble() * rate.toDouble());
-        
-    final double usdVal = row['summa_usd'] != null 
+        : (currency == 'UZS'
+            ? summa.toDouble()
+            : summa.toDouble() * rate.toDouble());
+
+    final double usdVal = row['summa_usd'] != null
         ? (row['summa_usd'] as num).toDouble()
-        : (currency == 'USD' ? summa.toDouble() : summa.toDouble() / rate.toDouble());
+        : (currency == 'USD'
+            ? summa.toDouble()
+            : summa.toDouble() / rate.toDouble());
+
+    List<String> filePaths = [];
+    if (row['files'] != null) {
+      if (row['files'] is List) {
+        filePaths = (row['files'] as List).map((e) => e.toString()).toList();
+      } else if (row['files'] is String) {
+        try {
+          final decoded = jsonDecode(row['files'] as String);
+          if (decoded is List) {
+            filePaths = decoded.map((e) => e.toString()).toList();
+          }
+        } catch (_) {
+          filePaths = (row['files'] as String)
+              .split(',')
+              .where((s) => s.isNotEmpty)
+              .toList();
+        }
+      }
+    }
 
     return ProjectTransaction(
       id: row['id'].toString(),
@@ -60,6 +87,7 @@ class ProjectTransaction {
       exchangeRate: rate.toDouble(),
       summaUsd: usdVal,
       summaUzs: uzsVal,
+      files: filePaths,
     );
   }
 

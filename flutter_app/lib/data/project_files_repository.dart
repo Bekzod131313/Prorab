@@ -5,6 +5,7 @@ import '../main.dart';
 
 class ProjectFile {
   final String name;
+  final String originalName;
   final String path;
   final String publicUrl;
   final int? sizeBytes;
@@ -12,17 +13,44 @@ class ProjectFile {
 
   ProjectFile({
     required this.name,
+    required this.originalName,
     required this.path,
     required this.publicUrl,
     this.sizeBytes,
     this.updatedAt,
   });
 
-  String get extension => name.contains('.') ? name.split('.').last.toLowerCase() : '';
+  String get extension {
+    final fileToUse = originalName.isNotEmpty ? originalName : name;
+    return fileToUse.contains('.') ? fileToUse.split('.').last.toLowerCase() : '';
+  }
 
   bool get isImage => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic'].contains(extension);
   bool get isPdf => extension == 'pdf';
   bool get isExcel => ['xls', 'xlsx', 'csv'].contains(extension);
+
+  factory ProjectFile.fromPath(String path) {
+    final url = supabase.storage.from('project-files').getPublicUrl(path);
+    final filename = path.contains('/') ? path.split('/').last : path;
+
+    String customName = filename;
+    String originalName = filename;
+
+    final parts = filename.split('::');
+    if (parts.length >= 3) {
+      try {
+        customName = Uri.decodeComponent(parts[1]);
+        originalName = Uri.decodeComponent(parts[2]);
+      } catch (_) {}
+    }
+
+    return ProjectFile(
+      name: customName,
+      originalName: originalName,
+      path: path,
+      publicUrl: url,
+    );
+  }
 }
 
 class ProjectFilesRepository {
@@ -36,8 +64,21 @@ class ProjectFilesRepository {
           .map((f) {
             final path = '$projectId/${f.name}';
             final url = supabase.storage.from(_bucket).getPublicUrl(path);
+
+            String customName = f.name;
+            String originalName = f.name;
+
+            final parts = f.name.split('::');
+            if (parts.length >= 3) {
+              try {
+                customName = Uri.decodeComponent(parts[1]);
+                originalName = Uri.decodeComponent(parts[2]);
+              } catch (_) {}
+            }
+
             return ProjectFile(
-              name: f.name,
+              name: customName,
+              originalName: originalName,
               path: path,
               publicUrl: url,
               sizeBytes: f.metadata?['size'] as int?,
@@ -50,10 +91,18 @@ class ProjectFilesRepository {
     }
   }
 
-  Future<String> uploadFile(String projectId, String fileName, Uint8List bytes, String mimeType) async {
+  Future<String> uploadFile(
+    String projectId,
+    String customName,
+    Uint8List bytes,
+    String mimeType, {
+    String? originalName,
+  }) async {
     final ts = DateTime.now().millisecondsSinceEpoch;
-    final ext = fileName.contains('.') ? '.${fileName.split('.').last}' : '';
-    final safeName = '${ts}$ext';
+    final orig = originalName ?? customName;
+    final safeCustom = Uri.encodeComponent(customName);
+    final safeOriginal = Uri.encodeComponent(orig);
+    final safeName = '$ts::$safeCustom::$safeOriginal';
     final path = '$projectId/$safeName';
     await supabase.storage.from(_bucket).uploadBinary(
       path,

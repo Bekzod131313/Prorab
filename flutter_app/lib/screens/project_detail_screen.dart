@@ -24,58 +24,11 @@ import '../services/currency_service.dart';
 import '../widgets/shimmer.dart';
 import '../utils/price_formatter.dart';
 import 'profile_screen.dart';
+import 'add_transaction_screen.dart';
 import '../utils/phone_formatter.dart';
 import '../utils/haptics.dart';
 
 
-class _ExpenseCategory {
-  final String name;
-  final IconData icon;
-  final bool isWorker;
-  const _ExpenseCategory(
-      {required this.name, this.icon = Icons.category_rounded, this.isWorker = false});
-}
-
-Future<List<_ExpenseCategory>> _loadCustomCategories() async {
-  try {
-    final userId = supabase.auth.currentUser?.id;
-    if (userId == null) return [];
-    final data = await supabase
-        .from('categories')
-        .select('name')
-        .eq('user_id', userId);
-    return (data as List)
-        .map((row) => _ExpenseCategory(
-              name: row['name'] as String,
-              icon: Icons.category_rounded,
-            ))
-        .toList();
-  } catch (_) {
-    return [];
-  }
-}
-
-Future<void> _saveCustomCategories(List<_ExpenseCategory> categories) async {
-  try {
-    final userId = supabase.auth.currentUser?.id;
-    if (userId == null) return;
-    final customCats = categories.where((c) => !c.isWorker && c.name != "O'zim").toList();
-    if (customCats.isEmpty) return;
-    final last = customCats.last;
-    final existing = await supabase
-        .from('categories')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('name', last.name)
-        .maybeSingle();
-    if (existing == null) {
-      await supabase.from('categories').insert({
-        'user_id': userId,
-        'name': last.name,
-      });
-    }
-  } catch (_) {}
-}
 
 class ProjectDetailScreen extends StatefulWidget {
   final Project project;
@@ -104,7 +57,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
   bool _loading = true;
   bool _filesLoading = false;
   String _txFilter = 'all';
-  String _sortBy = 'date';
+  String _sortMode = 'newest';
   DateTimeRange? _dateRange;
   bool _hasChanged = false;
   bool _mutating = false;
@@ -257,60 +210,26 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
       base = base.where((tx) => tx.date.isAfter(startOfDay.subtract(const Duration(seconds: 1))) && tx.date.isBefore(endOfDay.add(const Duration(seconds: 1)))).toList();
     }
 
-    if (_sortBy == 'price') {
-      base.sort((a, b) => b.summaUzs.compareTo(a.summaUzs));
-    } else {
-      base.sort((a, b) => b.date.compareTo(a.date));
+    switch (_sortMode) {
+      case 'oldest':
+        base.sort((a, b) => a.date.compareTo(b.date));
+        break;
+      case 'highest_price':
+        base.sort((a, b) => b.summaUzs.compareTo(a.summaUzs));
+        break;
+      case 'lowest_price':
+        base.sort((a, b) => a.summaUzs.compareTo(b.summaUzs));
+        break;
+      case 'newest':
+      default:
+        base.sort((a, b) => b.date.compareTo(a.date));
+        break;
     }
 
     return base;
   }
 
-  Future<_ExpenseCategory?> _openAddCategoryDialog(BuildContext ctx) async {
-    final nameCtrl = TextEditingController();
-    final result = await showDialog<_ExpenseCategory>(
-      context: ctx,
-      builder: (dctx) => AlertDialog(
-        title: Text(tr('new_category')),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: nameCtrl,
-              autofocus: true,
-              decoration: InputDecoration(
-                hintText: tr('category_name'),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dctx).pop(),
-            child: Text(tr('cancel')),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            ),
-            onPressed: () {
-              final name = nameCtrl.text.trim();
-              if (name.isEmpty) return;
-              Navigator.of(dctx).pop(
-                _ExpenseCategory(name: name, icon: Icons.category_rounded),
-              );
-            },
-            child: Text(tr('save')),
-          ),
-        ],
-      ),
-    );
-    Future.delayed(const Duration(milliseconds: 350), () {
-      nameCtrl.dispose();
-    });
-    return result;
-  }
+
 
   Future<void> _selectDateRange() async {
     final picked = await showDateRangePicker(
@@ -339,366 +258,26 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
 
   Future<void> _openAddTransaction(
       {required bool isIncome, String? preSelectedWorkerId}) async {
-    final amountCtrl = TextEditingController();
-    final noteCtrl = TextEditingController();
-    final workers = _visibleMembers;
-    final isMember = _project.role == 'member';
-
-    final customCategories =
-        isIncome ? <_ExpenseCategory>[] : await _loadCustomCategories();
-    final categories = isIncome
-        ? <_ExpenseCategory>[]
-        : [
-            _ExpenseCategory(
-                name: 'Xodim', icon: Icons.engineering_rounded, isWorker: true),
-            ...customCategories,
-          ];
-
-    _ExpenseCategory? selectedCategory =
-        categories.isNotEmpty ? categories.first : null;
-    String? selectedToUserId = preSelectedWorkerId;
-
-     if (preSelectedWorkerId != null && !isIncome) {
-      selectedCategory = categories.firstWhere((c) => c.isWorker,
-          orElse: () => categories.first);
-    }
-
-    String selectedCurrencyCode = CurrencyService().displayCurrency;
-
-    final confirmed = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.card,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) => StatefulBuilder(
-          builder: (builderCtx, setSt) => Padding(
-                padding: EdgeInsets.only(
-                    left: 20,
-                    right: 20,
-                    top: 24,
-                    bottom: 24 + MediaQuery.of(ctx).viewInsets.bottom),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                    Row(children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                            color: (isIncome ? AppColors.green : AppColors.red)
-                                .withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(10)),
-                        child: Icon(
-                            isIncome
-                                ? Icons.arrow_downward_rounded
-                                : Icons.arrow_upward_rounded,
-                            color: isIncome ? AppColors.green : AppColors.red,
-                            size: 18),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(isIncome ? tr('add_income') : tr('add_expense'),
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w800, fontSize: 17)),
-                    ]),
-                    const SizedBox(height: 16),
-                     Row(
-                      children: [
-                        Expanded(
-                          child: ChoiceChip(
-                            label: Text(tr('currency_uzs')),
-                            selected: selectedCurrencyCode == 'UZS',
-                            onSelected: (val) {
-                              if (val) setSt(() => selectedCurrencyCode = 'UZS');
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: ChoiceChip(
-                            label: Text(tr('currency_usd')),
-                            selected: selectedCurrencyCode == 'USD',
-                            onSelected: (val) {
-                              if (val) setSt(() => selectedCurrencyCode = 'USD');
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                        controller: amountCtrl,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [PriceInputFormatter()],
-                        autofocus: true,
-                        decoration: InputDecoration(
-                            hintText: selectedCurrencyCode == 'UZS' ? "${tr('amount')} (${tr('currency_uzs')})" : "${tr('amount')} (\$)",
-                            prefixIcon: const Icon(Icons.payments_outlined,
-                                size: 18))),
-                    const SizedBox(height: 12),
-                    if (!isIncome) ...[
-                      Text(tr('category'),
-                          style:
-                              const TextStyle(fontSize: 12, color: AppColors.muted)),
-                      const SizedBox(height: 8),
-                      Wrap(spacing: 10, runSpacing: 10, children: [
-                        ...categories.map((c) {
-                          final selected = selectedCategory?.name == c.name;
-                          return GestureDetector(
-                            onTap: () => setSt(() {
-                              selectedCategory = c;
-                              if (!c.isWorker) selectedToUserId = null;
-                            }),
-                            onLongPress: (!c.isWorker && c.name != tr('worker'))
-                                ? () async {
-                                    final confirm = await showDialog<bool>(
-                                      context: context,
-                                      builder: (dctx) => AlertDialog(
-                                        title: Text(tr('delete_category')),
-                                        content: Text(tr('delete_category_q').replaceFirst('{}', c.name)),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () => Navigator.of(dctx).pop(false),
-                                            child: Text(tr('no')),
-                                          ),
-                                          ElevatedButton(
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: AppColors.red,
-                                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                            ),
-                                            onPressed: () => Navigator.of(dctx).pop(true),
-                                            child: Text(tr('delete')),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                    if (confirm == true) {
-                                      try {
-                                        final userId = supabase.auth.currentUser?.id;
-                                        if (userId != null) {
-                                          await supabase
-                                              .from('categories')
-                                              .delete()
-                                              .eq('user_id', userId)
-                                              .eq('name', c.name);
-                                        }
-                                        setSt(() {
-                                          customCategories.removeWhere((item) => item.name == c.name);
-                                          categories.removeWhere((item) => item.name == c.name);
-                                          if (selectedCategory?.name == c.name) {
-                                            selectedCategory = categories.isNotEmpty ? categories.first : null;
-                                            selectedToUserId = null;
-                                          }
-                                        });
-                                      } catch (_) {}
-                                    }
-                                  }
-                                : null,
-                            child: Container(
-                              width: 72,
-                              height: 64,
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 4),
-                              decoration: BoxDecoration(
-                                color: selected
-                                    ? AppColors.red.withOpacity(0.12)
-                                    : AppColors.bg,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                    color: selected
-                                        ? AppColors.red
-                                        : AppColors.border),
-                              ),
-                              child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(c.icon,
-                                        size: 20,
-                                        color: selected
-                                            ? AppColors.red
-                                            : AppColors.text2),
-                                    const SizedBox(height: 4),
-                                    Text(c.name == 'Xodim' ? tr('xodim_category') : c.name,
-                                        textAlign: TextAlign.center,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w700,
-                                            color: selected
-                                                ? AppColors.red
-                                                : AppColors.text2)),
-                                  ]),
-                            ),
-                          );
-                        }),
-                        GestureDetector(
-                          onTap: () async {
-                            final added = await _openAddCategoryDialog(context);
-                            if (added != null) {
-                              categories.add(added);
-                              await _saveCustomCategories(categories
-                                  .where((c) => !c.isWorker)
-                                  .toList());
-                              setSt(() => selectedCategory = added);
-                            }
-                          },
-                          child: Container(
-                            width: 72,
-                            height: 64,
-                            decoration: BoxDecoration(
-                              color: AppColors.bg,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.border),
-                            ),
-                            child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.add_rounded,
-                                      size: 20, color: AppColors.accent),
-                                  const SizedBox(height: 4),
-                                  Text(tr('other'),
-                                      style: const TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w700,
-                                          color: AppColors.accent)),
-                                ]),
-                          ),
-                        ),
-                      ]),
-                      const SizedBox(height: 12),
-                      if (selectedCategory?.isWorker == true) ...[
-                        if (workers.isEmpty)
-                          Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: Text(tr('no_workers_in_project'),
-                                  style: const TextStyle(
-                                      fontSize: 12, color: AppColors.muted)))
-                        else ...[
-                           GestureDetector(
-                            onTap: () async {
-                              final selected = await showModalBottomSheet<String>(
-                                context: context,
-                                backgroundColor: AppColors.card,
-                                shape: const RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                                ),
-                                builder: (bctx) => SafeArea(
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(vertical: 16),
-                                        child: Text(
-                                          tr('select_worker'),
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w800,
-                                            color: AppColors.text,
-                                          ),
-                                        ),
-                                      ),
-                                      const Divider(height: 1),
-                                      Flexible(
-                                        child: ListView.builder(
-                                          shrinkWrap: true,
-                                          itemCount: workers.length,
-                                          itemBuilder: (lctx, index) {
-                                            final w = workers[index];
-                                            return ListTile(
-                                              title: Text(w.displayName, style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.text)),
-                                              trailing: selectedToUserId == w.userId
-                                                  ? const Icon(Icons.check_circle_rounded, color: AppColors.accent)
-                                                  : null,
-                                              onTap: () => Navigator.of(lctx).pop(w.userId),
-                                            );
-                                          },
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                              if (selected != null) {
-                                setSt(() => selectedToUserId = selected);
-                              }
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              decoration: BoxDecoration(
-                                color: AppColors.bg,
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(color: AppColors.border),
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          tr('worker'),
-                                          style: const TextStyle(fontSize: 11, color: AppColors.muted, fontWeight: FontWeight.w500),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          selectedToUserId != null
-                                              ? workers.firstWhere((w) => w.userId == selectedToUserId, orElse: () => workers.first).displayName
-                                              : tr('select_worker'),
-                                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.text),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.muted),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-                      ],
-                    ],
-                    TextField(
-                        controller: noteCtrl,
-                        decoration: InputDecoration(
-                            hintText: tr('comment_hint'))),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              isIncome ? AppColors.green : AppColors.red),
-                      onPressed: () {
-                        if (amountCtrl.text.trim().isEmpty) return;
-                        if (!isIncome &&
-                            selectedCategory?.isWorker == true &&
-                            selectedToUserId == null) {
-                          ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
-                              content: Text(tr('select_worker'))));
-                          return;
-                        }
-                        Navigator.of(ctx).pop(true);
-                      },
-                      child:
-                          Text(isIncome ? tr('add_income') : tr('add_expense')),
-                    ),
-                  ],
-                ),
-              ))),
+    final result = await Navigator.of(context).push<AddTransactionResult>(
+      MaterialPageRoute(
+        builder: (ctx) => AddTransactionScreen(
+          isIncome: isIncome,
+          projectId: _project.id,
+          workers: _visibleMembers,
+          preSelectedWorkerId: preSelectedWorkerId,
+        ),
+      ),
     );
 
-    final amountText = amountCtrl.text.trim();
-    final noteText = noteCtrl.text.trim();
-    Future.delayed(const Duration(milliseconds: 350), () {
-      amountCtrl.dispose();
-      noteCtrl.dispose();
-    });
+    if (result == null) return;
 
-    if (confirmed != true) return;
-    final amount = num.tryParse(amountText.replaceAll(' ', '')) ?? 0;
-    if (amount <= 0) return;
+    final amount = result.amount;
+    final selectedCurrencyCode = result.currencyCode;
+    final categoryName = result.categoryName;
+    final isWorkerCategory = result.isWorkerCategory;
+    final selectedToUserId = result.toUserId;
+    final noteText = result.noteText;
+    final isMember = _project.role == 'member';
 
     // Save originals for rollback
     final originalTxs = List<ProjectTransaction>.from(_txs);
@@ -711,13 +290,15 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
     final amountUzs = converted['UZS']!;
     final amountUsd = converted['USD']!;
 
+    final filePaths = result.attachedFiles.map((f) => f.path).toList();
+
     final tempTx = ProjectTransaction(
       id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
       obId: _project.id,
       tur: isIncome ? 'income' : 'spend',
       summa: amount,
       izoh: noteText.isNotEmpty ? noteText : null,
-      kategoriya: isIncome ? 'Kirim' : (selectedCategory?.name ?? 'Boshqa'),
+      kategoriya: categoryName,
       toUser: isIncome ? null : selectedToUserId,
       fromUser: isIncome ? supabase.auth.currentUser?.id : null,
       createdBy: supabase.auth.currentUser?.id,
@@ -726,6 +307,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
       exchangeRate: rate,
       summaUsd: amountUsd,
       summaUzs: amountUzs,
+      files: filePaths,
     );
 
     final updatedProject = Project(
@@ -740,7 +322,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
       role: _project.role,
       myBalance: _project.myBalance + (isIncome ? amount : -amount),
       ishaqi: _project.ishaqi,
-      olingan: _project.olingan + ((!isIncome && selectedCategory?.isWorker == true) ? amount : 0),
+      olingan: _project.olingan + ((!isIncome && isWorkerCategory) ? amount : 0),
       status: _project.status,
       manzil: _project.manzil,
       mijoz: _project.mijoz,
@@ -749,7 +331,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
     );
 
     List<ObMember> updatedMembers = _members;
-    if (!isIncome && selectedCategory?.isWorker == true && selectedToUserId != null) {
+    if (!isIncome && isWorkerCategory && selectedToUserId != null) {
       updatedMembers = _members.map((m) {
         if (m.userId == selectedToUserId) {
           return ObMember(
@@ -782,21 +364,23 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
 
     try {
       if (!isIncome && isMember) {
-        if (selectedCategory?.isWorker == true && selectedToUserId != null) {
+        if (isWorkerCategory && selectedToUserId != null) {
           await _txRepo.distributeToSubWorker(
             obId: _project.id,
-            toUserId: selectedToUserId!,
+            toUserId: selectedToUserId,
             amount: amount,
             izoh: noteText.isNotEmpty ? noteText : null,
             currency: selectedCurrencyCode,
+            files: filePaths,
           );
         } else {
           await _txRepo.logSelfWithdrawal(
             obId: _project.id,
             amount: amount,
-            kategoriya: selectedCategory?.name ?? "O'zim",
+            kategoriya: categoryName,
             izoh: noteText.isNotEmpty ? noteText : null,
             currency: selectedCurrencyCode,
+            files: filePaths,
           );
         }
       } else {
@@ -804,10 +388,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
           obId: _project.id,
           isIncome: isIncome,
           amount: amount,
-          kategoriya: isIncome ? 'Kirim' : (selectedCategory?.name ?? 'Boshqa'),
+          kategoriya: categoryName,
           izoh: noteText.isNotEmpty ? noteText : null,
           toUserId: isIncome ? null : selectedToUserId,
           currency: selectedCurrencyCode,
+          files: filePaths,
         );
       }
       // Re-load silently to keep UI clean and replace temp data
@@ -1282,7 +867,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
       displayCategory = tr('expense');
     }
 
-    if (tx.toUser != null) {
+    if (tx.toUser != null && !isIncome) {
       final matchingMember = _members.cast<ObMember?>().firstWhere(
         (m) => m?.userId == tx.toUser,
         orElse: () => null,
@@ -1335,26 +920,15 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: color.withOpacity(0.15)),
                 ),
-                child: Column(
-                  children: [
-                    Text(
-                      '${isIncome ? '+' : '-'}${formatTransactionAmount(tx)}',
-                      style: TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w900,
-                        color: color,
-                      ),
+                child: Center(
+                  child: Text(
+                    '${isIncome ? '+' : '-'}${formatTransactionAmount(tx)}',
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                      color: color,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      tx.currency,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.muted,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -1365,6 +939,67 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
               _buildDetailRow(appLocaleNotifier.value == 'ru' ? 'Дата' : 'Sana', _formatDate(tx.date)),
               if (tx.izoh != null && tx.izoh!.isNotEmpty)
                 _buildDetailRow(appLocaleNotifier.value == 'ru' ? 'Комментарий' : 'Izoh', tx.izoh!),
+
+              if (tx.files.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text(
+                  appLocaleNotifier.value == 'ru'
+                      ? 'Прикрепленные файлы (${tx.files.length})'
+                      : 'Biriktirilgan fayllar (${tx.files.length})',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.muted,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...tx.files.map((filePath) {
+                  final pFile = ProjectFile.fromPath(filePath);
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.bg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: ListTile(
+                      dense: true,
+                      leading: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: _fileColor(pFile).withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(_fileIcon(pFile),
+                            size: 18, color: _fileColor(pFile)),
+                      ),
+                      title: Text(
+                        pFile.name,
+                        style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.text),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: pFile.originalName != pFile.name
+                          ? Text(
+                              pFile.originalName,
+                              style: const TextStyle(
+                                  fontSize: 11, color: AppColors.muted),
+                              overflow: TextOverflow.ellipsis,
+                            )
+                          : null,
+                      trailing: const Icon(Icons.open_in_new_rounded,
+                          size: 16, color: AppColors.accent),
+                      onTap: () {
+                        Navigator.of(ctx).pop();
+                        _openFile(pFile);
+                      },
+                    ),
+                  );
+                }),
+              ],
 
               const SizedBox(height: 28),
 
@@ -1461,268 +1096,50 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
 
   Future<void> _openEditTransaction(ProjectTransaction tx) async {
     final isIncome = tx.tur == 'income';
-    final amountCtrl = TextEditingController(text: tx.summa.toString());
-    final noteCtrl = TextEditingController(text: tx.izoh ?? '');
-    DateTime txDate = tx.date;
-    String selectedCurrencyCode = tx.currency;
-    
-    // Setup categories
-    final List<_ExpenseCategory> customCategories = await _loadCustomCategories();
-    
-    final categories = isIncome
-        ? <_ExpenseCategory>[]
-        : <_ExpenseCategory>[
-            const _ExpenseCategory(name: 'Xodim', icon: Icons.construction_rounded, isWorker: true),
-            ...customCategories,
-          ];
-          
-    _ExpenseCategory? selectedCategory;
-    try {
-      selectedCategory = categories.firstWhere(
-        (c) => c.name == tx.kategoriya || (c.isWorker && tx.toUser != null),
-      );
-    } catch (_) {
-      selectedCategory = categories.isNotEmpty ? categories.first : null;
-    }
-    String? selectedToUserId = tx.toUser;
-
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.card,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => StatefulBuilder(
-        builder: (builderCtx, setSt) => Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 24,
-            bottom: 24 + MediaQuery.of(ctx).viewInsets.bottom,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      isIncome ? "Kirimni tahrirlash" : "Chiqimni tahrirlash",
-                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded),
-                      onPressed: () => Navigator.of(ctx).pop(),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // Currency selector
-                Row(
-                  children: [
-                    Expanded(
-                      child: ChoiceChip(
-                        label: const Text('so\'m (UZS)'),
-                        selected: selectedCurrencyCode == 'UZS',
-                        onSelected: (val) {
-                          if (val) setSt(() => selectedCurrencyCode = 'UZS');
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: ChoiceChip(
-                        label: const Text('Dollar (USD)'),
-                        selected: selectedCurrencyCode == 'USD',
-                        onSelected: (val) {
-                          if (val) setSt(() => selectedCurrencyCode = 'USD');
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                // Amount
-                TextField(
-                  controller: amountCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(
-                    labelText: 'Summa',
-                    prefixIcon: Icon(Icons.money_rounded, size: 18),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Categories (for expenses)
-                if (!isIncome && categories.isNotEmpty) ...[
-                  const Text('Kategoriya', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.muted)),
-                  const SizedBox(height: 6),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: categories.map((c) {
-                        final sel = selectedCategory?.name == c.name;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: InkWell(
-                            onTap: () => setSt(() {
-                              selectedCategory = c;
-                              if (!c.isWorker) selectedToUserId = null;
-                            }),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: sel ? AppColors.accent.withOpacity(0.1) : AppColors.card,
-                                border: Border.all(color: sel ? AppColors.accent : AppColors.border),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(c.icon, size: 16, color: sel ? AppColors.accent : AppColors.muted),
-                                  const SizedBox(width: 6),
-                                  Text(c.name == 'Xodim' ? tr('xodim_category') : c.name, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: sel ? AppColors.accent : AppColors.text)),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Sub-worker dropdown
-                  if (selectedCategory?.isWorker == true) ...[
-                    InkWell(
-                      onTap: () async {
-                        final selected = await showModalBottomSheet<String>(
-                          context: context,
-                          backgroundColor: AppColors.card,
-                          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-                          builder: (lctx) => Padding(
-                            padding: const EdgeInsets.all(20),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                const Text('Ishchini tanlang', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                                const SizedBox(height: 12),
-                                Expanded(
-                                  child: ListView.builder(
-                                    shrinkWrap: true,
-                                    itemCount: _members.length,
-                                    itemBuilder: (lctx, index) {
-                                      final w = _members[index];
-                                      return ListTile(
-                                        title: Text(w.displayName, style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.text)),
-                                        trailing: selectedToUserId == w.userId
-                                            ? const Icon(Icons.check_circle_rounded, color: AppColors.accent)
-                                            : null,
-                                        onTap: () => Navigator.of(lctx).pop(w.userId),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                        if (selected != null) {
-                          setSt(() => selectedToUserId = selected);
-                        }
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: AppColors.bg,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              selectedToUserId != null
-                                  ? _members.firstWhere((m) => m.userId == selectedToUserId, orElse: () => _members.first).displayName
-                                  : 'Ishchini tanlang',
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                            ),
-                            const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.muted),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                ],
-
-                // Date Picker
-                InkWell(
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: ctx,
-                      initialDate: txDate,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime(2100),
-                    );
-                    if (picked != null) setSt(() => txDate = picked);
-                  },
-                  child: InputDecorator(
-                    decoration: const InputDecoration(labelText: 'Sana', prefixIcon: Icon(Icons.calendar_today_rounded, size: 18)),
-                    child: Text('${txDate.year}-${txDate.month.toString().padLeft(2, '0')}-${txDate.day.toString().padLeft(2, '0')}'),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Note/Comment
-                TextField(
-                  controller: noteCtrl,
-                  decoration: const InputDecoration(hintText: 'Izoh (ixtiyoriy)'),
-                ),
-                const SizedBox(height: 20),
-
-                // Save button
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isIncome ? AppColors.green : AppColors.red,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                  onPressed: () async {
-                    final amountText = amountCtrl.text.trim();
-                    final amount = num.tryParse(amountText.replaceAll(' ', '')) ?? 0;
-                    if (amount <= 0) return;
-                    
-                    AppHaptics.medium();
-                    Navigator.of(ctx).pop();
-                    
-                    try {
-                      await _txRepo.updateTransaction(
-                        id: tx.id,
-                        newAmount: amount,
-                        newKategoriya: isIncome ? 'Kirim' : (selectedCategory?.name ?? 'Boshqa'),
-                        newIzoh: noteCtrl.text.trim(),
-                        newTxDate: txDate,
-                        newCurrency: selectedCurrencyCode,
-                      );
-                      _withMutation(_loadSilent);
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Xato: $e')));
-                    }
-                  },
-                  child: const Text('Saqlash'),
-                ),
-              ],
-            ),
-          ),
+    final result = await Navigator.of(context).push<AddTransactionResult>(
+      MaterialPageRoute(
+        builder: (ctx) => AddTransactionScreen(
+          isIncome: isIncome,
+          projectId: _project.id,
+          workers: _visibleMembers,
+          initialTransaction: tx,
         ),
       ),
     );
+
+    if (result == null) return;
+
+    final amount = result.amount;
+    final selectedCurrencyCode = result.currencyCode;
+    final categoryName = result.categoryName;
+    final selectedToUserId = result.toUserId;
+    final noteText = result.noteText;
+    final filePaths = result.attachedFiles.map((f) => f.path).toList();
+
+    AppHaptics.medium();
+    setState(() => _mutating = true);
+
+    try {
+      await _txRepo.updateTransaction(
+        id: tx.id,
+        newAmount: amount,
+        newKategoriya: categoryName,
+        newIzoh: noteText.isNotEmpty ? noteText : null,
+        newTxDate: tx.date,
+        newCurrency: selectedCurrencyCode,
+        newToUserId: selectedToUserId,
+        newFiles: filePaths,
+      );
+      await _loadSilent();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Xato: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _mutating = false);
+    }
   }
 
   Future<void> _uploadFile() async {
@@ -1761,10 +1178,101 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       };
       final mime = mimeMap[ext] ?? 'application/octet-stream';
-      final name = pf.name;
+      final originalName = pf.name;
+      final customNameInput = await showDialog<String>(
+        context: context,
+        builder: (dctx) {
+          final ctrl = TextEditingController(text: originalName);
+          return AlertDialog(
+            backgroundColor: AppColors.card,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Text(tr('file_name_title'),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  tr('original_file_name'),
+                  style: const TextStyle(fontSize: 11, color: AppColors.muted, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.bg,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.insert_drive_file_outlined, size: 18, color: AppColors.accent),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          originalName,
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.text),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  tr('given_file_name'),
+                  style: const TextStyle(fontSize: 11, color: AppColors.muted, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: ctrl,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    hintText: tr('file_name_hint'),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dctx).pop(null),
+                child: Text(tr('cancel')),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accent,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () {
+                  final val = ctrl.text.trim();
+                  if (val.isNotEmpty) {
+                    Navigator.of(dctx).pop(val);
+                  }
+                },
+                child: Text(tr('upload_file')),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (customNameInput == null || customNameInput.trim().isEmpty) return;
+
+      String finalCustomName = customNameInput.trim();
+      if (ext.isNotEmpty && !finalCustomName.toLowerCase().endsWith('.$ext')) {
+        finalCustomName = '$finalCustomName.$ext';
+      }
 
       setState(() => _filesLoading = true);
-      await _filesRepo.uploadFile(_project.id, name, pf.bytes!, mime);
+      await _filesRepo.uploadFile(
+        _project.id,
+        finalCustomName,
+        pf.bytes!,
+        mime,
+        originalName: originalName,
+      );
       await _loadFiles();
       if (mounted)
         ScaffoldMessenger.of(context)
@@ -1774,6 +1282,311 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
         setState(() => _filesLoading = false);
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Xato: $e')));
+      }
+    }
+  }
+
+  Future<void> _uploadImageFromGallery() async {
+    try {
+      final picker = ImagePicker();
+      final image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 90);
+      if (image == null) return;
+      final bytes = await image.readAsBytes();
+
+      final originalName = image.name.isNotEmpty ? image.name : 'image_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final ext = originalName.contains('.') ? originalName.split('.').last.toLowerCase() : 'jpg';
+      final mime = 'image/${ext == 'png' ? 'png' : 'jpeg'}';
+
+      final customNameInput = await showDialog<String>(
+        context: context,
+        builder: (dctx) {
+          final ctrl = TextEditingController(text: originalName);
+          return AlertDialog(
+            backgroundColor: AppColors.card,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Text(tr('file_name_title'),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  tr('original_file_name'),
+                  style: const TextStyle(fontSize: 11, color: AppColors.muted, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.bg,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.image_outlined, size: 18, color: AppColors.accent),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          originalName,
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.text),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  tr('given_file_name'),
+                  style: const TextStyle(fontSize: 11, color: AppColors.muted, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: ctrl,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    hintText: tr('file_name_hint'),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dctx).pop(null),
+                child: Text(tr('cancel')),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accent,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () {
+                  final val = ctrl.text.trim();
+                  if (val.isNotEmpty) {
+                    Navigator.of(dctx).pop(val);
+                  }
+                },
+                child: Text(tr('upload_image')),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (customNameInput == null || customNameInput.trim().isEmpty) return;
+
+      String finalCustomName = customNameInput.trim();
+      if (ext.isNotEmpty && !finalCustomName.toLowerCase().endsWith('.$ext')) {
+        finalCustomName = '$finalCustomName.$ext';
+      }
+
+      setState(() => _filesLoading = true);
+      await _filesRepo.uploadFile(
+        _project.id,
+        finalCustomName,
+        bytes,
+        mime,
+        originalName: originalName,
+      );
+      await _loadFiles();
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Rasm yuklandi')));
+    } catch (e) {
+      if (mounted) {
+        setState(() => _filesLoading = false);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Xato: $e')));
+      }
+    }
+  }
+
+  Future<void> _confirmAndDeleteFile(ProjectFile f) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(tr('tx_delete_title')),
+        content: Text(
+          appLocaleNotifier.value == 'ru'
+              ? 'Файл ${f.name} будет удален из хранилища.'
+              : "${f.name} xotiradan o'chiriladi.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(tr('cancel')),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.red,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(tr('delete')),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await _filesRepo.deleteFile(f.path);
+        if (mounted) {
+          setState(() {
+            _files.removeWhere((x) => x.path == f.path);
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                appLocaleNotifier.value == 'ru'
+                    ? 'Файл удален из хранилища'
+                    : "Fayl xotiradan o'chirildi",
+              ),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Xato: $e')),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _openFile(ProjectFile f) async {
+    if (f.isImage) {
+      showDialog(
+        context: context,
+        builder: (ctx) => Dialog.fullscreen(
+          backgroundColor: Colors.black,
+          child: Scaffold(
+            backgroundColor: Colors.black,
+            appBar: AppBar(
+              backgroundColor: Colors.black,
+              iconTheme: const IconThemeData(color: Colors.white),
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    f.name,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold),
+                  ),
+                  if (f.originalName != f.name)
+                    Text(
+                      f.originalName,
+                      style:
+                          const TextStyle(color: Colors.white70, fontSize: 11),
+                    ),
+                ],
+              ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.open_in_new_rounded,
+                      color: Colors.white, size: 20),
+                  tooltip: tr('open_external'),
+                  onPressed: () async {
+                    final uri = Uri.parse(f.publicUrl);
+                    if (await canLaunchUrl(uri)) {
+                      launchUrl(uri, mode: LaunchMode.externalApplication);
+                    }
+                  },
+                ),
+              ],
+            ),
+            body: Center(
+              child: InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4.0,
+                child: Image.network(
+                  f.publicUrl,
+                  fit: BoxFit.contain,
+                  loadingBuilder: (ctx, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Center(
+                      child: CircularProgressIndicator(
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                                loadingProgress.expectedTotalBytes!
+                            : null,
+                        color: AppColors.accent,
+                      ),
+                    );
+                  },
+                  errorBuilder: (ctx, error, stackTrace) => Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.broken_image_rounded,
+                          size: 48, color: Colors.white54),
+                      const SizedBox(height: 12),
+                      Text(
+                        tr('image_load_error'),
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    } else {
+      final publicUrl = f.publicUrl;
+      final ext = f.extension.toLowerCase();
+
+      final docsViewerUrl = [
+        'doc',
+        'docx',
+        'xls',
+        'xlsx',
+        'csv',
+        'ppt',
+        'pptx',
+        'pdf'
+      ].contains(ext)
+          ? 'https://docs.google.com/gview?embedded=true&url=${Uri.encodeComponent(publicUrl)}'
+          : publicUrl;
+
+      final uri = Uri.parse(docsViewerUrl);
+      try {
+        bool launched = await launchUrl(
+          uri,
+          mode: LaunchMode.inAppBrowserView,
+        );
+        if (!launched) {
+          launched = await launchUrl(
+            Uri.parse(publicUrl),
+            mode: LaunchMode.inAppBrowserView,
+          );
+        }
+        if (!launched) {
+          await launchUrl(
+            Uri.parse(publicUrl),
+            mode: LaunchMode.externalApplication,
+          );
+        }
+      } catch (_) {
+        try {
+          await launchUrl(
+            Uri.parse(publicUrl),
+            mode: LaunchMode.externalApplication,
+          );
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Xato: $e')),
+            );
+          }
+        }
       }
     }
   }
@@ -1892,33 +1705,55 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                 Container(
                   color: AppColors.bg,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.card,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: TabBar(
-                      controller: _tabController,
-                      labelColor: AppColors.accent,
-                      unselectedLabelColor: AppColors.text2,
-                      indicator: BoxDecoration(
-                        color: AppColors.accent.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(10),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.card,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: TabBar(
+                          controller: _tabController,
+                          labelColor: AppColors.accent,
+                          unselectedLabelColor: AppColors.text2,
+                          indicator: BoxDecoration(
+                            color: AppColors.accent.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          indicatorSize: TabBarIndicatorSize.tab,
+                          dividerColor: Colors.transparent,
+                          isScrollable: false,
+                          labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
+                          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                          padding: const EdgeInsets.all(4),
+                          tabs: [
+                            Tab(text: tr('umumiy')),
+                            Tab(text: tr('transactions')),
+                            Tab(text: tr('workers')),
+                            Tab(text: tr('files')),
+                          ],
+                        ),
                       ),
-                      indicatorSize: TabBarIndicatorSize.tab,
-                      dividerColor: Colors.transparent,
-                      isScrollable: false,
-                      labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
-                      unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
-                      padding: const EdgeInsets.all(4),
-                      tabs: [
-                        Tab(text: tr('umumiy')),
-                        Tab(text: tr('transactions')),
-                        Tab(text: tr('workers')),
-                        Tab(text: tr('files')),
-                      ],
-                    ),
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.swap_horiz_rounded,
+                              size: 14, color: AppColors.muted.withOpacity(0.7)),
+                          const SizedBox(width: 4),
+                          Text(
+                            tr('swipe_page_hint'),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.muted.withOpacity(0.8),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
                 const Divider(height: 1, color: AppColors.border),
@@ -2168,138 +2003,144 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
 
   Widget _buildTransactionsTab() {
     final userId = supabase.auth.currentUser?.id ?? '';
+    final isRu = appLocaleNotifier.value == 'ru';
+
     return Column(children: [
-      // Filter chips
-      Padding(
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+      // Filter chips: Barchasi, Faqat kirim, Faqat chiqim
+      SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
         child: Row(children: [
           _FilterChip(
               label: tr('all'),
               selected: _txFilter == 'all',
-              onTap: () => setState(() => _txFilter = 'all')),
-          const SizedBox(width: 6),
+              onTap: () {
+                AppHaptics.selection();
+                setState(() => _txFilter = 'all');
+              }),
+          const SizedBox(width: 8),
           _FilterChip(
-              label: tr('income'),
+              label: isRu ? "Только доход" : "Faqat kirim",
               selected: _txFilter == 'income',
-              onTap: () => setState(() => _txFilter = 'income')),
-          const SizedBox(width: 6),
+              onTap: () {
+                AppHaptics.selection();
+                setState(() => _txFilter = 'income');
+              }),
+          const SizedBox(width: 8),
           _FilterChip(
-              label: tr('expense'),
+              label: isRu ? "Только расход" : "Faqat chiqim",
               selected: _txFilter == 'expense',
-              onTap: () => setState(() => _txFilter = 'expense')),
+              onTap: () {
+                AppHaptics.selection();
+                setState(() => _txFilter = 'expense');
+              }),
         ]),
       ),
+
+      // Date range picker: Sana oralig'ini tanlash
       Padding(
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-        child: Row(
-          children: [
-            // Date range selector
-            Expanded(
-              child: InkWell(
-                onTap: _selectDateRange,
-                borderRadius: BorderRadius.circular(10),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: _dateRange != null
-                        ? AppColors.accent.withOpacity(0.08)
-                        : AppColors.border.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: _dateRange != null
-                          ? AppColors.accent.withOpacity(0.2)
-                          : AppColors.border,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.calendar_month_outlined,
-                        size: 14,
-                        color: _dateRange != null ? AppColors.accent : AppColors.text2,
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          _dateRange == null
-                              ? (appLocaleNotifier.value == 'ru' ? "Диапазон дат" : "Sana oralig'i")
-                              : "${_formatDate(_dateRange!.start)} - ${_formatDate(_dateRange!.end)}",
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: _dateRange != null
-                                ? FontWeight.w700
-                                : FontWeight.normal,
-                            color: _dateRange != null
-                                ? AppColors.accent
-                                : AppColors.text2,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (_dateRange != null)
-                        GestureDetector(
-                          onTap: () {
-                            setState(() => _dateRange = null);
-                          },
-                          child: const Icon(
-                            Icons.close_rounded,
-                            size: 14,
-                            color: AppColors.accent,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+        child: InkWell(
+          onTap: () {
+            AppHaptics.light();
+            _selectDateRange();
+          },
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: _dateRange != null
+                  ? AppColors.accent.withValues(alpha: 0.08)
+                  : AppColors.card,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: _dateRange != null
+                    ? AppColors.accent.withValues(alpha: 0.3)
+                    : AppColors.border,
               ),
             ),
-            const SizedBox(width: 8),
-            // Sort selection
-            InkWell(
-              onTap: () {
-                setState(() {
-                  _sortBy = _sortBy == 'date' ? 'price' : 'date';
-                });
-              },
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: _sortBy == 'price'
-                      ? AppColors.accent.withOpacity(0.08)
-                      : AppColors.border.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: _sortBy == 'price'
-                        ? AppColors.accent.withOpacity(0.2)
-                        : AppColors.border,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.calendar_month_outlined,
+                  size: 20,
+                  color: _dateRange != null ? AppColors.accent : AppColors.text2,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    _dateRange == null
+                        ? (isRu ? "Выбрать диапазон дат" : "Sana oralig'ini tanlash")
+                        : "${_formatDate(_dateRange!.start)} - ${_formatDate(_dateRange!.end)}",
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: _dateRange != null
+                          ? FontWeight.w700
+                          : FontWeight.w600,
+                      color: _dateRange != null
+                          ? AppColors.accent
+                          : AppColors.text2,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      _sortBy == 'price'
-                          ? Icons.sort_by_alpha_rounded
-                          : Icons.sort_rounded,
-                      size: 14,
-                      color: _sortBy == 'price' ? AppColors.accent : AppColors.text2,
+                if (_dateRange != null)
+                  GestureDetector(
+                    onTap: () {
+                      setState(() => _dateRange = null);
+                    },
+                    child: const Icon(
+                      Icons.close_rounded,
+                      size: 18,
+                      color: AppColors.accent,
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      _sortBy == 'price' ? (appLocaleNotifier.value == 'ru' ? "По сумме" : "Summa bo'yicha") : (appLocaleNotifier.value == 'ru' ? "По дате" : "Sana bo'yicha"),
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: _sortBy == 'price'
-                            ? FontWeight.w700
-                            : FontWeight.normal,
-                        color: _sortBy == 'price'
-                            ? AppColors.accent
-                            : AppColors.text2,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+
+      // Sort chips: Eng yangilari, Eng eskilari, Eng baland narx, Eng past narx
+      SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        child: Row(
+          children: [
+            _FilterChip(
+              label: isRu ? "Сначала новые" : "Eng yangilari",
+              selected: _sortMode == 'newest',
+              onTap: () {
+                AppHaptics.selection();
+                setState(() => _sortMode = 'newest');
+              },
+            ),
+            const SizedBox(width: 8),
+            _FilterChip(
+              label: isRu ? "Сначала старые" : "Eng eskilari",
+              selected: _sortMode == 'oldest',
+              onTap: () {
+                AppHaptics.selection();
+                setState(() => _sortMode = 'oldest');
+              },
+            ),
+            const SizedBox(width: 8),
+            _FilterChip(
+              label: isRu ? "Сначала дорогие" : "Eng baland narx",
+              selected: _sortMode == 'highest_price',
+              onTap: () {
+                AppHaptics.selection();
+                setState(() => _sortMode = 'highest_price');
+              },
+            ),
+            const SizedBox(width: 8),
+            _FilterChip(
+              label: isRu ? "Сначала дешевые" : "Eng past narx",
+              selected: _sortMode == 'lowest_price',
+              onTap: () {
+                AppHaptics.selection();
+                setState(() => _sortMode = 'lowest_price');
+              },
             ),
           ],
         ),
@@ -2407,9 +2248,32 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                                           fontSize: 12, color: AppColors.text2)),
                                 ],
                                 const SizedBox(height: 2),
-                                Text(_formatDate(tx.date),
-                                    style: const TextStyle(
-                                        fontSize: 11, color: AppColors.muted)),
+                                Row(
+                                  children: [
+                                    Text(_formatDate(tx.date),
+                                        style: const TextStyle(
+                                            fontSize: 11, color: AppColors.muted)),
+                                    if (tx.files.isNotEmpty) ...[
+                                      const SizedBox(width: 8),
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.attach_file_rounded,
+                                              size: 13, color: AppColors.accent),
+                                          const SizedBox(width: 2),
+                                          Text(
+                                            '${tx.files.length} ta fayl',
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppColors.accent,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ],
+                                ),
                               ])),
                           Text(
                               '${isIncome ? '+' : '-'}${formatTransactionAmount(tx)}',
@@ -2529,19 +2393,27 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
 
   Widget _buildFilesTab() {
     return Column(children: [
-      if (_project.role == 'owner')
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
+      Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            TextButton.icon(
+              onPressed: _uploadImageFromGallery,
+              icon: const Icon(Icons.add_a_photo_outlined, size: 16),
+              label: Text(tr('upload_image'), style: const TextStyle(fontSize: 12)),
+              style: TextButton.styleFrom(foregroundColor: AppColors.accent),
+            ),
+            const SizedBox(width: 4),
+            TextButton.icon(
               onPressed: _uploadFile,
               icon: const Icon(Icons.upload_file_outlined, size: 16),
               label: Text(tr('upload_file'), style: const TextStyle(fontSize: 12)),
               style: TextButton.styleFrom(foregroundColor: AppColors.accent),
             ),
-          ),
+          ],
         ),
+      ),
       Expanded(
         child: _filesLoading
             ? _buildFilesShimmerLoading()
@@ -2551,11 +2423,41 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                         const Icon(Icons.folder_open_rounded,
-                            size: 36, color: AppColors.muted),
-                        const SizedBox(height: 8),
+                            size: 44, color: AppColors.muted),
+                        const SizedBox(height: 10),
                         Text(tr('no_files'),
                             style: const TextStyle(
-                                color: AppColors.muted, fontSize: 13)),
+                                color: AppColors.muted, fontSize: 14)),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: _uploadImageFromGallery,
+                              icon: const Icon(Icons.add_a_photo_rounded, size: 18),
+                              label: Text(tr('upload_image')),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.accent,
+                                side: const BorderSide(color: AppColors.accent),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            ElevatedButton.icon(
+                              onPressed: _uploadFile,
+                              icon: const Icon(Icons.upload_file_rounded, size: 18),
+                              label: Text(tr('upload_file')),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.accent,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                elevation: 0,
+                              ),
+                            ),
+                          ],
+                        ),
                       ]))
                 : ListView.separated(
                     padding: const EdgeInsets.only(bottom: 12),
@@ -2566,9 +2468,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                       final f = _files[i];
                       return Dismissible(
                         key: ValueKey(f.path),
-                        direction: _project.role == 'owner'
-                            ? DismissDirection.endToStart
-                            : DismissDirection.none,
+                        direction: DismissDirection.endToStart,
                         background: Container(
                           alignment: Alignment.centerRight,
                           padding: const EdgeInsets.only(right: 16),
@@ -2580,7 +2480,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                           context: context,
                           builder: (ctx) => AlertDialog(
                             title: Text(tr('tx_delete_title')),
-                            content: Text(appLocaleNotifier.value == 'ru' ? 'Файл ${f.name} будет удален.' : '${f.name} o\'chiriladi.'),
+                            content: Text(appLocaleNotifier.value == 'ru'
+                                ? 'Файл ${f.name} будет удален из хранилища.'
+                                : "${f.name} xotiradan o'chiriladi."),
                             actions: [
                               TextButton(
                                   onPressed: () => Navigator.of(ctx).pop(false),
@@ -2588,24 +2490,27 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                               ElevatedButton(
                                   style: ElevatedButton.styleFrom(
                                       backgroundColor: AppColors.red,
-                                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10)),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 18, vertical: 10)),
                                   onPressed: () => Navigator.of(ctx).pop(true),
                                   child: Text(tr('delete'))),
                             ],
                           ),
                         ),
                         onDismissed: (_) async {
-                          await _filesRepo.deleteFile(f.path);
-                          setState(() =>
-                              _files.removeWhere((x) => x.path == f.path));
+                          try {
+                            await _filesRepo.deleteFile(f.path);
+                            setState(() =>
+                                _files.removeWhere((x) => x.path == f.path));
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Xato: $e')));
+                            }
+                          }
                         },
                         child: InkWell(
-                          onTap: () async {
-                            final uri = Uri.parse(f.publicUrl);
-                            if (await canLaunchUrl(uri))
-                              launchUrl(uri,
-                                  mode: LaunchMode.externalApplication);
-                          },
+                          onTap: () => _openFile(f),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 14, vertical: 12),
@@ -2631,12 +2536,23 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                                             fontSize: 13,
                                             fontWeight: FontWeight.w600),
                                         overflow: TextOverflow.ellipsis),
-                                    if (f.sizeBytes != null)
-                                      Text(_formatSize(f.sizeBytes!),
-                                          style: const TextStyle(
-                                              fontSize: 11,
-                                              color: AppColors.muted)),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      f.originalName != f.name
+                                          ? '${tr('original_file_name')}: ${f.originalName}${f.sizeBytes != null ? ' • ${_formatSize(f.sizeBytes!)}' : ''}'
+                                          : (f.sizeBytes != null ? _formatSize(f.sizeBytes!) : ''),
+                                      style: const TextStyle(
+                                          fontSize: 11,
+                                          color: AppColors.muted),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ])),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline_rounded,
+                                    size: 20, color: AppColors.red),
+                                tooltip: tr('delete'),
+                                onPressed: () => _confirmAndDeleteFile(f),
+                              ),
                               const Icon(Icons.open_in_new_rounded,
                                   size: 16, color: AppColors.muted),
                             ]),
@@ -2759,7 +2675,6 @@ class _InfoRow extends StatelessWidget {
 }
 
 class _FilterChip extends StatelessWidget {
-
   final String label;
   final bool selected;
   final VoidCallback onTap;
@@ -2769,19 +2684,23 @@ class _FilterChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: selected ? AppColors.accent : AppColors.bg,
-          borderRadius: BorderRadius.circular(20),
+          color: selected ? AppColors.accent : AppColors.card,
+          borderRadius: BorderRadius.circular(24),
           border:
-              Border.all(color: selected ? AppColors.accent : AppColors.border),
+              Border.all(color: selected ? AppColors.accent : AppColors.border, width: 1.2),
         ),
-        child: Text(label,
-            style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: selected ? Colors.white : AppColors.text2)),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: selected ? Colors.white : AppColors.text2,
+          ),
+        ),
       ),
     );
   }

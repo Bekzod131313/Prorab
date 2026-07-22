@@ -33,6 +33,7 @@ class TransactionRepository {
     String? toUserId,
     DateTime? txDate,
     String currency = 'UZS',
+    List<String>? files,
   }) async {
     final userId = supabase.auth.currentUser?.id;
     final txDate0 = (txDate ?? DateTime.now()).toIso8601String();
@@ -56,6 +57,7 @@ class TransactionRepository {
         'summa_usd': amountUsd,
         'summa_uzs': amountUzs,
         'created_by': userId,
+        'files': files ?? [],
       });
 
       if (userId != null) {
@@ -112,6 +114,7 @@ class TransactionRepository {
         'summa_usd': amountUsd,
         'summa_uzs': amountUzs,
         'created_by': userId,
+        'files': files ?? [],
       });
 
       if (userId != null) {
@@ -182,6 +185,7 @@ class TransactionRepository {
     String? izoh,
     DateTime? txDate,
     String currency = 'UZS',
+    List<String>? files,
   }) async {
     final userId = supabase.auth.currentUser?.id;
     final liveRate = CurrencyService().usdToUzsRate;
@@ -216,6 +220,7 @@ class TransactionRepository {
       'summa_usd': amountUsd,
       'summa_uzs': amountUzs,
       'created_by': userId,
+      'files': files ?? [],
     });
 
     if (userId != null) {
@@ -362,6 +367,7 @@ class TransactionRepository {
     String? izoh,
     DateTime? txDate,
     String currency = 'UZS',
+    List<String>? files,
   }) async {
     final userId = supabase.auth.currentUser?.id;
     final liveRate = CurrencyService().usdToUzsRate;
@@ -383,6 +389,7 @@ class TransactionRepository {
       'summa_usd': amountUsd,
       'summa_uzs': amountUzs,
       'created_by': userId,
+      'files': files ?? [],
     });
 
     if (userId != null) {
@@ -437,6 +444,8 @@ class TransactionRepository {
     required String? newIzoh,
     required DateTime newTxDate,
     required String newCurrency,
+    String? newToUserId,
+    List<String>? newFiles,
   }) async {
     // 1. Load the original transaction
     final row = await supabase.from('transactions').select('*').eq('id', id).single();
@@ -458,6 +467,8 @@ class TransactionRepository {
       'exchange_rate': liveRate,
       'summa_usd': newAmountUsd,
       'summa_uzs': newAmountUzs,
+      'to_user': newToUserId,
+      'files': newFiles ?? [],
     }).eq('id', id);
 
     // 4. Update project and member cache totals (subtract old amount, add new amount)

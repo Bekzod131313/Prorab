@@ -15,6 +15,7 @@ import '../widgets/pie_chart.dart';
 import '../widgets/project_card.dart' show formatUzsToDisplay;
 import '../services/currency_service.dart';
 import '../widgets/shimmer.dart';
+import '../utils/haptics.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({super.key});
@@ -23,7 +24,7 @@ class AnalyticsScreen extends StatefulWidget {
   State<AnalyticsScreen> createState() => _AnalyticsScreenState();
 }
 
-class _AnalyticsScreenState extends State<AnalyticsScreen> {
+class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProviderStateMixin {
   final _projectRepo = ProjectRepository();
   final _txRepo = TransactionRepository();
   List<Project> _projects = [];
@@ -32,16 +33,19 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   // Per-project selection
   Project? _selectedProject;
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _load();
     projectUpdateNotifier.addListener(_load);
   }
 
   @override
   void dispose() {
+    _tabController.dispose();
     projectUpdateNotifier.removeListener(_load);
     super.dispose();
   }
@@ -100,6 +104,20 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     return Map.fromEntries(sorted);
   }
 
+  Map<String, num> get _byIncomeCategory {
+    final userId = supabase.auth.currentUser?.id ?? '';
+    final map = <String, num>{};
+    for (final txs in _txsByProject.values) {
+      for (final tx in txs.where((t) => t.isIncomeFor(userId))) {
+        String cat = tx.kategoriya ?? 'Mijoz';
+        if (cat == 'income' || cat == 'Kirim') cat = 'Mijoz';
+        map[cat] = (map[cat] ?? 0) + tx.summaUzs;
+      }
+    }
+    final sorted = map.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    return Map.fromEntries(sorted);
+  }
+
   // ---------- per-project helpers ----------
   List<ProjectTransaction> get _selTxs =>
       _selectedProject != null ? (_txsByProject[_selectedProject!.id] ?? []) : [];
@@ -109,6 +127,18 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final map = <String, num>{};
     for (final tx in _selTxs.where((t) => t.isExpenseFor(userId))) {
       final cat = tx.kategoriya ?? 'Boshqa';
+      map[cat] = (map[cat] ?? 0) + tx.summaUzs;
+    }
+    final sorted = map.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    return Map.fromEntries(sorted);
+  }
+
+  Map<String, num> get _selByIncomeCategory {
+    final userId = supabase.auth.currentUser?.id ?? '';
+    final map = <String, num>{};
+    for (final tx in _selTxs.where((t) => t.isIncomeFor(userId))) {
+      String cat = tx.kategoriya ?? 'Mijoz';
+      if (cat == 'income' || cat == 'Kirim') cat = 'Mijoz';
       map[cat] = (map[cat] ?? 0) + tx.summaUzs;
     }
     final sorted = map.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
@@ -138,158 +168,290 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isRu = appLocaleNotifier.value == 'ru';
+    final tabUmumiy = isRu ? 'Общий' : 'Umumiy';
+    final tabByProject = isRu ? 'По проектам' : 'Loyiha bo\'yicha';
+
     return ValueListenableBuilder<String>(
       valueListenable: appLocaleNotifier,
       builder: (_, __, ___) => Scaffold(
-      backgroundColor: AppColors.bg,
-      appBar: AppBar(
         backgroundColor: AppColors.bg,
-        title: Text(tr('analytics')),
-        actions: null,
-      ),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: _loading
-            ? _buildShimmerLoading()
-            : ListView(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-                children: [
-                  // Summary cards
-                  Row(
-                    children: [
-                      _SummaryCard(label: tr('all'), value: '${_myProjects.length}', sub: tr('nav_projects'), color: AppColors.accent),
-                      const SizedBox(width: 10),
-                      _SummaryCard(label: tr('active'), value: '${_active.length}', sub: tr('nav_projects'), color: AppColors.green),
-                      const SizedBox(width: 10),
-                      _SummaryCard(label: tr('done'), value: '${_done.length}', sub: tr('nav_projects'), color: AppColors.muted),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Financial summary
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(tr('all_projects'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.muted)),
-                        const SizedBox(height: 12),
-                        _FinRow(label: tr('total_income'), value: _totalKirim, color: AppColors.green, icon: Icons.arrow_downward_rounded),
-                        const SizedBox(height: 8),
-                        _FinRow(label: tr('total_expense'), value: _totalChiqim, color: AppColors.red, icon: Icons.arrow_upward_rounded),
-                        const Divider(color: AppColors.border, height: 20),
-                        _FinRow(
-                          label: tr('total_balance'),
-                          value: _totalBalance,
-                          color: _totalBalance >= 0 ? AppColors.green : AppColors.red,
-                          icon: Icons.account_balance_rounded,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Category pie chart (all projects)
-                  if (_byCategory.isNotEmpty) ...[
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(tr('expense_by_category'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.muted)),
-                          const SizedBox(height: 12),
-                          MoliyaPieChart(
-                            data: () {
-                              int ci = 0;
-                              return _byCategory.entries.map((e) => PieChartData(label: e.key, value: e.value.toDouble(), color: _catColors[ci++ % _catColors.length])).toList();
-                            }(),
-                          ),
-                          const SizedBox(height: 12),
-                          ..._byCategory.entries.map((e) {
-                            final ratio = _totalChiqim > 0 ? e.value / _totalChiqim : 0.0;
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: Row(
-                                children: [
-                                  Expanded(child: Text(e.key, style: const TextStyle(fontSize: 12, color: AppColors.text2))),
-                                  Text('${formatUzsToDisplay(e.value)} (${(ratio * 100).round()}%)', style: const TextStyle(fontSize: 11, color: AppColors.muted)),
-                                ],
-                              ),
-                            );
-                          }),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-
-                  // ──────── Per-project statistics ────────
-                  if (_myProjects.isNotEmpty) ...[
-                    // Section header
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 3, height: 18,
-                            decoration: BoxDecoration(color: AppColors.accent, borderRadius: BorderRadius.circular(2)),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(tr('project_stats'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: AppColors.text)),
-                          const Spacer(),
-                          if (_selectedProject != null)
-                            TextButton.icon(
-                              onPressed: _downloadPdf,
-                              icon: const Icon(Icons.download_rounded, size: 16, color: AppColors.accent),
-                              label: Text(
-                                tr('download'),
-                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.accent),
-                              ),
-                              style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-
-                    // Project picker
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.card,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<Project>(
-                          value: _selectedProject,
-                          isExpanded: true,
-                          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.muted),
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.text),
-                          dropdownColor: AppColors.card,
+        appBar: AppBar(
+          backgroundColor: AppColors.bg,
+          title: Text(tr('analytics')),
+        ),
+        body: RefreshIndicator(
+          onRefresh: _load,
+          child: _loading
+              ? _buildShimmerLoading()
+              : Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.card,
                           borderRadius: BorderRadius.circular(14),
-                          items: _myProjects.map((p) => DropdownMenuItem(
-                            value: p,
-                            child: Text(p.nomi, overflow: TextOverflow.ellipsis),
-                          )).toList(),
-                          onChanged: (p) => setState(() => _selectedProject = p),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: TabBar(
+                          controller: _tabController,
+                          onTap: (_) => AppHaptics.selection(),
+                          labelColor: AppColors.accent,
+                          unselectedLabelColor: AppColors.text2,
+                          indicator: BoxDecoration(
+                            color: AppColors.accent.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          indicatorSize: TabBarIndicatorSize.tab,
+                          dividerColor: Colors.transparent,
+                          isScrollable: false,
+                          labelStyle: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13,
+                          ),
+                          unselectedLabelStyle: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                          padding: const EdgeInsets.all(4),
+                          tabs: [
+                            Tab(text: tabUmumiy),
+                            Tab(text: tabByProject),
+                          ],
                         ),
                       ),
                     ),
-                      const SizedBox(height: 12),
-
-                      if (_selectedProject != null) _buildProjectStats(_selectedProject!),
-                    ],
+                    Expanded(
+                      child: TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _buildOverallTab(),
+                          _buildPerProjectTab(),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
         ),
       ),
+    );
+  }
+
+  Widget _buildOverallTab() {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+      children: [
+        // Summary cards
+        Row(
+          children: [
+            _SummaryCard(
+                label: tr('all'),
+                value: '${_myProjects.length}',
+                sub: tr('nav_projects'),
+                color: AppColors.accent),
+            const SizedBox(width: 10),
+            _SummaryCard(
+                label: tr('active'),
+                value: '${_active.length}',
+                sub: tr('nav_projects'),
+                color: AppColors.green),
+            const SizedBox(width: 10),
+            _SummaryCard(
+                label: tr('done'),
+                value: '${_done.length}',
+                sub: tr('nav_projects'),
+                color: AppColors.muted),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // Financial summary
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                tr('all_projects'),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
+                  color: AppColors.muted,
+                ),
+              ),
+              const SizedBox(height: 12),
+              _FinRow(
+                  label: tr('total_income'),
+                  value: _totalKirim,
+                  color: AppColors.green,
+                  icon: Icons.arrow_downward_rounded),
+              const SizedBox(height: 8),
+              _FinRow(
+                  label: tr('total_expense'),
+                  value: _totalChiqim,
+                  color: AppColors.red,
+                  icon: Icons.arrow_upward_rounded),
+              const Divider(color: AppColors.border, height: 20),
+              _FinRow(
+                label: tr('total_balance'),
+                value: _totalBalance,
+                color: _totalBalance >= 0 ? AppColors.green : AppColors.red,
+                icon: Icons.account_balance_rounded,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Category pie charts (all projects)
+        _buildCategoryBreakdownCard(
+          title: tr('income_by_category'),
+          categoryData: _byIncomeCategory,
+          totalAmount: _totalKirim,
+        ),
+        _buildCategoryBreakdownCard(
+          title: tr('expense_by_category'),
+          categoryData: _byCategory,
+          totalAmount: _totalChiqim,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPerProjectTab() {
+    final isRu = appLocaleNotifier.value == 'ru';
+
+    if (_myProjects.isEmpty) {
+      return Center(
+        child: Text(
+          tr('no_projects_stats'),
+          style: const TextStyle(color: AppColors.muted, fontSize: 14),
+        ),
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+      children: [
+        // Label for project selector
+        Text(
+          isRu ? "Выберите объект:" : "Loyihani tanlang:",
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: AppColors.muted,
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        // Big project selection chips
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: _myProjects.map((p) {
+              final selected = _selectedProject?.id == p.id;
+              return Padding(
+                padding: const EdgeInsets.only(right: 10),
+                child: GestureDetector(
+                  onTap: () {
+                    AppHaptics.selection();
+                    setState(() => _selectedProject = p);
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: selected ? AppColors.accent : AppColors.card,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: selected ? AppColors.accent : AppColors.border,
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: selected
+                              ? AppColors.accent.withValues(alpha: 0.25)
+                              : Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.domain_rounded,
+                          size: 18,
+                          color: selected ? Colors.white : AppColors.accent,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          p.nomi,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: selected ? Colors.white : AppColors.text,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Download button placed at the bottom of project selector to the right
+        if (_selectedProject != null) ...[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              OutlinedButton.icon(
+                onPressed: () {
+                  AppHaptics.medium();
+                  _downloadPdf();
+                },
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(
+                    color: AppColors.accent.withValues(alpha: 0.5),
+                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: const Icon(
+                  Icons.picture_as_pdf_rounded,
+                  size: 16,
+                  color: AppColors.accent,
+                ),
+                label: Text(
+                  isRu ? "Скачать PDF отчет" : "PDF hisobotni yuklab olish",
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.accent,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+        ],
+
+        if (_selectedProject != null) _buildProjectStats(_selectedProject!),
+      ],
     );
   }
 
@@ -398,62 +560,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         const SizedBox(height: 10),
 
         // Category breakdown for this project
-        if (byCat.isNotEmpty) ...[
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(tr('expense_by_category'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.muted)),
-                const SizedBox(height: 12),
-                MoliyaPieChart(
-                  data: () {
-                    int ci = 0;
-                    return byCat.entries.map((e) => PieChartData(label: e.key, value: e.value.toDouble(), color: _catColors[ci++ % _catColors.length])).toList();
-                  }(),
-                ),
-                const SizedBox(height: 14),
-                ...() {
-                  int ci = 0;
-                  return byCat.entries.map((e) {
-                    final color = _catColors[ci++ % _catColors.length];
-                    final ratio = spend > 0 ? e.value / spend : 0.0;
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(width: 10, height: 10, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))),
-                              const SizedBox(width: 6),
-                              Expanded(child: Text(e.key, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.text2))),
-                              Text(formatUzsToDisplay(e.value), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.text)),
-                            ],
-                          ),
-                          const SizedBox(height: 5),
-                          Stack(
-                            children: [
-                              Container(height: 5, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(3))),
-                              FractionallySizedBox(
-                                widthFactor: ratio.clamp(0.0, 1.0),
-                                child: Container(height: 5, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 2),
-                          Text('${(ratio * 100).round()}% ${tr("total_expense")}', style: const TextStyle(fontSize: 10, color: AppColors.muted)),
-                        ],
-                      ),
-                    );
-                  }).toList();
-                }(),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-        ],
+        _buildCategoryBreakdownCard(
+          title: tr('income_by_category'),
+          categoryData: _selByIncomeCategory,
+          totalAmount: income,
+        ),
+        _buildCategoryBreakdownCard(
+          title: tr('expense_by_category'),
+          categoryData: byCat,
+          totalAmount: spend,
+        ),
 
         // Transaction count summary
         Container(
@@ -479,6 +595,126 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         const SizedBox(height: 10),
 
       ],
+    );
+  }
+
+  Widget _buildCategoryBreakdownCard({
+    required String title,
+    required Map<String, num> categoryData,
+    required num totalAmount,
+  }) {
+    if (categoryData.isEmpty) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 13,
+              color: AppColors.muted,
+            ),
+          ),
+          const SizedBox(height: 12),
+          MoliyaPieChart(
+            data: () {
+              int ci = 0;
+              return categoryData.entries
+                  .map((e) => PieChartData(
+                        label: e.key,
+                        value: e.value.toDouble(),
+                        color: _catColors[ci++ % _catColors.length],
+                      ))
+                  .toList();
+            }(),
+          ),
+          const SizedBox(height: 14),
+          ...() {
+            int ci = 0;
+            return categoryData.entries.map((e) {
+              final color = _catColors[ci++ % _catColors.length];
+              final ratio = totalAmount > 0 ? e.value / totalAmount : 0.0;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: color,
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            e.key,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.text2,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          formatUzsToDisplay(e.value),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.text,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 5),
+                    Stack(
+                      children: [
+                        Container(
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: AppColors.border,
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                        ),
+                        FractionallySizedBox(
+                          widthFactor: ratio.clamp(0.0, 1.0),
+                          child: Container(
+                            height: 5,
+                            decoration: BoxDecoration(
+                              color: color,
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${(ratio * 100).round()}%',
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: AppColors.muted,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList();
+          }(),
+        ],
+      ),
     );
   }
 
