@@ -86,6 +86,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Navigator.of(ctx).pop();
                 },
               ),
+              const SizedBox(height: 8),
+              _SelectOptionTile(
+                title: "English",
+                subtitle: "English language",
+                isSelected: currentLang == 'en',
+                onTap: () {
+                  setLocale('en');
+                  _hasChanged = true;
+                  Navigator.of(ctx).pop();
+                },
+              ),
             ],
           ),
         );
@@ -154,7 +165,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return ValueListenableBuilder<String>(
       valueListenable: appLocaleNotifier,
       builder: (_, lang, ___) {
-        final isUz = lang == 'uz';
+        String langLabel;
+        if (lang == 'en') {
+          langLabel = "English";
+        } else if (lang == 'ru') {
+          langLabel = "Русский";
+        } else {
+          langLabel = "O'zbekcha";
+        }
 
         return PopScope(
           canPop: false,
@@ -173,7 +191,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onPressed: () => Navigator.of(context).pop(_hasChanged),
               ),
               title: Text(
-                isUz ? "Sozlamalar" : "Настройки",
+                tr('settings'),
                 style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.text),
               ),
               centerTitle: true,
@@ -183,17 +201,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               // ── Security Card ──────────────────────────────────────────────
               _SettingsGroupCard(
-                headerTitle: isUz ? "Xavfsizlik" : "Безопасность",
+                headerTitle: tr('security'),
                 children: [
                   _SettingsTile(
                     leading: const _SettingsIconBadge(
                       icon: Icons.lock_rounded,
                       color: Color(0xFFFF9500),
                     ),
-                    title: isUz ? "Xavfsizlik va PIN-kod" : "Безопасность и PIN",
-                    subtitle: _pinLockEnabled
-                        ? (isUz ? "Yoqilgan" : "Включен")
-                        : (isUz ? "O'chirilgan" : "Выключен"),
+                    title: tr('security_and_pin'),
+                    subtitle: _pinLockEnabled ? tr('enabled') : tr('disabled'),
                     trailing: const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.muted),
                     onTap: () async {
                       await Navigator.of(context).push(
@@ -208,7 +224,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               // ── App Preferences Card (Language & Currency) ─────────────────
               _SettingsGroupCard(
-                headerTitle: isUz ? "Ilova sozlamalari" : "Настройки приложения",
+                headerTitle: tr('app_settings'),
                 children: [
                   _SettingsTile(
                     leading: const _SettingsIconBadge(
@@ -220,7 +236,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          isUz ? "O'zbekcha" : "Русский",
+                          langLabel,
                           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.muted),
                         ),
                         const SizedBox(width: 4),
@@ -280,7 +296,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               // ── Account Actions Card (Logout & Delete) ─────────────────────
               _SettingsGroupCard(
-                headerTitle: isUz ? "Hisob" : "Аккаунт",
+                headerTitle: tr('account'),
                 children: [
                   _SettingsTile(
                     leading: const _SettingsIconBadge(

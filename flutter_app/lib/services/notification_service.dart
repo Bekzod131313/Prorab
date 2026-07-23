@@ -75,23 +75,40 @@ class NotificationService {
       if (lang == 'uz') {
         await _messaging.subscribeToTopic('all_uz');
         await _messaging.unsubscribeFromTopic('all_ru');
-        print("Subscribed to all_uz, unsubscribed from all_ru");
+        await _messaging.unsubscribeFromTopic('all_en');
+        print("Subscribed to all_uz, unsubscribed from all_ru and all_en");
 
         if (userId != null) {
           await _messaging.subscribeToTopic('user_${userId}_uz');
           await _messaging.unsubscribeFromTopic('user_${userId}_ru');
-          print("Subscribed to user_${userId}_uz, unsubscribed from user_${userId}_ru");
+          await _messaging.unsubscribeFromTopic('user_${userId}_en');
+          print("Subscribed to user_${userId}_uz");
           _lastSubscribedUserId = userId;
         }
       } else if (lang == 'ru') {
         await _messaging.subscribeToTopic('all_ru');
         await _messaging.unsubscribeFromTopic('all_uz');
-        print("Subscribed to all_ru, unsubscribed from all_uz");
+        await _messaging.unsubscribeFromTopic('all_en');
+        print("Subscribed to all_ru, unsubscribed from all_uz and all_en");
 
         if (userId != null) {
           await _messaging.subscribeToTopic('user_${userId}_ru');
           await _messaging.unsubscribeFromTopic('user_${userId}_uz');
-          print("Subscribed to user_${userId}_ru, unsubscribed from user_${userId}_uz");
+          await _messaging.unsubscribeFromTopic('user_${userId}_en');
+          print("Subscribed to user_${userId}_ru");
+          _lastSubscribedUserId = userId;
+        }
+      } else if (lang == 'en') {
+        await _messaging.subscribeToTopic('all_en');
+        await _messaging.unsubscribeFromTopic('all_uz');
+        await _messaging.unsubscribeFromTopic('all_ru');
+        print("Subscribed to all_en, unsubscribed from all_uz and all_ru");
+
+        if (userId != null) {
+          await _messaging.subscribeToTopic('user_${userId}_en');
+          await _messaging.unsubscribeFromTopic('user_${userId}_uz');
+          await _messaging.unsubscribeFromTopic('user_${userId}_ru');
+          print("Subscribed to user_${userId}_en");
           _lastSubscribedUserId = userId;
         }
       }
@@ -100,6 +117,7 @@ class NotificationService {
       if (userId != null && _lastSubscribedUserId != null && _lastSubscribedUserId != userId) {
         await _messaging.unsubscribeFromTopic('user_${_lastSubscribedUserId}_uz');
         await _messaging.unsubscribeFromTopic('user_${_lastSubscribedUserId}_ru');
+        await _messaging.unsubscribeFromTopic('user_${_lastSubscribedUserId}_en');
         print("Unsubscribed from old user topics for: $_lastSubscribedUserId");
         _lastSubscribedUserId = userId;
       }
@@ -112,12 +130,14 @@ class NotificationService {
     try {
       await _messaging.unsubscribeFromTopic('all_uz');
       await _messaging.unsubscribeFromTopic('all_ru');
-      print("Unsubscribed from all_uz and all_ru");
+      await _messaging.unsubscribeFromTopic('all_en');
+      print("Unsubscribed from all_uz, all_ru, and all_en");
 
       if (_lastSubscribedUserId != null) {
         await _messaging.unsubscribeFromTopic('user_${_lastSubscribedUserId}_uz');
         await _messaging.unsubscribeFromTopic('user_${_lastSubscribedUserId}_ru');
-        print("Unsubscribed from user_${_lastSubscribedUserId}_uz and user_${_lastSubscribedUserId}_ru");
+        await _messaging.unsubscribeFromTopic('user_${_lastSubscribedUserId}_en');
+        print("Unsubscribed from user_${_lastSubscribedUserId}_*");
         _lastSubscribedUserId = null;
       }
     } catch (e) {

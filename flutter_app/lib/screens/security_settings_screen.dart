@@ -44,8 +44,6 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
     return ValueListenableBuilder<String>(
       valueListenable: appLocaleNotifier,
       builder: (_, lang, ___) {
-        final isUz = lang == 'uz';
-
         return Scaffold(
           backgroundColor: AppColors.bg,
           appBar: AppBar(
@@ -57,7 +55,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
               onPressed: () => Navigator.of(context).pop(),
             ),
             title: Text(
-              isUz ? "Xavfsizlik va PIN-kod" : "Безопасность и PIN",
+              tr('security_and_pin'),
               style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.text),
             ),
             centerTitle: true,
@@ -92,14 +90,12 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            isUz ? "Ilova xavfsizligi" : "Безопасность приложения",
+                            tr('app_security'),
                             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.text),
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            isUz
-                                ? "PIN-kod va biometriya orqali ma'lumotlaringizni begona ko'zlardan himoya qiling."
-                                : "Защитите свои данные с помощью PIN-кода и биометрии.",
+                            tr('app_security_desc'),
                             textAlign: TextAlign.center,
                             style: const TextStyle(fontSize: 13, color: AppColors.muted, height: 1.4),
                           ),
@@ -110,12 +106,12 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
 
                     // Grouped Passcode Card
                     _GroupCard(
-                      headerTitle: isUz ? "PIN-KOD SOZLAMALARI" : "НАСТРОЙКИ PIN-КОДА",
+                      headerTitle: tr('pin_settings'),
                       children: [
                         if (!_pinLockEnabled) ...[
                           _SettingTile(
                             leading: const _BadgeIcon(icon: Icons.lock_outline_rounded, color: Color(0xFFFF9500)),
-                            title: isUz ? "PIN-kodni yoqish" : "Включить PIN-код",
+                            title: tr('enable_pin'),
                             trailing: const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.muted),
                             onTap: () async {
                               final success = await Navigator.of(context).push<bool>(
@@ -131,7 +127,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                         ] else ...[
                           _SettingTile(
                             leading: const _BadgeIcon(icon: Icons.lock_reset_rounded, color: Color(0xFF007AFF)),
-                            title: isUz ? "PIN-kodni o'zgartirish" : "Изменить PIN-код",
+                            title: tr('change_pin'),
                             trailing: const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.muted),
                             onTap: () async {
                               final success = await Navigator.of(context).push<bool>(
@@ -146,7 +142,7 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                           ),
                           _SettingTile(
                             leading: const _BadgeIcon(icon: Icons.lock_open_rounded, color: Color(0xFFFF3B30)),
-                            title: isUz ? "PIN-kodni o'chirish" : "Выключить PIN-код",
+                            title: tr('disable_pin'),
                             titleColor: AppColors.red,
                             trailing: const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.muted),
                             onTap: () async {
@@ -168,12 +164,12 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
                     // Biometrics Section (if PIN is active & biometrics supported)
                     if (_pinLockEnabled && _canUseBiometrics) ...[
                       _GroupCard(
-                        headerTitle: isUz ? "BIOMETRIYA" : "БИОМЕТРИЯ",
+                        headerTitle: tr('biometrics_header'),
                         children: [
                           _SettingTile(
                             leading: const _BadgeIcon(icon: Icons.fingerprint_rounded, color: Color(0xFF5856D6)),
-                            title: isUz ? "Face ID / Barmoq izi" : "Face ID / Отпечаток пальца",
-                            subtitle: isUz ? "Tezkor va xavfsiz kirish" : "Быстрый и безопасный вход",
+                            title: tr('face_id_fingerprint'),
+                            subtitle: tr('fast_secure_login'),
                             trailing: Switch.adaptive(
                               value: _biometricsEnabled,
                               activeTrackColor: AppColors.accent,
