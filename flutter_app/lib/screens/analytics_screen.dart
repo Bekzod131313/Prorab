@@ -168,9 +168,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
 
   @override
   Widget build(BuildContext context) {
-    final isRu = appLocaleNotifier.value == 'ru';
-    final tabUmumiy = isRu ? 'Общий' : 'Umumiy';
-    final tabByProject = isRu ? 'По проектам' : 'Loyiha bo\'yicha';
+    final tabUmumiy = tr('umumiy');
+    final tabByProject = tr('by_project');
 
     return ValueListenableBuilder<String>(
       valueListenable: appLocaleNotifier,
@@ -341,7 +340,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
       children: [
         // Label for project selector
         Text(
-          isRu ? "Выберите объект:" : "Loyihani tanlang:",
+          "${tr('select_project')}:",
           style: const TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w700,
@@ -437,7 +436,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
                   color: AppColors.accent,
                 ),
                 label: Text(
-                  isRu ? "Скачать PDF отчет" : "PDF hisobotni yuklab olish",
+                  tr('download_pdf_report'),
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -796,13 +795,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
     }
 
     final String incomeDesc = isUsd 
-        ? (appLocaleNotifier.value == 'ru' ? 'USD · получено от владельца' : 'USD · uy egasidan olingan')
+        ? 'USD · ${tr('total_income_desc').split('·').last.trim()}'
         : tr('total_income_desc');
     final String expenseDesc = isUsd 
-        ? (appLocaleNotifier.value == 'ru' ? 'USD · рабочий, материал и т.д.' : 'USD · ishchi, material va h.k.')
+        ? 'USD · ${tr('total_expense_desc').split('·').last.trim()}'
         : tr('total_expense_desc');
     final String balanceDesc = isUsd 
-        ? (appLocaleNotifier.value == 'ru' ? 'USD · текущее состояние' : 'USD · joriy holat')
+        ? 'USD · ${tr('total_balance_desc').split('·').last.trim()}'
         : tr('total_balance_desc');
 
     final endDate = project.tugash ??
@@ -852,8 +851,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
     ];
 
     final pdf = pw.Document();
-    final fontNormal = pw.Font.helvetica();
-    final fontBold = pw.Font.helveticaBold();
+    final fontNormal = await PdfGoogleFonts.robotoRegular();
+    final fontBold = await PdfGoogleFonts.robotoBold();
 
     pdf.addPage(
       pw.MultiPage(

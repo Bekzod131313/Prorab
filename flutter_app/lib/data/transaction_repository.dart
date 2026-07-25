@@ -301,16 +301,19 @@ class TransactionRepository {
           : f.format(amount.round());
 
       // 4. Construct messages
-      final titleUz = 'Kirim';
+      const titleUz = 'Kirim';
       final bodyUz = '+ $formattedAmount (${senderName}dan, $projectName loyihasi)';
 
-      final titleRu = 'Приход';
+      const titleRu = 'Приход';
       final bodyRu = '+ $formattedAmount (от $senderName, проект $projectName)';
+
+      const titleEn = 'Income';
+      final bodyEn = '+ $formattedAmount (from $senderName, project $projectName)';
 
       // 5. Save to database notifications table
       final currentLang = appLocaleNotifier.value;
-      final titleDb = currentLang == 'ru' ? titleRu : titleUz;
-      final bodyDb = currentLang == 'ru' ? bodyRu : bodyUz;
+      final titleDb = currentLang == 'en' ? titleEn : (currentLang == 'ru' ? titleRu : titleUz);
+      final bodyDb = currentLang == 'en' ? bodyEn : (currentLang == 'ru' ? bodyRu : bodyUz);
 
       await supabase.from('notifications').insert({
         'user_id': toUserId,
@@ -320,14 +323,16 @@ class TransactionRepository {
         'body_uz': bodyUz,
         'title_ru': titleRu,
         'body_ru': bodyRu,
+        'title_en': titleEn,
+        'body_en': bodyEn,
+        'type': 'personal',
       });
 
-      // 6. Send push notifications via Firebase Cloud Function
+      // 6. Send push notifications via Firebase Cloud Function to all 3 channels
       const cfUrl = 'https://us-central1-risq-91c54.cloudfunctions.net/sendPushNotification';
 
       try {
-        // Send Uzbek notification to topic user_${toUserId}_uz
-        final resUz = await http.post(
+        await http.post(
           Uri.parse(cfUrl),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({
@@ -336,10 +341,8 @@ class TransactionRepository {
             'body': bodyUz,
           }),
         );
-        print("Uz FCM Response: ${resUz.statusCode} - ${resUz.body}");
 
-        // Send Russian notification to topic user_${toUserId}_ru
-        final resRu = await http.post(
+        await http.post(
           Uri.parse(cfUrl),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({
@@ -348,12 +351,98 @@ class TransactionRepository {
             'body': bodyRu,
           }),
         );
-        print("Ru FCM Response: ${resRu.statusCode} - ${resRu.body}");
+
+        await http.post(
+          Uri.parse(cfUrl),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'topic': 'user_${toUserId}_en',
+            'title': titleEn,
+            'body': bodyEn,
+          }),
+        );
       } catch (e) {
         print("Error calling sendPushNotification function: $e");
       }
     } catch (e) {
       print('Error in sendWorkerNotification: $e');
+    }
+  }
+
+  /// Sends a personal notification to a worker when added to a project.
+  Future<void> sendWorkerAddedToProjectNotification({
+    required String obId,
+    required String toUserId,
+  }) async {
+    try {
+      final senderId = supabase.auth.currentUser?.id;
+      if (senderId == null || toUserId == senderId) return;
+
+      final obData = await supabase
+          .from('obyektlar')
+          .select('nomi')
+          .eq('id', obId)
+          .maybeSingle();
+      final projectName = obData?['nomi'] ?? 'Loyiha';
+
+      const titleUz = 'Loyiha';
+      final bodyUz = "Siz '$projectName' loyihasiga qo'shildingiz";
+
+      const titleRu = 'Проект';
+      final bodyRu = "Вы добавлены в проект '$projectName'";
+
+      const titleEn = 'Project';
+      final bodyEn = "You were added to project '$projectName'";
+
+      final currentLang = appLocaleNotifier.value;
+      final titleDb = currentLang == 'en' ? titleEn : (currentLang == 'ru' ? titleRu : titleUz);
+      final bodyDb = currentLang == 'en' ? bodyEn : (currentLang == 'ru' ? bodyRu : bodyUz);
+
+      await supabase.from('notifications').insert({
+        'user_id': toUserId,
+        'title': titleDb,
+        'body': bodyDb,
+        'title_uz': titleUz,
+        'body_uz': bodyUz,
+        'title_ru': titleRu,
+        'body_ru': bodyRu,
+        'title_en': titleEn,
+        'body_en': bodyEn,
+        'type': 'personal',
+      });
+
+      const cfUrl = 'https://us-central1-risq-91c54.cloudfunctions.net/sendPushNotification';
+      try {
+        await http.post(
+          Uri.parse(cfUrl),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'topic': 'user_${toUserId}_uz',
+            'title': titleUz,
+            'body': bodyUz,
+          }),
+        );
+        await http.post(
+          Uri.parse(cfUrl),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'topic': 'user_${toUserId}_ru',
+            'title': titleRu,
+            'body': bodyRu,
+          }),
+        );
+        await http.post(
+          Uri.parse(cfUrl),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'topic': 'user_${toUserId}_en',
+            'title': titleEn,
+            'body': bodyEn,
+          }),
+        );
+      } catch (_) {}
+    } catch (e) {
+      print('Error in sendWorkerAddedToProjectNotification: $e');
     }
   }
 
@@ -602,6 +691,19 @@ class TransactionRepository {
         }
       }
     } else if (tx.tur == 'send') {
+      final ob = await supabase
+          .from('obyektlar')
+          .select('chiqim')
+          .eq('id', tx.obId)
+          .maybeSingle();
+      if (ob != null) {
+        final newVal = ((ob['chiqim'] as num?) ?? 0) - tx.summaUzs;
+        await supabase
+            .from('obyektlar')
+            .update({'chiqim': newVal < 0 ? 0 : newVal})
+            .eq('id', tx.obId);
+      }
+
       if (tx.fromUser != null) {
         final mem = await supabase
             .from('ob_members')
@@ -610,7 +712,7 @@ class TransactionRepository {
             .eq('user_id', tx.fromUser!)
             .maybeSingle();
         if (mem != null) {
-          final newC = ((mem['chiqim'] as num?) ?? 0) - tx.summa;
+          final newC = ((mem['chiqim'] as num?) ?? 0) - tx.summaUzs;
           await supabase
               .from('ob_members')
               .update({'chiqim': newC < 0 ? 0 : newC})

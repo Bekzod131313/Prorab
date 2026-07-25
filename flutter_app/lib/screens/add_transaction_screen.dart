@@ -103,20 +103,20 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
     if (widget.isIncome) {
       final defaultIncomeCats = [
-        const ExpenseCategoryItem(
-          name: 'Mijoz',
+        ExpenseCategoryItem(
+          name: tr('cat_customer'),
           icon: Icons.person_rounded,
         ),
-        const ExpenseCategoryItem(
-          name: 'Investitsiya',
+        ExpenseCategoryItem(
+          name: tr('cat_investment'),
           icon: Icons.trending_up_rounded,
         ),
-        const ExpenseCategoryItem(
-          name: 'Avans',
+        ExpenseCategoryItem(
+          name: tr('cat_advance'),
           icon: Icons.payments_rounded,
         ),
-        const ExpenseCategoryItem(
-          name: 'Kredit',
+        ExpenseCategoryItem(
+          name: tr('cat_credit'),
           icon: Icons.account_balance_rounded,
         ),
       ];
@@ -151,8 +151,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     }
 
     final cats = [
-      const ExpenseCategoryItem(
-        name: 'Xodim',
+      ExpenseCategoryItem(
+        name: tr('cat_worker'),
         icon: Icons.engineering_rounded,
         isWorker: true,
       ),
@@ -1080,7 +1080,7 @@ class __FileSelectionBottomSheetState
       if (mounted) {
         setState(() => _loading = false);
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Xato: $e')));
+            .showSnackBar(SnackBar(content: Text(tr('error_short').replaceFirst('{}', '$e'))));
       }
     }
   }
@@ -1250,7 +1250,7 @@ class __FileSelectionBottomSheetState
       if (mounted) {
         setState(() => _loading = false);
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Xato: $e')));
+            .showSnackBar(SnackBar(content: Text(tr('error_short').replaceFirst('{}', '$e'))));
       }
     }
   }

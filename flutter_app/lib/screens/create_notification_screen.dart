@@ -28,6 +28,8 @@ class _CreateNotificationScreenState extends State<CreateNotificationScreen> {
   final _bodyUzCtrl = TextEditingController();
   final _titleRuCtrl = TextEditingController(text: 'Система Risq');
   final _bodyRuCtrl = TextEditingController();
+  final _titleEnCtrl = TextEditingController(text: 'Risq system');
+  final _bodyEnCtrl = TextEditingController();
 
   String _cfUrl = 'https://us-central1-risq-91c54.cloudfunctions.net/sendPushNotification';
   bool _sending = false;
@@ -44,6 +46,8 @@ class _CreateNotificationScreenState extends State<CreateNotificationScreen> {
     _bodyUzCtrl.dispose();
     _titleRuCtrl.dispose();
     _bodyRuCtrl.dispose();
+    _titleEnCtrl.dispose();
+    _bodyEnCtrl.dispose();
     super.dispose();
   }
 
@@ -64,6 +68,8 @@ class _CreateNotificationScreenState extends State<CreateNotificationScreen> {
     final bodyUz = _bodyUzCtrl.text.trim();
     final titleRu = _titleRuCtrl.text.trim();
     final bodyRu = _bodyRuCtrl.text.trim();
+    final titleEn = _titleEnCtrl.text.trim();
+    final bodyEn = _bodyEnCtrl.text.trim();
 
     setState(() => _sending = true);
 
@@ -88,7 +94,7 @@ class _CreateNotificationScreenState extends State<CreateNotificationScreen> {
     final isSendAll = widget.targetUser == null;
 
     try {
-      // 1. Insert into notifications table with both language fields
+      // 1. Insert into notifications table with language fields
       for (final u in targets) {
         final userId = u['id'] as String;
         try {
@@ -100,6 +106,9 @@ class _CreateNotificationScreenState extends State<CreateNotificationScreen> {
             'body_uz': bodyUz,
             'title_ru': titleRu,
             'body_ru': bodyRu,
+            'title_en': titleEn,
+            'body_en': bodyEn,
+            'type': 'general',
           });
           dbSavedCount++;
         } catch (e) {
@@ -110,7 +119,7 @@ class _CreateNotificationScreenState extends State<CreateNotificationScreen> {
 
       // 2. Try to send FCM push notification via Cloud Function
       if (isSendAll) {
-        // Send to topics 'all_uz' and 'all_ru'
+        // Send to topics 'all_uz', 'all_ru', and 'all_en'
         try {
           final resUz = await http.post(
             Uri.parse(_cfUrl),
@@ -130,7 +139,16 @@ class _CreateNotificationScreenState extends State<CreateNotificationScreen> {
               'body': bodyRu,
             }),
           );
-          if (resUz.statusCode == 200 || resRu.statusCode == 200) {
+          final resEn = await http.post(
+            Uri.parse(_cfUrl),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'topic': 'all_en',
+              'title': titleEn,
+              'body': bodyEn,
+            }),
+          );
+          if (resUz.statusCode == 200 || resRu.statusCode == 200 || resEn.statusCode == 200) {
             pushSuccessCount = targets.length;
           }
         } catch (e) {
@@ -159,7 +177,16 @@ class _CreateNotificationScreenState extends State<CreateNotificationScreen> {
               'body': bodyRu,
             }),
           );
-          if (resUz.statusCode == 200 || resRu.statusCode == 200) {
+          final resEn = await http.post(
+            Uri.parse(_cfUrl),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'topic': 'user_${userId}_en',
+              'title': titleEn,
+              'body': bodyEn,
+            }),
+          );
+          if (resUz.statusCode == 200 || resRu.statusCode == 200 || resEn.statusCode == 200) {
             pushSuccessCount = 1;
           }
         } catch (e) {
@@ -301,6 +328,40 @@ class _CreateNotificationScreenState extends State<CreateNotificationScreen> {
               maxLines: 3,
               decoration: InputDecoration(
                 labelText: tr('body_ru_label'),
+                fillColor: AppColors.card,
+                filled: true,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+              ),
+              validator: (v) => v?.trim().isEmpty == true ? tr('fields_required_error') : null,
+            ),
+            const SizedBox(height: 24),
+
+            // English Version section title
+            const Text(
+              'Inglizcha versiyasi (English version)',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.accent),
+            ),
+            const SizedBox(height: 10),
+
+            // title EN
+            TextFormField(
+              controller: _titleEnCtrl,
+              decoration: InputDecoration(
+                labelText: tr('title_en_label'),
+                fillColor: AppColors.card,
+                filled: true,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),
+              ),
+              validator: (v) => v?.trim().isEmpty == true ? tr('fields_required_error') : null,
+            ),
+            const SizedBox(height: 12),
+
+            // body EN
+            TextFormField(
+              controller: _bodyEnCtrl,
+              maxLines: 3,
+              decoration: InputDecoration(
+                labelText: tr('body_en_label'),
                 fillColor: AppColors.card,
                 filled: true,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.border)),

@@ -59,7 +59,9 @@ class WorkerRepository {
       } catch (_) {}
     }
 
-    // 2. Fetch global workers from my_workers table (if table exists)
+    final addedByMeUserIds = <String>{};
+
+    // 2. Fetch global workers from my_workers table (workers WE added)
     try {
       final globalMembers = await supabase
           .from('my_workers')
@@ -68,6 +70,7 @@ class WorkerRepository {
 
       for (final row in globalMembers as List) {
         final uid = row['worker_id'].toString();
+        addedByMeUserIds.add(uid);
         final profileRow = row['profiles'] as Map<String, dynamic>?;
 
         final existing = result[uid];
@@ -79,6 +82,40 @@ class WorkerRepository {
             ishaqi: 0,
             olingan: 0,
             obsList: [],
+            isAddedByOther: false,
+          );
+        } else {
+          existing.isAddedByOther = false;
+        }
+      }
+    } catch (_) {}
+
+    // 3. Fetch people who added US to themselves (where worker_id == userId)
+    try {
+      final addedMeMembers = await supabase
+          .from('my_workers')
+          .select('*,profiles:profiles!owner_id(*)')
+          .eq('worker_id', userId);
+
+      for (final row in addedMeMembers as List) {
+        final ownerId = row['owner_id'].toString();
+        if (ownerId == userId) continue;
+
+        final profileRow = row['profiles'] as Map<String, dynamic>?;
+        final existing = result[ownerId];
+        if (existing != null) {
+          if (!addedByMeUserIds.contains(ownerId)) {
+            existing.isAddedByOther = true;
+          }
+        } else {
+          result[ownerId] = Worker(
+            userId: ownerId,
+            profile: profileRow != null ? Profile.fromMap(profileRow) : null,
+            kasb: row['kasb'],
+            ishaqi: 0,
+            olingan: 0,
+            obsList: [],
+            isAddedByOther: !addedByMeUserIds.contains(ownerId),
           );
         }
       }
@@ -217,6 +254,34 @@ class WorkerRepository {
         'olingan': amountUzs,
         'balance': 0,
       });
+    }
+
+    if (userId != null) {
+      final fromMem = await supabase
+          .from('ob_members')
+          .select('chiqim, role')
+          .eq('ob_id', obId)
+          .eq('user_id', userId)
+          .maybeSingle();
+      if (fromMem != null) {
+        await supabase
+            .from('ob_members')
+            .update({'chiqim': ((fromMem['chiqim'] as num?) ?? 0) + amountUzs})
+            .eq('ob_id', obId)
+            .eq('user_id', userId);
+
+        if (fromMem['role'] == 'owner') {
+          final ob = await supabase
+              .from('obyektlar')
+              .select('chiqim')
+              .eq('id', obId)
+              .single();
+          await supabase
+              .from('obyektlar')
+              .update({'chiqim': ((ob['chiqim'] as num?) ?? 0) + amountUzs})
+              .eq('id', obId);
+        }
+      }
     }
 
     TransactionRepository().sendWorkerNotification(

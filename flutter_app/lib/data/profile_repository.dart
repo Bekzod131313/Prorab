@@ -114,4 +114,50 @@ class ProfileRepository {
     }
     return ProfileStats(totalBalance: totalBalance, obsCount: projects.length, peopleCount: peopleCount);
   }
+
+  Future<void> deleteAccount() async {
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) return;
+
+    // 1. Delete my_workers records where user is owner or worker
+    try {
+      await supabase.from('my_workers').delete().eq('owner_id', userId);
+    } catch (_) {}
+    try {
+      await supabase.from('my_workers').delete().eq('worker_id', userId);
+    } catch (_) {}
+
+    // 2. Fetch owned projects and clean up their transactions, members, and project rows
+    try {
+      final ownedProjects = await supabase
+          .from('obyektlar')
+          .select('id')
+          .eq('owner_id', userId);
+      final obIds = (ownedProjects as List).map((row) => row['id'].toString()).toList();
+      if (obIds.isNotEmpty) {
+        try {
+          await supabase.from('transactions').delete().inFilter('ob_id', obIds);
+        } catch (_) {}
+        try {
+          await supabase.from('ob_members').delete().inFilter('ob_id', obIds);
+        } catch (_) {}
+        try {
+          await supabase.from('obyektlar').delete().inFilter('id', obIds);
+        } catch (_) {}
+      }
+    } catch (_) {}
+
+    // 3. Delete user's ob_members records across all other projects
+    try {
+      await supabase.from('ob_members').delete().eq('user_id', userId);
+    } catch (_) {}
+
+    // 4. Delete user's transactions (from_user, to_user, created_by)
+    try {
+      await supabase.from('transactions').delete().or('from_user.eq.$userId,to_user.eq.$userId,created_by.eq.$userId');
+    } catch (_) {}
+
+    // 5. Delete profile row
+    await supabase.from('profiles').delete().eq('id', userId);
+  }
 }

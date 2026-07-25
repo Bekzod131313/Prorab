@@ -1,6 +1,7 @@
 import '../main.dart';
 import '../models/member.dart';
 import '../utils/phone_formatter.dart';
+import 'transaction_repository.dart';
 
 class MemberRepository {
   Future<List<ObMember>> loadForProject(String obId) async {
@@ -88,6 +89,11 @@ class MemberRepository {
         });
       } catch (_) {}
     }
+
+    TransactionRepository().sendWorkerAddedToProjectNotification(
+      obId: obId,
+      toUserId: newUserId,
+    ).catchError((_) {});
   }
 
   Future<List<Map<String, dynamic>>> searchUsers(String query) async {

@@ -521,9 +521,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               color: Color(0xFF6366F1),
                             ),
                             title: tr('settings'),
-                            subtitle: lang == 'uz'
-                                ? "Xavfsizlik, til, valyuta va hisob"
-                                : "Безопасность, язык, валюта и аккаунт",
+                            subtitle: tr('settings_sub'),
                             trailing: const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.muted),
                             onTap: () async {
                               final changed = await Navigator.of(context).push<bool>(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../data/profile_repository.dart';
 import '../l10n/strings.dart';
 import '../models/profile.dart';
 import '../services/currency_service.dart';
@@ -375,10 +376,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       if (confirm2 != true || !context.mounted) return;
 
                       try {
-                        final userId = Supabase.instance.client.auth.currentUser?.id;
-                        if (userId != null) {
-                          await Supabase.instance.client.from('profiles').delete().eq('id', userId);
-                        }
+                        await ProfileRepository().deleteAccount();
                         await Supabase.instance.client.auth.signOut();
                         if (context.mounted) {
                           Navigator.of(context).pushAndRemoveUntil(

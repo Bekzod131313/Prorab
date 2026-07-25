@@ -97,6 +97,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
         'user_id': targetUserId,
         'title': title,
         'body': body,
+        'type': 'general',
       });
     } catch (e) {
       if (mounted) {
@@ -166,20 +167,20 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Cloud Function Sozlamalari'),
+        title: Text(tr('settings')),
         content: TextField(
           controller: urlCtrl,
           decoration: const InputDecoration(labelText: 'URL manzili', hintText: 'https://...'),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Bekor')),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: Text(tr('cancel'))),
           ElevatedButton(
             onPressed: () {
               if (urlCtrl.text.trim().isEmpty) return;
               _saveSettings(urlCtrl.text.trim());
               Navigator.of(ctx).pop();
             },
-            child: const Text('Saqlash'),
+            child: Text(tr('save')),
           ),
         ],
       ),
@@ -228,7 +229,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
   }
 
   Widget _buildUsersTab() {
-    if (_profiles.isEmpty) return const Center(child: Text('Foydalanuvchilar yo\'q'));
+    if (_profiles.isEmpty) return Center(child: Text(tr('workers_empty')));
     final usersWithToken = _profiles.where((u) => u['fcm_token'] != null && (u['fcm_token'] as String).isNotEmpty).toList();
 
     return Column(
@@ -321,7 +322,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
   }
 
   Widget _buildProjectsTab() {
-    if (_projects.isEmpty) return const Center(child: Text('Loyihalar yo\'q'));
+    if (_projects.isEmpty) return Center(child: Text(tr('no_projects')));
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: _projects.length,
@@ -365,8 +366,8 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                 ],
               ),
               const SizedBox(height: 8),
-              Text('Mijoz: $mijoz • Muddat: $muddat kun', style: const TextStyle(fontSize: 11, color: AppColors.text2)),
-              Text('Manzil: $manzil', style: const TextStyle(fontSize: 11, color: AppColors.muted)),
+              Text('${tr("client")}: $mijoz • ${tr("duration_days")}: $muddat', style: const TextStyle(fontSize: 11, color: AppColors.text2)),
+              Text('${tr("location")}: $manzil', style: const TextStyle(fontSize: 11, color: AppColors.muted)),
               const SizedBox(height: 10),
               const Divider(color: AppColors.border, height: 1),
               const SizedBox(height: 10),
@@ -376,7 +377,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Kirim', style: TextStyle(fontSize: 10, color: AppColors.muted)),
+                        Text(tr('income'), style: const TextStyle(fontSize: 10, color: AppColors.muted)),
                         Text(formatUzsToDisplay(kirim), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.green)),
                       ],
                     ),
@@ -385,7 +386,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Chiqim', style: TextStyle(fontSize: 10, color: AppColors.muted)),
+                        Text(tr('expense'), style: const TextStyle(fontSize: 10, color: AppColors.muted)),
                         Text(formatUzsToDisplay(chiqim), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.red)),
                       ],
                     ),
@@ -394,7 +395,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Qoldiq', style: TextStyle(fontSize: 10, color: AppColors.muted)),
+                        Text(tr('balance'), style: const TextStyle(fontSize: 10, color: AppColors.muted)),
                         Text(formatUzsToDisplay(kirim - chiqim), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: (kirim - chiqim) >= 0 ? AppColors.green : AppColors.red)),
                       ],
                     ),
@@ -409,7 +410,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
   }
 
   Widget _buildMembersTab() {
-    if (_members.isEmpty) return const Center(child: Text('Jamoalar yo\'q'));
+    if (_members.isEmpty) return Center(child: Text(tr('no_workers')));
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: _members.length,
@@ -443,7 +444,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(userName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                        Text('Obyekt: $obName', style: const TextStyle(fontSize: 11, color: AppColors.text2)),
+                        Text('${tr("nav_projects")}: $obName', style: const TextStyle(fontSize: 11, color: AppColors.text2)),
                       ],
                     ),
                   ),
@@ -454,7 +455,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      role == 'owner' ? 'Prorab' : 'Ishchi',
+                      role == 'owner' ? tr('prorab') : tr('xodim_category'),
                       style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: role == 'owner' ? AppColors.orange : AppColors.accent),
                     ),
                   ),
@@ -469,7 +470,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Ish haqi', style: TextStyle(fontSize: 10, color: AppColors.muted)),
+                        Text(tr('salary'), style: const TextStyle(fontSize: 10, color: AppColors.muted)),
                         Text(formatUzsToDisplay(ishaqi), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
                       ],
                     ),
@@ -478,7 +479,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Olingan', style: TextStyle(fontSize: 10, color: AppColors.muted)),
+                        Text(tr('received'), style: const TextStyle(fontSize: 10, color: AppColors.muted)),
                         Text(formatUzsToDisplay(olingan), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.green)),
                       ],
                     ),
@@ -487,7 +488,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Balans', style: TextStyle(fontSize: 10, color: AppColors.muted)),
+                        Text(tr('balance'), style: const TextStyle(fontSize: 10, color: AppColors.muted)),
                         Text(formatUzsToDisplay(balance), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: balance > 0 ? AppColors.orange : AppColors.text)),
                       ],
                     ),
@@ -542,8 +543,8 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(izoh ?? kategoriya, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                    Text('Obyekt: $obName', style: const TextStyle(fontSize: 11, color: AppColors.text2)),
-                    Text('$dateStr • Kategoriya: $kategoriya', style: const TextStyle(fontSize: 10, color: AppColors.muted)),
+                    Text('${tr("nav_projects")}: $obName', style: const TextStyle(fontSize: 11, color: AppColors.text2)),
+                    Text('$dateStr • ${tr("category")}: $kategoriya', style: const TextStyle(fontSize: 10, color: AppColors.muted)),
                   ],
                 ),
               ),
@@ -583,7 +584,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                   const Text('Jami SMS yuborilgan', style: TextStyle(color: AppColors.muted, fontSize: 13)),
                   const SizedBox(height: 4),
                   Text(
-                    '${_smsLogs.length} ta',
+                    '${_smsLogs.length} ${tr("pcs_suffix")}',
                     style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 20, color: AppColors.text),
                   ),
                 ],
@@ -591,7 +592,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
               Container(width: 1, height: 40, color: AppColors.border),
               Column(
                 children: [
-                  const Text('Muvaffaqiyatli', style: TextStyle(color: AppColors.muted, fontSize: 13)),
+                  Text(tr('success'), style: const TextStyle(color: AppColors.muted, fontSize: 13)),
                   const SizedBox(height: 4),
                   Text(
                     '$successCount ta',

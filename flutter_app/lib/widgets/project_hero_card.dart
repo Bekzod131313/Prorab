@@ -195,7 +195,7 @@ class ProjectHeroCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         left == 0
-                            ? (appLocaleNotifier.value == 'ru' ? 'Срок истек' : "Muddati o'tgan")
+                            ? tr('overdue')
                             : tr('days_remaining').replaceFirst('{}', '$left'),
                         style: const TextStyle(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.w600),
                       ),

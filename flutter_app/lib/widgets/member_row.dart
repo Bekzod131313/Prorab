@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/strings.dart';
 import '../models/member.dart';
 import '../theme/app_theme.dart';
 import '../screens/profile_screen.dart';
-import 'project_card.dart' show formatMoney, formatUzsToDisplay;
+import 'project_card.dart' show formatUzsToDisplay;
 
 const _avatarColors = [
   Color(0xFF1D4ED8),
@@ -103,7 +104,7 @@ class MemberRow extends StatelessWidget {
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: balColor),
                 ),
                 const SizedBox(height: 2),
-                const Text('balans', style: TextStyle(fontSize: 11, color: AppColors.muted)),
+                Text(tr('balance'), style: const TextStyle(fontSize: 11, color: AppColors.muted)),
               ],
             );
           }),

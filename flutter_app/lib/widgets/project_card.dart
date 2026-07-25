@@ -31,7 +31,7 @@ String formatMoney(num value, {String? currency}) {
     return '\$${f.format(rounded)}';
   } else {
     final f = NumberFormat.decimalPattern('uz');
-    return "${f.format(rounded)} so'm";
+    return "${f.format(rounded)} ${tr('currency_suffix')}";
   }
 }
 
@@ -50,7 +50,7 @@ String formatTransactionAmount(ProjectTransaction tx) {
   } else {
     final uzsVal = tx.summaUzs.round();
     final f = NumberFormat.decimalPattern('uz');
-    return "${f.format(uzsVal)} so'm";
+    return "${f.format(uzsVal)} ${tr('currency_suffix')}";
   }
 }
 

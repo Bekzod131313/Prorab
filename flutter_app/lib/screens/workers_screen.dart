@@ -81,7 +81,7 @@ class _WorkersScreenState extends State<WorkersScreen> {
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     title: Text(op.obNomi),
-                    subtitle: Text("Qarzdorlik: ${formatMoney(op.balans)} so'm"),
+                    subtitle: Text(tr('debt').replaceFirst('{}', formatMoney(op.balans))),
                     trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
                     onTap: () => Navigator.of(ctx).pop(op),
                   ),
@@ -99,7 +99,7 @@ class _WorkersScreenState extends State<WorkersScreen> {
         title: Text(tr('pay_confirm_title').replaceFirst('{}', worker.displayName)),
         content: Text('${selectedOb!.obNomi}: ${formatMoney(selectedOb.balans)} ${tr("currency_uzs")}?'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Bekor')),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(tr('cancel'))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
@@ -119,7 +119,7 @@ class _WorkersScreenState extends State<WorkersScreen> {
         kategoriya: 'Mehnat haqi',
         toUserId: worker.userId,
       );
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("To'lov amalga oshirildi")));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('payment_success'))));
       _load();
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
@@ -188,12 +188,12 @@ class _WorkersScreenState extends State<WorkersScreen> {
     final compareDate = DateTime(date.year, date.month, date.day);
 
     if (compareDate == today) {
-      return appLocaleNotifier.value == 'ru' ? 'Сегодня' : 'Bugun';
+      return tr('today');
     } else if (compareDate == yesterday) {
-      return appLocaleNotifier.value == 'ru' ? 'Вчера' : 'Kecha';
+      return tr('yesterday');
     } else {
       final diff = today.difference(compareDate).inDays;
-      return appLocaleNotifier.value == 'ru' ? '$diff дн. назад' : '$diff kun oldin';
+      return tr('days_ago').replaceFirst('{}', '$diff');
     }
   }
 
@@ -218,8 +218,8 @@ class _WorkersScreenState extends State<WorkersScreen> {
   Widget _buildFilterChips() {
     final filterLabels = [
       tr('all'),
-      appLocaleNotifier.value == 'ru' ? 'Плюс' : 'Musbat',
-      appLocaleNotifier.value == 'ru' ? 'Минус' : 'Manfiy',
+      tr('positive'),
+      tr('negative'),
       tr('active'),
     ];
     final filterValues = ['Hammasi', 'Musbat', 'Manfiy', 'Faol'];
@@ -267,21 +267,20 @@ class _WorkersScreenState extends State<WorkersScreen> {
     required int manfiy,
     required int nol,
   }) {
-    final isRu = appLocaleNotifier.value == 'ru';
-    final countSuffix = isRu ? 'чел.' : 'ta';
+    final countSuffix = tr('people_suffix');
     return SizedBox(
       height: 64,
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
-          _buildStatCard(isRu ? 'Всего рабочих' : 'Jami ishchi', "$total $countSuffix", const Color(0xFF0F172A)),
+          _buildStatCard(tr('total_workers'), "$total $countSuffix", const Color(0xFF0F172A)),
           const SizedBox(width: 8),
-          _buildStatCard(isRu ? 'Плюс баланс' : 'Musbat balans', "$musbat $countSuffix", const Color(0xFF22C55E)),
+          _buildStatCard(tr('positive_balance'), "$musbat $countSuffix", const Color(0xFF22C55E)),
           const SizedBox(width: 8),
-          _buildStatCard(isRu ? 'Минус баланс' : 'Manfiy balans', "$manfiy $countSuffix", const Color(0xFFEF4444)),
+          _buildStatCard(tr('negative_balance'), "$manfiy $countSuffix", const Color(0xFFEF4444)),
           const SizedBox(width: 8),
-          _buildStatCard(isRu ? 'Нулевой баланс' : 'Nol balans', "$nol $countSuffix", const Color(0xFF64748B)),
+          _buildStatCard(tr('zero_balance'), "$nol $countSuffix", const Color(0xFF64748B)),
         ],
       ),
     );
@@ -445,7 +444,21 @@ class _WorkersScreenState extends State<WorkersScreen> {
                     manfiy: manfiyCount,
                     nol: nolCount,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
+
+                  if (_workers.any((w) => w.isAddedByOther))
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 4.0),
+                      child: Text(
+                        tr('star_hint'),
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.muted,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 8),
 
                   // 4. Workers List
                   filtered.isEmpty
@@ -521,13 +534,28 @@ class _WorkersScreenState extends State<WorkersScreen> {
                                             child: Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
-                                                Text(
-                                                  worker.displayName,
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.w800,
-                                                    fontSize: 15,
-                                                    color: Color(0xFF0F172A),
-                                                  ),
+                                                Row(
+                                                  children: [
+                                                    Flexible(
+                                                      child: Text(
+                                                        worker.displayName,
+                                                        style: const TextStyle(
+                                                          fontWeight: FontWeight.w800,
+                                                          fontSize: 15,
+                                                          color: Color(0xFF0F172A),
+                                                        ),
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    ),
+                                                    if (worker.isAddedByOther) ...[
+                                                      const SizedBox(width: 4),
+                                                      const Icon(
+                                                        Icons.star_rounded,
+                                                        size: 16,
+                                                        color: Color(0xFFFFB800),
+                                                      ),
+                                                    ],
+                                                  ],
                                                 ),
                                                 const SizedBox(height: 2),
                                                 Text(

@@ -16,6 +16,7 @@ class Worker {
   num olingan;
   final List<WorkerProject> obsList;
   DateTime? lastActive;
+  bool isAddedByOther;
 
   Worker({
     required this.userId,
@@ -25,6 +26,7 @@ class Worker {
     required this.olingan,
     required this.obsList,
     this.lastActive,
+    this.isAddedByOther = false,
   });
 
   num get balans => ishaqi - olingan;

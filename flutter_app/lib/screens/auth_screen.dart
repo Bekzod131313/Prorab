@@ -41,6 +41,9 @@ class _AuthScreenState extends State<AuthScreen> {
 
   void _onCodeChanged() {
     setState(() {});
+    if (_otpSent && !_loading && _isCodeActive) {
+      _verifyOtp();
+    }
   }
 
   void _startCooldown() {

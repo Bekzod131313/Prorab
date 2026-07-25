@@ -13,6 +13,7 @@ import '../services/currency_service.dart';
 import '../widgets/shimmer.dart';
 import '../utils/price_formatter.dart';
 import '../utils/phone_formatter.dart';
+import 'profile_screen.dart';
 
 class WorkerDetailScreen extends StatefulWidget {
   final Worker worker;
@@ -188,7 +189,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                       prefixIcon: const Icon(Icons.description_outlined, size: 18)),
                 ),
                 const SizedBox(height: 16),
-                Text(appLocaleNotifier.value == 'ru' ? 'Дата' : 'Sana',
+                Text(tr('date'),
                     style: const TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 12,
@@ -398,7 +399,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                       prefixIcon: const Icon(Icons.description_outlined, size: 18)),
                 ),
                 const SizedBox(height: 16),
-                Text(appLocaleNotifier.value == 'ru' ? 'Дата' : 'Sana',
+                Text(tr('date'),
                     style: const TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 12,
@@ -451,8 +452,8 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14)),
                   ),
-                  child: const Text("Tasdiqlash",
-                      style: TextStyle(fontWeight: FontWeight.w800)),
+                  child: Text(tr('confirm_btn'),
+                      style: const TextStyle(fontWeight: FontWeight.w800)),
                 ),
               ],
             ),
@@ -489,12 +490,12 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
 
   void _showReport() {
     final buffer = StringBuffer();
-    buffer.writeln("Ishchi: ${_worker.displayName}");
-    if (_worker.kasb != null) buffer.writeln("Kasbi: ${_worker.kasb}");
-    buffer.writeln("Ish haqi: ${formatUzsToDisplay(_worker.ishaqi)}");
-    buffer.writeln("Olingan avans: ${formatUzsToDisplay(_worker.olingan)}");
-    buffer.writeln("Balans: ${formatUzsToDisplay(_worker.balans)}");
-    buffer.writeln("\nLoyihalar bo'yicha:");
+    buffer.writeln("${tr('worker_detail_title')}: ${_worker.displayName}");
+    if (_worker.kasb != null) buffer.writeln("${tr('profession')}: ${_worker.kasb}");
+    buffer.writeln("${tr('salary')}: ${formatUzsToDisplay(_worker.ishaqi)}");
+    buffer.writeln("${tr('received')}: ${formatUzsToDisplay(_worker.olingan)}");
+    buffer.writeln("${tr('balance')}: ${formatUzsToDisplay(_worker.balans)}");
+    buffer.writeln("\n${tr('worker_projects')}:");
     for (final ob in _worker.obsList) {
       buffer.writeln("- ${ob.obNomi}: ${formatUzsToDisplay(ob.balans)}");
     }
@@ -502,14 +503,14 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("Hisobot"),
+        title: Text(tr('report_title')),
         content: SingleChildScrollView(
             child: Text(buffer.toString(),
                 style: const TextStyle(fontFamily: 'monospace', fontSize: 13))),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text("Yopish")),
+              child: Text(tr('close_btn'))),
         ],
       ),
     );
@@ -553,22 +554,22 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                        width: 28,
-                        height: 28,
+                        width: 26,
+                        height: 26,
                         decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.2),
                             shape: BoxShape.circle),
                         child: const Icon(Icons.payments_outlined,
-                            size: 16, color: Colors.white),
+                            size: 15, color: Colors.white),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(tr('advance'),
                               style: const TextStyle(
-                                  fontSize: 14,
+                                  fontSize: 13,
                                   fontWeight: FontWeight.w800,
                                   color: Colors.white)),
                           Text(tr('give'),
@@ -580,7 +581,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               Expanded(
                 child: ElevatedButton(
                   onPressed: _openIshHaqiYozishSheet,
@@ -595,22 +596,22 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                        width: 28,
-                        height: 28,
+                        width: 26,
+                        height: 26,
                         decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.2),
                             shape: BoxShape.circle),
                         child: const Icon(Icons.edit_note_rounded,
-                            size: 18, color: Colors.white),
+                            size: 17, color: Colors.white),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(tr('salary'),
                               style: const TextStyle(
-                                  fontSize: 14,
+                                  fontSize: 13,
                                   fontWeight: FontWeight.w800,
                                   color: Colors.white)),
                           Text(tr('write'),
@@ -673,7 +674,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: Text(
-                                        appLocaleNotifier.value == 'ru' ? 'Активен' : "Faol",
+                                        tr('active'),
                                         style: const TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.w800,
@@ -719,7 +720,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                           ),
                           const SizedBox(width: 8),
                           _StatCard(
-                            label: appLocaleNotifier.value == 'ru' ? 'Получено' : 'Olingan',
+                            label: tr('received'),
                             value: formatUzsToDisplay(worker.olingan),
                             color: const Color(0xFFEA580C),
                             bgColor: const Color(0xFFEA580C).withOpacity(0.06),
@@ -738,6 +739,42 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                                 .withOpacity(0.06),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 14),
+                      InkWell(
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => ProfileScreen(userId: worker.userId),
+                            ),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+                          decoration: BoxDecoration(
+                            color: AppColors.accent.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.accent.withOpacity(0.2)),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.person_outline_rounded, size: 18, color: AppColors.accent),
+                              const SizedBox(width: 8),
+                              Text(
+                                tr('view_profile'),
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.accent,
+                                ),
+                              ),
+                              const Spacer(),
+                              const Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.accent),
+                            ],
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -814,7 +851,7 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                               fontWeight: FontWeight.w800,
                               fontSize: 13,
                               color: AppColors.muted)),
-                      Text(appLocaleNotifier.value == 'ru' ? '${_payments.length} шт' : '${_payments.length} ta',
+                      Text('${_payments.length} ${tr('pcs_suffix')}',
                           style: const TextStyle(
                               fontSize: 12, color: AppColors.muted)),
                     ],

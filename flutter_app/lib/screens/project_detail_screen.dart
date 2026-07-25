@@ -24,6 +24,7 @@ import '../services/currency_service.dart';
 import '../widgets/shimmer.dart';
 import '../utils/price_formatter.dart';
 import 'profile_screen.dart';
+import 'worker_detail_screen.dart';
 import 'add_transaction_screen.dart';
 import '../utils/phone_formatter.dart';
 import '../utils/haptics.dart';
@@ -532,6 +533,33 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
     });
   }
 
+  void _openWorkerDetail(ObMember m) async {
+    final worker = Worker(
+      userId: m.userId,
+      profile: m.profile,
+      kasb: m.kasb,
+      ishaqi: m.ishaqi,
+      olingan: m.olingan,
+      obsList: [
+        WorkerProject(
+          obId: widget.project.id,
+          obNomi: widget.project.nomi,
+          balans: m.ishaqi - m.olingan,
+        ),
+      ],
+    );
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => WorkerDetailScreen(
+          worker: worker,
+          onAction: _load,
+        ),
+      ),
+    );
+    _load();
+  }
+
   void _openWorkerProfile(ObMember m) {
     final color = colorForName(m.displayName);
     final initials = m.displayName.trim().isEmpty
@@ -901,7 +929,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    appLocaleNotifier.value == 'ru' ? 'Детали транзакции' : 'Tranzaksiya tafsilotlari',
+                    tr('tx_info_title'),
                     style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
                   ),
                   IconButton(
@@ -934,11 +962,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
               const SizedBox(height: 20),
 
               // Info rows
-              _buildDetailRow(appLocaleNotifier.value == 'ru' ? 'Тип' : 'Turi', isIncome ? tr('income') : tr('expense')),
-              _buildDetailRow(appLocaleNotifier.value == 'ru' ? 'Категория' : 'Kategoriya', displayCategory),
-              _buildDetailRow(appLocaleNotifier.value == 'ru' ? 'Дата' : 'Sana', _formatDate(tx.date)),
+              _buildDetailRow(tr('type'), isIncome ? tr('income') : tr('expense')),
+              _buildDetailRow(tr('category'), displayCategory),
+              _buildDetailRow(tr('date'), _formatDate(tx.date)),
               if (tx.izoh != null && tx.izoh!.isNotEmpty)
-                _buildDetailRow(appLocaleNotifier.value == 'ru' ? 'Комментарий' : 'Izoh', tx.izoh!),
+                _buildDetailRow(tr('note'), tx.izoh!),
 
               if (tx.files.isNotEmpty) ...[
                 const SizedBox(height: 16),
@@ -1634,7 +1662,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                 if (_project.role == 'owner') ...[
                   IconButton(
                     icon: const Icon(Icons.edit_outlined, size: 20),
-                    tooltip: appLocaleNotifier.value == 'ru' ? 'Редактировать' : 'Tahrirlash',
+                    tooltip: tr('edit'),
                     onPressed: () async {
                       await _openEditProject();
                       setState(() => _hasChanged = true);
@@ -1658,13 +1686,13 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                 );
                 if (mounted)
                   ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(appLocaleNotifier.value == 'ru' ? 'Копия создана' : 'Nusxa yaratildi')));
+                      SnackBar(content: Text(tr('copy_created'))));
               } else if (action == 'delete') {
                 final confirm = await showDialog<bool>(
                   context: context,
                   builder: (ctx) => AlertDialog(
                     title: Text(tr('tx_delete_title')),
-                    content: Text(appLocaleNotifier.value == 'ru' ? 'Объект ${project.nomi} будет удален.' : "${project.nomi} o'chiriladi."),
+                    content: Text('${project.nomi} ${tr("no_undo")}'),
                     actions: [
                       TextButton(
                           onPressed: () => Navigator.of(ctx).pop(false),
@@ -1687,9 +1715,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
             itemBuilder: (_) => [
               PopupMenuItem(
                   value: 'toggleDone',
-                  child: Text(isDone ? (appLocaleNotifier.value == 'ru' ? 'Вернуть в активные' : 'Faolga qaytarish') : (appLocaleNotifier.value == 'ru' ? 'Завершить' : 'Yakunlash'))),
+                  child: Text(isDone ? tr('restore_active') : tr('complete_project'))),
               PopupMenuItem(
-                  value: 'duplicate', child: Text(appLocaleNotifier.value == 'ru' ? 'Дублировать' : "Nusxa ko'chirish")),
+                  value: 'duplicate', child: Text(tr('duplicate_btn'))),
               PopupMenuItem(
                   value: 'delete',
                   child: Text(tr('delete'),
@@ -1877,7 +1905,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                     const SizedBox(width: 8),
                     Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(tr('income'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
-                      Text(appLocaleNotifier.value == 'ru' ? 'Добавить' : "Qo'shish",
+                      Text(tr('add'),
                           style: const TextStyle(fontSize: 10, color: Colors.white70)),
                     ]),
                   ]),
@@ -1899,7 +1927,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                     const SizedBox(width: 8),
                     Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(tr('expense'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
-                      Text(appLocaleNotifier.value == 'ru' ? 'Добавить' : "Qo'shish",
+                      Text(tr('add'),
                           style: const TextStyle(fontSize: 10, color: Colors.white70)),
                     ]),
                   ]),
@@ -1924,7 +1952,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                     const SizedBox(width: 8),
                     Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(tr('income'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
-                      Text(appLocaleNotifier.value == 'ru' ? 'Добавить' : "Qo'shish",
+                      Text(tr('add'),
                           style: const TextStyle(fontSize: 10, color: Colors.white70)),
                     ]),
                   ]),
@@ -1946,7 +1974,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                     const SizedBox(width: 8),
                     Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(tr('expense'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
-                      Text(appLocaleNotifier.value == 'ru' ? 'Добавить' : "Qo'shish",
+                      Text(tr('add'),
                           style: const TextStyle(fontSize: 10, color: Colors.white70)),
                     ]),
                   ]),
@@ -2020,7 +2048,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
               }),
           const SizedBox(width: 8),
           _FilterChip(
-              label: isRu ? "Только доход" : "Faqat kirim",
+              label: tr('only_income'),
               selected: _txFilter == 'income',
               onTap: () {
                 AppHaptics.selection();
@@ -2028,7 +2056,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
               }),
           const SizedBox(width: 8),
           _FilterChip(
-              label: isRu ? "Только расход" : "Faqat chiqim",
+              label: tr('only_expense'),
               selected: _txFilter == 'expense',
               onTap: () {
                 AppHaptics.selection();
@@ -2070,7 +2098,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                 Expanded(
                   child: Text(
                     _dateRange == null
-                        ? (isRu ? "Выбрать диапазон дат" : "Sana oralig'ini tanlash")
+                        ? tr('select_date_range')
                         : "${_formatDate(_dateRange!.start)} - ${_formatDate(_dateRange!.end)}",
                     style: TextStyle(
                       fontSize: 14,
@@ -2108,7 +2136,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
         child: Row(
           children: [
             _FilterChip(
-              label: isRu ? "Сначала новые" : "Eng yangilari",
+              label: tr('sort_newest'),
               selected: _sortMode == 'newest',
               onTap: () {
                 AppHaptics.selection();
@@ -2117,7 +2145,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
             ),
             const SizedBox(width: 8),
             _FilterChip(
-              label: isRu ? "Сначала старые" : "Eng eskilari",
+              label: tr('sort_oldest'),
               selected: _sortMode == 'oldest',
               onTap: () {
                 AppHaptics.selection();
@@ -2126,7 +2154,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
             ),
             const SizedBox(width: 8),
             _FilterChip(
-              label: isRu ? "Сначала дорогие" : "Eng baland narx",
+              label: tr('sort_highest_price'),
               selected: _sortMode == 'highest_price',
               onTap: () {
                 AppHaptics.selection();
@@ -2135,7 +2163,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
             ),
             const SizedBox(width: 8),
             _FilterChip(
-              label: isRu ? "Сначала дешевые" : "Eng past narx",
+              label: tr('sort_lowest_price'),
               selected: _sortMode == 'lowest_price',
               onTap: () {
                 AppHaptics.selection();
@@ -2160,16 +2188,23 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                   final isIncome = tx.isIncomeFor(userId);
                   final color = isIncome ? AppColors.green : AppColors.red;
 
-                  String displayCategory = tx.kategoriya ?? (isIncome ? tr('income') : tr('expense'));
-                  if (displayCategory == 'usta' || displayCategory == 'Xodim') {
-                    displayCategory = tr('xodim_category');
-                  } else if (displayCategory == 'income' || displayCategory == 'Kirim') {
-                    displayCategory = tr('income');
-                  } else if (displayCategory == 'spend' || displayCategory == 'Chiqim') {
-                    displayCategory = tr('expense');
+                  String displayCategory;
+                  if (tx.tur == 'ishhaqi') {
+                    displayCategory = tr('write_salary');
+                  } else if (tx.tur == 'send') {
+                    displayCategory = 'Avans';
+                  } else {
+                    displayCategory = tx.kategoriya ?? (isIncome ? tr('income') : tr('expense'));
+                    if (displayCategory == 'usta' || displayCategory == 'Xodim') {
+                      displayCategory = tr('xodim_category');
+                    } else if (displayCategory == 'income' || displayCategory == 'Kirim') {
+                      displayCategory = tr('income');
+                    } else if (displayCategory == 'spend' || displayCategory == 'Chiqim') {
+                      displayCategory = tr('expense');
+                    }
                   }
 
-                  if (tx.toUser != null && !isIncome) {
+                  if (tx.toUser != null) {
                     final matchingMember = _members.cast<ObMember?>().firstWhere(
                       (m) => m?.userId == tx.toUser,
                       orElse: () => null,
@@ -2324,7 +2359,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                       : m.displayName.trim()[0].toUpperCase();
                   final balance = m.ishaqi - m.olingan;
                   return InkWell(
-                    onTap: () => _openWorkerProfile(m),
+                    onTap: () => _openWorkerDetail(m),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 12),
@@ -2370,8 +2405,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                                       fontWeight: FontWeight.w700)),
                               Text(
                                 balance > 0
-                                    ? '${appLocaleNotifier.value == 'ru' ? 'Долг' : 'Qarzdor'}: ${formatUzsToDisplay(balance)}'
-                                    : (appLocaleNotifier.value == 'ru' ? 'Расчёт' : 'Hisob-kitob'),
+                                    ? '${tr("debt").split(":")[0]}: ${formatUzsToDisplay(balance)}'
+                                    : tr('accounting'),
                                 style: TextStyle(
                                     fontSize: 11,
                                     color: balance > 0
