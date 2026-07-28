@@ -22,11 +22,9 @@ import '../widgets/project_card.dart' show formatUzsToDisplay, formatTransaction
 import '../widgets/project_hero_card.dart';
 import '../services/currency_service.dart';
 import '../widgets/shimmer.dart';
-import '../utils/price_formatter.dart';
-import 'profile_screen.dart';
+import '../widgets/app_cached_image.dart';
 import 'worker_detail_screen.dart';
 import 'add_transaction_screen.dart';
-import '../utils/phone_formatter.dart';
 import '../utils/haptics.dart';
 
 
@@ -141,24 +139,27 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
   Future<void> _loadSilent() async {
     final userId = supabase.auth.currentUser?.id;
     try {
-      final results = await Future.wait([
-        _txRepo.loadForProject(_project.id, createdBy: userId),
-        _memberRepo.loadForProject(_project.id),
-        _projectRepo.loadProjectById(_project.id),
-      ]);
+      final membersList = await _memberRepo.loadForProject(_project.id);
+      final refreshedProject = await _projectRepo.loadProjectById(_project.id);
+
+      final isOwner = _project.role == 'owner';
+      final currentMember = membersList.cast<ObMember?>().firstWhere(
+        (m) => m?.userId == userId,
+        orElse: () => null,
+      );
+      final canViewOwner = isOwner || (currentMember?.canViewOwnerTransactions ?? false);
+
+      final loadedTxs = await _txRepo.loadForProject(
+        _project.id,
+        createdBy: canViewOwner ? null : userId,
+      );
+
       if (!mounted) return;
-      
-      final loadedTxs = results[0] as List<ProjectTransaction>;
-      print("DEBUG: Loaded ${loadedTxs.length} transactions for user $userId");
-      for (final tx in loadedTxs) {
-        print("DEBUG Tx: id=${tx.id}, tur=${tx.tur}, summa=${tx.summa}, toUser=${tx.toUser}, fromUser=${tx.fromUser}, createdBy=${tx.createdBy}");
-      }
 
       setState(() {
         _txs = loadedTxs;
-        _members = results[1] as List<ObMember>;
-        final refreshed = results[2] as Project?;
-        if (refreshed != null) _project = refreshed;
+        _members = membersList;
+        if (refreshedProject != null) _project = refreshedProject;
         _hasChanged = true;
       });
     } catch (e) {
@@ -195,13 +196,29 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
 
   List<ProjectTransaction> get _filteredTxs {
     final userId = supabase.auth.currentUser?.id ?? '';
+    final isProjectOwner = _project.role == 'owner';
+    final currentMember = _members.cast<ObMember?>().firstWhere(
+      (m) => m?.userId == userId,
+      orElse: () => null,
+    );
+    final canViewAllProjectTxs = isProjectOwner || (currentMember?.canViewOwnerTransactions ?? false);
+
     var base = _txs;
+
+    if (!canViewAllProjectTxs) {
+      base = base.where((tx) => tx.fromUser == userId || tx.toUser == userId || tx.createdBy == userId).toList();
+    }
+
     switch (_txFilter) {
       case 'income':
-        base = base.where((tx) => tx.isIncomeFor(userId)).toList();
+        base = base.where((tx) => canViewAllProjectTxs
+            ? (tx.tur == 'income' || tx.tur == 'kirim' || tx.isIncomeFor(userId))
+            : tx.isIncomeFor(userId)).toList();
         break;
       case 'expense':
-        base = base.where((tx) => tx.isExpenseFor(userId)).toList();
+        base = base.where((tx) => canViewAllProjectTxs
+            ? (tx.tur == 'spend' || tx.tur == 'send' || tx.tur == 'chiqim' || tx.tur == 'expense' || tx.tur == 'ishhaqi' || tx.isExpenseFor(userId))
+            : tx.isExpenseFor(userId)).toList();
         break;
     }
 
@@ -560,158 +577,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
     _load();
   }
 
-  void _openWorkerProfile(ObMember m) {
-    final color = colorForName(m.displayName);
-    final initials = m.displayName.trim().isEmpty
-        ? '?'
-        : m.displayName.trim()[0].toUpperCase();
-    final balance = m.ishaqi - m.olingan;
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.card,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Avatar
-              GestureDetector(
-                onTap: () {
-                  Navigator.of(ctx).pop();
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => ProfileScreen(userId: m.userId),
-                    ),
-                  );
-                },
-                child: CircleAvatar(
-                  radius: 32,
-                  backgroundColor: color.withOpacity(0.15),
-                  child: Text(initials,
-                      style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w800,
-                          color: color)),
-                ),
-              ),
-              const SizedBox(height: 12),
-              GestureDetector(
-                onTap: () {
-                  Navigator.of(ctx).pop();
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => ProfileScreen(userId: m.userId),
-                    ),
-                  );
-                },
-                child: Text(m.displayName,
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.w800)),
-              ),
-              if (m.kasb != null && m.kasb!.isNotEmpty)
-                Text(m.kasb!,
-                    style:
-                        const TextStyle(fontSize: 13, color: AppColors.muted)),
-              if (m.profile?.phone.isNotEmpty == true) ...[
-                const SizedBox(height: 4),
-                Text(PhoneFormatter.format(m.profile!.phone),
-                    style:
-                        const TextStyle(fontSize: 13, color: AppColors.accent)),
-              ],
-              const SizedBox(height: 20),
-              Container(
-                decoration: BoxDecoration(
-                    color: AppColors.bg,
-                    borderRadius: BorderRadius.circular(14)),
-                child: Column(children: [
-                  _WorkerInfoRow(
-                      label: tr('salary'),
-                      value: formatUzsToDisplay(m.ishaqi),
-                      color: AppColors.text),
-                  const Divider(color: AppColors.border, height: 1, indent: 14),
-                  _WorkerInfoRow(
-                      label: tr('received'),
-                      value: formatUzsToDisplay(m.olingan),
-                      color: AppColors.green),
-                  const Divider(color: AppColors.border, height: 1, indent: 14),
-                  _WorkerInfoRow(
-                    label: tr('balance'),
-                    value: formatUzsToDisplay(balance),
-                    color: balance > 0 ? AppColors.orange : AppColors.muted,
-                  ),
-                  if (m.boshlanish != null && m.tugash != null) ...[
-                    const Divider(color: AppColors.border, height: 1, indent: 14),
-                    _WorkerInfoRow(
-                      label: tr('duration_days').replaceAll(' (kun)', ''), // Muddat/Muddati fallback
-                      value: "${_formatDate(m.boshlanish!)} - ${_formatDate(m.tugash!)}",
-                      color: AppColors.text,
-                    ),
-                  ],
-                ]),
-              ),
-              const SizedBox(height: 16),
-              Row(children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.red,
-                        side: const BorderSide(color: AppColors.red)),
-                    icon: const Icon(Icons.person_remove_outlined, size: 16),
-                    label: Text(tr('delete')),
-                    onPressed: () async {
-                      Navigator.of(ctx).pop();
-                      final confirm = await showDialog<bool>(
-                        context: context,
-                        builder: (d) => AlertDialog(
-                          title: Text(tr('delete_worker_title')),
-                          content: Text(tr('delete_worker_q').replaceFirst('{}', m.displayName)),
-                          actions: [
-                            TextButton(
-                                onPressed: () => Navigator.of(d).pop(false),
-                                child: Text(tr('cancel'))),
-                            ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.red,
-                                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10)),
-                                onPressed: () => Navigator.of(d).pop(true),
-                                child: Text(tr('delete'))),
-                          ],
-                        ),
-                      );
-                      if (confirm == true) {
-                        await _memberRepo.removeMember(
-                            obId: _project.id, userId: m.userId);
-                        _withMutation(_loadSilent);
-                      }
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.accent),
-                    icon: const Icon(Icons.payments_outlined, size: 16),
-                    label: Text(tr('pay')),
-                    onPressed: () {
-                      Navigator.of(ctx).pop();
-                      _openAddTransaction(
-                          isIncome: false, preSelectedWorkerId: m.userId);
-                    },
-                  ),
-                ),
-              ]),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Future<void> _openAddMember() async {
     final phoneCtrl = TextEditingController();
     final kasbCtrl = TextEditingController();
@@ -855,7 +720,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
       }).toList();
     }
 
-    AppHaptics.heavy();
+    AppHaptics.delete();
     setState(() {
       _txs = _txs.where((t) => t.id != tx.id).toList();
       _project = updatedProject;
@@ -1533,34 +1398,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
               child: InteractiveViewer(
                 minScale: 0.5,
                 maxScale: 4.0,
-                child: Image.network(
-                  f.publicUrl,
+                child: AppCachedImage(
+                  imageUrl: f.publicUrl,
                   fit: BoxFit.contain,
-                  loadingBuilder: (ctx, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Center(
-                      child: CircularProgressIndicator(
-                        value: loadingProgress.expectedTotalBytes != null
-                            ? loadingProgress.cumulativeBytesLoaded /
-                                loadingProgress.expectedTotalBytes!
-                            : null,
-                        color: AppColors.accent,
-                      ),
-                    );
-                  },
-                  errorBuilder: (ctx, error, stackTrace) => Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.broken_image_rounded,
-                          size: 48, color: Colors.white54),
-                      const SizedBox(height: 12),
-                      Text(
-                        tr('image_load_error'),
-                        style: const TextStyle(
-                            color: Colors.white70, fontSize: 13),
-                      ),
-                    ],
-                  ),
                 ),
               ),
             ),
@@ -1753,14 +1593,15 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                           indicatorSize: TabBarIndicatorSize.tab,
                           dividerColor: Colors.transparent,
                           isScrollable: false,
-                          labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
-                          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                          labelPadding: const EdgeInsets.symmetric(horizontal: 2),
+                          labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11.5),
+                          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11.5),
                           padding: const EdgeInsets.all(4),
                           tabs: [
-                            Tab(text: tr('umumiy')),
-                            Tab(text: tr('transactions')),
-                            Tab(text: tr('workers')),
-                            Tab(text: tr('files')),
+                            Tab(child: FittedBox(fit: BoxFit.scaleDown, child: Text(tr('umumiy')))),
+                            Tab(child: FittedBox(fit: BoxFit.scaleDown, child: Text(tr('transactions')))),
+                            Tab(child: FittedBox(fit: BoxFit.scaleDown, child: Text(tr('workers')))),
+                            Tab(child: FittedBox(fit: BoxFit.scaleDown, child: Text(tr('files')))),
                           ],
                         ),
                       ),
@@ -1818,67 +1659,204 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
           _buildHeroCard(project, isDone, progress, left),
           const SizedBox(height: 16),
 
-          // Stats row
+          // Significant Financial Stats Row (Kirim, Chiqim, Qoldiq)
           Row(
             children: [
+              // 1. Kirim Card
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
                   decoration: BoxDecoration(
                     color: AppColors.card,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.border),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppColors.green.withValues(alpha: 0.3),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.green.withValues(alpha: 0.06),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
                   child: Column(
                     children: [
-                      Text(tr('income'),
-                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.muted, letterSpacing: 0.5)),
-                      const SizedBox(height: 4),
-                      FittedBox(fit: BoxFit.scaleDown,
-                          child: Text(formatUzsToDisplay(project.kirim),
-                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.green))),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(3),
+                            decoration: BoxDecoration(
+                              color: AppColors.green.withValues(alpha: 0.12),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.arrow_downward_rounded,
+                              size: 13,
+                              color: AppColors.green,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            tr('income').toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.muted,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          formatUzsToDisplay(project.kirim),
+                          style: const TextStyle(
+                            fontSize: 19,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.green,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
+
+              // 2. Chiqim Card
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
                   decoration: BoxDecoration(
                     color: AppColors.card,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.border),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppColors.red.withValues(alpha: 0.3),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.red.withValues(alpha: 0.06),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
                   child: Column(
                     children: [
-                      Text(tr('expense'),
-                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.muted, letterSpacing: 0.5)),
-                      const SizedBox(height: 4),
-                      FittedBox(fit: BoxFit.scaleDown,
-                          child: Text(formatUzsToDisplay(project.chiqim),
-                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.red))),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(3),
+                            decoration: BoxDecoration(
+                              color: AppColors.red.withValues(alpha: 0.12),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.arrow_upward_rounded,
+                              size: 13,
+                              color: AppColors.red,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            tr('expense').toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.muted,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          formatUzsToDisplay(project.chiqim),
+                          style: const TextStyle(
+                            fontSize: 19,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.red,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
+
+              // 3. Qoldiq Card
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
                   decoration: BoxDecoration(
                     color: AppColors.card,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.border),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: balColor.withValues(alpha: 0.3),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: balColor.withValues(alpha: 0.06),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
                   child: Column(
                     children: [
-                      Text(tr('balance'),
-                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.muted, letterSpacing: 0.5)),
-                      const SizedBox(height: 4),
-                      FittedBox(fit: BoxFit.scaleDown,
-                          child: Text(formatUzsToDisplay(project.balance),
-                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: balColor))),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(3),
+                            decoration: BoxDecoration(
+                              color: balColor.withValues(alpha: 0.12),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.account_balance_wallet_rounded,
+                              size: 13,
+                              color: balColor,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            tr('balance').toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.muted,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          formatUzsToDisplay(project.balance),
+                          style: TextStyle(
+                            fontSize: 19,
+                            fontWeight: FontWeight.w900,
+                            color: balColor,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -1890,95 +1868,39 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
           // Action buttons
           if (_project.role == 'owner') ...[
             Row(children: [
-              Expanded(
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.accent,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      elevation: 0),
-                  onPressed: () => _openAddTransaction(isIncome: true),
-                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Container(width: 28, height: 28,
-                        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
-                        child: const Icon(Icons.arrow_downward_rounded, size: 16, color: Colors.white)),
-                    const SizedBox(width: 8),
-                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(tr('income'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
-                      Text(tr('add'),
-                          style: const TextStyle(fontSize: 10, color: Colors.white70)),
-                    ]),
-                  ]),
-                ),
+              _buildActionButton(
+                title: tr('income'),
+                subtitle: tr('add'),
+                icon: Icons.arrow_downward_rounded,
+                color: AppColors.accent,
+                onPressed: () => _openAddTransaction(isIncome: true),
               ),
               const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.green,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      elevation: 0),
-                  onPressed: () => _openAddTransaction(isIncome: false),
-                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Container(width: 28, height: 28,
-                        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
-                        child: const Icon(Icons.arrow_upward_rounded, size: 16, color: Colors.white)),
-                    const SizedBox(width: 8),
-                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(tr('expense'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
-                      Text(tr('add'),
-                          style: const TextStyle(fontSize: 10, color: Colors.white70)),
-                    ]),
-                  ]),
-                ),
+              _buildActionButton(
+                title: tr('expense'),
+                subtitle: tr('add'),
+                icon: Icons.arrow_upward_rounded,
+                color: AppColors.green,
+                onPressed: () => _openAddTransaction(isIncome: false),
               ),
             ]),
             const SizedBox(height: 20),
           ] else if (_project.role == 'member') ...[
             Row(children: [
-              Expanded(
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.accent,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      elevation: 0),
-                  onPressed: () => _openAddTransaction(isIncome: true),
-                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Container(width: 28, height: 28,
-                        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
-                        child: const Icon(Icons.arrow_downward_rounded, size: 16, color: Colors.white)),
-                    const SizedBox(width: 8),
-                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(tr('income'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
-                      Text(tr('add'),
-                          style: const TextStyle(fontSize: 10, color: Colors.white70)),
-                    ]),
-                  ]),
-                ),
+              _buildActionButton(
+                title: tr('income'),
+                subtitle: tr('add'),
+                icon: Icons.arrow_downward_rounded,
+                color: AppColors.accent,
+                onPressed: () => _openAddTransaction(isIncome: true),
               ),
               const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.red,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      elevation: 0),
-                  onPressed: () => _openAddTransaction(isIncome: false),
-                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Container(width: 28, height: 28,
-                        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
-                        child: const Icon(Icons.arrow_upward_rounded, size: 16, color: Colors.white)),
-                    const SizedBox(width: 8),
-                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(tr('expense'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
-                      Text(tr('add'),
-                          style: const TextStyle(fontSize: 10, color: Colors.white70)),
-                    ]),
-                  ]),
-                ),
+              _buildActionButton(
+                title: tr('expense'),
+                subtitle: tr('add'),
+                icon: Icons.arrow_upward_rounded,
+                color: AppColors.red,
+                onPressed: () => _openAddTransaction(isIncome: false),
               ),
             ]),
             const SizedBox(height: 20),
@@ -1988,6 +1910,67 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
           _buildInfoSection(project, isDone, progress, left, startFmt, endFmt),
           const SizedBox(height: 20),
         ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return Expanded(
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          elevation: 0,
+        ),
+        onPressed: onPressed,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                width: 28,
+                height: 28,
+                margin: const EdgeInsets.only(left: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 16, color: Colors.white),
+              ),
+            ),
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: Colors.white70,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2027,11 +2010,154 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
     );
   }
 
+  String _getSortLabel(String mode) {
+    if (mode == 'oldest') return tr('sort_oldest');
+    if (mode == 'highest_price') return tr('sort_highest_price');
+    if (mode == 'lowest_price') return tr('sort_lowest_price');
+    return tr('sort_newest');
+  }
+
+  Widget _buildSortFilterButton() {
+    final active = _sortMode != 'newest';
+    return PopupMenuButton<String>(
+      tooltip: tr('sort'),
+      initialValue: _sortMode,
+      onSelected: (val) {
+        AppHaptics.selection();
+        setState(() => _sortMode = val);
+      },
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: AppColors.card,
+      elevation: 4,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: active ? AppColors.accent.withValues(alpha: 0.1) : AppColors.card,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: active ? AppColors.accent : AppColors.border,
+            width: active ? 1.5 : 1.0,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.tune_rounded,
+              size: 16,
+              color: active ? AppColors.accent : AppColors.text2,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              _getSortLabel(_sortMode),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: active ? AppColors.accent : AppColors.text2,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.arrow_drop_down_rounded,
+              size: 18,
+              color: active ? AppColors.accent : AppColors.muted,
+            ),
+          ],
+        ),
+      ),
+      itemBuilder: (ctx) => [
+        PopupMenuItem(
+          value: 'newest',
+          child: Row(
+            children: [
+              Icon(
+                Icons.access_time_filled_rounded,
+                size: 18,
+                color: _sortMode == 'newest' ? AppColors.accent : AppColors.muted,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                tr('sort_newest'),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: _sortMode == 'newest' ? FontWeight.w800 : FontWeight.w600,
+                  color: _sortMode == 'newest' ? AppColors.accent : AppColors.text,
+                ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'oldest',
+          child: Row(
+            children: [
+              Icon(
+                Icons.history_rounded,
+                size: 18,
+                color: _sortMode == 'oldest' ? AppColors.accent : AppColors.muted,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                tr('sort_oldest'),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: _sortMode == 'oldest' ? FontWeight.w800 : FontWeight.w600,
+                  color: _sortMode == 'oldest' ? AppColors.accent : AppColors.text,
+                ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'highest_price',
+          child: Row(
+            children: [
+              Icon(
+                Icons.arrow_upward_rounded,
+                size: 18,
+                color: _sortMode == 'highest_price' ? AppColors.accent : AppColors.muted,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                tr('sort_highest_price'),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: _sortMode == 'highest_price' ? FontWeight.w800 : FontWeight.w600,
+                  color: _sortMode == 'highest_price' ? AppColors.accent : AppColors.text,
+                ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'lowest_price',
+          child: Row(
+            children: [
+              Icon(
+                Icons.arrow_downward_rounded,
+                size: 18,
+                color: _sortMode == 'lowest_price' ? AppColors.accent : AppColors.muted,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                tr('sort_lowest_price'),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: _sortMode == 'lowest_price' ? FontWeight.w800 : FontWeight.w600,
+                  color: _sortMode == 'lowest_price' ? AppColors.accent : AppColors.text,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   // ── So'nggi faoliyat: last 4 transactions with 'Barchasi' link ──
 
   Widget _buildTransactionsTab() {
     final userId = supabase.auth.currentUser?.id ?? '';
-    final isRu = appLocaleNotifier.value == 'ru';
 
     return Column(children: [
       // Filter chips: Barchasi, Faqat kirim, Faqat chiqim
@@ -2067,7 +2193,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
 
       // Date range picker: Sana oralig'ini tanlash
       Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
         child: InkWell(
           onTap: () {
             AppHaptics.light();
@@ -2129,48 +2255,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
         ),
       ),
 
-      // Sort chips: Eng yangilari, Eng eskilari, Eng baland narx, Eng past narx
-      SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
+      // Sort filter button on bottom of date range picker
+      Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-        child: Row(
-          children: [
-            _FilterChip(
-              label: tr('sort_newest'),
-              selected: _sortMode == 'newest',
-              onTap: () {
-                AppHaptics.selection();
-                setState(() => _sortMode = 'newest');
-              },
-            ),
-            const SizedBox(width: 8),
-            _FilterChip(
-              label: tr('sort_oldest'),
-              selected: _sortMode == 'oldest',
-              onTap: () {
-                AppHaptics.selection();
-                setState(() => _sortMode = 'oldest');
-              },
-            ),
-            const SizedBox(width: 8),
-            _FilterChip(
-              label: tr('sort_highest_price'),
-              selected: _sortMode == 'highest_price',
-              onTap: () {
-                AppHaptics.selection();
-                setState(() => _sortMode = 'highest_price');
-              },
-            ),
-            const SizedBox(width: 8),
-            _FilterChip(
-              label: tr('sort_lowest_price'),
-              selected: _sortMode == 'lowest_price',
-              onTap: () {
-                AppHaptics.selection();
-                setState(() => _sortMode = 'lowest_price');
-              },
-            ),
-          ],
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: _buildSortFilterButton(),
         ),
       ),
       Expanded(
@@ -2204,7 +2294,14 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                     }
                   }
 
-                  if (tx.toUser != null) {
+                  if (tx.toUser == userId && tx.createdBy != null && tx.createdBy != userId) {
+                    final matchingCreator = _members.cast<ObMember?>().firstWhere(
+                      (m) => m?.userId == tx.createdBy,
+                      orElse: () => null,
+                    );
+                    final name = matchingCreator?.displayName ?? tr('role_owner');
+                    displayCategory = '${tr("role_owner")}: $name';
+                  } else if (tx.toUser != null) {
                     final matchingMember = _members.cast<ObMember?>().firstWhere(
                       (m) => m?.userId == tx.toUser,
                       orElse: () => null,
@@ -2358,67 +2455,130 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                       ? '?'
                       : m.displayName.trim()[0].toUpperCase();
                   final balance = m.ishaqi - m.olingan;
-                  return InkWell(
-                    onTap: () => _openWorkerDetail(m),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 12),
-                      child: Row(children: [
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundColor: color.withOpacity(0.15),
-                          child: Text(initials,
-                              style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                  color: color)),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                            child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                              Text(m.displayName,
-                                  style: const TextStyle(
+                  return Column(
+                    children: [
+                      InkWell(
+                        onTap: () => _openWorkerDetail(m),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
+                          child: Row(children: [
+                            CircleAvatar(
+                              radius: 20,
+                              backgroundColor: color.withOpacity(0.15),
+                              child: Text(initials,
+                                  style: TextStyle(
+                                      fontSize: 15,
                                       fontWeight: FontWeight.w700,
-                                      fontSize: 14)),
-                              if (m.kasb != null && m.kasb!.isNotEmpty)
-                                Text(m.kasb!,
-                                    style: const TextStyle(
-                                        fontSize: 11, color: AppColors.muted)),
-                              if (m.boshlanish != null && m.tugash != null)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 2),
+                                      color: color)),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                                child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                  Text(m.displayName,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 14)),
+                                  if (m.kasb != null && m.kasb!.isNotEmpty)
+                                    Text(m.kasb!,
+                                        style: const TextStyle(
+                                            fontSize: 11, color: AppColors.muted)),
+                                  if (m.boshlanish != null && m.tugash != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 2),
+                                      child: Text(
+                                        "${_dateFmt.format(m.boshlanish!)} - ${_dateFmt.format(m.tugash!)}",
+                                        style: const TextStyle(
+                                            fontSize: 10, color: AppColors.muted),
+                                      ),
+                                    ),
+                                ])),
+                            Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(formatUzsToDisplay(m.ishaqi),
+                                      style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700)),
+                                  Text(
+                                    balance > 0
+                                        ? '${tr("debt").split(":")[0]}: ${formatUzsToDisplay(balance)}'
+                                        : tr('accounting'),
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        color: balance > 0
+                                            ? AppColors.orange
+                                            : AppColors.muted),
+                                  ),
+                                ]),
+                            const SizedBox(width: 6),
+                            const Icon(Icons.chevron_right_rounded,
+                                size: 18, color: AppColors.muted),
+                          ]),
+                        ),
+                      ),
+                      if (_project.role == 'owner')
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: m.canViewOwnerTransactions
+                                  ? AppColors.accent.withValues(alpha: 0.08)
+                                  : AppColors.bg,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: m.canViewOwnerTransactions
+                                    ? AppColors.accent.withValues(alpha: 0.3)
+                                    : AppColors.border,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.visibility_outlined,
+                                  size: 16,
+                                  color: m.canViewOwnerTransactions ? AppColors.accent : AppColors.muted,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
                                   child: Text(
-                                    "${_dateFmt.format(m.boshlanish!)} - ${_dateFmt.format(m.tugash!)}",
-                                    style: const TextStyle(
-                                        fontSize: 10, color: AppColors.muted),
+                                    tr('allow_view_my_transactions'),
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: m.canViewOwnerTransactions ? AppColors.accent : AppColors.text2,
+                                    ),
                                   ),
                                 ),
-                            ])),
-                        Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(formatUzsToDisplay(m.ishaqi),
-                                  style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700)),
-                              Text(
-                                balance > 0
-                                    ? '${tr("debt").split(":")[0]}: ${formatUzsToDisplay(balance)}'
-                                    : tr('accounting'),
-                                style: TextStyle(
-                                    fontSize: 11,
-                                    color: balance > 0
-                                        ? AppColors.orange
-                                        : AppColors.muted),
-                              ),
-                            ]),
-                        const SizedBox(width: 6),
-                        const Icon(Icons.chevron_right_rounded,
-                            size: 18, color: AppColors.muted),
-                      ]),
-                    ),
+                                Switch(
+                                  value: m.canViewOwnerTransactions,
+                                  activeColor: AppColors.accent,
+                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  onChanged: (val) async {
+                                    AppHaptics.selection();
+                                    final updatedList = _members.map((mem) {
+                                      if (mem.userId == m.userId) {
+                                        return mem.copyWith(canViewOwnerTransactions: val);
+                                      }
+                                      return mem;
+                                    }).toList();
+                                    setState(() => _members = updatedList);
+                                    await MemberRepository().updateCanViewOwnerTransactions(
+                                      obId: _project.id,
+                                      userId: m.userId,
+                                      canView: val,
+                                      currentRole: m.role,
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
                   );
                 },
               ),
@@ -2533,6 +2693,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                           ),
                         ),
                         onDismissed: (_) async {
+                          AppHaptics.delete();
                           try {
                             await _filesRepo.deleteFile(f.path);
                             setState(() =>
@@ -2661,29 +2822,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
           ShimmerBox(height: 56, borderRadius: 12),
         ],
       ),
-    );
-  }
-}
-
-class _WorkerInfoRow extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color color;
-  const _WorkerInfoRow(
-      {required this.label, required this.value, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      child: Row(children: [
-        Expanded(
-            child: Text(label,
-                style: const TextStyle(fontSize: 13, color: AppColors.text2))),
-        Text(value,
-            style: TextStyle(
-                fontSize: 13, fontWeight: FontWeight.w700, color: color)),
-      ]),
     );
   }
 }

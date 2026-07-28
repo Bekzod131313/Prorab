@@ -100,15 +100,8 @@ class _CreateNotificationScreenState extends State<CreateNotificationScreen> {
         try {
           await _supabase.from('notifications').insert({
             'user_id': userId,
-            'title': titleUz, // Legacy UZ title fallback
-            'body': bodyUz,   // Legacy UZ body fallback
-            'title_uz': titleUz,
-            'body_uz': bodyUz,
-            'title_ru': titleRu,
-            'body_ru': bodyRu,
-            'title_en': titleEn,
-            'body_en': bodyEn,
-            'type': 'general',
+            'title': titleUz,
+            'body': bodyUz,
           });
           dbSavedCount++;
         } catch (e) {

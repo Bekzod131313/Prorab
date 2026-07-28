@@ -147,17 +147,24 @@ class NotificationService {
 
   static Future<void> _refreshToken() async {
     try {
+      // On iOS, fetch APNs token first to establish Apple Push Notification registration
+      try {
+        final apnsToken = await _messaging.getAPNSToken();
+        print("APNs Token: $apnsToken");
+      } catch (apnsErr) {
+        print("APNs Token fetch error: $apnsErr");
+      }
+
       final token = await _messaging.getToken();
       print("FCM Token: $token");
 
       final userId = supabase.auth.currentUser?.id;
       if (userId != null && token != null) {
-        // Update fcm_token in profiles table (wrapped in try/catch to fail gracefully if column is missing)
         await supabase.from('profiles').update({'fcm_token': token}).eq('id', userId);
         print("FCM Token successfully saved to profile.");
       }
     } catch (e) {
-      print("Error refreshing FCM token: $e (This is expected if 'fcm_token' column is not yet added to 'profiles')");
+      print("Error refreshing FCM token: $e");
     }
   }
 

@@ -10,6 +10,7 @@ import '../widgets/shimmer.dart';
 import '../widgets/project_hero_card.dart';
 import '../data/member_repository.dart';
 import '../models/member.dart';
+import '../utils/haptics.dart';
 
 class ProjectsScreen extends StatefulWidget {
   static bool autoOpenCreate = false;
@@ -273,6 +274,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
       await _repo.createProject(nomi: '${project.nomi} (nusxa)', muddat: project.muddat, manzil: project.manzil, mijoz: project.mijoz, boshlanish: DateTime.now());
       _load();
     } else if (action == 'delete') {
+      AppHaptics.delete();
       final confirm = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
@@ -280,7 +282,14 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
           content: Text('${project.nomi} ${tr("no_undo")}'),
           actions: [
             TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(tr('cancel'))),
-            ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: AppColors.red, padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10)), onPressed: () => Navigator.of(ctx).pop(true), child: Text(tr('delete'))),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.red, padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10)),
+              onPressed: () {
+                AppHaptics.delete();
+                Navigator.of(ctx).pop(true);
+              },
+              child: Text(tr('delete')),
+            ),
           ],
         ),
       );
@@ -308,15 +317,30 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
           titleSpacing: 16,
           title: Text(tr('projects'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.text)),
           actions: [
-            IconButton(
-              icon: Container(
-                width: 36, height: 36,
-                decoration: BoxDecoration(color: AppColors.accent, borderRadius: BorderRadius.circular(10)),
-                child: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: ElevatedButton.icon(
+                onPressed: _openAddProject,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accent,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: const Icon(Icons.add_rounded, size: 18, color: Colors.white),
+                label: Text(
+                  tr('new_project'),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
-              onPressed: _openAddProject,
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 12),
           ],
         ),
         body: RefreshIndicator(

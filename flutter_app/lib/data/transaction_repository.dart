@@ -315,18 +315,15 @@ class TransactionRepository {
       final titleDb = currentLang == 'en' ? titleEn : (currentLang == 'ru' ? titleRu : titleUz);
       final bodyDb = currentLang == 'en' ? bodyEn : (currentLang == 'ru' ? bodyRu : bodyUz);
 
-      await supabase.from('notifications').insert({
-        'user_id': toUserId,
-        'title': titleDb,
-        'body': bodyDb,
-        'title_uz': titleUz,
-        'body_uz': bodyUz,
-        'title_ru': titleRu,
-        'body_ru': bodyRu,
-        'title_en': titleEn,
-        'body_en': bodyEn,
-        'type': 'personal',
-      });
+      try {
+        await supabase.from('notifications').insert({
+          'user_id': toUserId,
+          'title': titleDb,
+          'body': bodyDb,
+        });
+      } catch (e) {
+        print("Error inserting into notifications table: $e");
+      }
 
       // 6. Send push notifications via Firebase Cloud Function to all 3 channels
       const cfUrl = 'https://us-central1-risq-91c54.cloudfunctions.net/sendPushNotification';
@@ -398,18 +395,15 @@ class TransactionRepository {
       final titleDb = currentLang == 'en' ? titleEn : (currentLang == 'ru' ? titleRu : titleUz);
       final bodyDb = currentLang == 'en' ? bodyEn : (currentLang == 'ru' ? bodyRu : bodyUz);
 
-      await supabase.from('notifications').insert({
-        'user_id': toUserId,
-        'title': titleDb,
-        'body': bodyDb,
-        'title_uz': titleUz,
-        'body_uz': bodyUz,
-        'title_ru': titleRu,
-        'body_ru': bodyRu,
-        'title_en': titleEn,
-        'body_en': bodyEn,
-        'type': 'personal',
-      });
+      try {
+        await supabase.from('notifications').insert({
+          'user_id': toUserId,
+          'title': titleDb,
+          'body': bodyDb,
+        });
+      } catch (e) {
+        print("Error inserting into notifications table: $e");
+      }
 
       const cfUrl = 'https://us-central1-risq-91c54.cloudfunctions.net/sendPushNotification';
       try {

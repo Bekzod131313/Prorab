@@ -224,34 +224,266 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
   Future<ExpenseCategoryItem?> _openAddCategoryDialog() async {
     final nameCtrl = TextEditingController();
-    final result = await showDialog<ExpenseCategoryItem>(
+
+    final icons = <IconData>[
+      Icons.local_offer_outlined,
+      Icons.work_outline_rounded,
+      Icons.shopping_cart_outlined,
+      Icons.local_gas_station_outlined,
+      Icons.local_shipping_outlined,
+      Icons.home_outlined,
+      Icons.build_outlined,
+      Icons.bolt_outlined,
+      Icons.card_giftcard_outlined,
+    ];
+
+    IconData selectedIcon = icons[0];
+    const iconColor = AppColors.accent;
+
+    final result = await showModalBottomSheet<ExpenseCategoryItem>(
       context: context,
-      builder: (dctx) => AlertDialog(
-        backgroundColor: AppColors.card,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(tr('new_category')),
-        content: TextField(
-          controller: nameCtrl,
-          decoration: InputDecoration(hintText: tr('category_name')),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dctx).pop(null),
-            child: Text(tr('cancel')),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),
-            onPressed: () {
-              final name = nameCtrl.text.trim();
-              if (name.isEmpty) return;
-              Navigator.of(dctx).pop(
-                ExpenseCategoryItem(name: name, icon: Icons.category_rounded),
-              );
-            },
-            child: Text(tr('save')),
-          ),
-        ],
+      isScrollControlled: true,
+      backgroundColor: AppColors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
+      builder: (bctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSt) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 12,
+                bottom: 24 + MediaQuery.of(ctx).viewInsets.bottom,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.border,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: Column(
+                      children: [
+                        Text(
+                          tr('new_category'),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.text,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          tr('new_category_sub'),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.muted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  ValueListenableBuilder<TextEditingValue>(
+                    valueListenable: nameCtrl,
+                    builder: (context, value, _) {
+                      final count = value.text.length;
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: AppColors.bg,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: iconColor.withValues(alpha: 0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(selectedIcon, color: iconColor, size: 22),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    tr('category_name'),
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.muted,
+                                    ),
+                                  ),
+                                  TextField(
+                                    controller: nameCtrl,
+                                    maxLength: 30,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.text,
+                                    ),
+                                    decoration: InputDecoration(
+                                      isDense: true,
+                                      contentPadding: const EdgeInsets.symmetric(vertical: 2),
+                                      hintText: tr('category_name_hint'),
+                                      hintStyle: const TextStyle(
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w400,
+                                        color: AppColors.muted,
+                                      ),
+                                      border: InputBorder.none,
+                                      enabledBorder: InputBorder.none,
+                                      focusedBorder: InputBorder.none,
+                                      counterText: '',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Text(
+                              '$count/30',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.muted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    tr('select_icon'),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.text,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: icons.length,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 5,
+                      mainAxisSpacing: 10,
+                      crossAxisSpacing: 10,
+                      childAspectRatio: 1.1,
+                    ),
+                    itemBuilder: (context, idx) {
+                      final ic = icons[idx];
+                      final isSelected = selectedIcon == ic;
+                      return GestureDetector(
+                        onTap: () {
+                          AppHaptics.selection();
+                          setSt(() => selectedIcon = ic);
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? iconColor.withValues(alpha: 0.12)
+                                : AppColors.bg,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: isSelected ? iconColor : AppColors.border.withValues(alpha: 0.6),
+                              width: isSelected ? 2 : 1,
+                            ),
+                          ),
+                          child: Icon(
+                            ic,
+                            color: isSelected ? iconColor : AppColors.text2,
+                            size: 22,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        final name = nameCtrl.text.trim();
+                        if (name.isEmpty) return;
+                        AppHaptics.heavy();
+                        Navigator.of(bctx).pop(
+                          ExpenseCategoryItem(
+                            name: name,
+                            icon: selectedIcon,
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.accent,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: Text(
+                        tr('save_category'),
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: TextButton(
+                      onPressed: () {
+                        AppHaptics.light();
+                        Navigator.of(bctx).pop(null);
+                      },
+                      style: TextButton.styleFrom(
+                        backgroundColor: AppColors.bg,
+                        foregroundColor: AppColors.text,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: Text(
+                        tr('cancel'),
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
     return result;
   }
@@ -465,6 +697,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                               },
                               onLongPress: (!c.isWorker && c.name != tr('worker'))
                                   ? () async {
+                                      AppHaptics.longPress();
                                       final confirm = await showDialog<bool>(
                                         context: context,
                                         builder: (dctx) => AlertDialog(
@@ -483,11 +716,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                                                 padding:
                                                     const EdgeInsets.symmetric(
                                                         horizontal: 16,
-                                                        vertical: 10),
+                                                        vertical: 8),
                                               ),
-                                              onPressed: () =>
-                                                  Navigator.of(dctx).pop(true),
-                                              child: Text(tr('delete')),
+                                              onPressed: () {
+                                                AppHaptics.delete();
+                                                Navigator.of(dctx).pop(true);
+                                              },
+                                              child: Text(tr('yes')),
                                             ),
                                           ],
                                         ),
@@ -1060,8 +1295,12 @@ class __FileSelectionBottomSheetState
         bytes,
         mime,
         originalName: originalName,
+        isTransactionFile: true,
       );
-      final updatedList = await widget.repo.listFiles(widget.projectId);
+      final updatedList = await widget.repo.listFiles(
+        widget.projectId,
+        includeTransactionFiles: true,
+      );
 
       // Find uploaded file path and select it automatically
       final uploaded = updatedList.firstWhere(
@@ -1231,8 +1470,12 @@ class __FileSelectionBottomSheetState
         pf.bytes!,
         mime,
         originalName: originalName,
+        isTransactionFile: true,
       );
-      final updatedList = await widget.repo.listFiles(widget.projectId);
+      final updatedList = await widget.repo.listFiles(
+        widget.projectId,
+        includeTransactionFiles: true,
+      );
 
       final uploaded = updatedList.firstWhere(
         (f) => f.name == finalCustomName,

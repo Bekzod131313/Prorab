@@ -97,7 +97,6 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
         'user_id': targetUserId,
         'title': title,
         'body': body,
-        'type': 'general',
       });
     } catch (e) {
       if (mounted) {

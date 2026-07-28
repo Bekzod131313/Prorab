@@ -6,6 +6,7 @@ import '../models/project.dart';
 import '../models/transaction.dart';
 import '../services/currency_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/haptics.dart';
 
 const _cardColors = [
   Color(0xFFF97316),
@@ -81,8 +82,8 @@ class ProjectCard extends StatelessWidget {
         };
 
         return InkWell(
-      onTap: onTap,
-      onLongPress: onLongPress,
+      onTap: onTap != null ? () { AppHaptics.light(); onTap!(); } : null,
+      onLongPress: onLongPress != null ? () { AppHaptics.longPress(); onLongPress!(); } : null,
       borderRadius: BorderRadius.circular(22),
       child: Container(
         padding: const EdgeInsets.all(18),

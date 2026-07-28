@@ -67,13 +67,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
         _projects = projects;
         _txsByProject = txMap;
         _loading = false;
-        // Safely pre-select or update current selected project reference
-        if (_myProjects.isNotEmpty) {
-          if (_selectedProject == null || !_myProjects.contains(_selectedProject)) {
-            _selectedProject = _myProjects.first;
-          } else {
-            _selectedProject = _myProjects.firstWhere((p) => p.id == _selectedProject!.id);
-          }
+        // Keep existing selection updated if project still exists, otherwise leave null for user selection
+        if (_myProjects.isNotEmpty && _selectedProject != null) {
+          final matches = _myProjects.where((p) => p.id == _selectedProject!.id);
+          _selectedProject = matches.isNotEmpty ? matches.first : null;
         } else {
           _selectedProject = null;
         }
@@ -324,8 +321,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
   }
 
   Widget _buildPerProjectTab() {
-    final isRu = appLocaleNotifier.value == 'ru';
-
     if (_myProjects.isEmpty) {
       return Center(
         child: Text(
@@ -335,122 +330,320 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
       );
     }
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
-      children: [
-        // Label for project selector
-        Text(
-          "${tr('select_project')}:",
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: AppColors.muted,
+    // 1. Initial State: Show vertical list of projects to choose from
+    if (_selectedProject == null) {
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  tr('select_object_stats_title'),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.text,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  tr('swipe_page_hint'),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.muted,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
+          ..._myProjects.map((p) => _buildProjectSelectionCard(p)),
+        ],
+      );
+    }
 
-        // Big project selection chips
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: _myProjects.map((p) {
-              final selected = _selectedProject?.id == p.id;
-              return Padding(
-                padding: const EdgeInsets.only(right: 10),
-                child: GestureDetector(
-                  onTap: () {
-                    AppHaptics.selection();
-                    setState(() => _selectedProject = p);
-                  },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    // 2. Selected State: Show selected project header banner with change button & stats
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+      children: [
+        // Top Selected Project Header Banner
+        Container(
+          margin: const EdgeInsets.only(bottom: 14),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppColors.accent.withValues(alpha: 0.3),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.accent.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: selected ? AppColors.accent : AppColors.card,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: selected ? AppColors.accent : AppColors.border,
-                        width: 1.5,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: selected
-                              ? AppColors.accent.withValues(alpha: 0.25)
-                              : Colors.black.withValues(alpha: 0.02),
-                          blurRadius: 8,
-                          offset: const Offset(0, 3),
+                      color: AppColors.accent.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.domain_rounded,
+                      color: AppColors.accent,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          tr('selected_object_label'),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.muted,
+                          ),
+                        ),
+                        Text(
+                          _selectedProject!.nomi,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.text,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.domain_rounded,
-                          size: 18,
-                          color: selected ? Colors.white : AppColors.accent,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  // Button to re-open the vertical project list
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        AppHaptics.selection();
+                        setState(() => _selectedProject = null);
+                      },
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: AppColors.accent),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          p.nomi,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                            color: selected ? Colors.white : AppColors.text,
+                      ),
+                      icon: const Icon(
+                        Icons.swap_horiz_rounded,
+                        size: 18,
+                        color: AppColors.accent,
+                      ),
+                      label: Text(
+                        tr('choose_other_object'),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.accent,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  // Download PDF report button
+                  IconButton.filledTonal(
+                    onPressed: () {
+                      AppHaptics.medium();
+                      _downloadPdf();
+                    },
+                    style: IconButton.styleFrom(
+                      backgroundColor: AppColors.accent.withValues(alpha: 0.12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    icon: const Icon(
+                      Icons.picture_as_pdf_rounded,
+                      size: 20,
+                      color: AppColors.accent,
+                    ),
+                    tooltip: tr('download_pdf_report'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        // Statistics body for the selected project
+        _buildProjectStats(_selectedProject!),
+      ],
+    );
+  }
+
+  Widget _buildProjectSelectionCard(Project p) {
+    final isDone = p.status == 'done';
+    final isPaused = p.status == 'paused';
+    final statusColor = isDone
+        ? AppColors.muted
+        : (isPaused ? AppColors.orange : AppColors.green);
+    final statusLabel = isDone
+        ? tr('done')
+        : (isPaused ? tr('paused') : tr('active'));
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () {
+          AppHaptics.selection();
+          setState(() => _selectedProject = p);
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.accent.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.domain_rounded,
+                    color: AppColors.accent,
+                    size: 22,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            p.nomi,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.text,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: statusColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            statusLabel,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: statusColor,
+                            ),
                           ),
                         ),
                       ],
                     ),
-                  ),
+                    if (p.manzil != null && p.manzil!.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on_outlined,
+                              size: 13, color: AppColors.muted),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              p.manzil!,
+                              style: const TextStyle(
+                                  fontSize: 12, color: AppColors.muted),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    if (p.mijoz != null && p.mijoz!.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          const Icon(Icons.person_outline_rounded,
+                              size: 13, color: AppColors.muted),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              p.mijoz!,
+                              style: const TextStyle(
+                                  fontSize: 12, color: AppColors.muted),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
                 ),
-              );
-            }).toList(),
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        // Download button placed at the bottom of project selector to the right
-        if (_selectedProject != null) ...[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              OutlinedButton.icon(
-                onPressed: () {
-                  AppHaptics.medium();
-                  _downloadPdf();
-                },
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(
-                    color: AppColors.accent.withValues(alpha: 0.5),
-                  ),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppColors.bg,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.border),
                 ),
-                icon: const Icon(
-                  Icons.picture_as_pdf_rounded,
-                  size: 16,
+                child: const Icon(
+                  Icons.chevron_right_rounded,
                   color: AppColors.accent,
-                ),
-                label: Text(
-                  tr('download_pdf_report'),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.accent,
-                  ),
+                  size: 20,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-        ],
-
-        if (_selectedProject != null) _buildProjectStats(_selectedProject!),
-      ],
+        ),
+      ),
     );
   }
 
@@ -1265,11 +1458,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
         ],
       ),
     );
-  }
-
-  String _formatReportMoney(num value) {
-    final formatter = NumberFormat('#,###', 'uz');
-    return formatter.format(value).replaceAll(',', ' ').replaceAll('.', ' ');
   }
 }
 

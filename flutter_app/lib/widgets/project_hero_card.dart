@@ -4,6 +4,8 @@ import '../models/member.dart';
 import '../models/project.dart';
 import 'member_row.dart' show colorForName;
 
+import 'app_cached_image.dart';
+
 class ProjectHeroCard extends StatelessWidget {
   final Project project;
   final List<ObMember> members;
@@ -41,10 +43,10 @@ class ProjectHeroCard extends StatelessWidget {
           children: [
             // Background image or default deep indigo gradient
             if (hasImage)
-              Image.network(
-                project.imageUrl!,
+              AppCachedImage(
+                imageUrl: project.imageUrl!,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
+                errorWidget: Container(
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       colors: [Color(0xFF1A237E), Color(0xFF283593)],

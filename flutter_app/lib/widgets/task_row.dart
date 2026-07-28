@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../models/task.dart';
 import '../theme/app_theme.dart';
+import '../utils/haptics.dart';
 
 const _statusColors = {
   'todo': AppColors.muted,
@@ -25,8 +26,8 @@ class TaskRow extends StatelessWidget {
     final color = _statusColors[task.holat] ?? AppColors.muted;
 
     final tile = InkWell(
-      onTap: onTap,
-      onLongPress: onLongPress,
+      onTap: onTap != null ? () { AppHaptics.light(); onTap!(); } : null,
+      onLongPress: onLongPress != null ? () { AppHaptics.longPress(); onLongPress!(); } : null,
       borderRadius: BorderRadius.circular(14),
       child: Container(
         padding: const EdgeInsets.all(12),

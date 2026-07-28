@@ -8,6 +8,7 @@ class ProjectFile {
   final String originalName;
   final String path;
   final String publicUrl;
+  final bool isTransactionFile;
   final int? sizeBytes;
   final DateTime? updatedAt;
 
@@ -16,6 +17,7 @@ class ProjectFile {
     required this.originalName,
     required this.path,
     required this.publicUrl,
+    this.isTransactionFile = false,
     this.sizeBytes,
     this.updatedAt,
   });
@@ -35,9 +37,16 @@ class ProjectFile {
 
     String customName = filename;
     String originalName = filename;
+    bool isTxFile = false;
 
     final parts = filename.split('::');
-    if (parts.length >= 3) {
+    if (parts.length >= 4 && parts[1] == 'tx') {
+      isTxFile = true;
+      try {
+        customName = Uri.decodeComponent(parts[2]);
+        originalName = Uri.decodeComponent(parts[3]);
+      } catch (_) {}
+    } else if (parts.length >= 3) {
       try {
         customName = Uri.decodeComponent(parts[1]);
         originalName = Uri.decodeComponent(parts[2]);
@@ -49,6 +58,7 @@ class ProjectFile {
       originalName: originalName,
       path: path,
       publicUrl: url,
+      isTransactionFile: isTxFile,
     );
   }
 }
@@ -56,10 +66,13 @@ class ProjectFile {
 class ProjectFilesRepository {
   static const _bucket = 'project-files';
 
-  Future<List<ProjectFile>> listFiles(String projectId) async {
+  Future<List<ProjectFile>> listFiles(
+    String projectId, {
+    bool includeTransactionFiles = false,
+  }) async {
     try {
       final items = await supabase.storage.from(_bucket).list(path: projectId);
-      return items
+      final allFiles = items
           .where((f) => f.name != '.emptyFolderPlaceholder')
           .map((f) {
             final path = '$projectId/${f.name}';
@@ -67,9 +80,16 @@ class ProjectFilesRepository {
 
             String customName = f.name;
             String originalName = f.name;
+            bool isTxFile = false;
 
             final parts = f.name.split('::');
-            if (parts.length >= 3) {
+            if (parts.length >= 4 && parts[1] == 'tx') {
+              isTxFile = true;
+              try {
+                customName = Uri.decodeComponent(parts[2]);
+                originalName = Uri.decodeComponent(parts[3]);
+              } catch (_) {}
+            } else if (parts.length >= 3) {
               try {
                 customName = Uri.decodeComponent(parts[1]);
                 originalName = Uri.decodeComponent(parts[2]);
@@ -81,11 +101,17 @@ class ProjectFilesRepository {
               originalName: originalName,
               path: path,
               publicUrl: url,
+              isTransactionFile: isTxFile,
               sizeBytes: f.metadata?['size'] as int?,
               updatedAt: f.updatedAt != null ? DateTime.tryParse(f.updatedAt!) : null,
             );
           })
           .toList();
+
+      if (!includeTransactionFiles) {
+        return allFiles.where((f) => !f.isTransactionFile).toList();
+      }
+      return allFiles;
     } catch (_) {
       return [];
     }
@@ -97,12 +123,14 @@ class ProjectFilesRepository {
     Uint8List bytes,
     String mimeType, {
     String? originalName,
+    bool isTransactionFile = false,
   }) async {
     final ts = DateTime.now().millisecondsSinceEpoch;
     final orig = originalName ?? customName;
     final safeCustom = Uri.encodeComponent(customName);
     final safeOriginal = Uri.encodeComponent(orig);
-    final safeName = '$ts::$safeCustom::$safeOriginal';
+    final txTag = isTransactionFile ? 'tx::' : '';
+    final safeName = '$ts::$txTag$safeCustom::$safeOriginal';
     final path = '$projectId/$safeName';
     await supabase.storage.from(_bucket).uploadBinary(
       path,

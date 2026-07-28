@@ -7,6 +7,7 @@ import '../models/project.dart';
 import '../theme/app_theme.dart';
 import 'project_detail_screen.dart';
 import 'notifications_screen.dart';
+import 'currencies_screen.dart';
 import 'root_shell.dart';
 import 'projects_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -191,6 +192,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     fontWeight: FontWeight.w800,
                     color: AppColors.text)),
             actions: [
+              IconButton(
+                icon: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: const Icon(Icons.currency_exchange_rounded,
+                      size: 20, color: AppColors.text2),
+                ),
+                onPressed: () async {
+                  await Navigator.of(context).push(
+                    MaterialPageRoute(
+                        builder: (_) => const CurrenciesScreen()),
+                  );
+                  _load();
+                },
+              ),
               IconButton(
                 icon: Stack(
                   clipBehavior: Clip.none,

@@ -114,4 +114,30 @@ class MemberRepository {
   Future<void> updateKasb({required String obId, required String userId, required String kasb}) async {
     await supabase.from('ob_members').update({'kasb': kasb.isNotEmpty ? kasb : null}).eq('ob_id', obId).eq('user_id', userId);
   }
+
+  Future<void> updateCanViewOwnerTransactions({
+    required String obId,
+    required String userId,
+    required bool canView,
+    String? currentRole,
+  }) async {
+    final baseRole = (currentRole ?? 'member').split(':')[0];
+    final newRole = canView ? '$baseRole:can_view' : baseRole;
+
+    try {
+      await supabase
+          .from('ob_members')
+          .update({'role': newRole})
+          .eq('ob_id', obId)
+          .eq('user_id', userId);
+    } catch (_) {}
+
+    try {
+      await supabase
+          .from('ob_members')
+          .update({'can_view_owner_transactions': canView})
+          .eq('ob_id', obId)
+          .eq('user_id', userId);
+    } catch (_) {}
+  }
 }

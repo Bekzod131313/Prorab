@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import '../l10n/strings.dart';
-import '../data/transaction_repository.dart';
 import '../data/worker_repository.dart';
 import '../models/worker.dart';
 import '../theme/app_theme.dart';
 import '../widgets/member_row.dart' show colorForName;
-import '../widgets/project_card.dart' show formatMoney, formatUzsToDisplay;
+import '../widgets/project_card.dart' show formatUzsToDisplay;
 import '../widgets/add_worker_global_sheet.dart';
 import 'worker_detail_screen.dart';
 import 'profile_screen.dart';
 import '../widgets/shimmer.dart';
+import '../widgets/app_cached_image.dart';
+import '../utils/haptics.dart';
 
 class WorkersScreen extends StatefulWidget {
   const WorkersScreen({super.key});
@@ -22,7 +22,6 @@ class WorkersScreen extends StatefulWidget {
 
 class _WorkersScreenState extends State<WorkersScreen> {
   final _repo = WorkerRepository();
-  final _txRepo = TransactionRepository();
   List<Worker> _workers = [];
   bool _loading = true;
 
@@ -51,79 +50,6 @@ class _WorkersScreenState extends State<WorkersScreen> {
       _workers = workers;
       _loading = false;
     });
-  }
-
-  Future<void> _quickPayWorker(Worker worker) async {
-    if (worker.balans <= 0 || worker.obsList.isEmpty) return;
-
-    WorkerProject? selectedOb;
-    final activeObs = worker.obsList.where((op) => op.balans > 0).toList();
-    final listToChoose = activeObs.isNotEmpty ? activeObs : worker.obsList;
-
-    if (listToChoose.length == 1) {
-      selectedOb = listToChoose.first;
-    } else {
-      selectedOb = await showModalBottomSheet<WorkerProject>(
-        context: context,
-        backgroundColor: AppColors.card,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-        builder: (ctx) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(tr('select_project_pay'),
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                const SizedBox(height: 12),
-                for (final op in listToChoose)
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(op.obNomi),
-                    subtitle: Text(tr('debt').replaceFirst('{}', formatMoney(op.balans))),
-                    trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
-                    onTap: () => Navigator.of(ctx).pop(op),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-    if (selectedOb == null || !mounted) return;
-
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(tr('pay_confirm_title').replaceFirst('{}', worker.displayName)),
-        content: Text('${selectedOb!.obNomi}: ${formatMoney(selectedOb.balans)} ${tr("currency_uzs")}?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(tr('cancel'))),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-            ),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(tr('pay_yes')),
-          ),
-        ],
-      ),
-    );
-    if (confirm != true || !mounted) return;
-    try {
-      await _txRepo.addTransaction(
-        obId: selectedOb.obId,
-        isIncome: false,
-        amount: selectedOb.balans,
-        kategoriya: 'Mehnat haqi',
-        toUserId: worker.userId,
-      );
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('payment_success'))));
-      _load();
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
-    }
   }
 
   Future<void> _openAddWorkerGlobal() async {
@@ -202,7 +128,7 @@ class _WorkersScreenState extends State<WorkersScreen> {
     if (avatarUrl != null && avatarUrl.isNotEmpty) {
       return CircleAvatar(
         radius: 22,
-        backgroundImage: NetworkImage(avatarUrl),
+        backgroundImage: AppCachedImage.provider(avatarUrl),
       );
     }
     return CircleAvatar(
@@ -235,7 +161,10 @@ class _WorkersScreenState extends State<WorkersScreen> {
           final label = filterLabels[index];
           final selected = _selectedFilter == f;
           return InkWell(
-            onTap: () => setState(() => _selectedFilter = f),
+            onTap: () {
+              AppHaptics.selection();
+              setState(() => _selectedFilter = f);
+            },
             borderRadius: BorderRadius.circular(18),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -381,21 +310,40 @@ class _WorkersScreenState extends State<WorkersScreen> {
         backgroundColor: AppColors.bg,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
-        centerTitle: true,
+        titleSpacing: 16,
         title: Text(
           tr('nav_workers'),
           style: const TextStyle(
-            color: Color(0xFF0F172A),
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
+            color: AppColors.text,
+            fontSize: 20,
+            fontWeight: FontWeight.w900,
           ),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add_rounded, color: AppColors.accent, size: 28),
-            onPressed: _openAddWorkerGlobal,
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: ElevatedButton.icon(
+              onPressed: _openAddWorkerGlobal,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.accent,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              icon: const Icon(Icons.add_rounded, size: 18, color: Colors.white),
+              label: Text(
+                tr('add'),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 12),
         ],
       ),
       body: RefreshIndicator(
@@ -497,6 +445,7 @@ class _WorkersScreenState extends State<WorkersScreen> {
                               ),
                               child: InkWell(
                                 onTap: () {
+                                  AppHaptics.light();
                                   Navigator.of(context).push(
                                     MaterialPageRoute(
                                       builder: (_) => WorkerDetailScreen(

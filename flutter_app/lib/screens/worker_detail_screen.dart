@@ -14,6 +14,8 @@ import '../widgets/shimmer.dart';
 import '../utils/price_formatter.dart';
 import '../utils/phone_formatter.dart';
 import 'profile_screen.dart';
+import '../utils/haptics.dart';
+import '../widgets/app_cached_image.dart';
 
 class WorkerDetailScreen extends StatefulWidget {
   final Worker worker;
@@ -516,6 +518,35 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
     );
   }
 
+  void _openFullScreenAvatar(String url) {
+    AppHaptics.light();
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.95),
+      builder: (ctx) => Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.close, color: Colors.white, size: 28),
+            onPressed: () => Navigator.of(ctx).pop(),
+          ),
+        ),
+        body: Center(
+          child: InteractiveViewer(
+            minScale: 0.5,
+            maxScale: 4.0,
+            child: AppCachedImage(
+              imageUrl: url,
+              fit: BoxFit.contain,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<String>(
@@ -542,7 +573,10 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
             children: [
               Expanded(
                 child: ElevatedButton(
-                  onPressed: _openAvansBerishSheet,
+                  onPressed: () {
+                    AppHaptics.medium();
+                    _openAvansBerishSheet();
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.accent,
                     padding: const EdgeInsets.symmetric(vertical: 12),
@@ -584,7 +618,10 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: _openIshHaqiYozishSheet,
+                  onPressed: () {
+                    AppHaptics.medium();
+                    _openIshHaqiYozishSheet();
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.green,
                     padding: const EdgeInsets.symmetric(vertical: 12),
@@ -644,14 +681,31 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
                     children: [
                       Row(
                         children: [
-                          CircleAvatar(
-                            radius: 26,
-                            backgroundColor: color.withOpacity(0.15),
-                            child: Text(initials,
-                                style: TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 20,
-                                    color: color)),
+                          GestureDetector(
+                            onTap: () {
+                              final avatarUrl = worker.profile?.avatarUrl;
+                              if (avatarUrl != null && avatarUrl.isNotEmpty) {
+                                _openFullScreenAvatar(avatarUrl);
+                              } else {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => ProfileScreen(userId: worker.userId),
+                                  ),
+                                );
+                              }
+                            },
+                            child: CircleAvatar(
+                              radius: 26,
+                              backgroundColor: color.withOpacity(0.15),
+                              backgroundImage: worker.profile?.avatarUrl != null ? AppCachedImage.provider(worker.profile!.avatarUrl!) : null,
+                              child: worker.profile?.avatarUrl == null
+                                  ? Text(initials,
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 20,
+                                          color: color))
+                                  : null,
+                            ),
                           ),
                           const SizedBox(width: 14),
                           Expanded(

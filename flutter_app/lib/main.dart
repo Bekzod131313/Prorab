@@ -20,6 +20,8 @@ final navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  PaintingBinding.instance.imageCache.maximumSize = 1000;
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 200 * 1024 * 1024;
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
