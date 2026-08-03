@@ -11,6 +11,7 @@ import 'root_shell.dart';
 import 'profile_setup_screen.dart';
 import 'pin_lock_screen.dart';
 import '../services/security_service.dart';
+import '../data/session_repository.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -184,6 +185,9 @@ class _SplashScreenState extends State<SplashScreen> {
         MaterialPageRoute(builder: (_) => const AuthScreen()),
       );
     } else {
+      // Register current device active session
+      SessionRepository().registerCurrentDevice();
+
       // Check if user has completed profile
       String? fullName;
       try {

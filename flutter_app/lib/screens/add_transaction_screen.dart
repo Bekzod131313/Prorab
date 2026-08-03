@@ -98,31 +98,17 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   Future<void> _initCategories() async {
-    final customCats = await _loadCustomCategories();
+    final customCats = await _loadCustomCategories(widget.isIncome);
     final initTx = widget.initialTransaction;
 
     if (widget.isIncome) {
-      final defaultIncomeCats = [
-        ExpenseCategoryItem(
-          name: tr('cat_customer'),
-          icon: Icons.person_rounded,
-        ),
-        ExpenseCategoryItem(
-          name: tr('cat_investment'),
-          icon: Icons.trending_up_rounded,
-        ),
-        ExpenseCategoryItem(
-          name: tr('cat_advance'),
-          icon: Icons.payments_rounded,
-        ),
-        ExpenseCategoryItem(
-          name: tr('cat_credit'),
-          icon: Icons.account_balance_rounded,
-        ),
-      ];
+      final defaultMijoz = ExpenseCategoryItem(
+        name: tr('cat_customer'),
+        icon: Icons.person_rounded,
+      );
       final cats = [
-        ...defaultIncomeCats,
-        ...customCats,
+        defaultMijoz,
+        ...customCats.where((c) => c.name != defaultMijoz.name && c.name != 'Mijoz'),
       ];
 
       ExpenseCategoryItem? initialCat;
@@ -133,11 +119,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         );
         if (initialCat == null) {
           initialCat = ExpenseCategoryItem(
-              name: initTx.kategoriya!, icon: Icons.category_rounded);
+            name: initTx.kategoriya!,
+            icon: Icons.category_rounded,
+          );
           cats.add(initialCat);
         }
       } else {
-        initialCat = cats.isNotEmpty ? cats.first : null;
+        initialCat = defaultMijoz;
       }
 
       if (mounted) {
@@ -187,35 +175,85 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     }
   }
 
-  Future<List<ExpenseCategoryItem>> _loadCustomCategories() async {
+  Future<List<ExpenseCategoryItem>> _loadCustomCategories(bool isIncome) async {
     try {
       final userId = supabase.auth.currentUser?.id;
       if (userId == null) return [];
+      final prefix = isIncome ? 'inc:' : 'exp:';
       final data = await supabase
           .from('categories')
           .select('name')
           .eq('user_id', userId);
-      return (data as List)
-          .map((row) => ExpenseCategoryItem(
-                name: row['name'] as String,
-                icon: Icons.category_rounded,
-              ))
-          .toList();
+
+      final List<ExpenseCategoryItem> result = [];
+      for (final row in (data as List)) {
+        final rawName = row['name'] as String;
+        String? target;
+        if (rawName.startsWith(prefix)) {
+          target = rawName.substring(prefix.length);
+        } else if (!isIncome &&
+            !rawName.startsWith('inc:') &&
+            !rawName.startsWith('exp:')) {
+          target = rawName;
+        }
+
+        if (target != null) {
+          IconData icon = Icons.category_rounded;
+          String cleanName = target;
+          if (target.contains(':')) {
+            final idx = target.indexOf(':');
+            final codeStr = target.substring(0, idx);
+            final cp = int.tryParse(codeStr);
+            if (cp != null) {
+              icon = IconData(cp, fontFamily: 'MaterialIcons');
+              cleanName = target.substring(idx + 1);
+            }
+          }
+          result.add(ExpenseCategoryItem(
+            name: cleanName,
+            icon: icon,
+          ));
+        }
+      }
+      return result;
     } catch (_) {
       return [];
     }
   }
 
   Future<void> _saveCustomCategories(
-      List<ExpenseCategoryItem> categories) async {
+      List<ExpenseCategoryItem> categories, bool isIncome) async {
     try {
       final userId = supabase.auth.currentUser?.id;
       if (userId == null) return;
-      await supabase.from('categories').delete().eq('user_id', userId);
+      final prefix = isIncome ? 'inc:' : 'exp:';
+
+      final data = await supabase
+          .from('categories')
+          .select('name')
+          .eq('user_id', userId);
+
+      for (final row in (data as List)) {
+        final rawName = row['name'] as String;
+        if (rawName.startsWith(prefix) ||
+            (!isIncome &&
+                !rawName.startsWith('inc:') &&
+                !rawName.startsWith('exp:'))) {
+          await supabase
+              .from('categories')
+              .delete()
+              .eq('user_id', userId)
+              .eq('name', rawName);
+        }
+      }
+
       if (categories.isNotEmpty) {
         await supabase.from('categories').insert(
               categories
-                  .map((c) => {'user_id': userId, 'name': c.name})
+                  .map((c) => {
+                        'user_id': userId,
+                        'name': '$prefix${c.icon.codePoint}:${c.name}',
+                      })
                   .toList(),
             );
       }
@@ -695,7 +733,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                                   if (!c.isWorker) _selectedToUserId = null;
                                 });
                               },
-                              onLongPress: (!c.isWorker && c.name != tr('worker'))
+                              onLongPress: (!c.isWorker && c.name != tr('worker') && c.name != tr('cat_customer') && c.name != 'Mijoz')
                                   ? () async {
                                       AppHaptics.longPress();
                                       final confirm = await showDialog<bool>(
@@ -732,6 +770,18 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                                           final userId =
                                               supabase.auth.currentUser?.id;
                                           if (userId != null) {
+                                            final prefix =
+                                                widget.isIncome ? 'inc:' : 'exp:';
+                                            await supabase
+                                                .from('categories')
+                                                .delete()
+                                                .eq('user_id', userId)
+                                                .eq('name', '$prefix${c.icon.codePoint}:${c.name}');
+                                            await supabase
+                                                .from('categories')
+                                                .delete()
+                                                .eq('user_id', userId)
+                                                .eq('name', '$prefix${c.name}');
                                             await supabase
                                                 .from('categories')
                                                 .delete()
@@ -755,10 +805,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                                     }
                                   : null,
                               child: Container(
-                                width: 76,
-                                height: 68,
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 4),
+                                constraints: const BoxConstraints(
+                                  minWidth: 76,
+                                  minHeight: 68,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 8),
                                 decoration: BoxDecoration(
                                   color: selected
                                       ? color.withValues(alpha: 0.12)
@@ -785,10 +837,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                                           ? tr('xodim_category')
                                           : c.name,
                                       textAlign: TextAlign.center,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 2,
                                       style: TextStyle(
                                         fontSize: 10,
+                                        height: 1.15,
                                         fontWeight: FontWeight.w700,
                                         color:
                                             selected ? color : AppColors.text2,
@@ -805,7 +857,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                               if (added != null) {
                                 _categories.add(added);
                                 await _saveCustomCategories(
-                                    _categories.where((c) => !c.isWorker).toList());
+                                    _categories
+                                        .where((c) =>
+                                            !c.isWorker &&
+                                            c.name != tr('cat_customer') &&
+                                            c.name != 'Mijoz')
+                                        .toList(),
+                                    widget.isIncome);
                                 setState(() => _selectedCategory = added);
                               }
                             },

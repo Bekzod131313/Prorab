@@ -18,6 +18,49 @@ Future<Map<String, int>> loadMemberCounts(List<String> projectIds) async {
 }
 
 class ProjectRepository {
+  Future<Project?> getProject(String obId) async {
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) return null;
+
+    final data = await supabase
+        .from('ob_members')
+        .select('ob_id,role,balance,ishaqi,olingan,boshlanish,tugash,kirim,chiqim,ob:obyektlar(*)')
+        .eq('user_id', userId)
+        .eq('ob_id', obId)
+        .maybeSingle();
+
+    if (data != null && data['ob'] != null) {
+      return Project.fromMember(data as Map<String, dynamic>);
+    }
+
+    final obRow =
+        await supabase.from('obyektlar').select('*').eq('id', obId).maybeSingle();
+    if (obRow == null) return null;
+    return Project(
+      id: obRow['id'].toString(),
+      nomi: obRow['nomi'] ?? '',
+      kirim: (obRow['kirim'] as num?) ?? 0,
+      chiqim: (obRow['chiqim'] as num?) ?? 0,
+      boshlanish: obRow['boshlanish'] != null
+          ? DateTime.tryParse(obRow['boshlanish'])
+          : null,
+      tugash: obRow['tugash'] != null
+          ? DateTime.tryParse(obRow['tugash'])
+          : null,
+      createdAt: DateTime.tryParse(obRow['created_at'] ?? '') ?? DateTime.now(),
+      muddat: obRow['muddat'] ?? 30,
+      role: 'member',
+      myBalance: 0,
+      ishaqi: 0,
+      olingan: 0,
+      status: 'active',
+      manzil: obRow['manzil'],
+      mijoz: obRow['mijoz'],
+      bosqich: obRow['bosqich'],
+      imageUrl: obRow['image_url'],
+    );
+  }
+
   Future<List<Project>> loadProjects() async {
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) return [];

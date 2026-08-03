@@ -39,6 +39,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
+    projectUpdateNotifier.addListener(_onProjectUpdate);
+    _load();
+  }
+
+  void _onProjectUpdate() {
     _load();
   }
 
@@ -52,6 +57,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   void dispose() {
+    projectUpdateNotifier.removeListener(_onProjectUpdate);
     _pageCtrl.dispose();
     super.dispose();
   }
@@ -404,7 +410,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         border: Border.all(color: AppColors.border),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.015),
+                            color: Colors.black.withValues(alpha: 0.015),
                             blurRadius: 16,
                             offset: const Offset(0, 6),
                           ),
@@ -529,10 +535,9 @@ class _HeroActionBtn extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.card,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color.withOpacity(0.35), width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -545,7 +550,7 @@ class _HeroActionBtn extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
+                color: color.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(icon, size: 22, color: color),
@@ -633,7 +638,7 @@ class _ProjectSelectorOverviewBar extends StatelessWidget {
                   boxShadow: selected
                       ? [
                           BoxShadow(
-                            color: AppColors.accent.withOpacity(0.25),
+                            color: AppColors.accent.withValues(alpha: 0.25),
                             blurRadius: 6,
                             offset: const Offset(0, 3),
                           ),

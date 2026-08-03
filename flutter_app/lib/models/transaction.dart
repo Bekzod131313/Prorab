@@ -104,6 +104,7 @@ class ProjectTransaction {
     if (userId.isEmpty) return tur == 'spend' || tur == 'send' || tur == 'chiqim' || tur == 'expense' || tur == 'ishhaqi';
     // If sent TO this user by someone else, it is NOT an expense for this user
     if (toUser == userId && createdBy != userId) return false;
+    if (tur == 'income' || tur == 'kirim') return false;
     if (createdBy == userId || fromUser == userId) return true;
     return tur == 'spend' || tur == 'send' || tur == 'chiqim' || tur == 'expense' || tur == 'ishhaqi';
   }

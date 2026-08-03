@@ -12,6 +12,8 @@ import '../data/member_repository.dart';
 import '../models/member.dart';
 import '../utils/haptics.dart';
 
+import 'create_project_screen.dart';
+
 class ProjectsScreen extends StatefulWidget {
   static bool autoOpenCreate = false;
   const ProjectsScreen({super.key});
@@ -35,11 +37,17 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   @override
   void initState() {
     super.initState();
+    projectUpdateNotifier.addListener(_onProjectUpdate);
     _load();
+  }
+
+  void _onProjectUpdate() {
+    _load(silent: true);
   }
 
   @override
   void dispose() {
+    projectUpdateNotifier.removeListener(_onProjectUpdate);
     _searchCtrl.dispose();
     super.dispose();
   }
@@ -165,73 +173,12 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   }
 
   Future<void> _openAddProject() async {
-    final nameCtrl = TextEditingController();
-    final daysCtrl = TextEditingController(text: '30');
-    final manzilCtrl = TextEditingController();
-    final mijozCtrl = TextEditingController();
-    DateTime startDate = DateTime.now();
-
-    final created = await showModalBottomSheet<bool>(
-      context: context,
-      backgroundColor: AppColors.card,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) => StatefulBuilder(
-        builder: (builderCtx, setSt) => Padding(
-          padding: EdgeInsets.only(left: 20, right: 20, top: 24, bottom: 24 + MediaQuery.of(ctx).viewInsets.bottom),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(tr('new_project'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
-                const SizedBox(height: 16),
-                TextField(controller: nameCtrl, autofocus: true, decoration: InputDecoration(hintText: '${tr("project_name")} *')),
-                const SizedBox(height: 12),
-                InkWell(
-                  onTap: () async {
-                    final picked = await showDatePicker(context: ctx, initialDate: startDate, firstDate: DateTime(2020), lastDate: DateTime(2100));
-                    if (picked != null) setSt(() => startDate = picked);
-                  },
-                  child: InputDecorator(
-                    decoration: InputDecoration(labelText: tr('start_date'), prefixIcon: const Icon(Icons.calendar_today_rounded, size: 18)),
-                    child: Text('${startDate.year}-${startDate.month.toString().padLeft(2, '0')}-${startDate.day.toString().padLeft(2, '0')}'),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(controller: daysCtrl, keyboardType: TextInputType.number, decoration: InputDecoration(hintText: tr('duration_days'), prefixIcon: const Icon(Icons.timer_outlined, size: 18))),
-                const SizedBox(height: 12),
-                TextField(controller: manzilCtrl, decoration: InputDecoration(hintText: '${tr("location")} ${tr("optional")}', prefixIcon: const Icon(Icons.location_on_outlined, size: 18))),
-                const SizedBox(height: 12),
-                TextField(controller: mijozCtrl, decoration: InputDecoration(hintText: '${tr("client")} ${tr("optional")}', prefixIcon: const Icon(Icons.person_outline_rounded, size: 18))),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () { if (nameCtrl.text.trim().isEmpty) return; Navigator.of(ctx).pop(true); },
-                  child: Text(tr('create')),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+    final created = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const CreateProjectScreen()),
     );
-
     if (created == true) {
-      await _repo.createProject(
-        nomi: nameCtrl.text.trim(),
-        boshlanish: startDate,
-        muddat: int.tryParse(daysCtrl.text.trim()) ?? 30,
-        manzil: manzilCtrl.text.trim(),
-        mijoz: mijozCtrl.text.trim(),
-      );
       _load();
     }
-    Future.delayed(const Duration(milliseconds: 350), () {
-      nameCtrl.dispose();
-      daysCtrl.dispose();
-      manzilCtrl.dispose();
-      mijozCtrl.dispose();
-    });
   }
 
   Future<void> _openProjectMenu(Project project) async {

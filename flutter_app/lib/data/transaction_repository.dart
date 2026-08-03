@@ -606,6 +606,7 @@ class TransactionRepository {
     final row =
         await supabase.from('transactions').select('*').eq('id', id).single();
     final tx = ProjectTransaction.fromMap(row);
+    final amountUzs = tx.summaUzs > 0 ? tx.summaUzs : tx.summa;
 
     await supabase.from('transactions').delete().eq('id', id);
 
@@ -615,25 +616,26 @@ class TransactionRepository {
           .select('kirim')
           .eq('id', tx.obId)
           .single();
-      final newVal = ((ob['kirim'] as num?) ?? 0) - tx.summa;
+      final newVal = ((ob['kirim'] as num?) ?? 0) - amountUzs;
       await supabase
           .from('obyektlar')
           .update({'kirim': newVal < 0 ? 0 : newVal}).eq('id', tx.obId);
 
-      if (tx.toUser != null) {
+      final targetUser = tx.toUser ?? tx.createdBy ?? tx.fromUser;
+      if (targetUser != null) {
         final mem = await supabase
             .from('ob_members')
             .select('kirim')
             .eq('ob_id', tx.obId)
-            .eq('user_id', tx.toUser!)
+            .eq('user_id', targetUser)
             .maybeSingle();
         if (mem != null) {
-          final newK = ((mem['kirim'] as num?) ?? 0) - tx.summa;
+          final newK = ((mem['kirim'] as num?) ?? 0) - amountUzs;
           await supabase
               .from('ob_members')
               .update({'kirim': newK < 0 ? 0 : newK})
               .eq('ob_id', tx.obId)
-              .eq('user_id', tx.toUser!);
+              .eq('user_id', targetUser);
         }
       }
     } else if (tx.tur == 'spend') {
@@ -642,7 +644,7 @@ class TransactionRepository {
           .select('chiqim')
           .eq('id', tx.obId)
           .single();
-      final newVal = ((ob['chiqim'] as num?) ?? 0) - tx.summa;
+      final newVal = ((ob['chiqim'] as num?) ?? 0) - amountUzs;
       await supabase
           .from('obyektlar')
           .update({'chiqim': newVal < 0 ? 0 : newVal}).eq('id', tx.obId);
@@ -655,7 +657,7 @@ class TransactionRepository {
             .eq('user_id', tx.fromUser!)
             .maybeSingle();
         if (mem != null) {
-          final newC = ((mem['chiqim'] as num?) ?? 0) - tx.summa;
+          final newC = ((mem['chiqim'] as num?) ?? 0) - amountUzs;
           await supabase
               .from('ob_members')
               .update({'chiqim': newC < 0 ? 0 : newC})
@@ -672,8 +674,8 @@ class TransactionRepository {
             .eq('user_id', tx.toUser!)
             .maybeSingle();
         if (mem != null) {
-          final newO = ((mem['olingan'] as num?) ?? 0) - tx.summa;
-          final newK = ((mem['kirim'] as num?) ?? 0) - tx.summa;
+          final newO = ((mem['olingan'] as num?) ?? 0) - amountUzs;
+          final newK = ((mem['kirim'] as num?) ?? 0) - amountUzs;
           await supabase
               .from('ob_members')
               .update({
@@ -691,7 +693,7 @@ class TransactionRepository {
           .eq('id', tx.obId)
           .maybeSingle();
       if (ob != null) {
-        final newVal = ((ob['chiqim'] as num?) ?? 0) - tx.summaUzs;
+        final newVal = ((ob['chiqim'] as num?) ?? 0) - amountUzs;
         await supabase
             .from('obyektlar')
             .update({'chiqim': newVal < 0 ? 0 : newVal})
@@ -706,7 +708,7 @@ class TransactionRepository {
             .eq('user_id', tx.fromUser!)
             .maybeSingle();
         if (mem != null) {
-          final newC = ((mem['chiqim'] as num?) ?? 0) - tx.summaUzs;
+          final newC = ((mem['chiqim'] as num?) ?? 0) - amountUzs;
           await supabase
               .from('ob_members')
               .update({'chiqim': newC < 0 ? 0 : newC})
@@ -723,8 +725,8 @@ class TransactionRepository {
             .eq('user_id', tx.toUser!)
             .maybeSingle();
         if (mem != null) {
-          final newO = ((mem['olingan'] as num?) ?? 0) - tx.summa;
-          final newK = ((mem['kirim'] as num?) ?? 0) - tx.summa;
+          final newO = ((mem['olingan'] as num?) ?? 0) - amountUzs;
+          final newK = ((mem['kirim'] as num?) ?? 0) - amountUzs;
           await supabase
               .from('ob_members')
               .update({
@@ -744,8 +746,8 @@ class TransactionRepository {
             .eq('user_id', tx.toUser!)
             .maybeSingle();
         if (mem != null) {
-          final newI = ((mem['ishaqi'] as num?) ?? 0) - tx.summa;
-          final newK = ((mem['kirim'] as num?) ?? 0) - tx.summa;
+          final newI = ((mem['ishaqi'] as num?) ?? 0) - amountUzs;
+          final newK = ((mem['kirim'] as num?) ?? 0) - amountUzs;
           await supabase
               .from('ob_members')
               .update({

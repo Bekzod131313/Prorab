@@ -9,6 +9,7 @@ import '../services/security_service.dart';
 import '../theme/app_theme.dart';
 import 'admin_panel_screen.dart';
 import 'security_settings_screen.dart';
+import 'active_devices_screen.dart';
 import 'splash_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -175,13 +176,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           langLabel = "O'zbekcha";
         }
 
-        return PopScope(
-          canPop: false,
-          onPopInvokedWithResult: (didPop, result) {
-            if (didPop) return;
-            Navigator.of(context).pop(_hasChanged);
-          },
-          child: Scaffold(
+        return Scaffold(
             backgroundColor: AppColors.bg,
             appBar: AppBar(
               backgroundColor: AppColors.bg,
@@ -217,6 +212,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         MaterialPageRoute(builder: (_) => const SecuritySettingsScreen()),
                       );
                       _loadSecuritySettings();
+                    },
+                  ),
+                  _SettingsTile(
+                    leading: const _SettingsIconBadge(
+                      icon: Icons.devices_rounded,
+                      color: Color(0xFF007AFF),
+                    ),
+                    title: tr('active_devices'),
+                    subtitle: tr('active_devices_sub'),
+                    trailing: const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.muted),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const ActiveDevicesScreen()),
+                      );
                     },
                   ),
                 ],
@@ -398,11 +407,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 32),
             ],
           ),
-        ),
-      );
-    },
-  );
-}
+        );
+      },
+    );
+  }
 }
 
 class _SettingsIconBadge extends StatelessWidget {

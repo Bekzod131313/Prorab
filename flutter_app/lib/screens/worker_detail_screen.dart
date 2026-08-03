@@ -14,6 +14,8 @@ import '../widgets/shimmer.dart';
 import '../utils/price_formatter.dart';
 import '../utils/phone_formatter.dart';
 import 'profile_screen.dart';
+import 'project_detail_screen.dart';
+import '../data/project_repository.dart';
 import '../utils/haptics.dart';
 import '../widgets/app_cached_image.dart';
 
@@ -29,6 +31,7 @@ class WorkerDetailScreen extends StatefulWidget {
 
 class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
   final _txRepo = TransactionRepository();
+  final _projectRepo = ProjectRepository();
   final _dateFmt = DateFormat('dd.MM.yyyy');
   String _formatDate(DateTime date) => DateFormat('dd.MM.yyyy', appLocaleNotifier.value).format(date);
   final _timeFmt = DateFormat('HH:mm');
@@ -41,6 +44,26 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
     super.initState();
     _worker = widget.worker;
     _load();
+  }
+
+  Future<void> _openTxDetail(ProjectTransaction tx) async {
+    if (tx.obId.isEmpty) return;
+    AppHaptics.light();
+    try {
+      final project = await _projectRepo.getProject(tx.obId);
+      if (project != null && mounted) {
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ProjectDetailScreen(
+              project: project,
+              initialTabIndex: 1,
+              initialTxId: tx.id,
+            ),
+          ),
+        );
+        _load();
+      }
+    } catch (_) {}
   }
 
   Future<void> _load() async {
@@ -958,73 +981,77 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
 
                         return Column(
                           children: [
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 12),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 36,
-                                    height: 36,
-                                    alignment: Alignment.center,
-                                    decoration: BoxDecoration(
-                                      color: color.withOpacity(0.12),
-                                      borderRadius: BorderRadius.circular(10),
+                            InkWell(
+                              onTap: () => _openTxDetail(tx),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 12),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 36,
+                                      height: 36,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: color.withOpacity(0.12),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Icon(icon, size: 18, color: color),
                                     ),
-                                    child: Icon(icon, size: 18, color: color),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          label,
-                                          style: const TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w600),
-                                        ),
-                                        Row(
-                                          children: [
-                                            Text(
-                                              "$dateStr, $timeStr",
-                                              style: const TextStyle(
-                                                  fontSize: 11,
-                                                  color: AppColors.muted),
-                                            ),
-                                            if (projectName.isNotEmpty) ...[
-                                              const SizedBox(width: 6),
-                                              Container(
-                                                width: 3,
-                                                height: 3,
-                                                decoration: const BoxDecoration(
-                                                  color: AppColors.muted,
-                                                  shape: BoxShape.circle,
-                                                ),
-                                              ),
-                                              const SizedBox(width: 6),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            label,
+                                            style: const TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600),
+                                          ),
+                                          Row(
+                                            children: [
                                               Text(
-                                                projectName,
+                                                "$dateStr, $timeStr",
                                                 style: const TextStyle(
                                                     fontSize: 11,
-                                                    color: AppColors.muted,
-                                                    fontWeight: FontWeight.w500),
+                                                    color: AppColors.muted),
                                               ),
+                                              if (projectName.isNotEmpty) ...[
+                                                const SizedBox(width: 6),
+                                                Container(
+                                                  width: 3,
+                                                  height: 3,
+                                                  decoration: const BoxDecoration(
+                                                    color: AppColors.muted,
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 6),
+                                                Text(
+                                                  projectName,
+                                                  style: const TextStyle(
+                                                      fontSize: 11,
+                                                      color: AppColors.muted,
+                                                      fontWeight: FontWeight.w500),
+                                                ),
+                                              ],
                                             ],
-                                          ],
-                                        ),
-                                      ],
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  Text(
-                                    '${isWage ? "+" : "-"}${formatTransactionAmount(tx)}',
-                                    style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w700,
-                                        color: color),
-                                  ),
-                                ],
+                                    Text(
+                                      '${isWage ? "+" : "-"}${formatTransactionAmount(tx)}',
+                                      style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700,
+                                          color: color),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                             if (i < _payments.length - 1)

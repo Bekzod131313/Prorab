@@ -1,13 +1,17 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../l10n/strings.dart';
 import '../theme/app_theme.dart';
+import '../services/currency_service.dart';
 import 'analytics_screen.dart';
 import 'dashboard_screen.dart';
 import 'profile_screen.dart';
 import 'projects_screen.dart';
 import 'workers_screen.dart';
-import '../services/currency_service.dart';
-
+import 'auth_screen.dart';
+import '../data/session_repository.dart';
+import '../main.dart';
 import '../utils/haptics.dart';
 
 class RootShell extends StatefulWidget {
@@ -23,6 +27,55 @@ class RootShell extends StatefulWidget {
 
 class RootShellState extends State<RootShell> {
   int _index = 0;
+  StreamSubscription<AuthState>? _authSub;
+  Timer? _sessionCheckTimer;
+  bool _loggingOut = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _authSub = supabase.auth.onAuthStateChange.listen((data) {
+      if (data.event == AuthChangeEvent.signedOut || (data.session == null && data.event != AuthChangeEvent.initialSession)) {
+        _forceLogout();
+      }
+    });
+
+    _sessionCheckTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      _checkSession();
+    });
+  }
+
+  Future<void> _checkSession() async {
+    if (_loggingOut) return;
+    final isTerminated = await SessionRepository.isCurrentSessionTerminated();
+    if (isTerminated && mounted) {
+      _forceLogout();
+    }
+  }
+
+  Future<void> _forceLogout() async {
+    if (_loggingOut) return;
+    _loggingOut = true;
+    try {
+      await supabase.auth.signOut();
+    } catch (_) {}
+    if (mounted) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const AuthScreen()),
+        (route) => false,
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(tr('session_terminated'))),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _authSub?.cancel();
+    _sessionCheckTimer?.cancel();
+    super.dispose();
+  }
 
   void setIndex(int index) {
     AppHaptics.selection();

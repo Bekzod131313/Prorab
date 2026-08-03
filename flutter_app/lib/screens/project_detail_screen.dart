@@ -25,6 +25,7 @@ import '../widgets/shimmer.dart';
 import '../widgets/app_cached_image.dart';
 import 'worker_detail_screen.dart';
 import 'add_transaction_screen.dart';
+import 'edit_project_screen.dart';
 import '../utils/haptics.dart';
 
 
@@ -32,9 +33,16 @@ import '../utils/haptics.dart';
 class ProjectDetailScreen extends StatefulWidget {
   final Project project;
   final bool? quickAddIncome;
+  final int? initialTabIndex;
+  final String? initialTxId;
 
-  const ProjectDetailScreen(
-      {super.key, required this.project, this.quickAddIncome});
+  const ProjectDetailScreen({
+    super.key,
+    required this.project,
+    this.quickAddIncome,
+    this.initialTabIndex,
+    this.initialTxId,
+  });
 
   @override
   State<ProjectDetailScreen> createState() => _ProjectDetailScreenState();
@@ -67,7 +75,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
   void initState() {
     super.initState();
     _project = widget.project;
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(
+      length: 4,
+      vsync: this,
+      initialIndex: widget.initialTabIndex ?? 0,
+    );
     _tabController.addListener(() {
       if (_tabController.index == 3 && _files.isEmpty && !_filesLoading) {
         _loadFiles();
@@ -83,6 +95,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
     }
     if (widget.quickAddIncome != null && mounted) {
       _openAddTransaction(isIncome: widget.quickAddIncome!);
+    } else if (widget.initialTxId != null && mounted) {
+      try {
+        final tx = _txs.firstWhere((t) => t.id == widget.initialTxId);
+        _showTransactionDetails(tx);
+      } catch (_) {}
     }
   }
 
@@ -433,121 +450,13 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
   }
 
   Future<void> _openEditProject() async {
-    final nameCtrl = TextEditingController(text: _project.nomi);
-    final daysCtrl = TextEditingController(text: _project.muddat.toString());
-    final manzilCtrl = TextEditingController(text: _project.manzil ?? '');
-    final mijozCtrl = TextEditingController(text: _project.mijoz ?? '');
-    DateTime startDate = _project.boshlanish ?? DateTime.now();
-
-    final saved = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.card,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) => StatefulBuilder(
-          builder: (builderCtx, setSt) => Padding(
-                padding: EdgeInsets.only(
-                    left: 20,
-                    right: 20,
-                    top: 24,
-                    bottom: 24 + MediaQuery.of(ctx).viewInsets.bottom),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                    Row(children: [
-                      Expanded(
-                          child: Text(tr('edit_project_title'),
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w800, fontSize: 17))),
-                      IconButton(
-                        icon: const Icon(Icons.camera_alt_outlined,
-                            color: AppColors.accent),
-                        tooltip: tr('upload_photo'),
-                        onPressed: () async {
-                          Navigator.of(ctx).pop();
-                          await _pickAndUploadImage();
-                        },
-                      ),
-                    ]),
-                    const SizedBox(height: 12),
-                    TextField(
-                        controller: nameCtrl,
-                        autofocus: true,
-                        decoration: InputDecoration(
-                            hintText: '${tr('project_name')} *', labelText: tr('project_name'))),
-                    const SizedBox(height: 12),
-                    InkWell(
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                            context: ctx,
-                            initialDate: startDate,
-                            firstDate: DateTime(2020),
-                            lastDate: DateTime(2100));
-                        if (picked != null) setSt(() => startDate = picked);
-                      },
-                      child: InputDecorator(
-                        decoration: InputDecoration(
-                            labelText: tr('start_date'),
-                            prefixIcon:
-                                const Icon(Icons.calendar_today_rounded, size: 18)),
-                        child: Text(DateFormat('dd.MM.yyyy').format(startDate)),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                        controller: daysCtrl,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                            labelText: tr('duration_days'),
-                            prefixIcon: const Icon(Icons.timer_outlined, size: 18))),
-                    const SizedBox(height: 12),
-                    TextField(
-                        controller: manzilCtrl,
-                        decoration: InputDecoration(
-                            labelText: tr('location'),
-                            prefixIcon:
-                                const Icon(Icons.location_on_outlined, size: 18))),
-                    const SizedBox(height: 12),
-                    TextField(
-                        controller: mijozCtrl,
-                        decoration: InputDecoration(
-                            labelText: tr('client'),
-                            prefixIcon:
-                                const Icon(Icons.person_outline_rounded, size: 18))),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: () {
-                        if (nameCtrl.text.trim().isEmpty) return;
-                        Navigator.of(ctx).pop(true);
-                      },
-                      child: Text(tr('save')),
-                    ),
-                  ],
-                ),
-              ))),
+    final updated = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => EditProjectScreen(project: _project)),
     );
-
-    if (saved == true) {
-      await _projectRepo.updateProject(
-        id: _project.id,
-        nomi: nameCtrl.text.trim(),
-        boshlanish: startDate,
-        muddat: int.tryParse(daysCtrl.text.trim()) ?? _project.muddat,
-        manzil: manzilCtrl.text.trim(),
-        mijoz: mijozCtrl.text.trim(),
-        bosqich: _project.bosqich,
-      );
+    if (updated == true) {
       _withMutation(_loadSilent);
+      setState(() => _hasChanged = true);
     }
-    Future.delayed(const Duration(milliseconds: 350), () {
-      nameCtrl.dispose();
-      daysCtrl.dispose();
-      manzilCtrl.dispose();
-      mijozCtrl.dispose();
-    });
   }
 
   void _openWorkerDetail(ObMember m) async {
@@ -676,20 +585,20 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
     final originalMembers = List<ObMember>.from(_members);
 
     final isIncome = tx.tur == 'income';
-    final amount = tx.summa;
+    final amountUzs = tx.summaUzs > 0 ? tx.summaUzs : tx.summa;
     final updatedProject = Project(
       id: _project.id,
       nomi: _project.nomi,
-      kirim: _project.kirim - (isIncome ? amount : 0),
-      chiqim: _project.chiqim - (isIncome ? 0 : amount),
+      kirim: _project.kirim - (isIncome ? amountUzs : 0),
+      chiqim: _project.chiqim - (isIncome ? 0 : amountUzs),
       boshlanish: _project.boshlanish,
       tugash: _project.tugash,
       createdAt: _project.createdAt,
       muddat: _project.muddat,
       role: _project.role,
-      myBalance: _project.myBalance - (isIncome ? amount : -amount),
+      myBalance: _project.myBalance - (isIncome ? amountUzs : -amountUzs),
       ishaqi: _project.ishaqi,
-      olingan: _project.olingan - ((!isIncome && tx.toUser != null) ? amount : 0),
+      olingan: _project.olingan - ((!isIncome && tx.toUser != null) ? amountUzs : 0),
       status: _project.status,
       manzil: _project.manzil,
       mijoz: _project.mijoz,
@@ -706,7 +615,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
             userId: m.userId,
             role: m.role,
             ishaqi: m.ishaqi,
-            olingan: m.olingan - amount,
+            olingan: m.olingan - amountUzs,
             kasb: m.kasb,
             addedBy: m.addedBy,
             profile: m.profile,
@@ -809,9 +718,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.08),
+                  color: color.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: color.withOpacity(0.15)),
                 ),
                 child: Center(
                   child: Text(
@@ -1474,171 +1382,164 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
             : null);
         final endFmt = endDate != null ? _formatDate(endDate) : '—';
 
-        return PopScope(
-          canPop: false,
-          onPopInvokedWithResult: (didPop, result) {
-            if (didPop) return;
-            Navigator.of(context).pop(_hasChanged);
-          },
-          child: Scaffold(
+        return Scaffold(
+          backgroundColor: AppColors.bg,
+          appBar: AppBar(
             backgroundColor: AppColors.bg,
-            appBar: AppBar(
-              backgroundColor: AppColors.bg,
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => Navigator.of(context).pop(_hasChanged),
-              ),
-              title: Text(project.nomi,
-                  style: const TextStyle(fontWeight: FontWeight.w800)),
-              actions: [
-                if (_loading || _mutating)
-                  const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: Center(
-                          child: SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2)))),
-                if (_project.role == 'owner') ...[
-                  IconButton(
-                    icon: const Icon(Icons.edit_outlined, size: 20),
-                    tooltip: tr('edit'),
-                    onPressed: () async {
-                      await _openEditProject();
-                      setState(() => _hasChanged = true);
-                    },
-                  ),
-                ],
-                PopupMenuButton<String>(
-                  onSelected: (action) async {
-                    if (action == 'toggleDone') {
-                      await _projectRepo.setStatus(
-                          project.id, isDone ? 'active' : 'done');
-                      setState(() => _hasChanged = true);
-                      _withMutation(_loadSilent);
-                    } else if (action == 'duplicate') {
-                await _projectRepo.createProject(
-                  nomi: '${project.nomi} (nusxa)',
-                  muddat: project.muddat,
-                  manzil: project.manzil,
-                  mijoz: project.mijoz,
-                  boshlanish: DateTime.now(),
-                );
-                if (mounted)
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(tr('copy_created'))));
-              } else if (action == 'delete') {
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    title: Text(tr('tx_delete_title')),
-                    content: Text('${project.nomi} ${tr("no_undo")}'),
-                    actions: [
-                      TextButton(
-                          onPressed: () => Navigator.of(ctx).pop(false),
-                          child: Text(tr('cancel'))),
-                      ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.red,
-                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10)),
-                          onPressed: () => Navigator.of(ctx).pop(true),
-                          child: Text(tr('delete'))),
-                    ],
-                  ),
-                );
-                if (confirm == true && mounted) {
-                  await _projectRepo.deleteProject(project.id);
-                  Navigator.of(context).pop();
-                }
-              }
-            },
-            itemBuilder: (_) => [
-              PopupMenuItem(
-                  value: 'toggleDone',
-                  child: Text(isDone ? tr('restore_active') : tr('complete_project'))),
-              PopupMenuItem(
-                  value: 'duplicate', child: Text(tr('duplicate_btn'))),
-              PopupMenuItem(
-                  value: 'delete',
-                  child: Text(tr('delete'),
-                      style: const TextStyle(color: AppColors.red))),
-            ],
-          ),
-        ],
-      ),
-      body: _loading
-          ? _buildShimmerLoading()
-          : Column(
-              children: [
-                Container(
-                  color: AppColors.bg,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          color: AppColors.card,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        child: TabBar(
-                          controller: _tabController,
-                          labelColor: AppColors.accent,
-                          unselectedLabelColor: AppColors.text2,
-                          indicator: BoxDecoration(
-                            color: AppColors.accent.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          indicatorSize: TabBarIndicatorSize.tab,
-                          dividerColor: Colors.transparent,
-                          isScrollable: false,
-                          labelPadding: const EdgeInsets.symmetric(horizontal: 2),
-                          labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11.5),
-                          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11.5),
-                          padding: const EdgeInsets.all(4),
-                          tabs: [
-                            Tab(child: FittedBox(fit: BoxFit.scaleDown, child: Text(tr('umumiy')))),
-                            Tab(child: FittedBox(fit: BoxFit.scaleDown, child: Text(tr('transactions')))),
-                            Tab(child: FittedBox(fit: BoxFit.scaleDown, child: Text(tr('workers')))),
-                            Tab(child: FittedBox(fit: BoxFit.scaleDown, child: Text(tr('files')))),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.swap_horiz_rounded,
-                              size: 14, color: AppColors.muted.withOpacity(0.7)),
-                          const SizedBox(width: 4),
-                          Text(
-                            tr('swipe_page_hint'),
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.muted.withOpacity(0.8),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(height: 1, color: AppColors.border),
-                Expanded(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildUmumiyTab(project, isDone, progress, left, startFmt, endFmt),
-                      _buildTransactionsTab(),
-                      _buildWorkersTab(),
-                      _buildFilesTab(),
-                    ],
-                  ),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.of(context).pop(_hasChanged),
+            ),
+            title: Text(project.nomi,
+                style: const TextStyle(fontWeight: FontWeight.w800)),
+            actions: [
+              if (_loading || _mutating)
+                const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Center(
+                        child: SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2)))),
+              if (_project.role == 'owner') ...[
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, size: 20),
+                  tooltip: tr('edit'),
+                  onPressed: () async {
+                    await _openEditProject();
+                    setState(() => _hasChanged = true);
+                  },
                 ),
               ],
-            ),
+              PopupMenuButton<String>(
+                onSelected: (action) async {
+                  if (action == 'toggleDone') {
+                    await _projectRepo.setStatus(
+                        project.id, isDone ? 'active' : 'done');
+                    setState(() => _hasChanged = true);
+                    _withMutation(_loadSilent);
+                  } else if (action == 'duplicate') {
+              await _projectRepo.createProject(
+                nomi: '${project.nomi} (nusxa)',
+                muddat: project.muddat,
+                manzil: project.manzil,
+                mijoz: project.mijoz,
+                boshlanish: DateTime.now(),
+              );
+              if (mounted)
+                ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(tr('copy_created'))));
+            } else if (action == 'delete') {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: Text(tr('tx_delete_title')),
+                  content: Text('${project.nomi} ${tr("no_undo")}'),
+                  actions: [
+                    TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        child: Text(tr('cancel'))),
+                    ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.red,
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10)),
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        child: Text(tr('delete'))),
+                  ],
+                ),
+              );
+              if (confirm == true && mounted) {
+                await _projectRepo.deleteProject(project.id);
+                Navigator.of(context).pop();
+              }
+            }
+          },
+          itemBuilder: (_) => [
+            PopupMenuItem(
+                value: 'toggleDone',
+                child: Text(isDone ? tr('restore_active') : tr('complete_project'))),
+            PopupMenuItem(
+                value: 'duplicate', child: Text(tr('duplicate_btn'))),
+            PopupMenuItem(
+                value: 'delete',
+                child: Text(tr('delete'),
+                    style: const TextStyle(color: AppColors.red))),
+          ],
+        ),
+      ],
+    ),
+    body: _loading
+        ? _buildShimmerLoading()
+        : Column(
+            children: [
+              Container(
+                color: AppColors.bg,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.card,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: TabBar(
+                        controller: _tabController,
+                        labelColor: AppColors.accent,
+                        unselectedLabelColor: AppColors.text2,
+                        indicator: BoxDecoration(
+                          color: AppColors.accent.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        indicatorSize: TabBarIndicatorSize.tab,
+                        dividerColor: Colors.transparent,
+                        isScrollable: false,
+                        labelPadding: const EdgeInsets.symmetric(horizontal: 2),
+                        labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11.5),
+                        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11.5),
+                        padding: const EdgeInsets.all(4),
+                        tabs: [
+                          Tab(child: FittedBox(fit: BoxFit.scaleDown, child: Text(tr('umumiy')))),
+                          Tab(child: FittedBox(fit: BoxFit.scaleDown, child: Text(tr('transactions')))),
+                          Tab(child: FittedBox(fit: BoxFit.scaleDown, child: Text(tr('workers')))),
+                          Tab(child: FittedBox(fit: BoxFit.scaleDown, child: Text(tr('files')))),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.swap_horiz_rounded,
+                            size: 14, color: AppColors.muted.withOpacity(0.7)),
+                        const SizedBox(width: 4),
+                        Text(
+                          tr('swipe_page_hint'),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.muted.withOpacity(0.8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1, color: AppColors.border),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildUmumiyTab(project, isDone, progress, left, startFmt, endFmt),
+                    _buildTransactionsTab(),
+                    _buildWorkersTab(),
+                    _buildFilesTab(),
+                  ],
+                ),
+              ),
+            ],
           ),
         );
       },
@@ -1669,10 +1570,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                   decoration: BoxDecoration(
                     color: AppColors.card,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: AppColors.green.withValues(alpha: 0.3),
-                      width: 1.5,
-                    ),
                     boxShadow: [
                       BoxShadow(
                         color: AppColors.green.withValues(alpha: 0.06),
@@ -1736,10 +1633,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                   decoration: BoxDecoration(
                     color: AppColors.card,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: AppColors.red.withValues(alpha: 0.3),
-                      width: 1.5,
-                    ),
                     boxShadow: [
                       BoxShadow(
                         color: AppColors.red.withValues(alpha: 0.06),
@@ -1803,10 +1696,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                   decoration: BoxDecoration(
                     color: AppColors.card,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: balColor.withValues(alpha: 0.3),
-                      width: 1.5,
-                    ),
                     boxShadow: [
                       BoxShadow(
                         color: balColor.withValues(alpha: 0.06),

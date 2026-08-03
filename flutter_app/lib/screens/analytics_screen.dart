@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:printing/printing.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -24,7 +25,8 @@ class AnalyticsScreen extends StatefulWidget {
   State<AnalyticsScreen> createState() => _AnalyticsScreenState();
 }
 
-class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProviderStateMixin {
+class _AnalyticsScreenState extends State<AnalyticsScreen>
+    with SingleTickerProviderStateMixin {
   final _projectRepo = ProjectRepository();
   final _txRepo = TransactionRepository();
   List<Project> _projects = [];
@@ -69,7 +71,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
         _loading = false;
         // Keep existing selection updated if project still exists, otherwise leave null for user selection
         if (_myProjects.isNotEmpty && _selectedProject != null) {
-          final matches = _myProjects.where((p) => p.id == _selectedProject!.id);
+          final matches =
+              _myProjects.where((p) => p.id == _selectedProject!.id);
           _selectedProject = matches.isNotEmpty ? matches.first : null;
         } else {
           _selectedProject = null;
@@ -81,8 +84,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
   }
 
   List<Project> get _myProjects => _projects;
-  List<Project> get _active => _myProjects.where((p) => p.status != 'done').toList();
-  List<Project> get _done => _myProjects.where((p) => p.status == 'done').toList();
+  List<Project> get _active =>
+      _myProjects.where((p) => p.status != 'done').toList();
+  List<Project> get _done =>
+      _myProjects.where((p) => p.status == 'done').toList();
 
   num get _totalKirim => _myProjects.fold(0, (s, p) => s + p.kirim);
   num get _totalChiqim => _myProjects.fold(0, (s, p) => s + p.chiqim);
@@ -97,7 +102,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
         map[cat] = (map[cat] ?? 0) + tx.summaUzs;
       }
     }
-    final sorted = map.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    final sorted = map.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
     return Map.fromEntries(sorted);
   }
 
@@ -111,13 +117,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
         map[cat] = (map[cat] ?? 0) + tx.summaUzs;
       }
     }
-    final sorted = map.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    final sorted = map.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
     return Map.fromEntries(sorted);
   }
 
   // ---------- per-project helpers ----------
-  List<ProjectTransaction> get _selTxs =>
-      _selectedProject != null ? (_txsByProject[_selectedProject!.id] ?? []) : [];
+  List<ProjectTransaction> get _selTxs => _selectedProject != null
+      ? (_txsByProject[_selectedProject!.id] ?? [])
+      : [];
 
   Map<String, num> get _selByCategory {
     final userId = supabase.auth.currentUser?.id ?? '';
@@ -126,7 +134,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
       final cat = tx.kategoriya ?? 'Boshqa';
       map[cat] = (map[cat] ?? 0) + tx.summaUzs;
     }
-    final sorted = map.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    final sorted = map.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
     return Map.fromEntries(sorted);
   }
 
@@ -138,18 +147,23 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
       if (cat == 'income' || cat == 'Kirim') cat = 'Mijoz';
       map[cat] = (map[cat] ?? 0) + tx.summaUzs;
     }
-    final sorted = map.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    final sorted = map.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
     return Map.fromEntries(sorted);
   }
 
   num get _selIncome {
     final userId = supabase.auth.currentUser?.id ?? '';
-    return _selTxs.where((t) => t.isIncomeFor(userId)).fold(0, (s, t) => s + t.summaUzs);
+    return _selTxs
+        .where((t) => t.isIncomeFor(userId))
+        .fold(0, (s, t) => s + t.summaUzs);
   }
 
   num get _selSpend {
     final userId = supabase.auth.currentUser?.id ?? '';
-    return _selTxs.where((t) => t.isExpenseFor(userId)).fold(0, (s, t) => s + t.summaUzs);
+    return _selTxs
+        .where((t) => t.isExpenseFor(userId))
+        .fold(0, (s, t) => s + t.summaUzs);
   }
 
   static const _catColors = [
@@ -348,15 +362,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
                     color: AppColors.text,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  tr('swipe_page_hint'),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.muted,
-                  ),
-                ),
               ],
             ),
           ),
@@ -480,7 +485,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
                       ),
                     ),
                     icon: const Icon(
-                      Icons.picture_as_pdf_rounded,
+                      Icons.file_download_rounded,
                       size: 20,
                       color: AppColors.accent,
                     ),
@@ -504,9 +509,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
     final statusColor = isDone
         ? AppColors.muted
         : (isPaused ? AppColors.orange : AppColors.green);
-    final statusLabel = isDone
-        ? tr('done')
-        : (isPaused ? tr('paused') : tr('active'));
+    final statusLabel =
+        isDone ? tr('done') : (isPaused ? tr('paused') : tr('active'));
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -654,7 +658,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
     final spend = _selSpend;
     final balance = income - spend;
     final byCat = _selByCategory;
-    final (passed, left, progress) = p.schedule;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -662,24 +665,40 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
         // Financial overview
         Container(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+          decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   Expanded(
-                    child: Text(p.nomi, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.text)),
+                    child: Text(p.nomi,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14,
+                            color: AppColors.text)),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: (p.status == 'done' ? AppColors.green : AppColors.accent).withValues(alpha: 0.1),
+                      color: (p.status == 'done'
+                              ? AppColors.green
+                              : AppColors.accent)
+                          .withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       p.status == 'done' ? tr('done') : tr('active'),
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: p.status == 'done' ? AppColors.green : AppColors.accent),
+                      style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: p.status == 'done'
+                              ? AppColors.green
+                              : AppColors.accent),
                     ),
                   ),
                 ],
@@ -687,23 +706,37 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
               if (p.manzil != null) ...[
                 const SizedBox(height: 4),
                 Row(children: [
-                  const Icon(Icons.location_on_outlined, size: 13, color: AppColors.muted),
+                  const Icon(Icons.location_on_outlined,
+                      size: 13, color: AppColors.muted),
                   const SizedBox(width: 4),
-                  Text(p.manzil!, style: const TextStyle(fontSize: 11, color: AppColors.muted)),
+                  Text(p.manzil!,
+                      style: const TextStyle(
+                          fontSize: 11, color: AppColors.muted)),
                 ]),
               ],
               if (p.mijoz != null) ...[
                 const SizedBox(height: 2),
                 Row(children: [
-                  const Icon(Icons.person_outline_rounded, size: 13, color: AppColors.muted),
+                  const Icon(Icons.person_outline_rounded,
+                      size: 13, color: AppColors.muted),
                   const SizedBox(width: 4),
-                  Text(p.mijoz!, style: const TextStyle(fontSize: 11, color: AppColors.muted)),
+                  Text(p.mijoz!,
+                      style: const TextStyle(
+                          fontSize: 11, color: AppColors.muted)),
                 ]),
               ],
               const Divider(color: AppColors.border, height: 20),
-              _FinRow(label: tr('income'), value: income, color: AppColors.green, icon: Icons.arrow_downward_rounded),
+              _FinRow(
+                  label: tr('income'),
+                  value: income,
+                  color: AppColors.green,
+                  icon: Icons.arrow_downward_rounded),
               const SizedBox(height: 8),
-              _FinRow(label: tr('expense'), value: spend, color: AppColors.red, icon: Icons.arrow_upward_rounded),
+              _FinRow(
+                  label: tr('expense'),
+                  value: spend,
+                  color: AppColors.red,
+                  icon: Icons.arrow_upward_rounded),
               const Divider(color: AppColors.border, height: 20),
               _FinRow(
                 label: tr('balance'),
@@ -711,41 +744,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
                 color: balance >= 0 ? AppColors.green : AppColors.red,
                 icon: Icons.account_balance_rounded,
               ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 10),
-
-        // Timeline / Schedule
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(tr('progress'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.muted)),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  _TimeChip(label: tr('progress'), value: '$passed ${tr("days_left")}', color: AppColors.orange),
-                  const SizedBox(width: 8),
-                  _TimeChip(label: tr('balance'), value: left == 0 ? tr('done') : '$left ${tr("days_left")}', color: left == 0 ? AppColors.red : AppColors.green),
-                  const SizedBox(width: 8),
-                  _TimeChip(label: tr('duration_days'), value: '${p.muddat} ${tr("days_left")}', color: AppColors.accent),
-                ],
-              ),
-              const SizedBox(height: 12),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: LinearProgressIndicator(
-                  value: progress / 100,
-                  minHeight: 8,
-                  backgroundColor: AppColors.border,
-                  color: progress >= 100 ? AppColors.red : AppColors.accent,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text('$progress% ${tr("completed")}', style: const TextStyle(fontSize: 11, color: AppColors.muted)),
             ],
           ),
         ),
@@ -766,26 +764,41 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
         // Transaction count summary
         Container(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+          decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(tr('transactions'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.muted)),
+              Text(tr('transactions'),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                      color: AppColors.muted)),
               const SizedBox(height: 12),
               Row(
                 children: [
-                  _TxCountChip(label: tr('all'), count: txs.length, color: AppColors.accent),
+                  _TxCountChip(
+                      label: tr('all'),
+                      count: txs.length,
+                      color: AppColors.accent),
                   const SizedBox(width: 8),
-                  _TxCountChip(label: tr('income'), count: txs.where((t) => t.isIncomeFor(userId)).length, color: AppColors.green),
+                  _TxCountChip(
+                      label: tr('income'),
+                      count: txs.where((t) => t.isIncomeFor(userId)).length,
+                      color: AppColors.green),
                   const SizedBox(width: 8),
-                  _TxCountChip(label: tr('expense'), count: txs.where((t) => t.isExpenseFor(userId)).length, color: AppColors.red),
+                  _TxCountChip(
+                      label: tr('expense'),
+                      count: txs.where((t) => t.isExpenseFor(userId)).length,
+                      color: AppColors.red),
                 ],
               ),
             ],
           ),
         ),
         const SizedBox(height: 10),
-
       ],
     );
   }
@@ -961,8 +974,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
     final service = CurrencyService();
     final isUsd = service.displayCurrency == 'USD';
 
-    final income = _selTxs.where((t) => t.isIncomeFor(userId)).fold(0.0, (s, t) => s + (isUsd ? t.summaUsd : t.summaUzs));
-    final spend = _selTxs.where((t) => t.isExpenseFor(userId)).fold(0.0, (s, t) => s + (isUsd ? t.summaUsd : t.summaUzs));
+    final income = _selTxs
+        .where((t) => t.isIncomeFor(userId))
+        .fold(0.0, (s, t) => s + (isUsd ? t.summaUsd : t.summaUzs));
+    final spend = _selTxs
+        .where((t) => t.isExpenseFor(userId))
+        .fold(0.0, (s, t) => s + (isUsd ? t.summaUsd : t.summaUzs));
     final balance = income - spend;
     final txs = _selTxs;
 
@@ -972,7 +989,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
       final amt = isUsd ? tx.summaUsd : tx.summaUzs;
       byCat[cat] = (byCat[cat] ?? 0) + amt;
     }
-    final sortedCatEntries = byCat.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    final sortedCatEntries = byCat.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
     final sortedByCat = Map.fromEntries(sortedCatEntries);
 
     String formatPdfMoney(num value) {
@@ -987,13 +1005,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
       }
     }
 
-    final String incomeDesc = isUsd 
+    final String incomeDesc = isUsd
         ? 'USD · ${tr('total_income_desc').split('·').last.trim()}'
         : tr('total_income_desc');
-    final String expenseDesc = isUsd 
+    final String expenseDesc = isUsd
         ? 'USD · ${tr('total_expense_desc').split('·').last.trim()}'
         : tr('total_expense_desc');
-    final String balanceDesc = isUsd 
+    final String balanceDesc = isUsd
         ? 'USD · ${tr('total_balance_desc').split('·').last.trim()}'
         : tr('total_balance_desc');
 
@@ -1005,7 +1023,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
     final startStr = project.boshlanish != null
         ? DateFormat('dd.MM.yyyy').format(project.boshlanish!)
         : '-';
-    final endStr = endDate != null ? DateFormat('dd.MM.yyyy').format(endDate) : '-';
+    final endStr =
+        endDate != null ? DateFormat('dd.MM.yyyy').format(endDate) : '-';
     final todayStr = DateFormat('dd.MM.yyyy').format(DateTime.now());
 
     final List<num> runningBalances = [];
@@ -1046,6 +1065,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
     final pdf = pw.Document();
     final fontNormal = await PdfGoogleFonts.robotoRegular();
     final fontBold = await PdfGoogleFonts.robotoBold();
+    final logoBytes = await rootBundle.load('assets/logo.png');
+    final logoImage = pw.MemoryImage(logoBytes.buffer.asUint8List());
 
     pdf.addPage(
       pw.MultiPage(
@@ -1065,14 +1086,17 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
                   children: [
                     pw.Container(
                       width: 120,
-                      child: pw.Text(cat, style: pw.TextStyle(font: fontBold, fontSize: 10, color: navyColor)),
+                      child: pw.Text(cat,
+                          style: pw.TextStyle(
+                              font: fontBold, fontSize: 10, color: navyColor)),
                     ),
                     pw.Expanded(
                       child: pw.Container(
                         height: 7,
                         decoration: pw.BoxDecoration(
                           color: PdfColor.fromHex('#eef1f5'),
-                          borderRadius: pw.BorderRadius.all(pw.Radius.circular(4)),
+                          borderRadius:
+                              pw.BorderRadius.all(pw.Radius.circular(4)),
                         ),
                         alignment: pw.Alignment.centerLeft,
                         child: ratio > 0
@@ -1084,7 +1108,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
                                       height: 7,
                                       decoration: pw.BoxDecoration(
                                         color: color,
-                                        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+                                        borderRadius: const pw.BorderRadius.all(
+                                            pw.Radius.circular(4)),
                                       ),
                                     ),
                                   ),
@@ -1101,12 +1126,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
                     pw.Container(
                       width: 90,
                       alignment: pw.Alignment.centerRight,
-                      child: pw.Text(formatPdfMoney(amt), style: pw.TextStyle(font: fontBold, fontSize: 10, color: navyColor)),
+                      child: pw.Text(formatPdfMoney(amt),
+                          style: pw.TextStyle(
+                              font: fontBold, fontSize: 10, color: navyColor)),
                     ),
                     pw.Container(
                       width: 40,
                       alignment: pw.Alignment.centerRight,
-                      child: pw.Text('$pct%', style: pw.TextStyle(font: fontBold, fontSize: 9, color: mutedColor)),
+                      child: pw.Text('$pct%',
+                          style: pw.TextStyle(
+                              font: fontBold, fontSize: 9, color: mutedColor)),
                     ),
                   ],
                 ),
@@ -1120,11 +1149,43 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
             pw.TableRow(
               decoration: pw.BoxDecoration(color: navyColor),
               children: [
-                pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(tr('date_col'), style: pw.TextStyle(font: fontBold, fontSize: 8, color: PdfColors.white))),
-                pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(tr('desc_col'), style: pw.TextStyle(font: fontBold, fontSize: 8, color: PdfColors.white))),
-                pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(tr('category_col'), style: pw.TextStyle(font: fontBold, fontSize: 8, color: PdfColors.white))),
-                pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(tr('amount_col'), style: pw.TextStyle(font: fontBold, fontSize: 8, color: PdfColors.white), textAlign: pw.TextAlign.right)),
-                pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(tr('balance_col'), style: pw.TextStyle(font: fontBold, fontSize: 8, color: PdfColors.white), textAlign: pw.TextAlign.right)),
+                pw.Padding(
+                    padding: const pw.EdgeInsets.all(6),
+                    child: pw.Text(tr('date_col'),
+                        style: pw.TextStyle(
+                            font: fontBold,
+                            fontSize: 8,
+                            color: PdfColors.white))),
+                pw.Padding(
+                    padding: const pw.EdgeInsets.all(6),
+                    child: pw.Text(tr('desc_col'),
+                        style: pw.TextStyle(
+                            font: fontBold,
+                            fontSize: 8,
+                            color: PdfColors.white))),
+                pw.Padding(
+                    padding: const pw.EdgeInsets.all(6),
+                    child: pw.Text(tr('category_col'),
+                        style: pw.TextStyle(
+                            font: fontBold,
+                            fontSize: 8,
+                            color: PdfColors.white))),
+                pw.Padding(
+                    padding: const pw.EdgeInsets.all(6),
+                    child: pw.Text(tr('amount_col'),
+                        style: pw.TextStyle(
+                            font: fontBold,
+                            fontSize: 8,
+                            color: PdfColors.white),
+                        textAlign: pw.TextAlign.right)),
+                pw.Padding(
+                    padding: const pw.EdgeInsets.all(6),
+                    child: pw.Text(tr('balance_col'),
+                        style: pw.TextStyle(
+                            font: fontBold,
+                            fontSize: 8,
+                            color: PdfColors.white),
+                        textAlign: pw.TextAlign.right)),
               ],
             ),
           );
@@ -1137,7 +1198,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
             final desc = tx.izoh ?? '';
             final sub = tx.toUser ?? tx.fromUser ?? '';
             final isTxIncome = tx.isIncomeFor(userId);
-            final toifa = tx.kategoriya ?? (isTxIncome ? tr('income') : tr('boshqa'));
+            final toifa =
+                tx.kategoriya ?? (isTxIncome ? tr('income') : tr('boshqa'));
             final amtSign = isTxIncome ? '+' : '-';
             final amtColor = isTxIncome ? greenColor : redColor;
 
@@ -1145,24 +1207,55 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
               pw.TableRow(
                 decoration: pw.BoxDecoration(
                   color: isEven ? bgSoftColor : PdfColors.white,
-                  border: pw.Border(bottom: pw.BorderSide(color: PdfColor.fromHex('#eef0f4'), width: 0.5)),
+                  border: pw.Border(
+                      bottom: pw.BorderSide(
+                          color: PdfColor.fromHex('#eef0f4'), width: 0.5)),
                 ),
                 children: [
-                  pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(dateStr, style: pw.TextStyle(font: fontNormal, fontSize: 9, color: mutedColor))),
+                  pw.Padding(
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(dateStr,
+                          style: pw.TextStyle(
+                              font: fontNormal,
+                              fontSize: 9,
+                              color: mutedColor))),
                   pw.Padding(
                     padding: const pw.EdgeInsets.all(6),
                     child: pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
-                        pw.Text(desc, style: pw.TextStyle(font: fontBold, fontSize: 9, color: navyColor)),
+                        pw.Text(desc,
+                            style: pw.TextStyle(
+                                font: fontBold, fontSize: 9, color: navyColor)),
                         if (sub.isNotEmpty)
-                          pw.Text(sub, style: pw.TextStyle(font: fontNormal, fontSize: 8, color: mutedColor)),
+                          pw.Text(sub,
+                              style: pw.TextStyle(
+                                  font: fontNormal,
+                                  fontSize: 8,
+                                  color: mutedColor)),
                       ],
                     ),
                   ),
-                  pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(toifa, style: pw.TextStyle(font: fontBold, fontSize: 8, color: PdfColor.fromHex('#1e2f47')))),
-                  pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text('$amtSign${formatPdfMoney(isUsd ? tx.summaUsd : tx.summaUzs)}', style: pw.TextStyle(font: fontBold, fontSize: 9, color: amtColor), textAlign: pw.TextAlign.right)),
-                  pw.Padding(padding: const pw.EdgeInsets.all(6), child: pw.Text(formatPdfMoney(runningBalances[rowIdx]), style: pw.TextStyle(font: fontBold, fontSize: 9, color: mutedColor), textAlign: pw.TextAlign.right)),
+                  pw.Padding(
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(toifa,
+                          style: pw.TextStyle(
+                              font: fontBold,
+                              fontSize: 8,
+                              color: PdfColor.fromHex('#1e2f47')))),
+                  pw.Padding(
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(
+                          '$amtSign${formatPdfMoney(isUsd ? tx.summaUsd : tx.summaUzs)}',
+                          style: pw.TextStyle(
+                              font: fontBold, fontSize: 9, color: amtColor),
+                          textAlign: pw.TextAlign.right)),
+                  pw.Padding(
+                      padding: const pw.EdgeInsets.all(6),
+                      child: pw.Text(formatPdfMoney(runningBalances[rowIdx]),
+                          style: pw.TextStyle(
+                              font: fontBold, fontSize: 9, color: mutedColor),
+                          textAlign: pw.TextAlign.right)),
                 ],
               ),
             );
@@ -1174,22 +1267,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
-                pw.RichText(
-                  text: pw.TextSpan(
-                    children: [
-                      pw.TextSpan(text: 'R', style: pw.TextStyle(font: fontBold, color: PdfColor.fromHex('#10B981'), fontSize: 26)),
-                      pw.TextSpan(text: 'isq', style: pw.TextStyle(font: fontBold, color: navyColor, fontSize: 26)),
-                    ],
-                  ),
-                ),
-                pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.end,
-                  children: [
-                    pw.Text(tr('report_num').toUpperCase(), style: pw.TextStyle(font: fontBold, fontSize: 9, color: mutedColor)),
-                    pw.SizedBox(height: 2),
-                    pw.Text('No. ${project.id.substring(0, 4).toUpperCase()} - $todayStr', style: pw.TextStyle(font: fontBold, fontSize: 11, color: navyColor)),
-                  ],
-                ),
+                pw.Image(logoImage, height: 72),
               ],
             ),
             pw.SizedBox(height: 4),
@@ -1203,20 +1281,31 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
                 pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    pw.Text(tr('project_report_title'), style: pw.TextStyle(font: fontBold, fontSize: 22, color: navyColor)),
+                    pw.Text(tr('project_report_title'),
+                        style: pw.TextStyle(
+                            font: fontBold, fontSize: 22, color: navyColor)),
                     pw.SizedBox(height: 4),
-                    pw.Text('${tr('report_period')}: $startStr - $endStr', style: pw.TextStyle(font: fontNormal, fontSize: 11, color: mutedColor)),
+                    pw.Text('${tr('report_period')}: $startStr - $endStr',
+                        style: pw.TextStyle(
+                            font: fontNormal, fontSize: 11, color: mutedColor)),
                   ],
                 ),
                 pw.Container(
-                  padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  padding: const pw.EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 5),
                   decoration: pw.BoxDecoration(
-                    color: project.status == 'done' ? bgSoftColor : greenBgColor,
-                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(20)),
+                    color:
+                        project.status == 'done' ? bgSoftColor : greenBgColor,
+                    borderRadius:
+                        const pw.BorderRadius.all(pw.Radius.circular(20)),
                   ),
                   child: pw.Text(
                     project.status == 'done' ? tr('done') : tr('active'),
-                    style: pw.TextStyle(font: fontBold, fontSize: 9, color: project.status == 'done' ? mutedColor : greenColor),
+                    style: pw.TextStyle(
+                        font: fontBold,
+                        fontSize: 9,
+                        color:
+                            project.status == 'done' ? mutedColor : greenColor),
                   ),
                 ),
               ],
@@ -1234,10 +1323,46 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
                 verticalRadius: 10,
                 child: pw.Row(
                   children: [
-                    pw.Expanded(child: _buildGridCell(tr('nav_projects'), project.nomi, fontNormal, fontBold, borderColor, mutedColor, navyColor, showBorderRight: true)),
-                    pw.Expanded(child: _buildGridCell(tr('owner'), project.mijoz ?? '-', fontNormal, fontBold, borderColor, mutedColor, navyColor, showBorderRight: true)),
-                    pw.Expanded(child: _buildGridCell(tr('prorab'), prorabName, fontNormal, fontBold, borderColor, mutedColor, navyColor, showBorderRight: true)),
-                    pw.Expanded(child: _buildGridCell(tr('phone'), prorabPhone.isNotEmpty ? prorabPhone : '-', fontNormal, fontBold, borderColor, mutedColor, navyColor, showBorderRight: false)),
+                    pw.Expanded(
+                        child: _buildGridCell(
+                            tr('nav_projects'),
+                            project.nomi,
+                            fontNormal,
+                            fontBold,
+                            borderColor,
+                            mutedColor,
+                            navyColor,
+                            showBorderRight: true)),
+                    pw.Expanded(
+                        child: _buildGridCell(
+                            tr('owner'),
+                            project.mijoz ?? '-',
+                            fontNormal,
+                            fontBold,
+                            borderColor,
+                            mutedColor,
+                            navyColor,
+                            showBorderRight: true)),
+                    pw.Expanded(
+                        child: _buildGridCell(
+                            tr('prorab'),
+                            prorabName,
+                            fontNormal,
+                            fontBold,
+                            borderColor,
+                            mutedColor,
+                            navyColor,
+                            showBorderRight: true)),
+                    pw.Expanded(
+                        child: _buildGridCell(
+                            tr('phone'),
+                            prorabPhone.isNotEmpty ? prorabPhone : '-',
+                            fontNormal,
+                            fontBold,
+                            borderColor,
+                            mutedColor,
+                            navyColor,
+                            showBorderRight: false)),
                   ],
                 ),
               ),
@@ -1297,15 +1422,20 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
-                  pw.Text(tr('expense_distribution'), style: pw.TextStyle(font: fontBold, fontSize: 11, color: navyColor)),
-                  pw.Text(tr('distribution_by_category'), style: pw.TextStyle(font: fontNormal, fontSize: 8, color: mutedColor)),
+                  pw.Text(tr('expense_distribution'),
+                      style: pw.TextStyle(
+                          font: fontBold, fontSize: 11, color: navyColor)),
+                  pw.Text(tr('distribution_by_category'),
+                      style: pw.TextStyle(
+                          font: fontNormal, fontSize: 8, color: mutedColor)),
                 ],
               ),
               pw.SizedBox(height: 6),
               pw.Container(
                 decoration: pw.BoxDecoration(
                   border: pw.Border.all(color: borderColor),
-                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(10)),
+                  borderRadius:
+                      const pw.BorderRadius.all(pw.Radius.circular(10)),
                 ),
                 padding: const pw.EdgeInsets.all(12),
                 child: pw.Column(children: breakdownRows),
@@ -1317,8 +1447,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
-                pw.Text(tr('detailed_operations'), style: pw.TextStyle(font: fontBold, fontSize: 11, color: navyColor)),
-                pw.Text('${sortedTxs.length} ${tr('records_count')}', style: pw.TextStyle(font: fontNormal, fontSize: 8, color: mutedColor)),
+                pw.Text(tr('detailed_operations'),
+                    style: pw.TextStyle(
+                        font: fontBold, fontSize: 11, color: navyColor)),
+                pw.Text('${sortedTxs.length} ${tr('records_count')}',
+                    style: pw.TextStyle(
+                        font: fontNormal, fontSize: 8, color: mutedColor)),
               ],
             ),
             pw.SizedBox(height: 6),
@@ -1339,13 +1473,23 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
               children: [
                 pw.Expanded(
                   child: pw.Container(
-                    decoration: pw.BoxDecoration(border: pw.Border(top: pw.BorderSide(color: navyColor))),
+                    decoration: pw.BoxDecoration(
+                        border:
+                            pw.Border(top: pw.BorderSide(color: navyColor))),
                     padding: const pw.EdgeInsets.only(top: 6),
                     child: pw.Row(
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
-                        pw.Text(tr('prorab'), style: pw.TextStyle(font: fontBold, fontSize: 8, color: mutedColor)),
-                        pw.Text(prorabName, style: pw.TextStyle(font: fontNormal, fontSize: 9, color: navyColor)),
+                        pw.Text(tr('prorab'),
+                            style: pw.TextStyle(
+                                font: fontBold,
+                                fontSize: 8,
+                                color: mutedColor)),
+                        pw.Text(prorabName,
+                            style: pw.TextStyle(
+                                font: fontNormal,
+                                fontSize: 9,
+                                color: navyColor)),
                       ],
                     ),
                   ),
@@ -1353,13 +1497,23 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
                 pw.SizedBox(width: 40),
                 pw.Expanded(
                   child: pw.Container(
-                    decoration: pw.BoxDecoration(border: pw.Border(top: pw.BorderSide(color: navyColor))),
+                    decoration: pw.BoxDecoration(
+                        border:
+                            pw.Border(top: pw.BorderSide(color: navyColor))),
                     padding: const pw.EdgeInsets.only(top: 6),
                     child: pw.Row(
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
-                        pw.Text(tr('owner'), style: pw.TextStyle(font: fontBold, fontSize: 8, color: mutedColor)),
-                        pw.Text(project.mijoz ?? '', style: pw.TextStyle(font: fontNormal, fontSize: 9, color: navyColor)),
+                        pw.Text(tr('owner'),
+                            style: pw.TextStyle(
+                                font: fontBold,
+                                fontSize: 8,
+                                color: mutedColor)),
+                        pw.Text(project.mijoz ?? '',
+                            style: pw.TextStyle(
+                                font: fontNormal,
+                                fontSize: 9,
+                                color: navyColor)),
                       ],
                     ),
                   ),
@@ -1378,18 +1532,22 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
             child: pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
-                pw.RichText(
-                  text: pw.TextSpan(
-                    children: [
-                      pw.TextSpan(text: 'R', style: pw.TextStyle(font: fontBold, color: PdfColor.fromHex('#10B981'), fontSize: 10)),
-                      pw.TextSpan(text: 'isq', style: pw.TextStyle(font: fontBold, color: navyColor, fontSize: 10)),
-                      pw.TextSpan(text: '  -  ${tr('system_note')}', style: pw.TextStyle(font: fontNormal, color: mutedColor, fontSize: 8)),
-                    ],
-                  ),
+                pw.Row(
+                  crossAxisAlignment: pw.CrossAxisAlignment.center,
+                  children: [
+                    pw.Image(logoImage, height: 48),
+                    pw.SizedBox(width: 8),
+                    pw.Text('-  ${tr('system_note')}',
+                        style: pw.TextStyle(
+                            font: fontNormal, color: mutedColor, fontSize: 8)),
+                  ],
                 ),
                 pw.Text(
                   '${context.pageNumber} / ${context.pagesCount} ${tr('page_indicator')}',
-                  style: pw.TextStyle(font: fontNormal, fontSize: 8, color: PdfColor.fromHex('#a3adbd')),
+                  style: pw.TextStyle(
+                      font: fontNormal,
+                      fontSize: 8,
+                      color: PdfColor.fromHex('#a3adbd')),
                 ),
               ],
             ),
@@ -1400,21 +1558,34 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
 
     await Printing.layoutPdf(
       onLayout: (PdfPageFormat format) async => await pdf.save(),
+      name: project.nomi,
     );
   }
 
-  pw.Widget _buildGridCell(String label, String value, pw.Font normal, pw.Font bold, PdfColor borderColor, PdfColor mutedColor, PdfColor navyColor, {required bool showBorderRight}) {
+  pw.Widget _buildGridCell(
+      String label,
+      String value,
+      pw.Font normal,
+      pw.Font bold,
+      PdfColor borderColor,
+      PdfColor mutedColor,
+      PdfColor navyColor,
+      {required bool showBorderRight}) {
     return pw.Container(
       padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: pw.BoxDecoration(
-        border: showBorderRight ? pw.Border(right: pw.BorderSide(color: borderColor)) : null,
+        border: showBorderRight
+            ? pw.Border(right: pw.BorderSide(color: borderColor))
+            : null,
       ),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Text(label.toUpperCase(), style: pw.TextStyle(font: bold, fontSize: 8, color: mutedColor)),
+          pw.Text(label.toUpperCase(),
+              style: pw.TextStyle(font: bold, fontSize: 8, color: mutedColor)),
           pw.SizedBox(height: 2),
-          pw.Text(value, style: pw.TextStyle(font: bold, fontSize: 10, color: navyColor)),
+          pw.Text(value,
+              style: pw.TextStyle(font: bold, fontSize: 10, color: navyColor)),
         ],
       ),
     );
@@ -1444,17 +1615,23 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
           pw.Row(
             children: [
               pw.Container(
-                width: 6, height: 6,
-                decoration: pw.BoxDecoration(color: textColor, shape: pw.BoxShape.circle),
+                width: 6,
+                height: 6,
+                decoration: pw.BoxDecoration(
+                    color: textColor, shape: pw.BoxShape.circle),
               ),
               pw.SizedBox(width: 4),
-              pw.Text(label.toUpperCase(), style: pw.TextStyle(font: bold, fontSize: 8, color: textColor)),
+              pw.Text(label.toUpperCase(),
+                  style:
+                      pw.TextStyle(font: bold, fontSize: 8, color: textColor)),
             ],
           ),
           pw.SizedBox(height: 4),
-          pw.Text(amount, style: pw.TextStyle(font: bold, fontSize: 16, color: amtColor)),
+          pw.Text(amount,
+              style: pw.TextStyle(font: bold, fontSize: 16, color: amtColor)),
           pw.SizedBox(height: 2),
-          pw.Text(desc, style: pw.TextStyle(font: normal, fontSize: 8, color: textColor)),
+          pw.Text(desc,
+              style: pw.TextStyle(font: normal, fontSize: 8, color: textColor)),
         ],
       ),
     );
@@ -1466,20 +1643,31 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> with SingleTickerProv
 class _SummaryCard extends StatelessWidget {
   final String label, value, sub;
   final Color color;
-  const _SummaryCard({required this.label, required this.value, required this.sub, required this.color});
+  const _SummaryCard(
+      {required this.label,
+      required this.value,
+      required this.sub,
+      required this.color});
   @override
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
+        decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.border)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(fontSize: 11, color: AppColors.muted)),
+            Text(label,
+                style: const TextStyle(fontSize: 11, color: AppColors.muted)),
             const SizedBox(height: 4),
-            Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: color)),
-            Text(sub, style: const TextStyle(fontSize: 11, color: AppColors.muted)),
+            Text(value,
+                style: TextStyle(
+                    fontSize: 22, fontWeight: FontWeight.w800, color: color)),
+            Text(sub,
+                style: const TextStyle(fontSize: 11, color: AppColors.muted)),
           ],
         ),
       ),
@@ -1492,20 +1680,31 @@ class _FinRow extends StatelessWidget {
   final num value;
   final Color color;
   final IconData icon;
-  const _FinRow({required this.label, required this.value, required this.color, required this.icon});
+  const _FinRow(
+      {required this.label,
+      required this.value,
+      required this.color,
+      required this.icon});
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
         Container(
-          width: 32, height: 32,
+          width: 32,
+          height: 32,
           alignment: Alignment.center,
-          decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+          decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8)),
           child: Icon(icon, size: 16, color: color),
         ),
         const SizedBox(width: 10),
-        Expanded(child: Text(label, style: const TextStyle(fontSize: 12, color: AppColors.text2))),
-        Text(formatUzsToDisplay(value), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color)),
+        Expanded(
+            child: Text(label,
+                style: const TextStyle(fontSize: 12, color: AppColors.text2))),
+        Text(formatUzsToDisplay(value),
+            style: TextStyle(
+                fontSize: 13, fontWeight: FontWeight.w700, color: color)),
       ],
     );
   }
@@ -1514,7 +1713,8 @@ class _FinRow extends StatelessWidget {
 class _TimeChip extends StatelessWidget {
   final String label, value;
   final Color color;
-  const _TimeChip({required this.label, required this.value, required this.color});
+  const _TimeChip(
+      {required this.label, required this.value, required this.color});
   @override
   Widget build(BuildContext context) {
     return Expanded(
@@ -1528,9 +1728,14 @@ class _TimeChip extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(label, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w600)),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 10, color: color, fontWeight: FontWeight.w600)),
             const SizedBox(height: 2),
-            Text(value, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: color), textAlign: TextAlign.center),
+            Text(value,
+                style: TextStyle(
+                    fontSize: 12, fontWeight: FontWeight.w800, color: color),
+                textAlign: TextAlign.center),
           ],
         ),
       ),
@@ -1542,7 +1747,8 @@ class _TxCountChip extends StatelessWidget {
   final String label;
   final int count;
   final Color color;
-  const _TxCountChip({required this.label, required this.count, required this.color});
+  const _TxCountChip(
+      {required this.label, required this.count, required this.color});
   @override
   Widget build(BuildContext context) {
     return Expanded(
@@ -1555,12 +1761,14 @@ class _TxCountChip extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Text('$count', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: color)),
-            Text(label, style: const TextStyle(fontSize: 10, color: AppColors.muted)),
+            Text('$count',
+                style: TextStyle(
+                    fontSize: 20, fontWeight: FontWeight.w800, color: color)),
+            Text(label,
+                style: const TextStyle(fontSize: 10, color: AppColors.muted)),
           ],
         ),
       ),
     );
   }
-
 }

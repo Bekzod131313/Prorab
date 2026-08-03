@@ -9,6 +9,7 @@ import '../theme/app_theme.dart';
 import '../widgets/project_card.dart' show formatUzsToDisplay;
 import '../widgets/shimmer.dart';
 import 'settings_screen.dart';
+import 'edit_profile_screen.dart';
 import '../utils/phone_formatter.dart';
 import '../utils/haptics.dart';
 import '../widgets/app_cached_image.dart';
@@ -145,73 +146,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _openEditProfile() async {
-    final nameCtrl = TextEditingController(text: _profile?.fullName ?? '');
-    final phoneCtrl = TextEditingController(text: _profile?.phone ?? '');
-    final stajCtrl = TextEditingController(text: (_profile?.staj ?? 0).toString());
-    final kasbCtrl = TextEditingController(text: _profile?.kasb ?? '');
-
-    final saved = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.card,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(left: 20, right: 20, top: 24, bottom: 24 + MediaQuery.of(ctx).viewInsets.bottom),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(children: [
-                Expanded(child: Text(tr('edit_profile'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17))),
-                IconButton(
-                  icon: const Icon(Icons.camera_alt_outlined, color: AppColors.accent),
-                  onPressed: () async {
-                    Navigator.of(ctx).pop();
-                    await _pickAvatar();
-                  },
-                ),
-              ]),
-              const SizedBox(height: 12),
-              TextField(controller: nameCtrl, decoration: InputDecoration(labelText: tr('full_name'), prefixIcon: const Icon(Icons.person_outline_rounded, size: 18))),
-              const SizedBox(height: 12),
-              TextField(controller: phoneCtrl, keyboardType: TextInputType.phone,
-                decoration: InputDecoration(labelText: tr('phone'), prefixIcon: const Icon(Icons.phone_outlined, size: 18))),
-              const SizedBox(height: 12),
-              TextField(controller: kasbCtrl, decoration: InputDecoration(labelText: tr('profession'), prefixIcon: const Icon(Icons.work_outline_rounded, size: 18))),
-              const SizedBox(height: 12),
-              TextField(controller: stajCtrl, keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: tr('experience'), prefixIcon: const Icon(Icons.timeline_rounded, size: 18))),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () => Navigator.of(ctx).pop(true),
-                child: Text(tr('save')),
-              ),
-            ],
-          ),
-        ),
+    final updated = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => EditProfileScreen(profile: _profile),
       ),
     );
-
-    if (saved == true) {
-      try {
-        await _repo.updateProfile(
-          fullName: nameCtrl.text.trim(),
-          phone: phoneCtrl.text.trim(),
-          staj: int.tryParse(stajCtrl.text.trim()) ?? 0,
-          kasb: kasbCtrl.text.trim(),
-        );
-        _load();
-      } catch (e) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('error_short').replaceFirst('{}', e.toString()))));
-      }
+    if (updated == true) {
+      _load();
     }
-    Future.delayed(const Duration(milliseconds: 350), () {
-      nameCtrl.dispose();
-      phoneCtrl.dispose();
-      stajCtrl.dispose();
-      kasbCtrl.dispose();
-    });
   }
 
   Widget _buildShimmerLoading() {
@@ -353,27 +295,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                             : null,
                                   ),
                                 ),
-                                if (isOwnProfile && !_avatarUploading)
-                                  Positioned(
-                                    bottom: 2,
-                                    right: 2,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(6),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.accent,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: AppColors.card, width: 2),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(0.12),
-                                            blurRadius: 4,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ],
-                                      ),
-                                      child: const Icon(Icons.camera_alt_rounded, size: 14, color: Colors.white),
-                                    ),
-                                  ),
                               ],
                             ),
                           ),
