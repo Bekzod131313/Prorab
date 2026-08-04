@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../l10n/strings.dart';
+import '../data/member_repository.dart';
 import '../data/transaction_repository.dart';
 import '../data/worker_repository.dart';
+import '../data/worker_cache_repository.dart';
+import 'add_transaction_screen.dart';
 import '../models/transaction.dart';
 import '../models/worker.dart';
 import '../theme/app_theme.dart';
@@ -32,6 +35,7 @@ class WorkerDetailScreen extends StatefulWidget {
 class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
   final _txRepo = TransactionRepository();
   final _projectRepo = ProjectRepository();
+  final _cacheRepo = WorkerCacheRepository();
   final _dateFmt = DateFormat('dd.MM.yyyy');
   String _formatDate(DateTime date) => DateFormat('dd.MM.yyyy', appLocaleNotifier.value).format(date);
   final _timeFmt = DateFormat('HH:mm');
@@ -67,7 +71,25 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    // 1. Load instantly from local cache if available (0ms delay)
+    final cached = await _cacheRepo.loadWorkerCache(widget.worker.userId);
+    if (cached != null && mounted) {
+      setState(() {
+        _worker = cached.worker;
+        _payments = cached.payments;
+        _loading = false;
+      });
+    }
+
+    // 2. Silently fetch fresh network data in background
+    await _loadSilent();
+
+    if (mounted) {
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _loadSilent() async {
     try {
       final refreshedList = await WorkerRepository().loadAll();
       final updated = refreshedList.firstWhere(
@@ -85,222 +107,105 @@ class _WorkerDetailScreenState extends State<WorkerDetailScreen> {
         setState(() {
           _payments = all;
           _worker = updated;
-          _loading = false;
         });
       }
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
-    }
+      // Save fresh data to local cache
+      _cacheRepo.saveWorkerCache(
+        worker: updated,
+        payments: all,
+      );
+    } catch (_) {}
   }
 
   Future<void> _openAvansBerishSheet() async {
-    final amountCtrl = TextEditingController();
-    final noteCtrl = TextEditingController();
-    WorkerProject? selectedOb =
-        _worker.obsList.isNotEmpty ? _worker.obsList.first : null;
-    DateTime selectedDate = DateTime.now();
-    String selectedCurrencyCode = CurrencyService().displayCurrency;
+    if (_worker.obsList.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(tr('worker_no_projects_short'))),
+      );
+      return;
+    }
 
-    final confirmed = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      enableDrag: false,
-      backgroundColor: AppColors.card,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) => StatefulBuilder(
-        builder: (builderCtx, setSt) => Padding(
-          padding: EdgeInsets.only(
-              left: 20,
-              right: 20,
-              top: 24,
-              bottom: 24 + MediaQuery.of(ctx).viewInsets.bottom),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                 Text(
-                  tr('pay_advance'),
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w900, fontSize: 18),
-                ),
-                const SizedBox(height: 16),
-                Text(tr('to_whom_give'),
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 12,
-                        color: AppColors.text2)),
-                const SizedBox(height: 6),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+    WorkerProject selectedOb = _worker.obsList.first;
+
+    if (_worker.obsList.length > 1) {
+      final chosen = await showModalBottomSheet<WorkerProject>(
+        context: context,
+        backgroundColor: AppColors.card,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        builder: (ctx) => Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.bg,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Text(_worker.displayName,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w700, fontSize: 14)),
-                ),
-                const SizedBox(height: 16),
-                Text(tr('for_which_project'),
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 12,
-                        color: AppColors.text2)),
-                const SizedBox(height: 6),
-                if (_worker.obsList.isEmpty)
-                  Text(tr('worker_no_projects_short'),
-                      style: const TextStyle(color: AppColors.red, fontSize: 13))
-                else
-                  DropdownButtonFormField<WorkerProject>(
-                    value: selectedOb,
-                    decoration: const InputDecoration(
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
-                    items: _worker.obsList.map((op) {
-                      return DropdownMenuItem<WorkerProject>(
-                        value: op,
-                        child: Text(op.obNomi,
-                            style: const TextStyle(
-                                fontSize: 14, fontWeight: FontWeight.w600)),
-                      );
-                    }).toList(),
-                    onChanged: (val) => setSt(() => selectedOb = val),
-                  ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ChoiceChip(
-                        label: Text(tr('currency_uzs')),
-                        selected: selectedCurrencyCode == 'UZS',
-                        onSelected: (val) {
-                          if (val) setSt(() => selectedCurrencyCode = 'UZS');
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: ChoiceChip(
-                        label: Text(tr('currency_usd')),
-                        selected: selectedCurrencyCode == 'USD',
-                        onSelected: (val) {
-                          if (val) setSt(() => selectedCurrencyCode = 'USD');
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: amountCtrl,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [PriceInputFormatter()],
-                  decoration: InputDecoration(
-                      hintText: selectedCurrencyCode == 'UZS' ? "${tr('amount')} (${tr('currency_uzs')})" : "${tr('amount')} (\$)",
-                      prefixIcon:
-                          const Icon(Icons.payments_outlined, size: 18)),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: noteCtrl,
-                  decoration: InputDecoration(
-                      hintText: tr('comment_hint'),
-                      prefixIcon: const Icon(Icons.description_outlined, size: 18)),
-                ),
-                const SizedBox(height: 16),
-                Text(tr('date'),
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 12,
-                        color: AppColors.text2)),
-                const SizedBox(height: 6),
-                GestureDetector(
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: selectedDate,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime(2100),
-                    );
-                    if (picked != null) {
-                      setSt(() => selectedDate = picked);
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: AppColors.bg,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(_dateFmt.format(selectedDate),
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w600, fontSize: 14)),
-                        const Icon(Icons.calendar_month_outlined,
-                            size: 18, color: AppColors.muted),
-                      ],
-                    ),
+                    color: AppColors.border,
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: () {
-                    if (amountCtrl.text.trim().isEmpty || selectedOb == null) {
-                      return;
-                    }
-                    Navigator.of(context).pop(true);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFEA580C),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
-                  ),
-                  child: Text(tr('confirm'),
-                      style: const TextStyle(fontWeight: FontWeight.w800)),
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                tr('for_which_project'),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.text),
+              ),
+              const SizedBox(height: 16),
+              ..._worker.obsList.map((op) => ListTile(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                title: Text(op.obNomi, style: const TextStyle(fontWeight: FontWeight.w700)),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => Navigator.of(ctx).pop(op),
+              )),
+            ],
           ),
+        ),
+      );
+      if (chosen == null) return;
+      selectedOb = chosen;
+    }
+
+    final members = await MemberRepository().loadForProject(selectedOb.obId);
+
+    if (!mounted) return;
+
+    final result = await Navigator.of(context).push<AddTransactionResult>(
+      MaterialPageRoute(
+        builder: (_) => AddTransactionScreen(
+          isIncome: false,
+          projectId: selectedOb.obId,
+          workers: members,
+          preSelectedWorkerId: _worker.userId,
         ),
       ),
     );
 
-    if (confirmed == true && selectedOb != null) {
-      final amount = num.tryParse(amountCtrl.text.replaceAll(' ', '')) ?? 0;
-      if (amount <= 0) return;
-      try {
-        await WorkerRepository().giveAvans(
-          obId: selectedOb!.obId,
-          toUserId: _worker.userId,
-          amount: amount,
-          izoh: noteCtrl.text.trim(),
-          txDate: selectedDate,
-          currency: selectedCurrencyCode,
+    if (result == null) return;
+
+    AppHaptics.medium();
+    try {
+      await WorkerRepository().giveAvans(
+        obId: selectedOb.obId,
+        toUserId: _worker.userId,
+        amount: result.amount,
+        izoh: result.noteText,
+        currency: result.currencyCode,
+        files: result.attachedFiles.map((f) => f.path).toList(),
+      );
+      _load();
+      widget.onAction?.call();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
         );
-        _load();
-        widget.onAction?.call();
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text(e.toString())));
-        }
       }
     }
-
-    amountCtrl.dispose();
-    noteCtrl.dispose();
   }
 
   Future<void> _openIshHaqiYozishSheet() async {

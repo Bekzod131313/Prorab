@@ -16,6 +16,7 @@ class Project {
   final String? mijoz;
   final String? bosqich;
   final String? imageUrl;
+  final bool canViewOwnerTransactions;
 
   Project({
     required this.id,
@@ -35,13 +36,28 @@ class Project {
     this.mijoz,
     this.bosqich,
     this.imageUrl,
+    this.canViewOwnerTransactions = false,
   });
 
   num get balance => kirim - chiqim;
 
+  String get cleanRole => role.split(':')[0];
+  bool get isOwner => cleanRole == 'owner';
+  bool get isMember => cleanRole == 'member';
+  bool get isWorker => cleanRole == 'worker';
+  bool get canAddTransactions =>
+      isOwner || (isMember && !canViewOwnerTransactions);
+
   factory Project.fromMember(Map<String, dynamic> row) {
     final ob = row['ob'] as Map<String, dynamic>;
-    final role = row['role'] ?? 'member';
+    final role = row['role']?.toString() ?? 'member';
+    final kasbStr = row['kasb']?.toString() ?? '';
+    final hasCanViewRole =
+        role.contains('can_view') || kasbStr.contains('can_view');
+    final dbBool = (row['can_view_owner_transactions'] as bool?) ??
+        (row['can_view_owner_tx'] as bool?) ??
+        false;
+    final canViewOwnerTransactions = hasCanViewRole || dbBool;
 
     final memberBoshlanish =
         row['boshlanish'] != null ? DateTime.tryParse(row['boshlanish']) : null;
@@ -62,8 +78,11 @@ class Project {
     return Project(
       id: ob['id'].toString(),
       nomi: ob['nomi'] ?? '',
-      kirim: role == 'owner' ? (ob['kirim'] ?? 0) : ((row['kirim'] as num?) ?? 0),
-      chiqim: role == 'owner' ? (ob['chiqim'] ?? 0) : ((row['chiqim'] as num?) ?? 0),
+      kirim:
+          role == 'owner' ? (ob['kirim'] ?? 0) : ((row['kirim'] as num?) ?? 0),
+      chiqim: role == 'owner'
+          ? (ob['chiqim'] ?? 0)
+          : ((row['chiqim'] as num?) ?? 0),
       boshlanish: start,
       tugash: end,
       createdAt: DateTime.tryParse(ob['created_at'] ?? '') ?? DateTime.now(),
@@ -77,10 +96,14 @@ class Project {
       mijoz: ob['mijoz'] as String?,
       bosqich: ob['bosqich'] as String?,
       imageUrl: ob['image_url'] as String?,
+      canViewOwnerTransactions: canViewOwnerTransactions,
     );
   }
 
-  Project copyWith({String? imageUrl}) {
+  Project copyWith({
+    String? imageUrl,
+    bool? canViewOwnerTransactions,
+  }) {
     return Project(
       id: id,
       nomi: nomi,
@@ -99,6 +122,8 @@ class Project {
       mijoz: mijoz,
       bosqich: bosqich,
       imageUrl: imageUrl ?? this.imageUrl,
+      canViewOwnerTransactions:
+          canViewOwnerTransactions ?? this.canViewOwnerTransactions,
     );
   }
 

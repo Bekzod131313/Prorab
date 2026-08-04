@@ -10,6 +10,7 @@ import '../data/member_repository.dart';
 import '../data/project_files_repository.dart';
 import '../data/project_repository.dart';
 import '../data/transaction_repository.dart';
+import '../data/project_cache_repository.dart';
 import '../main.dart';
 import '../models/worker.dart';
 import '../models/member.dart';
@@ -18,7 +19,8 @@ import '../models/transaction.dart';
 import '../theme/app_theme.dart';
 import '../widgets/add_member_sheet.dart';
 import '../widgets/member_row.dart' show colorForName;
-import '../widgets/project_card.dart' show formatUzsToDisplay, formatTransactionAmount;
+import '../widgets/project_card.dart'
+    show formatUzsToDisplay, formatTransactionAmount;
 import '../widgets/project_hero_card.dart';
 import '../services/currency_service.dart';
 import '../widgets/shimmer.dart';
@@ -27,8 +29,6 @@ import 'worker_detail_screen.dart';
 import 'add_transaction_screen.dart';
 import 'edit_project_screen.dart';
 import '../utils/haptics.dart';
-
-
 
 class ProjectDetailScreen extends StatefulWidget {
   final Project project;
@@ -54,8 +54,10 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
   final _memberRepo = MemberRepository();
   final _projectRepo = ProjectRepository();
   final _filesRepo = ProjectFilesRepository();
+  final _cacheRepo = ProjectCacheRepository();
   final _dateFmt = DateFormat('dd MMM yyyy');
-  String _formatDate(DateTime date) => DateFormat('dd MMM yyyy', appLocaleNotifier.value).format(date);
+  String _formatDate(DateTime date) =>
+      DateFormat('dd MMM yyyy', appLocaleNotifier.value).format(date);
 
   late Project _project;
   List<ProjectTransaction> _txs = [];
@@ -89,10 +91,27 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
   }
 
   Future<void> _loadAndQuickAdd() async {
-    await _load();
-    if (mounted) {
-      setState(() => _hasChanged = false);
+    // 1. Instantly load from local cache if available (0ms waiting time)
+    final cachedData = await _cacheRepo.loadProjectCache(widget.project.id);
+    if (cachedData != null && mounted) {
+      setState(() {
+        _project = cachedData.project;
+        _txs = cachedData.txs;
+        _members = cachedData.members;
+        _loading = false;
+      });
     }
+
+    // 2. Fetch fresh data in the background and silently update UI & cache
+    await _loadSilent();
+
+    if (mounted) {
+      setState(() {
+        _loading = false;
+        _hasChanged = false;
+      });
+    }
+
     if (widget.quickAddIncome != null && mounted) {
       _openAddTransaction(isIncome: widget.quickAddIncome!);
     } else if (widget.initialTxId != null && mounted) {
@@ -159,12 +178,13 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
       final membersList = await _memberRepo.loadForProject(_project.id);
       final refreshedProject = await _projectRepo.loadProjectById(_project.id);
 
-      final isOwner = _project.role == 'owner';
+      final isOwner = _project.isOwner;
       final currentMember = membersList.cast<ObMember?>().firstWhere(
-        (m) => m?.userId == userId,
-        orElse: () => null,
-      );
-      final canViewOwner = isOwner || (currentMember?.canViewOwnerTransactions ?? false);
+            (m) => m?.userId == userId,
+            orElse: () => null,
+          );
+      final canViewOwner =
+          isOwner || (currentMember?.canViewOwnerTransactions ?? false);
 
       final loadedTxs = await _txRepo.loadForProject(
         _project.id,
@@ -173,12 +193,25 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
 
       if (!mounted) return;
 
+      final baseP = refreshedProject ?? _project;
+      final pToUse = baseP.copyWith(
+        canViewOwnerTransactions:
+            isOwner ? false : (currentMember?.canViewOwnerTransactions ?? false),
+      );
+
       setState(() {
         _txs = loadedTxs;
         _members = membersList;
-        if (refreshedProject != null) _project = refreshedProject;
+        _project = pToUse;
         _hasChanged = true;
       });
+
+      // Save fresh state to local cache asynchronously
+      _cacheRepo.saveProjectCache(
+        project: pToUse,
+        txs: loadedTxs,
+        members: membersList,
+      );
     } catch (e) {
       print("DEBUG: Error loading project data: $e");
     }
@@ -213,36 +246,59 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
 
   List<ProjectTransaction> get _filteredTxs {
     final userId = supabase.auth.currentUser?.id ?? '';
-    final isProjectOwner = _project.role == 'owner';
+    final isProjectOwner = _project.isOwner;
     final currentMember = _members.cast<ObMember?>().firstWhere(
-      (m) => m?.userId == userId,
-      orElse: () => null,
-    );
-    final canViewAllProjectTxs = isProjectOwner || (currentMember?.canViewOwnerTransactions ?? false);
+          (m) => m?.userId == userId,
+          orElse: () => null,
+        );
+    final canViewAllProjectTxs =
+        isProjectOwner || (currentMember?.canViewOwnerTransactions ?? false);
 
-    var base = _txs;
+    var base = _txs.where((tx) => tx.tur != 'ishhaqi').toList();
 
     if (!canViewAllProjectTxs) {
-      base = base.where((tx) => tx.fromUser == userId || tx.toUser == userId || tx.createdBy == userId).toList();
+      base = base
+          .where((tx) =>
+              tx.fromUser == userId ||
+              tx.toUser == userId ||
+              tx.createdBy == userId)
+          .toList();
     }
 
     switch (_txFilter) {
       case 'income':
-        base = base.where((tx) => canViewAllProjectTxs
-            ? (tx.tur == 'income' || tx.tur == 'kirim' || tx.isIncomeFor(userId))
-            : tx.isIncomeFor(userId)).toList();
+        base = base
+            .where((tx) => canViewAllProjectTxs
+                ? (tx.tur == 'income' ||
+                    tx.tur == 'kirim' ||
+                    tx.isIncomeFor(userId))
+                : tx.isIncomeFor(userId))
+            .toList();
         break;
       case 'expense':
-        base = base.where((tx) => canViewAllProjectTxs
-            ? (tx.tur == 'spend' || tx.tur == 'send' || tx.tur == 'chiqim' || tx.tur == 'expense' || tx.tur == 'ishhaqi' || tx.isExpenseFor(userId))
-            : tx.isExpenseFor(userId)).toList();
+        base = base
+            .where((tx) => canViewAllProjectTxs
+                ? (tx.tur == 'spend' ||
+                    tx.tur == 'send' ||
+                    tx.tur == 'chiqim' ||
+                    tx.tur == 'expense' ||
+                    tx.isExpenseFor(userId))
+                : tx.isExpenseFor(userId))
+            .toList();
         break;
     }
 
     if (_dateRange != null) {
-      final startOfDay = DateTime(_dateRange!.start.year, _dateRange!.start.month, _dateRange!.start.day);
-      final endOfDay = DateTime(_dateRange!.end.year, _dateRange!.end.month, _dateRange!.end.day, 23, 59, 59);
-      base = base.where((tx) => tx.date.isAfter(startOfDay.subtract(const Duration(seconds: 1))) && tx.date.isBefore(endOfDay.add(const Duration(seconds: 1)))).toList();
+      final startOfDay = DateTime(_dateRange!.start.year,
+          _dateRange!.start.month, _dateRange!.start.day);
+      final endOfDay = DateTime(_dateRange!.end.year, _dateRange!.end.month,
+          _dateRange!.end.day, 23, 59, 59);
+      base = base
+          .where((tx) =>
+              tx.date
+                  .isAfter(startOfDay.subtract(const Duration(seconds: 1))) &&
+              tx.date.isBefore(endOfDay.add(const Duration(seconds: 1))))
+          .toList();
     }
 
     switch (_sortMode) {
@@ -263,8 +319,6 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
 
     return base;
   }
-
-
 
   Future<void> _selectDateRange() async {
     final picked = await showDateRangePicker(
@@ -293,6 +347,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
 
   Future<void> _openAddTransaction(
       {required bool isIncome, String? preSelectedWorkerId}) async {
+    if (!_project.isOwner && _project.canViewOwnerTransactions) return;
     final result = await Navigator.of(context).push<AddTransactionResult>(
       MaterialPageRoute(
         builder: (ctx) => AddTransactionScreen(
@@ -312,7 +367,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
     final isWorkerCategory = result.isWorkerCategory;
     final selectedToUserId = result.toUserId;
     final noteText = result.noteText;
-    final isMember = _project.role == 'member';
+    final isMember = _project.isMember;
 
     // Save originals for rollback
     final originalTxs = List<ProjectTransaction>.from(_txs);
@@ -321,7 +376,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
 
     // Prepare optimistic updates
     final rate = CurrencyService().usdToUzsRate;
-    final converted = CurrencyService().convert(amount.toDouble(), selectedCurrencyCode);
+    final converted =
+        CurrencyService().convert(amount.toDouble(), selectedCurrencyCode);
     final amountUzs = converted['UZS']!;
     final amountUsd = converted['USD']!;
 
@@ -357,7 +413,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
       role: _project.role,
       myBalance: _project.myBalance + (isIncome ? amount : -amount),
       ishaqi: _project.ishaqi,
-      olingan: _project.olingan + ((!isIncome && isWorkerCategory) ? amount : 0),
+      olingan:
+          _project.olingan + ((!isIncome && isWorkerCategory) ? amount : 0),
       status: _project.status,
       manzil: _project.manzil,
       mijoz: _project.mijoz,
@@ -509,7 +566,10 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
           ishaqiCtrl: ishaqiCtrl,
           currentMemberIds: _members.map((m) => m.userId).toSet(),
           defaultBoshlanish: _project.boshlanish,
-          defaultTugash: _project.tugash ?? (_project.boshlanish != null ? _project.boshlanish!.add(Duration(days: _project.muddat)) : null),
+          defaultTugash: _project.tugash ??
+              (_project.boshlanish != null
+                  ? _project.boshlanish!.add(Duration(days: _project.muddat))
+                  : null),
         ),
       ),
     );
@@ -523,8 +583,10 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
         try {
           var ishaqi = num.tryParse(ishaqiCtrl.text.replaceAll(' ', '')) ?? 0;
           if (currency == 'USD') {
-            final converted = CurrencyService().convert(ishaqi.toDouble(), 'USD');
-            ishaqi = converted['UZS'] ?? (ishaqi * CurrencyService().usdToUzsRate);
+            final converted =
+                CurrencyService().convert(ishaqi.toDouble(), 'USD');
+            ishaqi =
+                converted['UZS'] ?? (ishaqi * CurrencyService().usdToUzsRate);
           }
           await _memberRepo.addMember(
               obId: _project.id,
@@ -598,7 +660,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
       role: _project.role,
       myBalance: _project.myBalance - (isIncome ? amountUzs : -amountUzs),
       ishaqi: _project.ishaqi,
-      olingan: _project.olingan - ((!isIncome && tx.toUser != null) ? amountUzs : 0),
+      olingan:
+          _project.olingan - ((!isIncome && tx.toUser != null) ? amountUzs : 0),
       status: _project.status,
       manzil: _project.manzil,
       mijoz: _project.mijoz,
@@ -659,8 +722,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
     final userId = supabase.auth.currentUser?.id ?? '';
     final isIncome = tx.isIncomeFor(userId);
     final color = isIncome ? AppColors.green : AppColors.red;
-    
-    String displayCategory = tx.kategoriya ?? (isIncome ? tr('income') : tr('expense'));
+
+    String displayCategory =
+        tx.kategoriya ?? (isIncome ? tr('income') : tr('expense'));
     if (displayCategory == 'usta' || displayCategory == 'Xodim') {
       displayCategory = tr('worker_default_role');
     } else if (displayCategory == 'income' || displayCategory == 'Kirim') {
@@ -671,9 +735,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
 
     if (tx.toUser != null && !isIncome) {
       final matchingMember = _members.cast<ObMember?>().firstWhere(
-        (m) => m?.userId == tx.toUser,
-        orElse: () => null,
-      );
+            (m) => m?.userId == tx.toUser,
+            orElse: () => null,
+          );
       if (matchingMember != null && matchingMember.displayName.isNotEmpty) {
         displayCategory = '$displayCategory: ${matchingMember.displayName}';
       }
@@ -704,7 +768,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                 children: [
                   Text(
                     tr('tx_info_title'),
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w800, fontSize: 17),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close_rounded),
@@ -716,7 +781,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
 
               // Big amount display card
               Container(
-                padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(16),
@@ -735,7 +801,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
               const SizedBox(height: 20),
 
               // Info rows
-              _buildDetailRow(tr('type'), isIncome ? tr('income') : tr('expense')),
+              _buildDetailRow(
+                  tr('type'), isIncome ? tr('income') : tr('expense')),
               _buildDetailRow(tr('category'), displayCategory),
               _buildDetailRow(tr('date'), _formatDate(tx.date)),
               if (tx.izoh != null && tx.izoh!.isNotEmpty)
@@ -812,14 +879,16 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         side: const BorderSide(color: AppColors.border),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
                       ),
                       onPressed: () {
                         Navigator.of(ctx).pop();
                         _openEditTransaction(tx);
                       },
                       icon: const Icon(Icons.edit_outlined, size: 18),
-                      label: Text(tr('edit'), style: const TextStyle(fontWeight: FontWeight.w800)),
+                      label: Text(tr('edit'),
+                          style: const TextStyle(fontWeight: FontWeight.w800)),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -828,7 +897,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.red,
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
                         elevation: 0,
                       ),
                       onPressed: () async {
@@ -857,8 +927,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                           _deleteTransaction(tx);
                         }
                       },
-                      icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.white),
-                      label: Text(tr('delete'), style: const TextStyle(fontWeight: FontWeight.w800, color: Colors.white)),
+                      icon: const Icon(Icons.delete_outline_rounded,
+                          size: 18, color: Colors.white),
+                      label: Text(tr('delete'),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white)),
                     ),
                   ),
                 ],
@@ -880,14 +954,20 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
             width: 100,
             child: Text(
               label,
-              style: const TextStyle(fontSize: 13, color: AppColors.muted, fontWeight: FontWeight.w500),
+              style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.muted,
+                  fontWeight: FontWeight.w500),
             ),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.text),
+              style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.text),
             ),
           ),
         ],
@@ -986,20 +1066,26 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
           final ctrl = TextEditingController(text: originalName);
           return AlertDialog(
             backgroundColor: AppColors.card,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             title: Text(tr('file_name_title'),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   tr('original_file_name'),
-                  style: const TextStyle(fontSize: 11, color: AppColors.muted, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.muted,
+                      fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 4),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
                     color: AppColors.bg,
                     borderRadius: BorderRadius.circular(10),
@@ -1007,12 +1093,16 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.insert_drive_file_outlined, size: 18, color: AppColors.accent),
+                      const Icon(Icons.insert_drive_file_outlined,
+                          size: 18, color: AppColors.accent),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           originalName,
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.text),
+                          style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.text),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -1022,7 +1112,10 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                 const SizedBox(height: 16),
                 Text(
                   tr('given_file_name'),
-                  style: const TextStyle(fontSize: 11, color: AppColors.muted, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.muted,
+                      fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 6),
                 TextField(
@@ -1030,8 +1123,10 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                   autofocus: true,
                   decoration: InputDecoration(
                     hintText: tr('file_name_hint'),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
               ],
@@ -1044,7 +1139,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.accent,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: () {
                   final val = ctrl.text.trim();
@@ -1090,12 +1186,17 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
   Future<void> _uploadImageFromGallery() async {
     try {
       final picker = ImagePicker();
-      final image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 90);
+      final image =
+          await picker.pickImage(source: ImageSource.gallery, imageQuality: 90);
       if (image == null) return;
       final bytes = await image.readAsBytes();
 
-      final originalName = image.name.isNotEmpty ? image.name : 'image_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final ext = originalName.contains('.') ? originalName.split('.').last.toLowerCase() : 'jpg';
+      final originalName = image.name.isNotEmpty
+          ? image.name
+          : 'image_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final ext = originalName.contains('.')
+          ? originalName.split('.').last.toLowerCase()
+          : 'jpg';
       final mime = 'image/${ext == 'png' ? 'png' : 'jpeg'}';
 
       final customNameInput = await showDialog<String>(
@@ -1104,20 +1205,26 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
           final ctrl = TextEditingController(text: originalName);
           return AlertDialog(
             backgroundColor: AppColors.card,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             title: Text(tr('file_name_title'),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   tr('original_file_name'),
-                  style: const TextStyle(fontSize: 11, color: AppColors.muted, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.muted,
+                      fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 4),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
                     color: AppColors.bg,
                     borderRadius: BorderRadius.circular(10),
@@ -1125,12 +1232,16 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.image_outlined, size: 18, color: AppColors.accent),
+                      const Icon(Icons.image_outlined,
+                          size: 18, color: AppColors.accent),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           originalName,
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.text),
+                          style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.text),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -1140,7 +1251,10 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                 const SizedBox(height: 16),
                 Text(
                   tr('given_file_name'),
-                  style: const TextStyle(fontSize: 11, color: AppColors.muted, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.muted,
+                      fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 6),
                 TextField(
@@ -1148,8 +1262,10 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                   autofocus: true,
                   decoration: InputDecoration(
                     hintText: tr('file_name_hint'),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
               ],
@@ -1162,7 +1278,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.accent,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: () {
                   final val = ctrl.text.trim();
@@ -1377,9 +1494,10 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
         final isDone = project.status == 'done';
         final startFmt =
             project.boshlanish != null ? _formatDate(project.boshlanish!) : '—';
-        final endDate = project.tugash ?? (project.boshlanish != null
-            ? project.boshlanish!.add(Duration(days: project.muddat))
-            : null);
+        final endDate = project.tugash ??
+            (project.boshlanish != null
+                ? project.boshlanish!.add(Duration(days: project.muddat))
+                : null);
         final endFmt = endDate != null ? _formatDate(endDate) : '—';
 
         return Scaffold(
@@ -1401,7 +1519,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                             width: 18,
                             height: 18,
                             child: CircularProgressIndicator(strokeWidth: 2)))),
-              if (_project.role == 'owner') ...[
+              if (_project.isOwner) ...[
                 IconButton(
                   icon: const Icon(Icons.edit_outlined, size: 20),
                   tooltip: tr('edit'),
@@ -1419,133 +1537,153 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                     setState(() => _hasChanged = true);
                     _withMutation(_loadSilent);
                   } else if (action == 'duplicate') {
-              await _projectRepo.createProject(
-                nomi: '${project.nomi} (nusxa)',
-                muddat: project.muddat,
-                manzil: project.manzil,
-                mijoz: project.mijoz,
-                boshlanish: DateTime.now(),
-              );
-              if (mounted)
-                ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(tr('copy_created'))));
-            } else if (action == 'delete') {
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: Text(tr('tx_delete_title')),
-                  content: Text('${project.nomi} ${tr("no_undo")}'),
-                  actions: [
-                    TextButton(
-                        onPressed: () => Navigator.of(ctx).pop(false),
-                        child: Text(tr('cancel'))),
-                    ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.red,
-                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10)),
-                        onPressed: () => Navigator.of(ctx).pop(true),
-                        child: Text(tr('delete'))),
-                  ],
-                ),
-              );
-              if (confirm == true && mounted) {
-                await _projectRepo.deleteProject(project.id);
-                Navigator.of(context).pop();
-              }
-            }
-          },
-          itemBuilder: (_) => [
-            PopupMenuItem(
-                value: 'toggleDone',
-                child: Text(isDone ? tr('restore_active') : tr('complete_project'))),
-            PopupMenuItem(
-                value: 'duplicate', child: Text(tr('duplicate_btn'))),
-            PopupMenuItem(
-                value: 'delete',
-                child: Text(tr('delete'),
-                    style: const TextStyle(color: AppColors.red))),
-          ],
-        ),
-      ],
-    ),
-    body: _loading
-        ? _buildShimmerLoading()
-        : Column(
-            children: [
-              Container(
-                color: AppColors.bg,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.card,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: TabBar(
-                        controller: _tabController,
-                        labelColor: AppColors.accent,
-                        unselectedLabelColor: AppColors.text2,
-                        indicator: BoxDecoration(
-                          color: AppColors.accent.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        indicatorSize: TabBarIndicatorSize.tab,
-                        dividerColor: Colors.transparent,
-                        isScrollable: false,
-                        labelPadding: const EdgeInsets.symmetric(horizontal: 2),
-                        labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11.5),
-                        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11.5),
-                        padding: const EdgeInsets.all(4),
-                        tabs: [
-                          Tab(child: FittedBox(fit: BoxFit.scaleDown, child: Text(tr('umumiy')))),
-                          Tab(child: FittedBox(fit: BoxFit.scaleDown, child: Text(tr('transactions')))),
-                          Tab(child: FittedBox(fit: BoxFit.scaleDown, child: Text(tr('workers')))),
-                          Tab(child: FittedBox(fit: BoxFit.scaleDown, child: Text(tr('files')))),
+                    await _projectRepo.createProject(
+                      nomi: '${project.nomi} (nusxa)',
+                      muddat: project.muddat,
+                      manzil: project.manzil,
+                      mijoz: project.mijoz,
+                      boshlanish: DateTime.now(),
+                    );
+                    if (mounted)
+                      ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(tr('copy_created'))));
+                  } else if (action == 'delete') {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: Text(tr('tx_delete_title')),
+                        content: Text('${project.nomi} ${tr("no_undo")}'),
+                        actions: [
+                          TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(false),
+                              child: Text(tr('cancel'))),
+                          ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.red,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 18, vertical: 10)),
+                              onPressed: () => Navigator.of(ctx).pop(true),
+                              child: Text(tr('delete'))),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.swap_horiz_rounded,
-                            size: 14, color: AppColors.muted.withOpacity(0.7)),
-                        const SizedBox(width: 4),
-                        Text(
-                          tr('swipe_page_hint'),
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.muted.withOpacity(0.8),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1, color: AppColors.border),
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildUmumiyTab(project, isDone, progress, left, startFmt, endFmt),
-                    _buildTransactionsTab(),
-                    _buildWorkersTab(),
-                    _buildFilesTab(),
-                  ],
-                ),
+                    );
+                    if (confirm == true && mounted) {
+                      await _projectRepo.deleteProject(project.id);
+                      Navigator.of(context).pop();
+                    }
+                  }
+                },
+                itemBuilder: (_) => [
+                  PopupMenuItem(
+                      value: 'toggleDone',
+                      child: Text(isDone
+                          ? tr('restore_active')
+                          : tr('complete_project'))),
+                  PopupMenuItem(
+                      value: 'duplicate', child: Text(tr('duplicate_btn'))),
+                  PopupMenuItem(
+                      value: 'delete',
+                      child: Text(tr('delete'),
+                          style: const TextStyle(color: AppColors.red))),
+                ],
               ),
             ],
           ),
+          body: _loading
+              ? _buildShimmerLoading()
+              : Column(
+                  children: [
+                    Container(
+                      color: AppColors.bg,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              color: AppColors.card,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: AppColors.border),
+                            ),
+                            child: TabBar(
+                              controller: _tabController,
+                              labelColor: AppColors.accent,
+                              unselectedLabelColor: AppColors.text2,
+                              indicator: BoxDecoration(
+                                color: AppColors.accent.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              indicatorSize: TabBarIndicatorSize.tab,
+                              dividerColor: Colors.transparent,
+                              isScrollable: false,
+                              labelPadding:
+                                  const EdgeInsets.symmetric(horizontal: 2),
+                              labelStyle: const TextStyle(
+                                  fontWeight: FontWeight.w800, fontSize: 11.5),
+                              unselectedLabelStyle: const TextStyle(
+                                  fontWeight: FontWeight.w600, fontSize: 11.5),
+                              padding: const EdgeInsets.all(4),
+                              tabs: [
+                                Tab(
+                                    child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(tr('umumiy')))),
+                                Tab(
+                                    child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(tr('transactions')))),
+                                Tab(
+                                    child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(tr('workers')))),
+                                Tab(
+                                    child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(tr('files')))),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.swap_horiz_rounded,
+                                  size: 14,
+                                  color: AppColors.muted.withOpacity(0.7)),
+                              const SizedBox(width: 4),
+                              Text(
+                                tr('swipe_page_hint'),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.muted.withOpacity(0.8),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1, color: AppColors.border),
+                    Expanded(
+                      child: TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _buildUmumiyTab(project, isDone, progress, left,
+                              startFmt, endFmt),
+                          _buildTransactionsTab(),
+                          _buildWorkersTab(),
+                          _buildFilesTab(),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
         );
       },
     );
   }
-
 
   // ── Umumiy tab: hero + stats + action buttons + info ──
   Widget _buildUmumiyTab(Project project, bool isDone, int progress, int left,
@@ -1566,7 +1704,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
               // 1. Kirim Card
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
                   decoration: BoxDecoration(
                     color: AppColors.card,
                     borderRadius: BorderRadius.circular(16),
@@ -1629,7 +1768,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
               // 2. Chiqim Card
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
                   decoration: BoxDecoration(
                     color: AppColors.card,
                     borderRadius: BorderRadius.circular(16),
@@ -1692,7 +1832,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
               // 3. Qoldiq Card
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
                   decoration: BoxDecoration(
                     color: AppColors.card,
                     borderRadius: BorderRadius.circular(16),
@@ -1755,7 +1896,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
           const SizedBox(height: 16),
 
           // Action buttons
-          if (_project.role == 'owner') ...[
+          if (_project.isOwner) ...[
             Row(children: [
               _buildActionButton(
                 title: tr('income'),
@@ -1774,7 +1915,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
               ),
             ]),
             const SizedBox(height: 20),
-          ] else if (_project.role == 'member') ...[
+          ] else if (_project.isMember && !_project.canViewOwnerTransactions) ...[
             Row(children: [
               _buildActionButton(
                 title: tr('income'),
@@ -1815,7 +1956,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
           padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           elevation: 0,
         ),
         onPressed: onPressed,
@@ -1880,7 +2022,10 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(tr('project_info'),
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: AppColors.text)),
+            style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 15,
+                color: AppColors.text)),
         const SizedBox(height: 10),
         Container(
           decoration: BoxDecoration(
@@ -1888,11 +2033,26 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: AppColors.border)),
           child: Column(children: [
-            _InfoRow(icon: Icons.calendar_today_rounded, label: tr('start_date'), trailing: Text(startFmt, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700))),
+            _InfoRow(
+                icon: Icons.calendar_today_rounded,
+                label: tr('start_date'),
+                trailing: Text(startFmt,
+                    style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w700))),
             const Divider(color: AppColors.border, height: 1, indent: 48),
-            _InfoRow(icon: Icons.event_rounded, label: tr('completed'), trailing: Text(endFmt, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700))),
+            _InfoRow(
+                icon: Icons.event_rounded,
+                label: tr('completed'),
+                trailing: Text(endFmt,
+                    style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w700))),
             const Divider(color: AppColors.border, height: 1, indent: 48),
-            _InfoRow(icon: Icons.people_outline_rounded, label: tr('total_workers'), trailing: Text('${_members.length}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700))),
+            _InfoRow(
+                icon: Icons.people_outline_rounded,
+                label: tr('total_workers'),
+                trailing: Text('${_members.length}',
+                    style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w700))),
           ]),
         ),
       ],
@@ -1921,7 +2081,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: active ? AppColors.accent.withValues(alpha: 0.1) : AppColors.card,
+          color:
+              active ? AppColors.accent.withValues(alpha: 0.1) : AppColors.card,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: active ? AppColors.accent : AppColors.border,
@@ -1962,15 +2123,18 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
               Icon(
                 Icons.access_time_filled_rounded,
                 size: 18,
-                color: _sortMode == 'newest' ? AppColors.accent : AppColors.muted,
+                color:
+                    _sortMode == 'newest' ? AppColors.accent : AppColors.muted,
               ),
               const SizedBox(width: 10),
               Text(
                 tr('sort_newest'),
                 style: TextStyle(
                   fontSize: 13,
-                  fontWeight: _sortMode == 'newest' ? FontWeight.w800 : FontWeight.w600,
-                  color: _sortMode == 'newest' ? AppColors.accent : AppColors.text,
+                  fontWeight:
+                      _sortMode == 'newest' ? FontWeight.w800 : FontWeight.w600,
+                  color:
+                      _sortMode == 'newest' ? AppColors.accent : AppColors.text,
                 ),
               ),
             ],
@@ -1983,15 +2147,18 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
               Icon(
                 Icons.history_rounded,
                 size: 18,
-                color: _sortMode == 'oldest' ? AppColors.accent : AppColors.muted,
+                color:
+                    _sortMode == 'oldest' ? AppColors.accent : AppColors.muted,
               ),
               const SizedBox(width: 10),
               Text(
                 tr('sort_oldest'),
                 style: TextStyle(
                   fontSize: 13,
-                  fontWeight: _sortMode == 'oldest' ? FontWeight.w800 : FontWeight.w600,
-                  color: _sortMode == 'oldest' ? AppColors.accent : AppColors.text,
+                  fontWeight:
+                      _sortMode == 'oldest' ? FontWeight.w800 : FontWeight.w600,
+                  color:
+                      _sortMode == 'oldest' ? AppColors.accent : AppColors.text,
                 ),
               ),
             ],
@@ -2004,15 +2171,21 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
               Icon(
                 Icons.arrow_upward_rounded,
                 size: 18,
-                color: _sortMode == 'highest_price' ? AppColors.accent : AppColors.muted,
+                color: _sortMode == 'highest_price'
+                    ? AppColors.accent
+                    : AppColors.muted,
               ),
               const SizedBox(width: 10),
               Text(
                 tr('sort_highest_price'),
                 style: TextStyle(
                   fontSize: 13,
-                  fontWeight: _sortMode == 'highest_price' ? FontWeight.w800 : FontWeight.w600,
-                  color: _sortMode == 'highest_price' ? AppColors.accent : AppColors.text,
+                  fontWeight: _sortMode == 'highest_price'
+                      ? FontWeight.w800
+                      : FontWeight.w600,
+                  color: _sortMode == 'highest_price'
+                      ? AppColors.accent
+                      : AppColors.text,
                 ),
               ),
             ],
@@ -2025,15 +2198,21 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
               Icon(
                 Icons.arrow_downward_rounded,
                 size: 18,
-                color: _sortMode == 'lowest_price' ? AppColors.accent : AppColors.muted,
+                color: _sortMode == 'lowest_price'
+                    ? AppColors.accent
+                    : AppColors.muted,
               ),
               const SizedBox(width: 10),
               Text(
                 tr('sort_lowest_price'),
                 style: TextStyle(
                   fontSize: 13,
-                  fontWeight: _sortMode == 'lowest_price' ? FontWeight.w800 : FontWeight.w600,
-                  color: _sortMode == 'lowest_price' ? AppColors.accent : AppColors.text,
+                  fontWeight: _sortMode == 'lowest_price'
+                      ? FontWeight.w800
+                      : FontWeight.w600,
+                  color: _sortMode == 'lowest_price'
+                      ? AppColors.accent
+                      : AppColors.text,
                 ),
               ),
             ],
@@ -2107,7 +2286,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                 Icon(
                   Icons.calendar_month_outlined,
                   size: 20,
-                  color: _dateRange != null ? AppColors.accent : AppColors.text2,
+                  color:
+                      _dateRange != null ? AppColors.accent : AppColors.text2,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -2156,7 +2336,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
         child: _filteredTxs.isEmpty
             ? Center(
                 child: Text(tr('no_transactions'),
-                    style: const TextStyle(color: AppColors.muted, fontSize: 13)))
+                    style:
+                        const TextStyle(color: AppColors.muted, fontSize: 13)))
             : ListView.separated(
                 padding: const EdgeInsets.only(bottom: 12),
                 itemCount: _filteredTxs.length,
@@ -2173,30 +2354,41 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                   } else if (tx.tur == 'send') {
                     displayCategory = 'Avans';
                   } else {
-                    displayCategory = tx.kategoriya ?? (isIncome ? tr('income') : tr('expense'));
-                    if (displayCategory == 'usta' || displayCategory == 'Xodim') {
+                    displayCategory = tx.kategoriya ??
+                        (isIncome ? tr('income') : tr('expense'));
+                    if (displayCategory == 'usta' ||
+                        displayCategory == 'Xodim') {
                       displayCategory = tr('xodim_category');
-                    } else if (displayCategory == 'income' || displayCategory == 'Kirim') {
+                    } else if (displayCategory == 'income' ||
+                        displayCategory == 'Kirim') {
                       displayCategory = tr('income');
-                    } else if (displayCategory == 'spend' || displayCategory == 'Chiqim') {
+                    } else if (displayCategory == 'spend' ||
+                        displayCategory == 'Chiqim') {
                       displayCategory = tr('expense');
                     }
                   }
 
-                  if (tx.toUser == userId && tx.createdBy != null && tx.createdBy != userId) {
-                    final matchingCreator = _members.cast<ObMember?>().firstWhere(
-                      (m) => m?.userId == tx.createdBy,
-                      orElse: () => null,
-                    );
-                    final name = matchingCreator?.displayName ?? tr('role_owner');
+                  if (tx.toUser == userId &&
+                      tx.createdBy != null &&
+                      tx.createdBy != userId) {
+                    final matchingCreator =
+                        _members.cast<ObMember?>().firstWhere(
+                              (m) => m?.userId == tx.createdBy,
+                              orElse: () => null,
+                            );
+                    final name =
+                        matchingCreator?.displayName ?? tr('role_owner');
                     displayCategory = '${tr("role_owner")}: $name';
                   } else if (tx.toUser != null) {
-                    final matchingMember = _members.cast<ObMember?>().firstWhere(
-                      (m) => m?.userId == tx.toUser,
-                      orElse: () => null,
-                    );
-                    if (matchingMember != null && matchingMember.displayName.isNotEmpty) {
-                      displayCategory = '$displayCategory: ${matchingMember.displayName}';
+                    final matchingMember =
+                        _members.cast<ObMember?>().firstWhere(
+                              (m) => m?.userId == tx.toUser,
+                              orElse: () => null,
+                            );
+                    if (matchingMember != null &&
+                        matchingMember.displayName.isNotEmpty) {
+                      displayCategory =
+                          '$displayCategory: ${matchingMember.displayName}';
                     }
                   }
 
@@ -2222,7 +2414,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                           ElevatedButton(
                               style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.red,
-                                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10)),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 18, vertical: 10)),
                               onPressed: () => Navigator.of(ctx).pop(true),
                               child: Text(tr('delete'))),
                         ],
@@ -2257,8 +2450,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                               child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                Text(
-                                    displayCategory,
+                                Text(displayCategory,
                                     style: const TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w600)),
@@ -2266,21 +2458,24 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                                   const SizedBox(height: 2),
                                   Text(tx.izoh!,
                                       style: const TextStyle(
-                                          fontSize: 12, color: AppColors.text2)),
+                                          fontSize: 12,
+                                          color: AppColors.text2)),
                                 ],
                                 const SizedBox(height: 2),
                                 Row(
                                   children: [
                                     Text(_formatDate(tx.date),
                                         style: const TextStyle(
-                                            fontSize: 11, color: AppColors.muted)),
+                                            fontSize: 11,
+                                            color: AppColors.muted)),
                                     if (tx.files.isNotEmpty) ...[
                                       const SizedBox(width: 8),
                                       Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           const Icon(Icons.attach_file_rounded,
-                                              size: 13, color: AppColors.accent),
+                                              size: 13,
+                                              color: AppColors.accent),
                                           const SizedBox(width: 2),
                                           Text(
                                             '${tx.files.length} ta fayl',
@@ -2321,8 +2516,7 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
           child: TextButton.icon(
             onPressed: _openAddMember,
             icon: const Icon(Icons.person_add_outlined, size: 16),
-            label:
-                Text(tr('add_worker'), style: const TextStyle(fontSize: 12)),
+            label: Text(tr('add_worker'), style: const TextStyle(fontSize: 12)),
             style: TextButton.styleFrom(foregroundColor: AppColors.accent),
           ),
         ),
@@ -2331,7 +2525,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
         child: _visibleMembers.isEmpty
             ? Center(
                 child: Text(tr('no_workers'),
-                    style: const TextStyle(color: AppColors.muted, fontSize: 13)))
+                    style:
+                        const TextStyle(color: AppColors.muted, fontSize: 13)))
             : ListView.separated(
                 padding: const EdgeInsets.only(bottom: 12),
                 itemCount: _visibleMembers.length,
@@ -2364,7 +2559,8 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                             const SizedBox(width: 12),
                             Expanded(
                                 child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                   Text(m.displayName,
                                       style: const TextStyle(
@@ -2373,14 +2569,16 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                                   if (m.kasb != null && m.kasb!.isNotEmpty)
                                     Text(m.kasb!,
                                         style: const TextStyle(
-                                            fontSize: 11, color: AppColors.muted)),
+                                            fontSize: 11,
+                                            color: AppColors.muted)),
                                   if (m.boshlanish != null && m.tugash != null)
                                     Padding(
                                       padding: const EdgeInsets.only(top: 2),
                                       child: Text(
                                         "${_dateFmt.format(m.boshlanish!)} - ${_dateFmt.format(m.tugash!)}",
                                         style: const TextStyle(
-                                            fontSize: 10, color: AppColors.muted),
+                                            fontSize: 10,
+                                            color: AppColors.muted),
                                       ),
                                     ),
                                 ])),
@@ -2408,11 +2606,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                           ]),
                         ),
                       ),
-                      if (_project.role == 'owner')
+                      if (_project.isOwner)
                         Padding(
                           padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 4),
                             decoration: BoxDecoration(
                               color: m.canViewOwnerTransactions
                                   ? AppColors.accent.withValues(alpha: 0.08)
@@ -2429,7 +2628,9 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                                 Icon(
                                   Icons.visibility_outlined,
                                   size: 16,
-                                  color: m.canViewOwnerTransactions ? AppColors.accent : AppColors.muted,
+                                  color: m.canViewOwnerTransactions
+                                      ? AppColors.accent
+                                      : AppColors.muted,
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(
@@ -2438,24 +2639,29 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                                     style: TextStyle(
                                       fontSize: 11.5,
                                       fontWeight: FontWeight.w600,
-                                      color: m.canViewOwnerTransactions ? AppColors.accent : AppColors.text2,
+                                      color: m.canViewOwnerTransactions
+                                          ? AppColors.accent
+                                          : AppColors.text2,
                                     ),
                                   ),
                                 ),
                                 Switch(
                                   value: m.canViewOwnerTransactions,
                                   activeColor: AppColors.accent,
-                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
                                   onChanged: (val) async {
                                     AppHaptics.selection();
                                     final updatedList = _members.map((mem) {
                                       if (mem.userId == m.userId) {
-                                        return mem.copyWith(canViewOwnerTransactions: val);
+                                        return mem.copyWith(
+                                            canViewOwnerTransactions: val);
                                       }
                                       return mem;
                                     }).toList();
                                     setState(() => _members = updatedList);
-                                    await MemberRepository().updateCanViewOwnerTransactions(
+                                    await MemberRepository()
+                                        .updateCanViewOwnerTransactions(
                                       obId: _project.id,
                                       userId: m.userId,
                                       canView: val,
@@ -2485,14 +2691,16 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
             TextButton.icon(
               onPressed: _uploadImageFromGallery,
               icon: const Icon(Icons.add_a_photo_outlined, size: 16),
-              label: Text(tr('upload_image'), style: const TextStyle(fontSize: 12)),
+              label: Text(tr('upload_image'),
+                  style: const TextStyle(fontSize: 12)),
               style: TextButton.styleFrom(foregroundColor: AppColors.accent),
             ),
             const SizedBox(width: 4),
             TextButton.icon(
               onPressed: _uploadFile,
               icon: const Icon(Icons.upload_file_outlined, size: 16),
-              label: Text(tr('upload_file'), style: const TextStyle(fontSize: 12)),
+              label:
+                  Text(tr('upload_file'), style: const TextStyle(fontSize: 12)),
               style: TextButton.styleFrom(foregroundColor: AppColors.accent),
             ),
           ],
@@ -2518,25 +2726,31 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                           children: [
                             OutlinedButton.icon(
                               onPressed: _uploadImageFromGallery,
-                              icon: const Icon(Icons.add_a_photo_rounded, size: 18),
+                              icon: const Icon(Icons.add_a_photo_rounded,
+                                  size: 18),
                               label: Text(tr('upload_image')),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: AppColors.accent,
                                 side: const BorderSide(color: AppColors.accent),
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14)),
                               ),
                             ),
                             const SizedBox(width: 10),
                             ElevatedButton.icon(
                               onPressed: _uploadFile,
-                              icon: const Icon(Icons.upload_file_rounded, size: 18),
+                              icon: const Icon(Icons.upload_file_rounded,
+                                  size: 18),
                               label: Text(tr('upload_file')),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.accent,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14)),
                                 elevation: 0,
                               ),
                             ),
@@ -2625,10 +2839,11 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
                                     Text(
                                       f.originalName != f.name
                                           ? '${tr('original_file_name')}: ${f.originalName}${f.sizeBytes != null ? ' • ${_formatSize(f.sizeBytes!)}' : ''}'
-                                          : (f.sizeBytes != null ? _formatSize(f.sizeBytes!) : ''),
+                                          : (f.sizeBytes != null
+                                              ? _formatSize(f.sizeBytes!)
+                                              : ''),
                                       style: const TextStyle(
-                                          fontSize: 11,
-                                          color: AppColors.muted),
+                                          fontSize: 11, color: AppColors.muted),
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ])),
@@ -2715,13 +2930,12 @@ class _ProjectDetailScreenState extends State<ProjectDetailScreen>
   }
 }
 
-
-
 class _InfoRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final Widget trailing;
-  const _InfoRow({required this.icon, required this.label, required this.trailing});
+  const _InfoRow(
+      {required this.icon, required this.label, required this.trailing});
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -2729,7 +2943,9 @@ class _InfoRow extends StatelessWidget {
       child: Row(children: [
         Icon(icon, size: 18, color: AppColors.muted),
         const SizedBox(width: 12),
-        Expanded(child: Text(label, style: const TextStyle(fontSize: 13, color: AppColors.text2))),
+        Expanded(
+            child: Text(label,
+                style: const TextStyle(fontSize: 13, color: AppColors.text2))),
         trailing,
       ]),
     );
@@ -2752,8 +2968,9 @@ class _FilterChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected ? AppColors.accent : AppColors.card,
           borderRadius: BorderRadius.circular(24),
-          border:
-              Border.all(color: selected ? AppColors.accent : AppColors.border, width: 1.2),
+          border: Border.all(
+              color: selected ? AppColors.accent : AppColors.border,
+              width: 1.2),
         ),
         child: Text(
           label,

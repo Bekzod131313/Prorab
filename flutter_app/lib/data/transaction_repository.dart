@@ -325,10 +325,29 @@ class TransactionRepository {
         print("Error inserting into notifications table: $e");
       }
 
-      // 6. Send push notifications via Firebase Cloud Function to all 3 channels
+      // 6. Send push notifications via Firebase Cloud Function to all 3 channels + direct FCM token
       const cfUrl = 'https://us-central1-risq-91c54.cloudfunctions.net/sendPushNotification';
 
       try {
+        final profileRow = await supabase
+            .from('profiles')
+            .select('fcm_token')
+            .eq('id', toUserId)
+            .maybeSingle();
+        final targetToken = profileRow?['fcm_token'] as String?;
+
+        if (targetToken != null && targetToken.isNotEmpty) {
+          await http.post(
+            Uri.parse(cfUrl),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'token': targetToken,
+              'title': titleUz,
+              'body': bodyUz,
+            }),
+          );
+        }
+
         await http.post(
           Uri.parse(cfUrl),
           headers: {'Content-Type': 'application/json'},
@@ -407,6 +426,25 @@ class TransactionRepository {
 
       const cfUrl = 'https://us-central1-risq-91c54.cloudfunctions.net/sendPushNotification';
       try {
+        final profileRow = await supabase
+            .from('profiles')
+            .select('fcm_token')
+            .eq('id', toUserId)
+            .maybeSingle();
+        final targetToken = profileRow?['fcm_token'] as String?;
+
+        if (targetToken != null && targetToken.isNotEmpty) {
+          await http.post(
+            Uri.parse(cfUrl),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'token': targetToken,
+              'title': titleUz,
+              'body': bodyUz,
+            }),
+          );
+        }
+
         await http.post(
           Uri.parse(cfUrl),
           headers: {'Content-Type': 'application/json'},

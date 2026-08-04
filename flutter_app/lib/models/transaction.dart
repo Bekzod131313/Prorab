@@ -92,6 +92,7 @@ class ProjectTransaction {
   }
 
   bool isIncomeFor(String userId) {
+    if (tur == 'ishhaqi') return false;
     if (userId.isEmpty) return tur == 'income' || tur == 'kirim';
     // If sent TO this user by someone else, it is INCOME for this user
     if (toUser == userId && createdBy != userId) return true;
@@ -101,11 +102,12 @@ class ProjectTransaction {
   }
 
   bool isExpenseFor(String userId) {
-    if (userId.isEmpty) return tur == 'spend' || tur == 'send' || tur == 'chiqim' || tur == 'expense' || tur == 'ishhaqi';
+    if (tur == 'ishhaqi') return false;
+    if (userId.isEmpty) return tur == 'spend' || tur == 'send' || tur == 'chiqim' || tur == 'expense';
     // If sent TO this user by someone else, it is NOT an expense for this user
     if (toUser == userId && createdBy != userId) return false;
     if (tur == 'income' || tur == 'kirim') return false;
     if (createdBy == userId || fromUser == userId) return true;
-    return tur == 'spend' || tur == 'send' || tur == 'chiqim' || tur == 'expense' || tur == 'ishhaqi';
+    return tur == 'spend' || tur == 'send' || tur == 'chiqim' || tur == 'expense';
   }
 }

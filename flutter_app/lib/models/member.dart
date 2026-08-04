@@ -33,6 +33,11 @@ class ObMember {
 
   num get balance => ishaqi - olingan;
 
+  String get cleanRole => role.split(':')[0];
+  bool get isOwner => cleanRole == 'owner';
+  bool get isMember => cleanRole == 'member';
+  bool get isWorker => cleanRole == 'worker';
+
   ObMember copyWith({
     String? obId,
     String? userId,
@@ -99,6 +104,5 @@ class ObMember {
     'worker': 'Ishchi',
   };
 
-  String get cleanRole => role.split(':')[0];
   String get roleLabel => roleLabels[cleanRole] ?? cleanRole;
 }

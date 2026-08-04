@@ -210,6 +210,7 @@ class WorkerRepository {
     String? izoh,
     DateTime? txDate,
     String currency = 'UZS',
+    List<String> files = const [],
   }) async {
     final userId = supabase.auth.currentUser?.id;
     final liveRate = CurrencyService().usdToUzsRate;
@@ -230,6 +231,7 @@ class WorkerRepository {
       'exchange_rate': liveRate,
       'summa_usd': amountUsd,
       'summa_uzs': amountUzs,
+      'files': files,
     });
 
     final member = await supabase

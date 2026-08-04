@@ -15,6 +15,7 @@ import '../widgets/shimmer.dart';
 import '../widgets/project_hero_card.dart';
 import '../data/member_repository.dart';
 import '../models/member.dart';
+import '../services/notification_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   final bool isActive;
@@ -73,6 +74,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       int unread = 0;
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId != null) {
+        NotificationService.syncUserTokenAndSubscriptions();
         final countRes = await Supabase.instance.client
             .from('notifications')
             .select('id')
@@ -125,7 +127,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     // No specific project — pick from owner active projects.
     final activeProjects = _projects
-        .where((p) => p.role == 'owner' && p.status != 'done')
+        .where((p) => p.isOwner && p.status != 'done')
         .toList();
     if (activeProjects.isEmpty) {
       ScaffoldMessenger.of(context)
@@ -365,40 +367,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Two action buttons
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _HeroActionBtn(
-                            label: tr('income'),
-                            subtitle: tr('add'),
-                            icon: Icons.arrow_downward_rounded,
-                            color: AppColors.accent,
-                            onTap: () => _openQuickAdd(
-                              isIncome: true,
-                              selectedProject: p,
+                  // Two action buttons (only if user can add transactions - owner or member)
+                  if (p.canAddTransactions) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _HeroActionBtn(
+                              label: tr('income'),
+                              subtitle: tr('add'),
+                              icon: Icons.arrow_downward_rounded,
+                              color: AppColors.accent,
+                              onTap: () => _openQuickAdd(
+                                isIncome: true,
+                                selectedProject: p,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _HeroActionBtn(
-                            label: tr('expense'),
-                            subtitle: tr('add'),
-                            icon: Icons.arrow_upward_rounded,
-                            color: AppColors.green,
-                            onTap: () => _openQuickAdd(
-                              isIncome: false,
-                              selectedProject: p,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _HeroActionBtn(
+                              label: tr('expense'),
+                              subtitle: tr('add'),
+                              icon: Icons.arrow_upward_rounded,
+                              color: AppColors.green,
+                              onTap: () => _openQuickAdd(
+                                isIncome: false,
+                                selectedProject: p,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
+                    const SizedBox(height: 20),
+                  ],
 
                   // Project info card for current project
                   Padding(

@@ -145,7 +145,7 @@ class ProjectCard extends StatelessWidget {
                       const SizedBox(height: 5),
                       Row(
                         children: [
-                          _RoleBadge(label: roleLabels[project.role] ?? project.role),
+                          _RoleBadge(label: roleLabels[project.cleanRole] ?? project.cleanRole),
                           if (project.status == 'done') ...[
                             const SizedBox(width: 6),
                             _RoleBadge(label: tr('yakunlandi'), color: const Color(0xFF22C55E)),
@@ -177,7 +177,7 @@ class ProjectCard extends StatelessWidget {
                 ),
               ],
             ),
-            if (project.role == 'owner') ...[
+            if (project.isOwner) ...[
               const SizedBox(height: 10),
               _HealthBadge(score: project.healthScore),
             ],

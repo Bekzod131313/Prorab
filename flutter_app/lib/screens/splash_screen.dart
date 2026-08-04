@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 import '../main.dart';
 import '../l10n/strings.dart';
@@ -179,6 +180,7 @@ class _SplashScreenState extends State<SplashScreen> {
       // Proceed on check fail (offline / server issues)
     }
 
+    FlutterNativeSplash.remove();
     final session = supabase.auth.currentSession;
     if (session == null) {
       Navigator.of(context).pushReplacement(

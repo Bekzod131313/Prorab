@@ -55,16 +55,26 @@ class NotificationService {
         updateTopicSubscriptions(appLocaleNotifier.value);
       });
 
+      // Also attempt syncing immediately if user is already logged in
+      await syncUserTokenAndSubscriptions();
+
       // 7. Listen for auth state changes to update subscriptions and tokens
       supabase.auth.onAuthStateChange.listen((data) async {
         final event = data.event;
-        if (event == AuthChangeEvent.signedIn) {
-          await _refreshToken();
-          await updateTopicSubscriptions(appLocaleNotifier.value);
-        } else if (event == AuthChangeEvent.signedOut) {
+        if (event == AuthChangeEvent.signedOut) {
           await _unsubscribeFromAll();
+        } else {
+          await syncUserTokenAndSubscriptions();
         }
       });
+    }
+  }
+
+  static Future<void> syncUserTokenAndSubscriptions() async {
+    final userId = supabase.auth.currentUser?.id;
+    if (userId != null) {
+      await _refreshToken();
+      await updateTopicSubscriptions(appLocaleNotifier.value);
     }
   }
 

@@ -4,12 +4,15 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
+import 'package:flutter_native_splash/flutter_native_splash.dart';
+
 import 'firebase_options.dart';
 import 'l10n/strings.dart';
 import 'services/notification_service.dart';
 import 'services/currency_service.dart';
 import 'theme/app_theme.dart';
 import 'screens/splash_screen.dart';
+import 'utils/haptics.dart';
 
 const supabaseUrl = 'https://djreovvpojsiccndlgzu.supabase.co';
 const supabaseAnonKey =
@@ -19,7 +22,8 @@ late final SupabaseClient supabase;
 final navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   PaintingBinding.instance.imageCache.maximumSize = 1000;
   PaintingBinding.instance.imageCache.maximumSizeBytes = 200 * 1024 * 1024;
   await Firebase.initializeApp(
@@ -61,6 +65,46 @@ class MoliyaApp extends StatelessWidget {
           ],
           locale: Locale(lang),
           home: const SplashScreen(),
+          builder: (context, child) {
+            final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+            final isKeyboardVisible = bottomInset > 80;
+
+            return Stack(
+              children: [
+                child ?? const SizedBox(),
+                if (isKeyboardVisible)
+                  Positioned(
+                    right: 16,
+                    bottom: bottomInset + 12,
+                    child: Material(
+                      color: Colors.transparent,
+                      elevation: 6,
+                      shape: const CircleBorder(),
+                      clipBehavior: Clip.antiAlias,
+                      child: InkWell(
+                        onTap: () {
+                          AppHaptics.light();
+                          FocusManager.instance.primaryFocus?.unfocus();
+                        },
+                        child: Container(
+                          width: 44,
+                          height: 44,
+                          decoration: const BoxDecoration(
+                            color: AppColors.accent,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.keyboard_hide_rounded,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
       ),
     );

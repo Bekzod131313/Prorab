@@ -27,6 +27,7 @@ dependencies:
   local_auth: ^2.2.0
   pdf: ^3.12.0
   printing: ^5.14.3
+  flutter_native_splash: ^2.4.4
 
 dev_dependencies:
   flutter_test:
@@ -38,6 +39,18 @@ flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
   image_path: "assets/logo.png"
+
+flutter_native_splash:
+  color: "#f1f5f9"
+  image: "assets/logo.png"
+  color_dark: "#0f172a"
+  image_dark: "assets/logo.png"
+  android_12:
+    image: "assets/logo.png"
+    icon_background_color: "#f1f5f9"
+    image_dark: "assets/logo.png"
+    icon_background_color_dark: "#0f172a"
+  web: false
 
 flutter:
   uses-material-design: true

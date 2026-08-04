@@ -24,7 +24,7 @@ class ProjectRepository {
 
     final data = await supabase
         .from('ob_members')
-        .select('ob_id,role,balance,ishaqi,olingan,boshlanish,tugash,kirim,chiqim,ob:obyektlar(*)')
+        .select('*,ob:obyektlar(*)')
         .eq('user_id', userId)
         .eq('ob_id', obId)
         .maybeSingle();
@@ -33,8 +33,11 @@ class ProjectRepository {
       return Project.fromMember(data as Map<String, dynamic>);
     }
 
-    final obRow =
-        await supabase.from('obyektlar').select('*').eq('id', obId).maybeSingle();
+    final obRow = await supabase
+        .from('obyektlar')
+        .select('*')
+        .eq('id', obId)
+        .maybeSingle();
     if (obRow == null) return null;
     return Project(
       id: obRow['id'].toString(),
@@ -44,9 +47,8 @@ class ProjectRepository {
       boshlanish: obRow['boshlanish'] != null
           ? DateTime.tryParse(obRow['boshlanish'])
           : null,
-      tugash: obRow['tugash'] != null
-          ? DateTime.tryParse(obRow['tugash'])
-          : null,
+      tugash:
+          obRow['tugash'] != null ? DateTime.tryParse(obRow['tugash']) : null,
       createdAt: DateTime.tryParse(obRow['created_at'] ?? '') ?? DateTime.now(),
       muddat: obRow['muddat'] ?? 30,
       role: 'member',
@@ -67,7 +69,7 @@ class ProjectRepository {
 
     final data = await supabase
         .from('ob_members')
-        .select('ob_id,role,balance,ishaqi,olingan,boshlanish,tugash,kirim,chiqim,ob:obyektlar(*)')
+        .select('*,ob:obyektlar(*)')
         .eq('user_id', userId);
 
     return (data as List)
@@ -154,7 +156,9 @@ class ProjectRepository {
   }
 
   Future<void> updateImage(String obId, String imageUrl) async {
-    await supabase.from('obyektlar').update({'image_url': imageUrl}).eq('id', obId);
+    await supabase
+        .from('obyektlar')
+        .update({'image_url': imageUrl}).eq('id', obId);
   }
 
   Future<Project?> loadProjectById(String id) async {
@@ -162,7 +166,7 @@ class ProjectRepository {
     if (userId == null) return null;
     final row = await supabase
         .from('ob_members')
-        .select('ob_id,role,balance,ishaqi,olingan,boshlanish,tugash,kirim,chiqim,ob:obyektlar(*)')
+        .select('*,ob:obyektlar(*)')
         .eq('user_id', userId)
         .eq('ob_id', id)
         .maybeSingle();
@@ -170,6 +174,3 @@ class ProjectRepository {
     return Project.fromMember(row);
   }
 }
-
-
-
