@@ -298,19 +298,7 @@ class SessionRepository {
 
     final currentDeviceId = await getDeviceId();
 
-    try {
-      final files = await supabase.storage
-          .from('profile-images')
-          .list(path: 'sessions/${user.id}');
-
-      if (files.isNotEmpty) {
-        final hasCurrentFile = files.any((f) => f.name == '$currentDeviceId.json');
-        if (!hasCurrentFile) {
-          return true;
-        }
-      }
-    } catch (_) {}
-
+    // 1. Primary check: Database Table
     try {
       final data = await supabase
           .from('user_sessions')
@@ -322,6 +310,22 @@ class SessionRepository {
         if (!hasCurrentInDb) {
           return true;
         }
+        return false;
+      }
+    } catch (_) {}
+
+    // 2. Fallback check: Storage Bucket
+    try {
+      final files = await supabase.storage
+          .from('profile-images')
+          .list(path: 'sessions/${user.id}');
+
+      if (files.isNotEmpty) {
+        final hasCurrentFile = files.any((f) => f.name == '$currentDeviceId.json');
+        if (!hasCurrentFile) {
+          return true;
+        }
+        return false;
       }
     } catch (_) {}
 

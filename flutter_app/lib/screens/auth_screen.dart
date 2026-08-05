@@ -7,6 +7,7 @@ import '../l10n/strings.dart';
 import '../main.dart';
 import '../theme/app_theme.dart';
 import '../utils/phone_formatter.dart';
+import '../data/session_repository.dart';
 import 'root_shell.dart';
 import 'profile_setup_screen.dart';
 
@@ -130,6 +131,7 @@ class _AuthScreenState extends State<AuthScreen> {
       );
 
       if (response.user != null) {
+        SessionRepository().registerCurrentDevice();
         String? fullName;
         try {
           final profileData = await supabase.from('profiles').select('full_name').eq('id', response.user!.id).maybeSingle();

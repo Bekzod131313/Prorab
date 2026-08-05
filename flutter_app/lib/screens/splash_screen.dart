@@ -128,7 +128,6 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _route() async {
-    await Future.delayed(const Duration(milliseconds: 500));
     if (!mounted) return;
 
     try {
@@ -137,7 +136,8 @@ class _SplashScreenState extends State<SplashScreen> {
           .select()
           .order('created_at', ascending: false)
           .limit(1)
-          .maybeSingle();
+          .maybeSingle()
+          .timeout(const Duration(seconds: 2));
 
       if (res != null) {
         final packageInfo = await PackageInfo.fromPlatform();
@@ -166,6 +166,7 @@ class _SplashScreenState extends State<SplashScreen> {
         }
 
         if (needsUpdate) {
+          FlutterNativeSplash.remove();
           _showForceUpdateDialog(
             currentVersion,
             currentBuild,
@@ -177,7 +178,7 @@ class _SplashScreenState extends State<SplashScreen> {
         }
       }
     } catch (_) {
-      // Proceed on check fail (offline / server issues)
+      // Proceed on check fail (offline / server issues / timeout)
     }
 
     FlutterNativeSplash.remove();

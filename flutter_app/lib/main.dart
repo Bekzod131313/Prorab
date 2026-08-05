@@ -6,6 +6,8 @@ import 'package:intl/date_symbol_data_local.dart';
 
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 
+import 'dart:async';
+
 import 'firebase_options.dart';
 import 'l10n/strings.dart';
 import 'services/notification_service.dart';
@@ -34,7 +36,7 @@ Future<void> main() async {
   supabase = Supabase.instance.client;
   await loadSavedLocale();
   await CurrencyService().init();
-  await NotificationService.initialize();
+  unawaited(NotificationService.initialize());
   runApp(const MoliyaApp());
 }
 

@@ -56,8 +56,8 @@ class CurrencyService {
     // 2. Initialize default rates list
     _initDefaultRates();
 
-    // 3. Fetch live rates
-    await fetchLiveRate();
+    // 3. Fetch live rates asynchronously in background without blocking app launch
+    fetchLiveRate();
   }
 
   void _initDefaultRates() {

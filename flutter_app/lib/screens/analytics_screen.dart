@@ -981,7 +981,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
         .where((t) => t.isExpenseFor(userId))
         .fold(0.0, (s, t) => s + (isUsd ? t.summaUsd : t.summaUzs));
     final balance = income - spend;
-    final txs = _selTxs;
+    final txs = _selTxs.where((t) => t.tur != 'ishhaqi').toList();
 
     final byCat = <String, num>{};
     for (final tx in _selTxs.where((t) => t.isExpenseFor(userId))) {
@@ -1035,7 +1035,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
       final amt = isUsd ? tx.summaUsd : tx.summaUzs;
       if (tx.isIncomeFor(userId)) {
         runningBalance += amt;
-      } else {
+      } else if (tx.isExpenseFor(userId)) {
         runningBalance -= amt;
       }
       runningBalances.add(runningBalance);

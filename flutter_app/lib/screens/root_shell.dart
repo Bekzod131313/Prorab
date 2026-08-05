@@ -34,14 +34,19 @@ class RootShellState extends State<RootShell> {
   @override
   void initState() {
     super.initState();
+    SessionRepository().registerCurrentDevice();
+
     _authSub = supabase.auth.onAuthStateChange.listen((data) {
       if (data.event == AuthChangeEvent.signedOut || (data.session == null && data.event != AuthChangeEvent.initialSession)) {
         _forceLogout();
       }
     });
 
-    _sessionCheckTimer = Timer.periodic(const Duration(seconds: 4), (_) {
-      _checkSession();
+    Future.delayed(const Duration(seconds: 5), () {
+      if (!mounted) return;
+      _sessionCheckTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+        _checkSession();
+      });
     });
   }
 
