@@ -53,3 +53,40 @@ DROP POLICY IF EXISTS materials_member_all ON materials;
 CREATE POLICY materials_member_all ON materials FOR ALL
   USING (EXISTS (SELECT 1 FROM ob_members m WHERE m.ob_id = materials.ob_id AND m.user_id = auth.uid()))
   WITH CHECK (EXISTS (SELECT 1 FROM ob_members m WHERE m.ob_id = materials.ob_id AND m.user_id = auth.uid()));
+
+-- 5) Loyiha a'zolariga yangi ustunlar (boshlanish, tugash, kirim, chiqim)
+ALTER TABLE ob_members
+  ADD COLUMN IF NOT EXISTS boshlanish  date,
+  ADD COLUMN IF NOT EXISTS tugash        date,
+  ADD COLUMN IF NOT EXISTS kirim         numeric DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS chiqim        numeric DEFAULT 0;
+
+-- 6) Tranzaksiyalarni yaratuvchi ustuni
+ALTER TABLE transactions
+  ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES profiles(id);
+
+-- Mavjud ma'lumotlarni to'ldirish
+UPDATE transactions SET created_by = COALESCE(from_user, to_user) WHERE created_by IS NULL;
+
+
+-- 7) Force update/App versions table
+CREATE TABLE IF NOT EXISTS app_versions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  appstore_version text NOT NULL,
+  appstore_build_number integer NOT NULL,
+  playmarket_version text NOT NULL,
+  playmarket_build_number integer NOT NULL,
+  appstore_url text NOT NULL,
+  playmarket_url text NOT NULL,
+  created_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE app_versions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow public read access to app_versions" ON app_versions;
+CREATE POLICY "Allow public read access to app_versions" ON app_versions FOR SELECT USING (true);
+
+INSERT INTO app_versions (appstore_version, appstore_build_number, playmarket_version, playmarket_build_number, appstore_url, playmarket_url)
+VALUES ('1.0.0', 1, '1.0.0', 1, 'https://apps.apple.com', 'https://play.google.com')
+ON CONFLICT DO NOTHING;
+

@@ -179,22 +179,37 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     try {
       final userId = supabase.auth.currentUser?.id;
       if (userId == null) return [];
-      final prefix = isIncome ? 'inc:' : 'exp:';
-      final data = await supabase
-          .from('categories')
-          .select('name')
-          .eq('user_id', userId);
+
+      final projPrefix = 'proj:${widget.projectId}:${isIncome ? "inc:" : "exp:"}';
+      final legacyPrefix = isIncome ? 'inc:' : 'exp:';
+
+      List<dynamic> data = [];
+      try {
+        data = await supabase
+            .from('categories')
+            .select('name, ob_id')
+            .eq('user_id', userId)
+            .eq('ob_id', widget.projectId);
+      } catch (_) {
+        data = await supabase
+            .from('categories')
+            .select('name')
+            .eq('user_id', userId);
+      }
 
       final List<ExpenseCategoryItem> result = [];
-      for (final row in (data as List)) {
+      for (final row in data) {
         final rawName = row['name'] as String;
         String? target;
-        if (rawName.startsWith(prefix)) {
-          target = rawName.substring(prefix.length);
-        } else if (!isIncome &&
-            !rawName.startsWith('inc:') &&
-            !rawName.startsWith('exp:')) {
-          target = rawName;
+
+        if (rawName.startsWith(projPrefix)) {
+          target = rawName.substring(projPrefix.length);
+        } else if (row is Map && row.containsKey('ob_id') && row['ob_id'] == widget.projectId) {
+          if (rawName.startsWith(legacyPrefix)) {
+            target = rawName.substring(legacyPrefix.length);
+          } else if (!isIncome && !rawName.startsWith('inc:') && !rawName.startsWith('exp:')) {
+            target = rawName;
+          }
         }
 
         if (target != null) {
@@ -209,10 +224,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               cleanName = target.substring(idx + 1);
             }
           }
-          result.add(ExpenseCategoryItem(
-            name: cleanName,
-            icon: icon,
-          ));
+          if (!result.any((item) => item.name == cleanName)) {
+            result.add(ExpenseCategoryItem(
+              name: cleanName,
+              icon: icon,
+            ));
+          }
         }
       }
       return result;
@@ -226,36 +243,52 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     try {
       final userId = supabase.auth.currentUser?.id;
       if (userId == null) return;
-      final prefix = isIncome ? 'inc:' : 'exp:';
+      final projPrefix = 'proj:${widget.projectId}:${isIncome ? "inc:" : "exp:"}';
 
-      final data = await supabase
-          .from('categories')
-          .select('name')
-          .eq('user_id', userId);
+      // 1. Delete old categories for this project
+      try {
+        await supabase
+            .from('categories')
+            .delete()
+            .eq('user_id', userId)
+            .eq('ob_id', widget.projectId);
+      } catch (_) {}
 
-      for (final row in (data as List)) {
-        final rawName = row['name'] as String;
-        if (rawName.startsWith(prefix) ||
-            (!isIncome &&
-                !rawName.startsWith('inc:') &&
-                !rawName.startsWith('exp:'))) {
-          await supabase
-              .from('categories')
-              .delete()
-              .eq('user_id', userId)
-              .eq('name', rawName);
+      try {
+        final data = await supabase
+            .from('categories')
+            .select('name')
+            .eq('user_id', userId);
+
+        for (final row in (data as List)) {
+          final rawName = row['name'] as String;
+          if (rawName.startsWith(projPrefix)) {
+            await supabase
+                .from('categories')
+                .delete()
+                .eq('user_id', userId)
+                .eq('name', rawName);
+          }
         }
-      }
+      } catch (_) {}
 
+      // 2. Save categories scoped to widget.projectId
       if (categories.isNotEmpty) {
-        await supabase.from('categories').insert(
-              categories
-                  .map((c) => {
-                        'user_id': userId,
-                        'name': '$prefix${c.icon.codePoint}:${c.name}',
-                      })
-                  .toList(),
-            );
+        final insertRows = categories.map((c) => {
+          'user_id': userId,
+          'ob_id': widget.projectId,
+          'name': '$projPrefix${c.icon.codePoint}:${c.name}',
+        }).toList();
+
+        try {
+          await supabase.from('categories').insert(insertRows);
+        } catch (_) {
+          final fallbackRows = categories.map((c) => {
+            'user_id': userId,
+            'name': '$projPrefix${c.icon.codePoint}:${c.name}',
+          }).toList();
+          await supabase.from('categories').insert(fallbackRows);
+        }
       }
     } catch (_) {}
   }
@@ -769,25 +802,22 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                                         try {
                                           final userId =
                                               supabase.auth.currentUser?.id;
-                                          if (userId != null) {
-                                            final prefix =
-                                                widget.isIncome ? 'inc:' : 'exp:';
-                                            await supabase
-                                                .from('categories')
-                                                .delete()
-                                                .eq('user_id', userId)
-                                                .eq('name', '$prefix${c.icon.codePoint}:${c.name}');
-                                            await supabase
-                                                .from('categories')
-                                                .delete()
-                                                .eq('user_id', userId)
-                                                .eq('name', '$prefix${c.name}');
-                                            await supabase
-                                                .from('categories')
-                                                .delete()
-                                                .eq('user_id', userId)
-                                                .eq('name', c.name);
-                                          }
+                                           if (userId != null) {
+                                             final projPrefix =
+                                                 'proj:${widget.projectId}:${widget.isIncome ? "inc:" : "exp:"}';
+                                             final legacyPrefix =
+                                                 widget.isIncome ? 'inc:' : 'exp:';
+                                             await supabase
+                                                 .from('categories')
+                                                 .delete()
+                                                 .eq('user_id', userId)
+                                                 .eq('name', '$projPrefix${c.icon.codePoint}:${c.name}');
+                                             await supabase
+                                                 .from('categories')
+                                                 .delete()
+                                                 .eq('user_id', userId)
+                                                 .eq('name', '$legacyPrefix${c.icon.codePoint}:${c.name}');
+                                           }
                                           setState(() {
                                             _categories.removeWhere(
                                                 (item) => item.name == c.name);

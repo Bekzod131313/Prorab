@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ADEL MAKULATURA - Texnik Topsiriq va Smeta</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --bg-card-hover: #334155;
+      --primary: #10b981;
+      --primary-glow: rgba(16, 185, 129, 0.25);
+      --accent: #3b82f6;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+      --sidebar-width: 280px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      line-height: 1.6;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar Navigation */
+    .sidebar {
+      width: var(--sidebar-width);
+      background: #090d16;
+      border-right: 1px solid var(--border);
+      padding: 24px;
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      overflow-y: auto;
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 20px;
+      box-shadow: 0 0 20px var(--primary-glow);
+    }
+
+    .brand-text h2 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .brand-text span {
+      font-size: 12px;
+      color: var(--primary);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .nav-menu {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .nav-item a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      color: var(--text-muted);
+      text-decoration: none;
+      border-radius: 10px;
+      font-weight: 500;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+
+    .nav-item a:hover, .nav-item.active a {
+      background: var(--bg-card-hover);
+      color: var(--text-main);
+      transform: translateX(4px);
+    }
+
+    .nav-item.active a {
+      background: linear-gradient(90deg, rgba(16, 185, 129, 0.15), transparent);
+      border-left: 3px solid var(--primary);
+      color: var(--primary);
+    }
+
+    /* Main Content */
+    .content {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      padding: 40px;
+      max-width: 1300px;
+    }
+
+    /* Header Summary Banner */
+    .hero-banner {
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.9)), url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%230f172a"/><path d="M0 0l100 100M100 0L0 100" stroke="%231e293b" stroke-width="1"/></svg>');
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 36px;
+      margin-bottom: 32px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-banner::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -10%;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, var(--primary-glow) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-title {
+      font-size: 32px;
+      font-weight: 800;
+      margin-bottom: 12px;
+      background: linear-gradient(90deg, #ffffff, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-desc {
+      color: var(--text-muted);
+      max-width: 750px;
+      font-size: 15px;
+      margin-bottom: 24px;
+    }
+
+    /* Key Estimates Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+      margin-bottom: 36px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      position: relative;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--primary);
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .stat-value.highlight {
+      color: var(--primary);
+    }
+
+    .stat-value.accent {
+      color: var(--accent);
+    }
+
+    .stat-subtext {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    /* Section Styles */
+    .section {
+      margin-bottom: 48px;
+      scroll-margin-top: 40px;
+    }
+
+    .section-title {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+    }
+
+    .section-title span {
+      background: var(--primary-glow);
+      color: var(--primary);
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    /* Price Table */
+    .pricing-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--bg-card);
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+
+    .pricing-table th, .pricing-table td {
+      padding: 18px 24px;
+      text-align: left;
+    }
+
+    .pricing-table th {
+      background: #162032;
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .pricing-table tr {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .pricing-table tr:last-child {
+      border-bottom: none;
+    }
+
+    .pricing-table td {
+      font-size: 15px;
+    }
+
+    .price-tag {
+      font-weight: 700;
+      color: var(--primary);
+      font-size: 18px;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-primary { background: rgba(16, 185, 129, 0.15); color: var(--primary); }
+    .badge-warning { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+    .badge-danger { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+    .badge-info { background: rgba(59, 130, 246, 0.15); color: var(--accent); }
+
+    /* Modules Grid */
+    .modules-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 24px;
+    }
+
+    .module-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .module-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .module-name {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .module-features {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .module-features li {
+      font-size: 14px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .module-features li::before {
+      content: "✓";
+      color: var(--primary);
+      font-weight: bold;
+    }
+
+    /* Roles Matrix */
+    .role-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    .role-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+    }
+
+    .role-icon {
+      font-size: 28px;
+      margin-bottom: 12px;
+    }
+
+    .role-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .role-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    /* Workflow Step */
+    .flow-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .flow-step {
+      background: var(--bg-card);
+      border-left: 4px solid var(--primary);
+      padding: 20px;
+      border-radius: 0 12px 12px 0;
+      border-top: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .flow-step h4 {
+      font-size: 16px;
+      margin-bottom: 6px;
+
+    }
+
+    .flow-step p {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    /* Code & Architecture */
+    .arch-box {
+      background: #090d16;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      font-family: monospace;
+      font-size: 13px;
+      color: #38bdf8;
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+
+    footer {
+      text-align: center;
+      padding: 40px 0;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border);
+      margin-top: 60px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">A</div>
+      <div class="brand-text">
+        <h2>ADEL MAKULATURA</h2>
+        <span>Texnik Topshiriq v1.0</span>
+      </div>
+    </div>
+    <ul class="nav-menu">
+      <li class="nav-item active"><a href="#smeta">⏱ Smeta va Narx</a></li>
+      <li class="nav-item"><a href="#rollar">👥 Foydalanuvchi Ro'llari</a></li>
+      <li class="nav-item"><a href="#ekranlar">📱 12 ta Asosiy Ekran</a></li>
+      <li class="nav-item"><a href="#formulalar">🧮 Hisob Formulalari</a></li>
+      <li class="nav-item"><a href="#db">🗄 Ma'lumotlar Bazasi</a></li>
+      <li class="nav-item"><a href="#xavfsizlik">🛡 Xavfsizlik & Topshiriq</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="content">
+
+    <!-- Hero Banner -->
+    <header class="hero-banner">
+      <h1 class="hero-title">Adel Makulatura - Avtomatlashtirish Tizimi</h1>
+      <p class="hero-desc">
+        Makulatura kirimi, zavodga sotuv, ombor qoldig'i, kassa, qarzlar, xodimlar va mashina xarajatlarini real vaqt rejimida telefon va web orqali nazorat qilish tizimining to'liq loyiha hujjatlari.
+      </p>
+      <div class="badge badge-primary">Android App</div>
+      <div class="badge badge-info">Director Web Admin</div>
+      <div class="badge badge-warning">Firebase / Cloud Server</div>
+    </header>
+
+    <!-- Stat Summary Cards -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Taxminiy Ish Vaqti</div>
+        <div class="stat-value highlight">6 - 8 hafta</div>
+        <div class="stat-subtext">Taxminan 1.5 - 2 oy muddat</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Standart Smeta (MVP)</div>
+        <div class="stat-value">$3,500 - $4,200</div>
+        <div class="stat-subtext">Android + Web Admin + Backend</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Full Enterprise Versiya</div>
+        <div class="stat-value accent">$5,000 - $6,500</div>
+        <div class="stat-subtext">Offline rejim + Maxsus tahlillar</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Kafolat va Qo'llab-quvvatlash</div>
+        <div class="stat-value">3 Oy Bepul</div>
+        <div class="stat-subtext">Texnik xatolar va tuzatishlar</div>
+      </div>
+    </div>
+
+    <!-- Section 1: Smeta va Bosqichlar -->
+    <section id="smeta" class="section">
+      <h2 class="section-title">⏱ Ish Grafigi va Narxlash Smetasi <span>Bosqichma-bosqich</span></h2>
+
+      <table class="pricing-table">
+        <thead>
+          <tr>
+            <th>Bosqich</th>
+            <th>Vazifalar Nomi</th>
+            <th>Muddati</th>
+            <th>Natija (Deliverable)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>1-Bosqich</strong></td>
+            <td>Loyiha dizayni (UI/UX) & DB Arxitekturasi</td>
+            <td>1 hafta</td>
+            <td>Mobil ilova va Web Admin ekranlarining to'liq vizual prototipi</td>
+          </tr>
+          <tr>
+            <td><strong>2-Bosqich</strong></td>
+            <td>Backend Server & Ro'llar Xavfsizligi</td>
+            <td>1.5 hafta</td>
+            <td>Ma'lumotlar bazasi, Auth, API, Audit Log va Zaxira serveri</td>
+          </tr>
+          <tr>
+            <td><strong>3-Bosqich</strong></td>
+            <td>Android Mobil Ilova (Omborchi, Xodim, Direktor)</td>
+            <td>3 hafta</td>
+            <td>Kirim, Sotuv, Tarozi suratlari, Kassa va Xodimlar interfeysi</td>
+          </tr>
+          <tr>
+            <td><strong>4-Bosqich</strong></td>
+            <td>Direktor Web Admin Paneli & Excel Export</td>
+            <td>1.5 hafta</td>
+            <td>Barcha hisobotlar, Qarzlar, Foyda kalkulyatori va PDF/Excel yuklash</td>
+          </tr>
+          <tr>
+            <td><strong>5-Bosqich</strong></td>
+            <td>Testlash, Xavfsizlik va Serverga O'rnatish</td>
+            <td>1 hafta</td>
+            <td>Loyiha kodlarini va server accesslarni mijozga to'liq topshirish</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Section 2: Foydalanuvchi Ro'llari -->
+    <section id="rollar" class="section">
+      <h2 class="section-title">👥 Foydalanuvchilar va Huquqlar Matritsasi <span>3 Xil Rol</span></h2>
+      
+      <div class="role-grid">
+        <div class="role-card">
+          <div class="role-icon">👑</div>
+          <h3 class="role-title">Direktor (Cheksiz Huquq)</h3>
+          <p class="role-desc">Tizim bo'yicha to'liq nazorat va barcha moliyaviy ma'lumotlarni ko'rish va o'zgartirish huquqi.</p>
+          <ul class="module-features">
+            <li>1 kg narxini belgilash va tasdiqlash</li>
+            <li>Qarzlarni va to'lovlarni tasdiqlash</li>
+            <li>Xodimlarning xatoliklarini tuzatish</li>
+            <li>Barcha tahliliy va kunlik hisobotlarni ko'rish</li>
+            <li>Ombor qoldig'ini parol bilan o'zgartirish</li>
+            <li>Mijozlarning to'liq telefon raqamlarini ko'rish</li>
+          </ul>
+        </div>
+
+        <div class="role-card">
+          <div class="role-icon">📦</div>
+          <h3 class="role-title">Omborchi</h3>
+          <p class="role-desc">Faqat omborga kelgan mahsulotni qabul qilish va tarozini kiritish huquqiga ega.</p>
+          <ul class="module-features">
+            <li>Mahsulotni tortish (Brutto, Tara)</li>
+            <li>Kirim kiritish & mahsulot turini tanlash</li>
+            <li>Ombor qoldig'ini ko'rish</li>
+            <li>Tarozi va yuk rasmini biriktirish</li>
+            <li><strong style="color:var(--danger)">NARXNI ko'ra olmaydi / o'zgartira olmaydi</strong></li>
+            <li><strong style="color:var(--danger)">To'lovni o'chirish huquqi yo'q</strong></li>
+          </ul>
+        </div>
+
+        <div class="role-card">
+          <div class="role-icon">🚚</div>
+          <h3 class="role-title">Olib Keluvchi Xodim / Haydovchi</h3>
+          <p class="role-desc">Mijozlardan makulatura yig'ib kelish va mashina xarajatlarini kiritish uchun.</p>
+          <ul class="module-features">
+            <li>Kunga berilgan manzil va topshiriqlarni ko'rish</li>
+            <li>Mijoz oldiga borganini belgilash (Check-in)</li>
+            <li>Olib kelingan kg va yuk rasmini joylash</li>
+            <li>Yoqilg'i, ta'mir va boshqa xarajat kiritish</li>
+            <li><strong style="color:var(--danger)">Mijoz narxini o'zgartira olmaydi</strong></li>
+            <li><strong style="color:var(--danger)">Mijoz nomerining yopiq versiyasini ko'radi</strong></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 3: 12 ta Asosiy Ekran -->
+    <section id="ekranlar" class="section">
+      <h2 class="section-title">📱 Ilovaning 12 ta Asosiy Bo'limi va Ekranlar <span>Modullar</span></h2>
+
+      <div class="modules-grid">
+
+        <!-- 1. Bosh sahifa -->
+        <div class="module-card">
+          <div class="module-header">
+            <h3 class="module-name">1. Bosh Sahifa (Dashboard)</h3>
+            <span class="badge badge-primary">Direktor uchun</span>
+          </div>
+          <ul class="module-features">
+            <li>Bugungi qabul qilingan va sotilgan jami kg</li>
+            <li>Oq qog'oz va Aralash makulatura hozirgi qoldig'i</li>
+            <li>Kassadagi real naqd pul va bugungi xarajat</li>
+            <li>Biz beradigan va biz oladigan umumiy qarz</li>
+            <li>Bugungi taxminiy sof foyda indicatori</li>
+            <li><strong style="color:var(--danger)">Qizil Ogohlantirishlar:</strong> Muddati o'tgan qarzlar, kassadagi minus/yetishmovchilik, tasdiqlanmagan operatsiyalar</li>
+          </ul>
+        </div>
+
+        <!-- 2. Kirim -->
+        <div class="module-card">
+          <div class="module-header">
+            <h3 class="module-name">2. Kirim Bo'limi (Purchases)</h3>
+            <span class="badge badge-info">Omborchi & Xodim</span>
+          </div>
+          <ul class="module-features">
+            <li>"Yangi kirim" bosilganda: Yetkazib beruvchi, manzil, tel</li>
+            <li>Mahsulot turi: Oq qog'oz / Aralash makulatura</li>
+            <li>Brutto og'irlik va Tara og'irlik (Avto Sof = Brutto - Tara)</li>
+            <li>1 kg narxi, Jami summa (Sof * Narx)</li>
+            <li>Naqd yoki Qarzga (To'lov muddati)</li>
+            <li>Tarozi rasmi va yuk rasmini kamera orqali yuklash</li>
+            <li>Direktor tomonidan narxni tasdiqlash statusi</li>
+          </ul>
+        </div>
+
+        <!-- 3. Sotuv -->
+        <div class="module-card">
+          <div class="module-header">
+            <h3 class="module-name">3. Zavodga Sotuv Bo'limi</h3>
+            <span class="badge badge-warning">Omborchi & Direktor</span>
+          </div>
+          <ul class="module-features">
+            <li>Zavod / Xaridor nomi, Mahsulot turi</li>
+            <li>Jo'natilgan kg va Zavod tarozisidagi kg</li>
+            <li>Sotuv narxi va Jami summa (Zavod kg * Sotuv narxi)</li>
+            <li>Yo'l xarajati, Haydovchi, Mashina tanlash</li>
+            <li>Tarozi hujjati va chek rasmi</li>
+            <li><strong style="color:var(--danger)">Ombor tekshiruvi:</strong> Omborda yetarli kg bo'lmasa sotuv saqlanmaydi!</li>
+          </ul>
+        </div>
+
+        <!-- 4. Ombor -->
+        <div class="module-card">
+          <div class="module-header">
+            <h3 class="module-name">4. Ombor Bo'limi (Inventory)</h3>
+            <span class="badge badge-primary">2 Tovar Turi</span>
+          </div>
+          <ul class="module-features">
+            <li>Oq qog'oz & Aralash makulatura kartochkalari</li>
+            <li>Boshlang'ich qoldiq, bugungi kirim, bugungi chiqim, hozirgi qoldiq</li>
+            <li>O'rtacha xarid tannarxi va Ombor umumiy qiymati ($ / so'm)</li>
+            <li>Qoldiqni qo'lda koreksiya qilish (Faqat Direktor paroli bilan)</li>
+          </ul>
+        </div>
+
+        <!-- 5. Yetkazib beruvchilar qarzi -->
+        <div class="module-card">
+          <div class="module-header">
+            <h3 class="module-name">5. Yetkazib Beruvchi Qarzi</h3>
+            <span class="badge badge-danger">Bizning Qarzimiz</span>
+          </div>
+          <ul class="module-features">
+            <li>Har bir ta'minotchi uchun alohida karta va tarix</li>
+            <li>Jami topshirgan kg, Jami summa, To'langan pul, Qolgan qarz</li>
+            <li>Qisman to'lov qilish (Masalan: 15mln -> 5mln to'landi -> 10mln qoldi)</li>
+            <li>To'lov muddati o'tgan bo'lsa qizil ogohlantirish</li>
+          </ul>
+        </div>
+
+        <!-- 6. Zavod qarzi -->
+        <div class="module-card">
+          <div class="module-header">
+            <h3 class="module-name">6. Zavod va Xaridor Qarzi</h3>
+            <span class="badge badge-info">Zavodning Qarzi</span>
+          </div>
+          <ul class="module-features">
+            <li>Zavodlar kesimida jami sotuv summasi va kelib tushgan pul</li>
+            <li>Zavodning bizdan qolgan qarzi va qarz turgan kunlar soni</li>
+            <li>Muddati o'tgan qarzlar bo'yicha push-bildirishnoma</li>
+          </ul>
+        </div>
+
+        <!-- 7. Kassa -->
+        <div class="module-card">
+          <div class="module-header">
+            <h3 class="module-name">7. Kassa Bo'limi (Cash Flow)</h3>
+            <span class="badge badge-warning">Pulsiz Amallar O'chmaydi</span>
+          </div>
+          <ul class="module-features">
+            <li>Pul kirimi (Zavoddan, direktor kiritgan pul, boshqa)</li>
+            <li>Pul chiqimi (Ta'minotchiga to'lov, yoqilg'i, oylik, ta'mir, ovqat)</li>
+            <li>Har bir operatsiyada: Kim kiritdi, kim oldi, nima uchun, rasm/chek</li>
+            <li>Xodimlar kassa tarixini o'chira olmaydi</li>
+          </ul>
+        </div>
+
+        <!-- 8. Mijozlar bazasi -->
+        <div class="module-card">
+          <div class="module-header">
+            <h3 class="module-name">8. Mijozlar Bazasi (CRM)</h3>
+            <span class="badge badge-primary">Mijoz kodi & Narxlar</span>
+          </div>
+          <ul class="module-features">
+            <li>Mijoz kodi, nomi, address, Telegram raqami</li>
+            <li>Kelishilgan shaxsiy narx, oxirgi olib ketilgan sana</li>
+            <li>Mas'ul xodim biriktirish</li>
+            <li><strong style="color:var(--warning)">Xavfsizlik:</strong> To'liq telefon raqam faqat direktorga ko'rinadi</li>
+          </ul>
+        </div>
+
+        <!-- 9. Xodimlar nazorati -->
+        <div class="module-card">
+          <div class="module-header">
+            <h3 class="module-name">9. Xodimlar Nazorati</h3>
+            <span class="badge badge-info">Ish vaqti & Natija</span>
+          </div>
+          <ul class="module-features">
+            <li>Ishga kelgan / ketgan vaqti (Check-in / Check-out)</li>
+            <li>Olib kelgan kg, borgan manzillari va topshiriqlar statusi</li>
+            <li>Oylik, bonus va berilgan avanslar hisobi</li>
+            <li>Kun oxirida Direktor uchun xodim KPI hisoboti</li>
+          </ul>
+        </div>
+
+        <!-- 10. Mashinalar -->
+        <div class="module-card">
+          <div class="module-header">
+            <h3 class="module-name">10. Mashinalar Hisobi</h3>
+            <span class="badge badge-warning">2 ta Mashina</span>
+          </div>
+          <ul class="module-features">
+            <li>Davlat raqami va biriktirilgan haydovchi</li>
+            <li>Yurgan km, yoqilg'i litri va yoqilg'i summasi</li>
+            <li>Ta'mirlash xarajatlari cheklari va rasmlari</li>
+            <li>Mashinaning tashigan kg hajmi bo'yicha effektivligi</li>
+          </ul>
+        </div>
+
+        <!-- 11. Kunlik va Foyda Hisoboti -->
+        <div class="module-card">
+          <div class="module-header">
+            <h3 class="module-name">11. Kunlik va Foyda Hisoboti</h3>
+            <span class="badge badge-primary">P&L Financials</span>
+          </div>
+          <ul class="module-features">
+            <li>Kunlik avtomatik xarid, sotuv va ombor balansi</li>
+            <li>Yalpi foyda = Sotuv summasi - Sotilgan mahsulot tannarxi</li>
+            <li>Sof foyda = Yalpi foyda - Yoqilg'i - Oylik - Ta'mir - Boshqa xarajat</li>
+            <li>Qarzga sotilgan mahsulot foydada va kassada alohida ko'rsatiladi</li>
+          </ul>
+        </div>
+
+        <!-- 12. Admin Panel & Excel Export -->
+        <div class="module-card">
+          <div class="module-header">
+            <h3 class="module-name">12. Web Admin & Backup</h3>
+            <span class="badge badge-info">Excel & Audit Log</span>
+          </div>
+          <ul class="module-features">
+            <li>Direktor uchun Katta ekranli Dashboard (Veb Admin)</li>
+            <li>Barcha ma'lumotlarni Excel formatida ko'chirish (.xlsx)</li>
+            <li>O'chirilgan/o'zgartirilgan ma'lumotlar tarixi (Audit History)</li>
+            <li>Har kuni serverda avtomatik backup (Zaxira nusxasi)</li>
+          </ul>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Section 4: Hisob-Kitob Formulalari -->
+    <section id="formulalar" class="section">
+      <h2 class="section-title">🧮 Tizimdagi Avtomatik Hisob-Kitob Formulalari <span>Mantiq</span></h2>
+
+      <div class="flow-steps">
+        <div class="flow-step">
+          <h4>1. Kirim bo'limida Sof Og'irlik va Summa</h4>
+          <p><code>Sof Og'irlik = Brutto Og'irlik − Tara Og'irligi</code></p>
+          <p><code>Jami Xarid Summasi = Sof Og'irlik × 1 kg Xarid Narxi</code></p>
+        </div>
+
+        <div class="flow-step">
+          <h4>2. Zavodga Sotuv Summasi</h4>
+          <p><code>Jami Sotuv Summasi = Zavod Qabul Qilgan kg × 1 kg Sotuv Narxi</code></p>
+        </div>
+
+        <div class="flow-step">
+          <h4>3. Ombor Qoldig'i Formulasi</h4>
+          <p><code>Hozirgi Ombor Qoldig'i = Boshlang'ich Qoldiq + Jami Kirim − Jami Chiqim (Sotuv)</code></p>
+        </div>
+
+        <div class="flow-step">
+          <h4>4. Qarzlar Formulalari</h4>
+          <p><code>Bizning Ta'minotchiga Qarzimiz = Xarid Summasi − To'langan Pul</code></p>
+          <p><code>Zavodning Bizga Qarzi = Sotuv Summasi − Kelib Tushgan Pul</code></p>
+        </div>
+
+        <div class="flow-step">
+          <h4>5. Kassa Qoldig'i</h4>
+          <p><code>Kassa Balansi = Boshlang'ich Kassa + Kirim Pullar − Chiqim Pullar (Xarajatlar)</code></p>
+        </div>
+
+        <div class="flow-step">
+          <h4>6. Yalpi va Sof Foyda Hisobi</h4>
+          <p><code>Yalpi Foyda = Sotuv Summasi − Sotilgan Mahsulot Tannarxi</code></p>
+          <p><code>Sof Foyda = Yalpi Foyda − (Yoqilg'i + Ish Haqi + Ta'mir + Boshqa Xarajatlar)</code></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 5: Ma'lumotlar Bazasi Structure -->
+    <section id="db" class="section">
+      <h2 class="section-title">🗄 Ma'lumotlar Bazasi (Database Architecture) <span>Collections</span></h2>
+      
+      <div class="arch-box">
+// Cloud Database Structure (Firestore / PostgreSQL JSON Schema)
+
+users: { id, name, role ['director', 'warehouse', 'courier'], phone, pin_hash, active }
+products: { id, name ['oq_qogoz', 'aralash'], current_stock, avg_buy_price }
+purchases: { id, date, supplier_id, product_id, brutto, tara, net_kg, price_per_kg, total_price, payment_status, courier_id, scale_photo, cargo_photo, approved_by_director }
+sales: { id, date, factory_id, product_id, sent_kg, factory_kg, sale_price, total_price, car_id, driver_id, scale_doc_photo, paid_amount }
+suppliers: { id, code, name, phone, address, total_supplied_kg, current_debt }
+factories: { id, name, phone, address, total_bought_kg, factory_debt }
+cash_transactions: { id, date, type ['in', 'out'], category ['supplier_pay', 'fuel', 'salary', 'repair', 'food'], amount, user_id, recipient, photo_proof, note }
+vehicles: { id, plate_number, driver_id, current_odometer }
+expenses_vehicle: { id, date, vehicle_id, km_run, fuel_liters, fuel_cost, repair_cost, receipt_photo }
+audit_logs: { id, timestamp, user_id, action ['create', 'update', 'delete'], target_collection, old_data, new_data }
+      </div>
+    </section>
+
+    <!-- Section 6: Xavfsizlik va Topshiriladigan Mahsulotlar -->
+    <section id="xavfsizlik" class="section">
+      <h2 class="section-title">🛡 Xavfsizlik va Dasturchi Topshiradigan Narsalar <span>Kafolat</span></h2>
+
+      <div class="modules-grid">
+        <div class="module-card">
+          <h3 class="module-name">🔒 Xavfsizlik va Audit</h3>
+          <ul class="module-features">
+            <li>Har bir xodimga alohida Login va Parol (yoki 4 xonali PIN)</li>
+            <li>O'chirilgan ma'lumot yo'qolmaydi (Soft Delete qo'llaniladi)</li>
+            <li>Har bir ma'lumot o'zgarishi audit logida saqlanadi</li>
+            <li>Har kuni tunda avtomatik ma'lumotlar bazasi zaxiralanadi</li>
+          </ul>
+        </div>
+
+        <div class="module-card">
+          <h3 class="module-name">🎁 Dasturchi Topshiradigan Mahsulotlar</h3>
+          <ul class="module-features">
+            <li>Android (.apk / Google Play release build)</li>
+            <li>Direktor uchun Tayyor Web-Admin Panel (URL)</li>
+            <li>Tizim dasturiy kodi (Flutter & Node.js/Firebase source code)</li>
+            <li>Server va Ma'lumotlar bazasi kirish kalitlari</li>
+            <li>Excel ga eksport qilish imkoniyati</li>
+            <li><strong>Kamida 3 oy bepul texnik kafolat va ko'mak</strong></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <p>© 2026 Adel Makulatura Avtomatlashtirish Tizimi | Texnik Hujjat va Smeta</p>
+    </footer>
+
+  </main>
+
+</body>
+</html>

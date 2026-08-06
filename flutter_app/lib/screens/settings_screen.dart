@@ -10,7 +10,7 @@ import '../theme/app_theme.dart';
 import 'admin_panel_screen.dart';
 import 'security_settings_screen.dart';
 import 'active_devices_screen.dart';
-import 'splash_screen.dart';
+import 'auth_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   final Profile? profile;
@@ -334,7 +334,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         await Supabase.instance.client.auth.signOut();
                         if (context.mounted) {
                           Navigator.of(context).pushAndRemoveUntil(
-                            MaterialPageRoute(builder: (_) => const SplashScreen()),
+                            MaterialPageRoute(builder: (_) => const AuthScreen()),
                             (_) => false,
                           );
                         }
@@ -389,7 +389,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         await Supabase.instance.client.auth.signOut();
                         if (context.mounted) {
                           Navigator.of(context).pushAndRemoveUntil(
-                            MaterialPageRoute(builder: (_) => const SplashScreen()),
+                            MaterialPageRoute(builder: (_) => const AuthScreen()),
                             (_) => false,
                           );
                         }
