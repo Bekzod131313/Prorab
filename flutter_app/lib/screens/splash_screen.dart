@@ -251,45 +251,15 @@ class _SplashScreenState extends State<SplashScreen> {
           body: SafeArea(
             child: Stack(
               children: [
-                // Centered logo + tagline
+                // Centered logo card + tagline
                 Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // White rounded card for logo
-                      Container(
-                        width: 160,
-                        height: 160,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(36),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.04),
-                              blurRadius: 20,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        padding: const EdgeInsets.all(20),
-                        child: Image.asset(
-                          'assets/logo.png',
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      // Tagline
-                      Text(
-                        tr('tagline'),
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF49515B),
-                          letterSpacing: -0.1,
-                        ),
-                      ),
-                    ],
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 40.0),
+                    child: Image.asset(
+                      'assets/splash_logo.png',
+                      width: 280,
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
 
