@@ -247,7 +247,7 @@ class _SplashScreenState extends State<SplashScreen> {
       valueListenable: appLocaleNotifier,
       builder: (context, locale, _) {
         return Scaffold(
-          backgroundColor: AppColors.bg,
+          backgroundColor: const Color(0xFFF3F4FA),
           body: SafeArea(
             child: Stack(
               children: [
@@ -256,25 +256,37 @@ class _SplashScreenState extends State<SplashScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Logo with rounded corners
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(28),
+                      // White rounded card for logo
+                      Container(
+                        width: 160,
+                        height: 160,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(36),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 20,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(20),
                         child: Image.asset(
                           'assets/logo.png',
-                          width: 140,
-                          height: 140,
                           fit: BoxFit.contain,
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
                       // Tagline
                       Text(
                         tr('tagline'),
+                        textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.text2,
-                          letterSpacing: 0.2,
+                          color: Color(0xFF49515B),
+                          letterSpacing: -0.1,
                         ),
                       ),
                     ],
@@ -282,21 +294,20 @@ class _SplashScreenState extends State<SplashScreen> {
                 ),
 
                 // Version at the bottom
-                if (_version.isNotEmpty)
-                  Positioned(
-                    bottom: 24,
-                    left: 0,
-                    right: 0,
-                    child: Text(
-                      _version,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.muted,
-                        fontWeight: FontWeight.w500,
-                      ),
+                Positioned(
+                  bottom: 32,
+                  left: 0,
+                  right: 0,
+                  child: Text(
+                    _version.isNotEmpty ? _version : 'v1.0.0 (9)',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF979EA6),
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
+                ),
               ],
             ),
           ),

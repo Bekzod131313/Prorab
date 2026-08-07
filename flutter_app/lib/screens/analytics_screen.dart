@@ -17,6 +17,7 @@ import '../widgets/project_card.dart' show formatUzsToDisplay;
 import '../services/currency_service.dart';
 import '../widgets/shimmer.dart';
 import '../utils/haptics.dart';
+import 'pdf_preview_screen.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({super.key});
@@ -953,7 +954,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
       return;
     }
 
-    final user = supabase.auth.currentSession?.user;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final user = supabase.auth.currentSession?.user;
     String prorabName = '';
     String prorabPhone = '';
     try {
@@ -1025,7 +1033,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
         : '-';
     final endStr =
         endDate != null ? DateFormat('dd.MM.yyyy').format(endDate) : '-';
-    final todayStr = DateFormat('dd.MM.yyyy').format(DateTime.now());
 
     final List<num> runningBalances = [];
     num runningBalance = 0;
@@ -1556,10 +1563,26 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
       ),
     );
 
-    await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => await pdf.save(),
-      name: project.nomi,
-    );
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => PdfPreviewScreen(
+            pdf: pdf,
+            fileName: '${project.nomi}_hisobot.pdf',
+            title: project.nomi,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error generating PDF: $e')),
+        );
+      }
+    }
   }
 
   pw.Widget _buildGridCell(

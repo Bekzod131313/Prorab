@@ -41,15 +41,15 @@ flutter_launcher_icons:
   image_path: "assets/logo.png"
 
 flutter_native_splash:
-  color: "#f1f5f9"
+  color: "#f3f4fa"
   image: "assets/logo.png"
-  color_dark: "#f1f5f9"
+  color_dark: "#f3f4fa"
   image_dark: "assets/logo.png"
   android_12:
     image: "assets/logo.png"
-    icon_background_color: "#f1f5f9"
+    icon_background_color: "#f3f4fa"
     image_dark: "assets/logo.png"
-    icon_background_color_dark: "#f1f5f9"
+    icon_background_color_dark: "#f3f4fa"
   web: false
 
 flutter:
