@@ -284,6 +284,7 @@ const _strings = <String, Map<String, String>>{
 
   // ── Security ─────────────────────────────────────────────────────────────
   'forgot_pin':            {'uz': 'PIN-kodni unutdim',   'ru': 'Не помню ПИН-код', 'en': 'Forgot PIN'},
+  'hello':                 {'uz': 'Salom',               'ru': 'Здравствуйте', 'en': 'Hello'},
   'hello_user':            {'uz': 'Salom, {}',           'ru': 'Здравствуйте, {}', 'en': 'Hello, {}'},
   'enter_pin':             {'uz': 'PIN-kodni kiriting',  'ru': 'Введите ПИН-код', 'en': 'Enter PIN'},
   'create_pin':            {'uz': 'Yangi PIN-kod kiriting', 'ru': 'Введите новый ПИН-код', 'en': 'Enter new PIN'},

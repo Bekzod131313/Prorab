@@ -30,31 +30,14 @@ class PinLockScreen extends StatefulWidget {
 class _PinLockScreenState extends State<PinLockScreen> {
   String _enteredPin = '';
   String _firstPin = ''; // Used for setup confirmation
-  String _userName = '';
   bool _isConfirming = false;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    _loadUserName();
     if (widget.mode == PinLockMode.validation) {
       _checkBiometricsAuto();
-    }
-  }
-
-  Future<void> _loadUserName() async {
-    final user = supabase.auth.currentUser;
-    if (user != null) {
-      try {
-        final profileData = await supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle();
-        final name = profileData?['full_name'] as String?;
-        if (name != null && mounted) {
-          setState(() {
-            _userName = name.split(' ').first;
-          });
-        }
-      } catch (_) {}
     }
   }
 
@@ -360,7 +343,7 @@ class _PinLockScreenState extends State<PinLockScreen> {
 
             // Greeting & Instruction
             Text(
-              _userName.isNotEmpty ? tr('hello_user').replaceAll('{}', _userName) : 'Moliya',
+              tr('hello'),
               style: const TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.w800,
