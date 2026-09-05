@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tovarlar boshqaruvi</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#0b1220; --panel:#111a2b; --panel2:#16223a; --border:#223151;
+    --text:#eaf0fb; --muted:#8ea0c2; --accent:#22c55e; --danger:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:20px}
+  h1{font-size:18px;margin:0 0 16px}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px}
+  label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+  input,select{width:100%;background:var(--panel2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:9px 10px;font-size:13px;margin-bottom:10px}
+  button{background:var(--accent);color:#04220f;border:none;border-radius:8px;padding:9px 16px;font-weight:700;font-size:13px;cursor:pointer}
+  button.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--border)}
+  button.danger{background:var(--danger);color:#fff}
+  .row{display:flex;gap:10px;flex-wrap:wrap}
+  .row > *{flex:1;min-width:120px}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th,td{padding:8px 6px;border-bottom:1px solid var(--border);text-align:left}
+  th{color:var(--muted);font-weight:600}
+  td input{margin:0;padding:6px 8px;font-size:12px}
+  .muted{color:var(--muted);font-size:12px}
+  .top-actions{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:10px;flex-wrap:wrap}
+  #loginBox{max-width:360px;margin:60px auto}
+</style>
+</head>
+<body>
+
+<div id="loginBox" class="card">
+  <h1>Kirish</h1>
+  <label>Admin token</label>
+  <input id="tokenInput" type="password" placeholder="ADMIN_TOKEN">
+  <button id="loginBtn">Kirish</button>
+</div>
+
+<div id="app" style="display:none;max-width:900px;margin:0 auto">
+  <h1>Tovarlar katalogi</h1>
+
+  <div class="card">
+    <div class="top-actions">
+      <b>Excel orqali import qilish</b>
+      <button class="secondary" id="chooseFileBtn">Faylni tanlash</button>
+    </div>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none">
+    <div class="muted">Ustunlar: <b>artikul, nomi, narx, birlik, kategoriya</b> (birinchi qator sarlavha bo‘lishi kerak). Ustunlar tartibi muhim emas, nomlarini mos yozing.</div>
+  </div>
+
+  <div class="card">
+    <b>Yangi tovar qo‘shish</b>
+    <div class="row" style="margin-top:10px">
+      <div><label>Artikul</label><input id="f_artikul"></div>
+      <div><label>Nomi</label><input id="f_nomi"></div>
+      <div><label>Narx</label><input id="f_narx" type="number"></div>
+      <div><label>Birlik</label><input id="f_birlik" value="dona"></div>
+      <div><label>Kategoriya</label><input id="f_kategoriya" value="Boshqa"></div>
+    </div>
+    <button id="addBtn">Qo‘shish</button>
+  </div>
+
+  <div class="card">
+    <div class="top-actions">
+      <b>Tovarlar ro‘yxati</b>
+      <span class="muted" id="countTxt"></span>
+    </div>
+    <table>
+      <thead><tr><th>Artikul</th><th>Nomi</th><th>Narx</th><th>Birlik</th><th>Kategoriya</th><th>Faol</th><th></th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+(function(){
+  const TOKEN_KEY = 'hs_admin_token';
+  let token = localStorage.getItem(TOKEN_KEY) || '';
+  let products = [];
+
+  function headers(){ return { 'Content-Type':'application/json', 'X-Admin-Token': token }; }
+
+  async function api(path, opts){
+    const res = await fetch(path, Object.assign({ headers: headers() }, opts||{}));
+    const data = await res.json().catch(()=>({}));
+    if (!res.ok) throw new Error(data.error || ('Xatolik: '+res.status));
+    return data;
+  }
+
+  function showApp(){
+    document.getElementById('loginBox').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    load();
+  }
+
+  document.getElementById('loginBtn').onclick = async () => {
+    token = document.getElementById('tokenInput').value.trim();
+    if (!token) return;
+    try {
+      await api('/api/admin-products');
+      localStorage.setItem(TOKEN_KEY, token);
+      showApp();
+    } catch(e) {
+      alert('Token noto‘g‘ri yoki server xatosi: ' + e.message);
+    }
+  };
+
+  async function load(){
+    try {
+      products = await api('/api/admin-products');
+      render();
+    } catch(e) { alert(e.message); }
+  }
+
+  function render(){
+    document.getElementById('countTxt').textContent = products.length + ' ta tovar';
+    document.getElementById('tbody').innerHTML = products.map(p => `
+      <tr data-id="${p.id}">
+        <td><input value="${p.artikul||''}" data-f="artikul"></td>
+        <td><input value="${p.nomi||''}" data-f="nomi"></td>
+        <td><input type="number" value="${p.narx||0}" data-f="narx" style="width:90px"></td>
+        <td><input value="${p.birlik||''}" data-f="birlik" style="width:70px"></td>
+        <td><input value="${p.kategoriya||''}" data-f="kategoriya" style="width:100px"></td>
+        <td><input type="checkbox" data-f="faol" ${p.faol?'checked':''}></td>
+        <td>
+          <button class="secondary" data-act="save">💾</button>
+          <button class="danger" data-act="del">🗑</button>
+        </td>
+      </tr>`).join('');
+
+    document.querySelectorAll('#tbody tr').forEach(tr => {
+      const id = tr.dataset.id;
+      tr.querySelector('[data-act="save"]').onclick = async () => {
+        const body = { id };
+        tr.querySelectorAll('[data-f]').forEach(inp => {
+          body[inp.dataset.f] = inp.type === 'checkbox' ? inp.checked : inp.value;
+        });
+        try { await api('/api/admin-products', { method:'PUT', body: JSON.stringify(body) }); load(); }
+        catch(e){ alert(e.message); }
+      };
+      tr.querySelector('[data-act="del"]').onclick = async () => {
+        if (!confirm('O‘chirilsinmi?')) return;
+        try { await api('/api/admin-products?id='+id, { method:'DELETE' }); load(); }
+        catch(e){ alert(e.message); }
+      };
+    });
+  }
+
+  document.getElementById('addBtn').onclick = async () => {
+    const body = {
+      artikul: document.getElementById('f_artikul').value,
+      nomi: document.getElementById('f_nomi').value,
+      narx: document.getElementById('f_narx').value,
+      birlik: document.getElementById('f_birlik').value,
+      kategoriya: document.getElementById('f_kategoriya').value
+    };
+    if (!body.nomi.trim()) { alert('Nomi kiritilishi shart'); return; }
+    try {
+      await api('/api/admin-products', { method:'POST', body: JSON.stringify(body) });
+      ['f_artikul','f_nomi','f_narx'].forEach(id=>document.getElementById(id).value='');
+      load();
+    } catch(e){ alert(e.message); }
+  };
+
+  document.getElementById('chooseFileBtn').onclick = () => document.getElementById('fileInput').click();
+
+  document.getElementById('fileInput').onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+    const norm = k => String(k||'').trim().toLowerCase();
+    const pick = (row, names) => {
+      for (const key of Object.keys(row)) if (names.includes(norm(key))) return row[key];
+      return '';
+    };
+
+    const items = rows.map(r => ({
+      artikul: pick(r, ['artikul','артикул','art']),
+      nomi: pick(r, ['nomi','name','название','наименование','tovar']),
+      narx: pick(r, ['narx','price','цена']),
+      birlik: pick(r, ['birlik','unit','ед','ед.изм','единица']) || 'dona',
+      kategoriya: pick(r, ['kategoriya','category','категория']) || 'Boshqa'
+    })).filter(r => String(r.nomi).trim());
+
+    if (!items.length) { alert('Faylda yaroqli qatorlar topilmadi'); return; }
+    if (!confirm(items.length + ' ta tovar import qilinsinmi?')) return;
+
+    try {
+      const res = await api('/api/admin-products', { method:'POST', body: JSON.stringify(items) });
+      alert(res.inserted + ' ta tovar qo‘shildi');
+      load();
+    } catch(e){ alert(e.message); }
+    e.target.value = '';
+  };
+
+  if (token) showApp();
+})();
+</script>
+</body>
+</html>

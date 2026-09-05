@@ -1,0 +1,9 @@
+{
+  "name": "heating-orders",
+  "version": "1.0.0",
+  "description": "Otopleniya ustalari uchun Telegram bot + mini-app: tovar katalogi, savat, buyurtma -> brigada guruhiga Excel",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "xlsx": "^0.18.5"
+  }
+}
