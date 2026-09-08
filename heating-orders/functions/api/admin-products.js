@@ -7,6 +7,8 @@ function normalizeRow(r) {
     artikul: String(r.artikul || '').trim(),
     nomi: String(r.nomi || '').trim(),
     narx: Number(r.narx) || 0,
+    aksiya_narx: r.aksiya_narx !== undefined && r.aksiya_narx !== '' && r.aksiya_narx !== null ? Number(r.aksiya_narx) : null,
+    ommabop: !!r.ommabop,
     birlik: String(r.birlik || 'dona').trim() || 'dona',
     kategoriya: String(r.kategoriya || 'Boshqa').trim() || 'Boshqa',
     faol: r.faol !== false
@@ -50,6 +52,8 @@ function normalizeRowPartial(body) {
   if (body.artikul !== undefined) out.artikul = String(body.artikul).trim();
   if (body.nomi !== undefined) out.nomi = String(body.nomi).trim();
   if (body.narx !== undefined) out.narx = Number(body.narx) || 0;
+  if (body.aksiya_narx !== undefined) out.aksiya_narx = (body.aksiya_narx === '' || body.aksiya_narx === null) ? null : Number(body.aksiya_narx);
+  if (body.ommabop !== undefined) out.ommabop = !!body.ommabop;
   if (body.birlik !== undefined) out.birlik = String(body.birlik).trim() || 'dona';
   if (body.kategoriya !== undefined) out.kategoriya = String(body.kategoriya).trim() || 'Boshqa';
   if (body.faol !== undefined) out.faol = !!body.faol;

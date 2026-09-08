@@ -1,20 +1,44 @@
-# Otopleniya buyurtma boti (Telegram mini-app)
+# Otopleniya buyurtma tizimi (Telegram mini-app)
 
-Har bir usta brigadasi o'zining Telegram guruhida botdan foydalanadi:
-tovarlarni katalogdan tanlab savatga yig'adi, "Buyurtma berish" tugmasini
-bosadi — va tanlangan tovarlar (artikul, nomi, narx, miqdor, summa) **Excel
-fayl** ko'rinishida avtomatik o'sha guruhga tushadi.
+Har bir usta brigadasi o'zining Telegram guruhida botdan foydalanadi: tovar
+katalogidan tanlab savatga yig'adi, buyurtmani bir **obyektga** (qurilish/
+xizmat manzili) bog'laydi va "Buyurtma berish"ni bosadi. Shu zahoti:
 
-Bu modul asosiy Prorab ilovasidan (loyiha moliyasi) mustaqil, alohida bot va
-alohida mini-app sifatida ishlaydi, lekin bitta GitHub repozitoriyda saqlanadi.
+- tanlangan tovarlar (artikul, nomi, narx, miqdor, summa) **Excel fayl**
+  ko'rinishida brigada guruhiga yuboriladi;
+- buyurtma summasi avtomatik o'sha **obyektning qarziga** yoziladi (onlayn
+  to'lov tizimi yo'q — barcha buyurtmalar qarzga ketadi, to'lovni operator
+  keyinroq admin panelda qayd etadi).
+
+Ilova to'liq: katalog, savat, buyurtmalar tarixi (nakladnoy/PDF bilan),
+obyektlar va qarzdorlik boshqaruvi, profil, bildirishnomalar. Bu modul asosiy
+Prorab ilovasidan (loyiha moliyasi) mustaqil, alohida bot va alohida mini-app
+sifatida ishlaydi, lekin bitta GitHub repozitoriyda saqlanadi.
 
 ## Arxitektura
 
-- **Frontend**: `public/index.html` — Telegram Mini App (tovar katalogi, savat),
-  `public/admin.html` — tovarlarni boshqarish paneli (qo'lda qo'shish + Excel import).
+- **Frontend**: `public/index.html` — Telegram Mini App (5 bo'lim: Asosiy,
+  Buyurtmalarim, Korzina, Obyektlar, Profil + Bildirishnomalar), `public/admin.html`
+  — operator paneli (tovarlar, buyurtma statusi, to'lovlar).
 - **Backend**: `functions/api/*.js` — Cloudflare Pages Functions.
 - **Baza**: Supabase (Postgres). `schema.sql` faylida jadvallar.
 - **Bot**: Telegram Bot API, webhook orqali (`functions/api/bot.js`).
+- **Autentifikatsiya**: alohida login/parol yo'q — foydalanuvchi Telegram
+  Mini App `initData` imzosi orqali tanilinadi (`telegram_id`), bu hech qachon
+  soxtalashtirib bo'lmaydi, chunki server tomonda bot tokeni bilan tekshiriladi.
+
+### Jadvallar (schema.sql)
+
+| Jadval | Nima uchun |
+|---|---|
+| `hs_brigades` | Har bir Telegram guruh = bitta brigada |
+| `hs_users` | Har bir usta profili (ism, telefon, kompaniya, sozlamalar) |
+| `hs_addresses` | Foydalanuvchining saqlangan manzillari |
+| `hs_products` | Tovar katalogi (+ `aksiya_narx`, `ommabop` belgilari) |
+| `hs_objects` | Obyektlar (qurilish/xizmat manzillari), brigadaga bog'liq |
+| `hs_orders` | Buyurtmalar (`order_no`, `status`, `object_id` bilan) |
+| `hs_debt_entries` | Qarzdorlik tarixi: har buyurtma = `qarz`, har to'lov = `tolov` |
+| `hs_notifications` | Bildirishnomalar tarixi (Telegram xabari bilan birga yoziladi) |
 
 ## 1) Telegram bot yaratish
 
@@ -24,7 +48,9 @@ alohida mini-app sifatida ishlaydi, lekin bitta GitHub repozitoriyda saqlanadi.
 ## 2) Supabase sozlash
 
 1. https://supabase.com — yangi loyiha yarating (yoki mavjudidan foydalaning).
-2. **SQL Editor** bo'limida `schema.sql` faylidagi kodni ishga tushiring.
+2. **SQL Editor** bo'limida `schema.sql` faylidagi kodni to'liq ishga tushiring
+   (v1'ni oldin ishga tushirgan bo'lsangiz ham xavfsiz — barcha buyruqlar
+   `IF NOT EXISTS` bilan yozilgan, mavjud ma'lumotlar o'chmaydi).
 3. **Project Settings → API** bo'limidan quyidagilarni oling:
    - `Project URL` → `SUPABASE_URL`
    - `anon public` kalit → `SUPABASE_ANON_KEY` (mini-app uchun, ochiq)
@@ -44,6 +70,9 @@ alohida mini-app sifatida ishlaydi, lekin bitta GitHub repozitoriyda saqlanadi.
    - `SUPABASE_URL`
    - `SUPABASE_SERVICE_ROLE_KEY`
    - `ADMIN_TOKEN` — admin panel uchun o'zingiz o'ylab topgan maxfiy parol
+   - `ADMIN_CHAT_ID` — (ixtiyoriy) operatorning shaxsiy Telegram chat ID'si —
+     Profil → "Operatorga yozish" orqali kelgan xabarlar shu yerga tushadi.
+     Chat ID'ni bilish uchun [@userinfobot](https://t.me/userinfobot)'ga yozing.
    - `MINIAPP_URL` — deploy bo'lgandan keyingi to'liq manzil, masalan
      `https://heating-orders.pages.dev` (oxirida `/` bo'lmasin)
    - `WEBHOOK_SECRET` — (ixtiyoriy, tavsiya etiladi) tasodifiy maxfiy satr —
@@ -87,26 +116,49 @@ Javobda `"ok":true` chiqishi kerak.
    shaxsiy chatida ishlaydi — shu sababli oraliq qadam kerak).
 4. Har bir brigada a'zosi shu tugmani **bir marta** bosadi → botning shaxsiy
    chatiga o'tadi → bot u yerda "🛒 Katalog va buyurtma" (mini-app) tugmasini yuboradi.
-5. Usta tugmani bosadi → mini-app ochiladi → tovarlarni tanlab savatga
-   qo'shadi → "Buyurtma berish"ni bosadi.
-6. Excel fayl (artikul, nomi, narx, birlik, miqdor, summa) avtomatik brigada
-   guruhiga yuboriladi, buyurtma `hs_orders` jadvaliga ham yoziladi.
+5. Mini-app birinchi ochilganda avtomatik profil yaratiladi va brigadaga ulanadi.
+6. Usta **Obyektlar** bo'limida obyekt yaratadi (yoki mavjudidan foydalanadi),
+   Asosiy sahifadan tovar tanlab savatga qo'shadi, Korzina'da obyektni tanlab
+   "Buyurtmani rasmiylashtirish"ni bosadi.
+7. Excel fayl brigada guruhiga yuboriladi, buyurtma summasi avtomatik shu
+   obyektning **qarziga** yoziladi, foydalanuvchiga Telegram orqali tasdiqlovchi
+   xabar keladi.
+8. Obyekt qarzini yopish uchun mijoz naqd/bank orqali offline to'laydi, operator
+   buni admin panelda ("Obyektlar / To'lovlar" bo'limi) qayd etadi — qarzdorlik
+   avtomatik kamayadi va mijozga xabar boradi.
 
-## 7) Tovarlar katalogini to'ldirish
+## 7) Admin panel (`admin.html`)
 
-`https://<MINIAPP_URL>/admin.html` sahifasini oching, `ADMIN_TOKEN`ni kiriting.
+`https://<MINIAPP_URL>/admin.html` sahifasini oching, `ADMIN_TOKEN`ni kiriting. Uch bo'lim:
 
-- Qo'lda bitta-bitta tovar qo'shishingiz mumkin.
-- Yoki tayyor narxlar ro'yxatingiz (Excel/.xlsx yoki .csv) bo'lsa, **"Faylni
-  tanlash"** tugmasi orqali yuklang. Ustunlar nomi: `artikul`, `nomi`, `narx`,
-  `birlik`, `kategoriya` (katta-kichik harf farqi yo'q, tartib muhim emas).
+- **Tovarlar** — qo'lda qo'shish/tahrirlash, Excel import, aksiya narxi va
+  "ommabop (TOP)" belgisini boshqarish.
+- **Buyurtmalar** — barcha brigadalarning buyurtmalari, statusni o'zgartirish
+  (Yangi → Jarayonda → Yetkazilgan, yoki Bekor qilingan) — o'zgarganda
+  buyurtmachiga Telegram orqali avtomatik xabar boradi.
+- **Obyektlar / To'lovlar** — har bir obyektning jami xaridi, to'langan
+  summasi va joriy qarzdorligi; to'lov qabul qilinganda summani kiritib
+  "To'lov qo'shish"ni bosasiz — qarz kamayadi, mijozga xabar boradi.
 
 ## Xavfsizlik eslatmalari
 
 - `SUPABASE_SERVICE_ROLE_KEY`, `BOT_TOKEN`, `ADMIN_TOKEN` — hech qachon
   frontend kodiga yozilmaydi, faqat Cloudflare muhit o'zgaruvchilarida turadi.
 - Mini-app faqat `anon` kalit bilan va faqat `faol=true` tovarlarni o'qiy oladi
-  (RLS orqali cheklangan).
+  (RLS orqali cheklangan). Foydalanuvchi, obyekt, buyurtma va qarzdorlik
+  ma'lumotlariga har qanday kirish/yozish faqat Cloudflare Functions orqali,
+  Telegram `initData` imzosi tasdiqlangandan keyin amalga oshadi.
 - Buyurtma narxi har doim serverda bazadagi joriy narx bo'yicha qayta
   hisoblanadi — mijoz tomonidan yuborilgan narxga ishonilmaydi.
-- Telegram Mini App foydalanuvchisi `initData` imzosi orqali tasdiqlanadi.
+- Statusni o'zgartirish va to'lov qayd etish faqat `ADMIN_TOKEN` bilan mumkin
+  — oddiy foydalanuvchi buyurtma statusini yoki qarzni o'zi o'zgartira olmaydi.
+
+## Hozircha soddalashtirilgan / keyingi bosqichlar
+
+- **Nakladnoy/PDF**: hozircha brauzer "Chop etish" (print-to-PDF) orqali
+  ishlaydi (Buyurtmalarim → buyurtma → "PDF / Chop etish"). Rasmiy muhr/rekvizit
+  bilan avtomatik PDF generatsiya kerak bo'lsa, alohida ishlab chiqiladi.
+- **Til (uz/ru)**: sozlamada saqlanadi, lekin interfeys matnlari hozircha
+  faqat o'zbek tilida — to'liq ikki tillilik keyingi bosqich.
+- **Ommabop tovarlar**: hozircha admin qo'lda belgilaydi (`ommabop` katagi);
+  avtomatik hisoblash (eng ko'p sotilganlar) keyinroq qo'shilishi mumkin.

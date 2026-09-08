@@ -77,3 +77,33 @@ export function checkAdmin(request, env) {
   const token = request.headers.get('X-Admin-Token');
   return !!(token && env.ADMIN_TOKEN && token === env.ADMIN_TOKEN);
 }
+
+// So'rov headeridan Telegram foydalanuvchisini tasdiqlab qaytaradi (yoki null)
+export async function requireUser(request, env) {
+  const initData = request.headers.get('X-Telegram-Init-Data') || '';
+  return verifyInitData(initData, env.BOT_TOKEN);
+}
+
+// Buyurtma uchun ketma-ket raqam: OTP-2026-0001 ko'rinishida
+export async function nextOrderNo(env) {
+  return sbFetch(env, '/rest/v1/rpc/hs_next_order_no', 'POST', {});
+}
+
+// Foydalanuvchiga Telegram xabari yuboradi VA hs_notifications'ga yozadi
+export async function notify(env, { telegram_id, turi, matn, order_id, object_id }) {
+  try {
+    await tgApi(env, 'sendMessage', { chat_id: telegram_id, text: matn, parse_mode: 'HTML' });
+  } catch (e) {
+    // Foydalanuvchi botni shaxsiy /start qilmagan bo'lishi mumkin — bildirishnoma
+    // tarixda saqlanib qoladi, faqat Telegram push kelmaydi
+  }
+  try {
+    await sbFetch(env, '/rest/v1/hs_notifications', 'POST', {
+      telegram_id, turi, matn,
+      order_id: order_id || null,
+      object_id: object_id || null
+    });
+  } catch (e) {
+    // bildirishnoma yozib bo'lmasa ham asosiy amal (buyurtma va h.k.) davom etishi kerak
+  }
+}
