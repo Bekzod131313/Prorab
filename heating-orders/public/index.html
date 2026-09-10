@@ -58,7 +58,9 @@
   .page-head-row .page-head{padding:0}
   .btn-accent{background:var(--accent);color:var(--accent-ink);border:none;border-radius:10px;padding:9px 13px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
   .btn-accent svg{width:14px;height:14px}
-  .btn-ghost{background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:9px 13px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit}
+  .btn-ghost{background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:9px 13px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+  .btn-ghost svg{width:14px;height:14px;flex:0 0 auto}
+  .btn-ghost.danger{background:var(--red-bg);color:var(--red);border-color:var(--red-bg)}
 
   .search{padding:12px 18px 0;display:flex;gap:8px}
   .search.home-search{padding-top:var(--tg-controls-h)}
@@ -879,7 +881,7 @@ window.CONFIG = {
             <div class="price-block"><div class="unit">${fmt(price)}</div><div class="line">${fmt(price*S.cart[id])}</div></div>
           </div>
         </div>
-        <span class="trash" data-cart-del="${id}">${ICONS.trash}</span>
+        <span class="trash" data-cart-del="${id}" style="font-size:24px;font-weight:800;line-height:1">−</span>
       </div>`;
     }).join('');
 
@@ -887,7 +889,7 @@ window.CONFIG = {
 
     return `${renderTopbar()}
       <div class="page-head-row"><div class="page-head"><h1>${tr('cart_title')}</h1><p>${tr('cart_subtitle')}</p></div>
-        <button class="btn-ghost" data-clear-cart>${ICONS.trash} ${tr('clear')}</button></div>
+        <button class="btn-ghost danger" data-clear-cart>${ICONS.trash} ${tr('clear')}</button></div>
       <div class="plist" style="padding-top:6px">${rows}</div>
       <div class="obj-select">
         <div class="l">${ICONS.building} ${tr('which_object')}</div>
