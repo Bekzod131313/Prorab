@@ -38,11 +38,17 @@
   }
   *{box-sizing:border-box}
   html,body{touch-action:manipulation}
+  /* Ikonkalar uchun umumiy default o'lcham. Bularsiz o'lchami belgilanmagan
+     har qanday yangi ikonka brauzerning standart (juda katta) o'lchamida
+     chiziladi — shu sabab bir necha marta "kattaaa strelka" muammosi chiqdi.
+     Klass bo'yicha yozilgan qoidalar (specificity yuqoriroq) buni bemalol
+     o'zgartira oladi. */
+  svg{width:16px;height:16px;flex:0 0 auto}
   body{margin:0;background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',-apple-system,sans-serif;padding-bottom:84px}
   #app{max-width:460px;margin:0 auto}
 
   :root{--tg-safe-top:50px; --tg-controls-h:40px; --tg-top-inset:calc(var(--tg-safe-top) + var(--tg-controls-h))}
-  .topbar{display:flex;flex-direction:column;padding:var(--tg-safe-top) 60px 0;position:sticky;top:0;background:var(--bg);z-index:5}
+  .topbar{display:flex;flex-direction:column;padding:max(8px, var(--tg-safe-top)) 60px 0;position:sticky;top:0;background:var(--bg);z-index:5}
   .logo{display:flex;flex-direction:column;line-height:1;cursor:pointer;align-items:center}
   .logo-img{height:18px;width:auto;display:block}
   .logo em{font-style:normal;font-size:7px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-top:4px;display:block}
@@ -51,10 +57,12 @@
   .icon-btn svg{width:18px;height:18px}
   .dot-badge{position:absolute;top:-5px;right:-5px;background:var(--accent);color:var(--accent-ink);font-size:9.5px;font-weight:800;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px;border:2px solid var(--bg)}
 
-  .page-head{padding:var(--tg-controls-h) 18px 2px}
+  /* max(): fullscreen bo'lmaganda --tg-controls-h = 0 bo'ladi va sarlavha
+     logotipga yopishib qolardi — minimal bo'shliq shu tarzda kafolatlanadi. */
+  .page-head{padding:max(14px, var(--tg-controls-h)) 18px 2px}
   .page-head h1{font-family:'Manrope',sans-serif;font-weight:800;font-size:20px;margin:0}
   .page-head p{font-size:12.5px;color:var(--muted);margin:3px 0 0}
-  .page-head-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:var(--tg-controls-h) 18px 2px}
+  .page-head-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:max(14px, var(--tg-controls-h)) 18px 2px}
   .page-head-row .page-head{padding:0}
   .btn-accent{background:var(--accent);color:var(--accent-ink);border:none;border-radius:10px;padding:9px 13px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
   .btn-accent svg{width:14px;height:14px}
@@ -63,7 +71,7 @@
   .btn-ghost.danger{background:var(--red-bg);color:var(--red);border-color:var(--red-bg)}
 
   .search{padding:12px 18px 0;display:flex;gap:8px}
-  .search.home-search{padding-top:var(--tg-controls-h)}
+  .search.home-search{padding-top:max(14px, var(--tg-controls-h))}
   .search-box{flex:1;display:flex;align-items:center;gap:9px;background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:0 13px;height:44px}
   .search-box svg{width:17px;height:17px;color:var(--muted);flex:0 0 auto}
   .search-box input{border:none;background:transparent;outline:none;color:var(--text);font-family:inherit;font-size:14px;width:100%}
@@ -99,7 +107,7 @@
   .cat-card .n{font-size:11.5px;font-weight:700;line-height:1.2}
   .cat-card .row svg{width:13px;height:13px;color:var(--muted);flex:0 0 auto}
 
-  .plist-head{display:flex;align-items:center;gap:12px;padding:calc(2px + var(--tg-top-inset)) 18px 4px}
+  .plist-head{display:flex;align-items:center;gap:12px;padding:max(14px, calc(2px + var(--tg-top-inset))) 18px 4px}
   .back{width:34px;height:34px;border-radius:10px;background:var(--panel2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:0 0 auto;color:var(--text)}
   .back svg{width:16px;height:16px}
   .plist-head h3{font-family:'Manrope',sans-serif;font-weight:800;font-size:17px;margin:0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -115,9 +123,11 @@
   .pcard .info{flex:1;min-width:0}
   .pcard .name{font-size:13.5px;font-weight:700;line-height:1.25}
   .pcard .art{font-size:11px;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
-  .pcard .price{font-size:13.5px;font-weight:800;color:var(--accent-deep);margin-top:6px;font-variant-numeric:tabular-nums}
-  .pcard .price s{color:var(--muted);font-weight:500;margin-right:5px}
-  .pcard .price small{color:var(--muted);font-weight:500;font-size:11px}
+  .pcard .price{font-size:13.5px;font-weight:800;color:var(--accent-deep);margin-top:6px;font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:5px;flex-wrap:wrap}
+  .pcard .price s{color:var(--muted);font-weight:500;font-size:11px}
+  .pcard .price small{color:var(--muted);font-weight:500;font-size:11px;white-space:nowrap;margin-left:5px}
+  .pcard .price .now{white-space:nowrap}
+  .pcard .price .off{font-style:normal;font-size:10.5px;font-weight:800;color:var(--red);background:var(--red-bg);border-radius:6px;padding:1px 5px;white-space:nowrap}
   .badge-mini{display:inline-block;background:var(--red-bg);color:var(--red);font-size:9.5px;font-weight:800;padding:2px 6px;border-radius:5px;margin-left:6px;vertical-align:middle}
 
   .stepper{display:flex;align-items:center;gap:0;background:var(--panel2);border:1px solid var(--border);border-radius:10px;flex:0 0 auto}
@@ -153,7 +163,7 @@
   .cart-item .art{font-size:10.5px;color:var(--muted);margin:2px 0 6px;font-variant-numeric:tabular-nums}
   .stock-badge{display:inline-block;background:var(--green-bg);color:var(--accent-deep);font-size:10px;font-weight:700;padding:3px 8px;border-radius:999px;margin-bottom:8px}
   .cart-item .bottom-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
-  .cart-item .trash{color:var(--red);cursor:pointer}
+  .cart-item .trash{color:var(--red);cursor:pointer;width:32px;height:32px;margin:-6px -6px 0 0;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
   .cart-item .trash svg{width:16px;height:16px}
   .price-block{text-align:right}
   .price-block .unit{font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums}
@@ -188,6 +198,8 @@
   .cta svg{width:16px;height:16px}
   .empty-state{padding:60px 24px;text-align:center;color:var(--muted);font-size:13.5px;line-height:1.6}
   .empty-state svg{width:40px;height:40px;color:var(--border);margin-bottom:12px}
+  .empty-state .btn-accent{margin:16px auto 0;display:inline-flex}
+  .empty-state .btn-accent svg{width:15px;height:15px;color:inherit;margin:0}
 
   .obj-card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:13px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:10px;cursor:pointer}
   .obj-top{display:flex;gap:12px;align-items:center}
@@ -204,6 +216,13 @@
   .obj-stats .cell .v.red{color:var(--red)}
   .obj-stats .cell .v.green{color:var(--accent-deep)}
 
+  .loc-card{margin:12px 18px 0;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:12px 14px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px}
+  .loc-card .ic{width:36px;height:36px;border-radius:11px;background:var(--green-bg);color:var(--accent-deep);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .loc-card .mid{flex:1;min-width:0}
+  .loc-card .t{font-size:12.5px;font-weight:800}
+  .loc-card .s{font-size:11px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .loc-card .btn-ghost{flex:0 0 auto;font-size:11.5px;padding:8px 11px}
+
   .obj-hero{margin:10px 18px 0;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:14px;box-shadow:var(--shadow)}
   .obj-hero-top{display:flex;align-items:center;gap:12px}
   .obj-hero-top .info{flex:1;min-width:0}
@@ -211,6 +230,13 @@
   .obj-hero-top .loc{display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--muted);margin-top:4px}
   .obj-hero-top .loc svg{width:12px;height:12px;flex:0 0 auto}
 
+  .stat-rows{padding:4px 14px 14px}
+  .stat-rows .srow{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12.5px;color:var(--muted);padding:7px 0}
+  .stat-rows .srow + .srow{border-top:1px solid var(--border)}
+  .stat-rows .srow b{color:var(--text);font-size:13px}
+  .pd-photo svg{width:64px;height:64px}
+  .hint-card{margin:0 18px 12px;display:flex;gap:9px;align-items:flex-start;background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:11px 12px;font-size:12px;color:var(--muted);line-height:1.5}
+  .hint-card svg{color:var(--accent-deep);margin-top:1px}
   .subtabs{display:flex;gap:7px;overflow-x:auto;padding:4px 18px 12px;scrollbar-width:none}
   .subtabs::-webkit-scrollbar{display:none}
   .subtab{flex:0 0 auto;padding:7px 13px;border-radius:10px;background:var(--panel2);border:1px solid var(--border);color:var(--muted);font-size:12px;font-weight:700;white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
@@ -245,9 +271,10 @@
   .agg-row .a{font-size:11px;color:var(--muted)}
   .agg-row .v{font-weight:700;font-variant-numeric:tabular-nums}
 
-  .bars{display:flex;align-items:flex-end;gap:8px;height:110px;padding:16px 18px}
-  .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;justify-content:flex-end;height:100%}
-  .bar-col .bar{width:100%;background:var(--accent);border-radius:5px 5px 0 0;min-height:3px}
+  .bars{display:flex;align-items:flex-end;gap:10px;height:130px;padding:14px 18px 16px}
+  .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;justify-content:flex-end;height:100%;min-width:0}
+  .bar-col .bar{width:100%;max-width:46px;background:var(--accent);border-radius:6px 6px 0 0;min-height:4px}
+  .bar-col .val{font-size:9.5px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums}
   .bar-col .lbl{font-size:9.5px;color:var(--muted)}
 
   .profile-card{margin:0 18px;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--shadow);display:flex;align-items:center;gap:13px}
@@ -271,7 +298,9 @@
 
   .switch-row{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;gap:10px}
   .switch-row + .switch-row{border-top:1px solid var(--border)}
-  .switch-row .t{font-size:13px;font-weight:600}
+  .switch-row .t{font-size:13px;font-weight:600;flex:1;min-width:0}
+  .switch-row .ic{width:34px;height:34px;border-radius:10px;background:var(--panel2);display:flex;align-items:center;justify-content:center;color:var(--accent-deep);flex:0 0 auto}
+  .switch-row .ic svg{width:16px;height:16px}
   .switch{position:relative;width:42px;height:24px;flex:0 0 auto}
   .switch input{opacity:0;width:0;height:0}
   .switch .track{position:absolute;inset:0;background:var(--border);border-radius:999px;cursor:pointer;transition:.15s}
@@ -292,7 +321,7 @@
   .notif-ic{width:36px;height:36px;border-radius:10px;background:var(--green-bg);color:var(--accent-deep);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
   .notif-ic svg{width:17px;height:17px}
   .notif-mid{flex:1;min-width:0}
-  .notif-mid .t{font-size:13px;line-height:1.45}
+  .notif-mid .t{font-size:13px;line-height:1.45;white-space:pre-line}
   .notif-mid .d{font-size:11px;color:var(--muted);margin-top:4px}
   .notif-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:0 0 auto;margin-top:5px}
 
@@ -376,7 +405,8 @@
   .success p{color:var(--muted);font-size:13px;line-height:1.6}
   .success button{margin-top:22px;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:11px;padding:11px 20px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:600}
 
-  .toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:11px 18px;border-radius:11px;font-size:13px;z-index:60;max-width:88vw;text-align:center;font-weight:600}
+  /* Navbar ustidan biroz yuqorida — kontentni yopib qolmasligi uchun */
+  .toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--text);color:var(--bg);padding:11px 18px;border-radius:11px;font-size:13px;z-index:60;max-width:88vw;text-align:center;font-weight:600;box-shadow:var(--shadow)}
   .loading-screen{padding:120px 24px;text-align:center;color:var(--muted);font-size:13.5px}
   .spin{width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--accent-deep);border-radius:50%;margin:0 auto 16px;animation:spin .7s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
@@ -408,8 +438,12 @@ window.CONFIG = {
     if (!tg) return;
     const a = tg.contentSafeAreaInset || {};
     const b = tg.safeAreaInset || {};
-    const safeTop = Number(b.top) || 50;
-    const controlsH = Number(a.top) || 40;
+    // MUHIM: 0 ham to'g'ri qiymat (masalan, desktop Telegram yoki fullscreen
+    // bo'lmagan holat) — `|| 50` ishlatilsa, 0 falsy bo'lgani uchun tepada
+    // bekorga 50px bo'sh joy qolib ketardi.
+    const num = (v, d) => Number.isFinite(Number(v)) ? Number(v) : d;
+    const safeTop = num(b.top, 50);
+    const controlsH = num(a.top, 40);
     document.documentElement.style.setProperty('--tg-safe-top', safeTop + 'px');
     document.documentElement.style.setProperty('--tg-controls-h', controlsH + 'px');
     document.documentElement.style.setProperty('--tg-top-inset', (safeTop + controlsH) + 'px');
@@ -463,7 +497,10 @@ window.CONFIG = {
     mail:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>',
     comment:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>',
     calc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01M8 19h.01M12 19h.01M16 19h.01"/></svg>',
-    chart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>'
+    chart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>',
+    globe:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20a15 15 0 0 1 0-20"/></svg>',
+    moon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8"/></svg>',
+    tag:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 12 22l-9-9V4a1 1 0 0 1 1-1h9l7.6 7.6a2 2 0 0 1 0 2.8Z"/><path d="M7.5 7.5h.01"/></svg>'
   };
 
   const CAT_ICONS = {
@@ -492,6 +529,23 @@ window.CONFIG = {
   };
   const STATUS_CLS = { yangi:'amber', jarayonda:'blue', yetkazilgan:'green', bekor_qilingan:'red' };
   const fmt = n => Math.round(n||0).toLocaleString('ru-RU') + ' ' + tr('currency');
+  // Valyutasiz — chizib tashlangan eski narx kabi joy tor bo'lgan joylar uchun
+  const fmtNum = n => Math.round(n||0).toLocaleString('ru-RU');
+  // Diagramma ustunlari uchun qisqa format: 12 480 000 -> "12,5 mln"
+  const fmtShort = n => {
+    n = Math.round(n||0);
+    if (n >= 1e9) return (n/1e9).toFixed(1).replace('.0','').replace('.',',') + ' mlrd';
+    if (n >= 1e6) return (n/1e6).toFixed(1).replace('.0','').replace('.',',') + ' mln';
+    if (n >= 1e3) return Math.round(n/1e3) + ' ming';
+    return String(n);
+  };
+  // Birliklar bazada o'zbekcha saqlanadi — ruscha interfeys uchun moslashtiramiz
+  const UNIT_RU = { dona:'шт', metr:'м', kg:'кг', komplekt:'компл', quti:'кор', litr:'л', rulon:'рулон', paket:'пач' };
+  const unitLabel = u => {
+    const s = String(u||'').trim();
+    if (!s) return tr('unit_dona');
+    return lang()==='ru' ? (UNIT_RU[s.toLowerCase()] || s) : s;
+  };
   const fmtDate = s => { if(!s) return '—'; const d=new Date(s); return d.toLocaleDateString('ru-RU')+' '+d.toTimeString().slice(0,5); };
   // Obyekt/profil/manzil nomlari kabi erkin matnlar boshqa foydalanuvchi
   // (yoki guruh admini) tomonidan kiritiladi — innerHTML'ga xom holda
@@ -521,6 +575,8 @@ window.CONFIG = {
       products_title:'Tovarlar', position_suffix:'pozitsiya',
       need_help_title:'Yordam kerakmi?', need_help_desc:'Ushbu buyurtma bo‘yicha savollaringiz bo‘lsa, operatorga murojaat qiling.',
       write_btn:'Yozish', order_cancelled_msg:'Bu buyurtma bekor qilingan',
+      add_more:'Yana qo‘shish', notif_section:'Bildirishnomalar', settings_section:'Sozlamalar',
+      stats_period_total:'Davr bo‘yicha jami', stats_avg_month:'O‘rtacha oylik', stats_avg_order:'O‘rtacha buyurtma',
       cart_title:'Korzina', cart_subtitle:'Tanlangan tovarlar', cart_empty:'Savat hali bo‘sh', cart_empty_sub:'Katalogdan tovar tanlang',
       clear:'Tozalash', in_stock:'Sotuvda', which_object:'Qaysi obyekt uchun buyurtma?',
       no_objects_yet:'Sizda hali obyekt yo‘q. Buyurtma berish uchun avval obyekt yarating.', create_object:'Obyekt yaratish',
@@ -533,10 +589,12 @@ window.CONFIG = {
       success_debt_suffix:'— obyekt qarziga yozildi.', success_excel:'Excel fayl', success_group_suffix:'guruhiga yuborildi.',
       objects_title:'Obyektlar', objects_subtitle:'Barcha obyektlar va qarzdorliklar', new_label:'Yangi',
       object_search_ph:'Obyekt nomi yoki manzil...', object_not_found:'Obyekt topilmadi',
+      objects_empty_first:'Hali obyekt qo‘shilmagan', objects_empty_first_sub:'Buyurtma berish uchun avval qurilish obyektini qo‘shing',
+      empty_cta_object:'Birinchi obyektni qo‘shish', empty_cta_catalog:'Katalogga o‘tish',
       total_purchases:'Jami xaridlar', debt:'Qarzdorlik', status_active:'Faol',
       new_object_title:'Yangi obyekt', object_name_label:'Obyekt nomi *', object_name_ph:'masalan: Dream City',
       address_label:'Manzil', address_ph:'Shahar, tuman...', create:'Yaratish',
-      location_hint:'📍 Lokatsiyani qo‘shish uchun botga (shaxsiy chatda) joylashuvni forward/yuboring — qaysi obyekt ekanini so‘raydi.',
+      location_hint:'Lokatsiyani qo‘shish uchun botga (shaxsiy chatda) joylashuvni forward/yuboring — qaysi obyekt ekanini so‘raydi.',
       object_location:'Obyekt joylashuvi', view_on_map:'Xaritada ko‘rish', create_order:'Buyurtma yaratish',
       subtab_dashboard:'Dashboard', subtab_orders:'Buyurtmalar', subtab_debt:'Qarzdorlik', subtab_payments:'To‘lovlar',
       subtab_products:'Mahsulotlar', subtab_docs:'Hujjatlar', subtab_stats:'Statistika', subtab_edit:"Ma'lumotlar",
@@ -587,6 +645,8 @@ window.CONFIG = {
       products_title:'Товары', position_suffix:'позиция',
       need_help_title:'Нужна помощь?', need_help_desc:'Свяжитесь с нашим оператором, если у вас есть вопросы по этому заказу.',
       write_btn:'Написать', order_cancelled_msg:'Этот заказ отменён',
+      add_more:'Добавить ещё', notif_section:'Уведомления', settings_section:'Настройки',
+      stats_period_total:'Итого за период', stats_avg_month:'В среднем в месяц', stats_avg_order:'Средний заказ',
       cart_title:'Корзина', cart_subtitle:'Выбранные товары', cart_empty:'Корзина пока пуста', cart_empty_sub:'Выберите товар из каталога',
       clear:'Очистить', in_stock:'В наличии', which_object:'Для какого объекта заказ?',
       no_objects_yet:'У вас пока нет объекта. Чтобы оформить заказ, сначала создайте объект.', create_object:'Создать объект',
@@ -599,10 +659,12 @@ window.CONFIG = {
       success_debt_suffix:'— записано в долг объекта.', success_excel:'Excel-файл', success_group_suffix:'отправлен в группу.',
       objects_title:'Объекты', objects_subtitle:'Все объекты и задолженности', new_label:'Новый',
       object_search_ph:'Название объекта или адрес...', object_not_found:'Объект не найден',
+      objects_empty_first:'Объекты пока не добавлены', objects_empty_first_sub:'Чтобы оформить заказ, сначала добавьте объект',
+      empty_cta_object:'Добавить первый объект', empty_cta_catalog:'Перейти в каталог',
       total_purchases:'Общие покупки', debt:'Задолженность', status_active:'Активный',
       new_object_title:'Новый объект', object_name_label:'Название объекта *', object_name_ph:'например: Dream City',
       address_label:'Адрес', address_ph:'Город, район...', create:'Создать',
-      location_hint:'📍 Чтобы добавить локацию, перешлите/отправьте геометку боту (в личном чате) — он спросит, к какому объекту она относится.',
+      location_hint:'Чтобы добавить локацию, перешлите/отправьте геометку боту (в личном чате) — он спросит, к какому объекту она относится.',
       object_location:'Расположение объекта', view_on_map:'Посмотреть на карте', create_order:'Создать заказ',
       subtab_dashboard:'Обзор', subtab_orders:'Заказы', subtab_debt:'Задолженность', subtab_payments:'Оплаты',
       subtab_products:'Товары', subtab_docs:'Документы', subtab_stats:'Статистика', subtab_edit:'Данные',
@@ -815,8 +877,8 @@ window.CONFIG = {
       ${photo(null, p.kategoriya)}
       <div class="info">
         <div class="name">${esc(p.nomi)}${p.ommabop?'<span class="badge-mini">TOP</span>':''}</div>
-        <div class="art">${tr('art_prefix')} ${p.artikul||'—'}</div>
-        <div class="price">${hasDiscount?`<s>${fmt(p.narx)}</s>`:''}${fmt(price)} <small>/ ${p.birlik||tr('unit_dona')}</small></div>
+        <div class="art">${tr('art_prefix')} ${esc(p.artikul)||'—'}</div>
+        <div class="price">${hasDiscount?`<s>${fmtNum(p.narx)}</s><i class="off">−${Math.round((1-p.aksiya_narx/p.narx)*100)}%</i>`:''}<span class="now">${fmt(price)}<small>/ ${unitLabel(p.birlik)}</small></span></div>
       </div>
       <div data-stop>
         ${qty>0
@@ -847,12 +909,12 @@ window.CONFIG = {
     const hasDiscount = p.aksiya_narx!=null && p.aksiya_narx < p.narx;
     const price = hasDiscount ? p.aksiya_narx : p.narx;
     const related = S.products.filter(x=>x.kategoriya===p.kategoriya && x.id!==p.id).slice(0,4);
-    return `<div class="plist-head"><div class="back" data-pop>${ICONS.back}</div><h3>${esc(p.nomi)}</h3></div>
-      <div style="padding:0 18px"><div class="photo ${catTileClass(p.kategoriya)}" style="width:100%;height:220px;border-radius:16px">${catIcon(p.kategoriya)}</div></div>
+    return `<div class="plist-head"><div class="back" data-pop>${ICONS.back}</div></div>
+      <div style="padding:0 18px"><div class="photo ${catTileClass(p.kategoriya)} pd-photo" style="width:100%;height:150px;border-radius:16px">${catIcon(p.kategoriya)}</div></div>
       <div style="padding:16px 18px 0">
         <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">${catLabel(p.kategoriya)} &middot; ${tr('art_prefix')} ${esc(p.artikul)||'—'}</div>
         <div style="font-family:'Manrope',sans-serif;font-weight:800;font-size:19px;margin-top:6px">${esc(p.nomi)}</div>
-        <div style="font-size:20px;font-weight:800;color:var(--accent-deep);margin-top:10px">${hasDiscount?`<s style="color:var(--muted);font-weight:500;font-size:14px;margin-right:8px">${fmt(p.narx)}</s>`:''}${fmt(price)} <span style="font-size:13px;color:var(--muted);font-weight:500">/ ${p.birlik||tr('unit_dona')}</span></div>
+        <div style="font-size:20px;font-weight:800;color:var(--accent-deep);margin-top:10px">${hasDiscount?`<s style="color:var(--muted);font-weight:500;font-size:13px;margin-right:8px">${fmtNum(p.narx)}</s><i style="font-style:normal;font-size:11.5px;font-weight:800;color:var(--red);background:var(--red-bg);border-radius:6px;padding:2px 6px;margin-right:8px">−${Math.round((1-p.aksiya_narx/p.narx)*100)}%</i>`:''}${fmt(price)} <span style="font-size:13px;color:var(--muted);font-weight:500;white-space:nowrap">/ ${unitLabel(p.birlik)}</span></div>
       </div>
       <div style="padding:18px;display:flex;align-items:center;gap:12px">
         ${qty>0
@@ -875,16 +937,16 @@ window.CONFIG = {
     return `${renderTopbar()}
       <div class="page-head"><h1>${tr('orders_title')}</h1><p>${tr('orders_subtitle')}</p></div>
       <div class="filter-tabs">${defs.map(d=>`<div class="ftab ${d===filter?'active':''}" data-order-filter="${d}">${statusLabel(d)} (${counts[d]||0})</div>`).join('')}</div>
-      <div class="plist" style="padding-top:6px">${items.length ? items.map(orderCard).join('') : `<div class="empty-state">${ICONS.doc}<div>${tr('orders_empty')}</div></div>`}</div>`;
+      <div class="plist" style="padding-top:6px">${items.length ? items.map(orderCard).join('') : `<div class="empty-state">${ICONS.doc}<div>${filter==='barchasi'?tr('no_orders_yet'):tr('orders_empty')}</div>${filter==='barchasi'?`<button class="btn-accent" data-goto-tab="asosiy">${tr('empty_cta_catalog')}</button>`:''}</div>`}</div>`;
   }
-  function orderCard(o){
-    const objNomi = o.hs_objects ? o.hs_objects.nomi : '—';
+  function orderCard(o, hideObj){
+    const objNomi = o.hs_objects ? esc(o.hs_objects.nomi) : '—';
     return `<div class="order-card" data-open-order="${o.id}">
       <div class="order-top">
         <div>
           <div class="order-id">${o.order_no||o.id.slice(0,8)}</div>
           <div class="order-meta">${ICONS.cal}${fmtDate(o.created_at)}</div>
-          <div class="order-meta">${ICONS.building}${objNomi}</div>
+          ${hideObj===true?'':`<div class="order-meta">${ICONS.building}${objNomi}</div>`}
         </div>
         <span class="pill ${STATUS_CLS[o.status]}">${statusLabel(o.status)}</span>
       </div>
@@ -917,7 +979,7 @@ window.CONFIG = {
           </div>
         `).join('')}</div>`;
 
-    return `<div class="page-head-row" style="padding-top:calc(2px + var(--tg-top-inset))"><div class="back" data-pop>${ICONS.back}</div><div class="page-head" style="flex:1"><h1>${tr('order_hash')}${o.order_no}</h1><p>${tr('order_detail_subtitle')}</p></div></div>
+    return `<div class="page-head-row" style="padding-top:max(14px, calc(2px + var(--tg-top-inset)))"><div class="back" data-pop>${ICONS.back}</div><div class="page-head" style="flex:1"><h1>${tr('order_hash')}${o.order_no}</h1><p>${tr('order_detail_subtitle')}</p></div></div>
       ${statusBlock}
       <div class="action-grid">
         <div class="action-card" data-print>
@@ -933,13 +995,12 @@ window.CONFIG = {
         <div class="card-head"><div class="l"><div class="ic">${ICONS.doc}</div>${tr('order_info')}</div><span class="pill ${STATUS_CLS[o.status]}">${statusLabel(o.status)}</span></div>
         <div class="info-row"><div class="ic">${ICONS.cal}</div><div class="l">${tr('date_time_label')}</div><div class="v">${fmtDate(o.created_at)}</div></div>
         <div class="info-row"><div class="ic">${ICONS.building}</div><div class="l">${tr('object_label')}</div><div class="v">${objNomi}</div></div>
+        ${o.hs_objects && o.hs_objects.manzil ? `<div class="info-row"><div class="ic">${ICONS.pin}</div><div class="l">${tr('address_label')}</div><div class="v">${esc(o.hs_objects.manzil)}</div></div>` : ''}
         <div class="info-row"><div class="ic">${ICONS.user}</div><div class="l">${tr('customer_label')}</div><div class="v">${esc(o.telegram_name)||'—'}</div></div>
-        <div class="info-row"><div class="ic">${ICONS.doc}</div><div class="l">${tr('invoice_no_label')}</div><div class="v">${o.order_no}</div></div>
-        <div class="info-row"><div class="ic">${ICONS.comment}</div><div class="l">${tr('comment_label')}</div><div class="v" style="color:var(--muted);font-weight:600">—</div></div>
       </div>
       <div class="prod-card">
         <div class="card-head"><div class="l"><div class="ic">${ICONS.box}</div>${tr('products_title')} (${items.length})</div></div>
-        ${items.map(it=>`<div class="prod-row"><div class="photo">${ICONS.box}</div><div class="info"><div class="n">${it.nomi}</div><div class="a">${it.artikul||'—'} &middot; ${fmt(it.narx)} / ${it.birlik||tr('unit_dona')}</div></div><div class="amt"><div class="s">${fmt(it.summa)}</div><div class="m">${it.miqdor} ${it.birlik||''}</div></div></div>`).join('')}
+        ${items.map(it=>`<div class="prod-row"><div class="photo">${ICONS.box}</div><div class="info"><div class="n">${esc(it.nomi)}</div><div class="a">${esc(it.artikul)||'—'} &middot; ${fmt(it.narx)} / ${unitLabel(it.birlik)}</div></div><div class="amt"><div class="s">${fmt(it.summa)}</div><div class="m">${it.miqdor} ${unitLabel(it.birlik)}</div></div></div>`).join('')}
       </div>
       <div class="total-card">
         <div class="ic">${ICONS.calc}</div>
@@ -978,7 +1039,8 @@ window.CONFIG = {
     if (!ids.length){
       return `${renderTopbar()}
         <div class="page-head-row"><div class="page-head"><h1>${tr('cart_title')}</h1><p>${tr('cart_subtitle')}</p></div></div>
-        <div class="empty-state">${ICONS.cart}<div>${tr('cart_empty')}<br>${tr('cart_empty_sub')}</div></div>
+        <div class="empty-state">${ICONS.cart}<div>${tr('cart_empty')}<br>${tr('cart_empty_sub')}</div>
+          <button class="btn-accent" data-goto-tab="asosiy">${tr('empty_cta_catalog')}</button></div>
         ${draftsSection()}`;
     }
     const total = ids.reduce((s,id)=>{ const p=S.products.find(x=>x.id===id); if(!p) return s; const price=(p.aksiya_narx!=null&&p.aksiya_narx<p.narx)?p.aksiya_narx:p.narx; return s+price*S.cart[id]; },0);
@@ -990,13 +1052,12 @@ window.CONFIG = {
         <div class="info">
           <div class="name">${esc(p.nomi)}</div>
           <div class="art">${tr('art_prefix')} ${esc(p.artikul)||'—'}</div>
-          <span class="stock-badge">${tr('in_stock')}</span>
           <div class="bottom-row">
             <div class="stepper"><button data-cart-dec="${id}">−</button><input class="qty-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" id="qty-cart-${id}" data-qty-input="${id}" value="${S.cart[id]}"><button data-cart-inc="${id}">+</button></div>
-            <div class="price-block"><div class="unit">${fmt(price)}</div><div class="line">${fmt(price*S.cart[id])}</div></div>
+            <div class="price-block"><div class="unit">${fmt(price)} / ${unitLabel(p.birlik)}</div><div class="line">${fmt(price*S.cart[id])}</div></div>
           </div>
         </div>
-        <span class="trash" data-cart-del="${id}" style="font-size:24px;font-weight:800;line-height:1">−</span>
+        <span class="trash" data-cart-del="${id}" style="font-size:26px;font-weight:800;line-height:1">−</span>
       </div>`;
     }).join('');
 
@@ -1006,8 +1067,9 @@ window.CONFIG = {
       <div class="page-head-row"><div class="page-head"><h1>${tr('cart_title')}</h1><p>${tr('cart_subtitle')}</p></div>
         <button class="btn-ghost danger" data-clear-cart>${ICONS.trash} ${tr('clear')}</button></div>
       <div class="plist" style="padding-top:6px">${rows}</div>
-      <div style="padding:0 18px 4px">
-        <button type="button" class="btn-ghost" style="width:100%;justify-content:center" data-save-draft>${ICONS.doc} ${tr('save_as_draft')}</button>
+      <div style="padding:0 18px 4px;display:flex;gap:8px">
+        <button type="button" class="btn-ghost" style="flex:1;justify-content:center" data-goto-tab="asosiy">${ICONS.plus} ${tr('add_more')}</button>
+        <button type="button" class="btn-ghost" style="flex:1;justify-content:center" data-save-draft>${ICONS.doc} ${tr('save_as_draft')}</button>
       </div>
       <div class="obj-select">
         <div class="l">${ICONS.building} ${tr('which_object')}</div>
@@ -1067,7 +1129,10 @@ window.CONFIG = {
       <div class="page-head-row"><div class="page-head"><h1>${tr('objects_title')}</h1><p>${tr('objects_subtitle')}</p></div>
         <button class="btn-accent" data-goto-new-object>${ICONS.plus} ${tr('new_label')}</button></div>
       <div class="search"><div class="search-box">${ICONS.search}<input id="objSearch" placeholder="${tr('object_search_ph')}" value="${S.tmp.objQ||''}"></div></div>
-      <div class="plist">${items.length ? items.map(objectCard).join('') : `<div class="empty-state">${ICONS.building}<div>${tr('object_not_found')}</div></div>`}</div>`;
+      <div class="plist">${items.length ? items.map(objectCard).join('') : (q
+        ? `<div class="empty-state">${ICONS.building}<div>${tr('object_not_found')}</div></div>`
+        : `<div class="empty-state">${ICONS.building}<div>${tr('objects_empty_first')}<br><span style="font-size:12px">${tr('objects_empty_first_sub')}</span></div>
+             <button class="btn-accent" data-goto-new-object>${ICONS.plus} ${tr('empty_cta_object')}</button></div>`)}</div>`;
   }
   function objectCard(o){
     return `<div class="obj-card" data-open-object="${o.id}">
@@ -1082,9 +1147,9 @@ window.CONFIG = {
   // ---- new object form ----
   function screenNewObject(){
     return `<div class="plist-head"><div class="back" data-pop>${ICONS.back}</div><h3>${tr('new_object_title')}</h3></div>
-      <div class="field"><label>${tr('object_name_label')}</label><input id="f_nomi" placeholder="${tr('object_name_ph')}"></div>
+      <div class="field" style="margin-top:14px"><label>${tr('object_name_label')}</label><input id="f_nomi" placeholder="${tr('object_name_ph')}"></div>
       <div class="field"><label>${tr('address_label')}</label><input id="f_manzil" placeholder="${tr('address_ph')}"></div>
-      <div style="margin:0 18px 12px;font-size:12px;color:var(--muted)">${tr('location_hint')}</div>
+      <div class="hint-card">${ICONS.pin}<div>${tr('location_hint')}</div></div>
       <div class="cta-wrap"><button class="cta" id="createObjBtn">${ICONS.check} ${tr('create')}</button></div>`;
   }
   async function submitNewObject(){
@@ -1126,7 +1191,7 @@ window.CONFIG = {
     else if (sub==='stats') body = objTabStats(orders);
     else if (sub==='edit') body = objTabEdit(detail);
 
-    return `<div class="plist-head"><div class="back" data-pop>${ICONS.back}</div><h3>${esc(detail.nomi)}</h3></div>
+    return `<div class="plist-head"><div class="back" data-pop>${ICONS.back}</div></div>
       <div class="obj-hero">
         <div class="obj-hero-top">
           <div class="photo t2" style="width:52px;height:52px">${ICONS.building}</div>
@@ -1143,9 +1208,13 @@ window.CONFIG = {
   function objTabDashboard(o, orders){
     const hasLoc = o.lat!=null && o.lng!=null;
     const mapSection = hasLoc ? `
-      <div class="sec-head"><h3>${tr('object_location')}</h3></div>
-      <div style="padding:0 18px 14px">
-        <button type="button" class="btn-ghost" style="width:100%;justify-content:center" data-send-location="${o.id}">${ICONS.pin} ${tr('view_on_map')}</button>
+      <div class="loc-card">
+        <div class="ic">${ICONS.pin}</div>
+        <div class="mid">
+          <div class="t">${tr('object_location')}</div>
+          <div class="s">${o.manzil ? esc(o.manzil) : `${o.lat.toFixed(5)}, ${o.lng.toFixed(5)}`}</div>
+        </div>
+        <button type="button" class="btn-ghost" data-send-location="${o.id}">${tr('view_on_map')}</button>
       </div>` : '';
     return `<div class="stat-grid">
       <div class="stat-tile"><div class="ic">${ICONS.cart}</div><div class="l">${tr('total_purchases')}</div><div class="v">${fmt(o.jami)}</div></div>
@@ -1155,11 +1224,11 @@ window.CONFIG = {
     </div>
     ${mapSection}
     <div class="sec-head"><h3>${tr('latest_orders')}</h3><a data-obj-tab="orders">${tr('all')} ${ICONS.chev}</a></div>
-    <div class="plist">${orders.slice(0,3).map(orderCard).join('') || `<div class="empty-state">${tr('no_orders_yet')}</div>`}</div>
+    <div class="plist">${orders.slice(0,3).map(o=>orderCard(o,true)).join('') || `<div class="empty-state">${tr('no_orders_yet')}</div>`}</div>
     <div class="cta-wrap"><button class="cta" data-new-order-for="${o.id}">${ICONS.plus} ${tr('create_order')}</button></div>`;
   }
   function objTabOrders(orders){
-    return `<div class="plist" style="padding-top:12px">${orders.length ? orders.map(orderCard).join('') : `<div class="empty-state">${tr('no_orders_object')}</div>`}</div>`;
+    return `<div class="plist" style="padding-top:12px">${orders.length ? orders.map(o=>orderCard(o,true)).join('') : `<div class="empty-state">${tr('no_orders_object')}</div>`}</div>`;
   }
   function objTabDebt(debt){
     if (!debt.length) return `<div class="empty-state">${ICONS.doc}<div>${tr('debt_history_empty')}</div></div>`;
@@ -1187,7 +1256,7 @@ window.CONFIG = {
     const rows = Object.values(agg).sort((a,b)=>b.summa-a.summa);
     if (!rows.length) return `<div class="empty-state">${tr('no_product_history')}</div>`;
     return `<div style="margin:12px 18px;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:4px 14px;box-shadow:var(--shadow)">
-      ${rows.map(r=>`<div class="agg-row"><div><div class="n">${r.nomi}</div><div class="a">${r.miqdor} ${r.birlik||''} &middot; ${tr('art_prefix')} ${r.artikul}</div></div><div class="v">${fmt(r.summa)}</div></div>`).join('')}
+      ${rows.map(r=>`<div class="agg-row"><div><div class="n">${esc(r.nomi)}</div><div class="a">${r.miqdor} ${unitLabel(r.birlik)} &middot; ${tr('art_prefix')} ${esc(r.artikul)}</div></div><div class="v">${fmt(r.summa)}</div></div>`).join('')}
     </div>`;
   }
   function objTabDocs(orders){
@@ -1207,9 +1276,15 @@ window.CONFIG = {
     const months = Object.keys(byMonth).sort().slice(-6);
     if (!months.length) return `<div class="empty-state">${tr('no_stats_data')}</div>`;
     const max = Math.max(...months.map(m=>byMonth[m]), 1);
+    const sum = months.reduce((a,m)=>a+byMonth[m], 0);
     return `<div style="margin:12px 18px;background:var(--panel);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow)">
       <div style="padding:14px 14px 0;font-weight:800;font-family:'Manrope',sans-serif;font-size:13px">${tr('monthly_purchases')}</div>
-      <div class="bars">${months.map(m=>`<div class="bar-col"><div class="bar" style="height:${Math.max(4,byMonth[m]/max*90)}px" title="${fmt(byMonth[m])}"></div><div class="lbl">${m.slice(5)}</div></div>`).join('')}</div>
+      <div class="bars">${months.map(m=>`<div class="bar-col"><div class="val">${fmtShort(byMonth[m])}</div><div class="bar" style="height:${Math.max(4,byMonth[m]/max*80)}px"></div><div class="lbl">${m.slice(5)}.${m.slice(2,4)}</div></div>`).join('')}</div>
+      <div class="stat-rows">
+        <div class="srow"><span>${tr('stats_period_total')}</span><b>${fmt(sum)}</b></div>
+        <div class="srow"><span>${tr('stats_avg_month')}</span><b>${fmt(sum/months.length)}</b></div>
+        <div class="srow"><span>${tr('stats_avg_order')}</span><b>${fmt(orders.length?orders.reduce((a,o)=>a+Number(o.total),0)/orders.length:0)}</b></div>
+      </div>
     </div>`;
   }
   function objTabEdit(o){
@@ -1242,21 +1317,23 @@ window.CONFIG = {
       <div class="menu-card">
         <div class="menu-item" data-goto-profile-edit><div class="ic">${ICONS.user}</div><div class="mid"><div class="t">${tr('personal_data')}</div><div class="s">${tr('personal_data_sub')}</div></div><div class="right">${ICONS.chev}</div></div>
         <div class="menu-item" data-goto="addresses"><div class="ic">${ICONS.pin}</div><div class="mid"><div class="t">${tr('my_addresses')}</div></div><div class="right">${ICONS.chev}</div></div>
-        <div class="menu-item" data-nav-home><div class="ic">${ICONS.building}</div><div class="mid"><div class="t">${tr('my_objects')}</div></div><div class="right">${ICONS.chev}</div></div>
+        <div class="menu-item" data-goto-tab="objects"><div class="ic">${ICONS.building}</div><div class="mid"><div class="t">${tr('my_objects')}</div></div><div class="right">${ICONS.chev}</div></div>
       </div>
-      <div class="menu-card">
-        <div class="switch-row"><div class="t">${tr('notif_orders')}</div><label class="switch"><input type="checkbox" ${p.bildir_buyurtma?'checked':''} data-toggle="bildir_buyurtma"><span class="track"></span></label></div>
-        <div class="switch-row"><div class="t">${tr('notif_debt')}</div><label class="switch"><input type="checkbox" ${p.bildir_qarz?'checked':''} data-toggle="bildir_qarz"><span class="track"></span></label></div>
-        <div class="switch-row"><div class="t">${tr('notif_promo')}</div><label class="switch"><input type="checkbox" ${p.bildir_aksiya?'checked':''} data-toggle="bildir_aksiya"><span class="track"></span></label></div>
+      <div class="sec-head" style="margin-top:4px"><h3>${tr('notif_section')}</h3></div>
+      <div class="menu-card" style="margin-top:0">
+        <div class="switch-row"><div class="ic">${ICONS.doc}</div><div class="t">${tr('notif_orders')}</div><label class="switch"><input type="checkbox" ${p.bildir_buyurtma?'checked':''} data-toggle="bildir_buyurtma"><span class="track"></span></label></div>
+        <div class="switch-row"><div class="ic">${ICONS.up}</div><div class="t">${tr('notif_debt')}</div><label class="switch"><input type="checkbox" ${p.bildir_qarz?'checked':''} data-toggle="bildir_qarz"><span class="track"></span></label></div>
+        <div class="switch-row"><div class="ic">${ICONS.tag}</div><div class="t">${tr('notif_promo')}</div><label class="switch"><input type="checkbox" ${p.bildir_aksiya?'checked':''} data-toggle="bildir_aksiya"><span class="track"></span></label></div>
       </div>
-      <div class="menu-card">
-        <div class="menu-item"><div class="ic">🌐</div><div class="mid"><div class="t">${tr('lang_label')}</div></div>
+      <div class="sec-head" style="margin-top:4px"><h3>${tr('settings_section')}</h3></div>
+      <div class="menu-card" style="margin-top:0">
+        <div class="menu-item"><div class="ic">${ICONS.globe}</div><div class="mid"><div class="t">${tr('lang_label')}</div></div>
           <select data-set-lang style="border:1px solid var(--border);border-radius:8px;padding:6px 8px;background:var(--panel2);color:var(--text);font-family:inherit">
             <option value="uz" ${(p.til||'uz')==='uz'?'selected':''}>${tr('lang_uz')}</option>
             <option value="ru" ${p.til==='ru'?'selected':''}>${tr('lang_ru')}</option>
           </select>
         </div>
-        <div class="menu-item"><div class="ic">🌗</div><div class="mid"><div class="t">${tr('theme_label')}</div></div>
+        <div class="menu-item"><div class="ic">${ICONS.moon}</div><div class="mid"><div class="t">${tr('theme_label')}</div></div>
           <select data-set-theme style="border:1px solid var(--border);border-radius:8px;padding:6px 8px;background:var(--panel2);color:var(--text);font-family:inherit">
             <option value="system" ${p.tema==='system'?'selected':''}>${tr('theme_system')}</option>
             <option value="light" ${p.tema==='light'?'selected':''}>${tr('theme_light')}</option>
@@ -1411,6 +1488,13 @@ window.CONFIG = {
   function wire(){
     const app = document.getElementById('app');
     app.querySelectorAll('[data-nav-home]').forEach(el=>el.onclick=()=>switchTab('asosiy'));
+    app.querySelectorAll('[data-goto-tab]').forEach(el=>el.onclick=()=>switchTab(el.dataset.gotoTab));
+    // Faol subtab ekrandan chiqib ketmasin — gorizontal ro'yxatni suramiz
+    const activeSub = app.querySelector('.subtab.active');
+    if (activeSub && activeSub.parentElement) {
+      const box = activeSub.parentElement;
+      box.scrollLeft = Math.max(0, activeSub.offsetLeft - box.clientWidth / 2 + activeSub.offsetWidth / 2);
+    }
     app.querySelectorAll('[data-open-notif]').forEach(el=>el.onclick=()=>push('notifications'));
     app.querySelectorAll('[data-pop]').forEach(el=>el.onclick=pop);
     app.querySelectorAll('[data-open-cat]').forEach(el=>el.onclick=()=>{ S.tmp.listQ=''; push('list', { cat: el.dataset.openCat }); });
