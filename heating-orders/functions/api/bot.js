@@ -45,12 +45,18 @@ export async function onRequestPost({ request, env }) {
         return json({ ok: true });
       }
       const url = `${env.MINIAPP_URL}/?g=${code}`;
-      await tgApi(env, 'sendMessage', {
+      const sendRes = await tgApi(env, 'sendMessage', {
         chat_id: chat.id,
         text: `👋 Salom! Siz <b>${brigade.nomi}</b> brigadasi nomidan buyurtma berasiz.\n\nTovar tanlash uchun pastdagi tugmani bosing 👇`,
         parse_mode: 'HTML',
         reply_markup: { inline_keyboard: [[{ text: '🛒 Katalog va buyurtma', web_app: { url } }]] }
       });
+      if (!sendRes.ok) {
+        await tgApi(env, 'sendMessage', {
+          chat_id: chat.id,
+          text: `⚠️ Diagnostika: tugmali xabar yuborib bo'lmadi.\nTelegram xatosi: ${sendRes.description || 'nomaʼlum'}\nURL: ${url}`
+        });
+      }
       return json({ ok: true });
     }
 
