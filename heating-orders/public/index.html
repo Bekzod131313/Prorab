@@ -42,8 +42,8 @@
 
   .topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 4px;position:sticky;top:0;background:var(--bg);z-index:5}
   .logo{display:flex;flex-direction:column;line-height:1;cursor:pointer}
-  .logo b{font-family:'Manrope',sans-serif;font-weight:800;font-size:21px;letter-spacing:-.02em;font-style:italic;color:var(--accent-deep)}
-  .logo em{font-style:normal;font-size:8px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-top:3px}
+  .logo-img{height:26px;width:auto;border-radius:6px;display:block}
+  .logo em{font-style:normal;font-size:8px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-top:5px;display:block}
   .topbar-icons{display:flex;gap:8px}
   .icon-btn{width:38px;height:38px;border-radius:11px;background:var(--panel2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text);cursor:pointer;flex:0 0 auto;position:relative}
   .icon-btn svg{width:18px;height:18px}
@@ -73,6 +73,7 @@
   .photo.t6{background:var(--tile6);color:var(--tile6-ink)}
 
   .hero{margin:14px 18px 4px;border-radius:18px;background:linear-gradient(135deg,var(--accent) 0%,var(--accent-deep) 100%);position:relative;overflow:hidden;padding:20px 20px 22px;color:var(--accent-ink)}
+  .hero-img{display:block;width:100%;border-radius:18px;box-shadow:var(--shadow)}
   .hero::before{content:"";position:absolute;right:-28px;top:-36px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.16)}
   .hero::after{content:"";position:absolute;right:16px;bottom:-22px;width:96px;height:96px;border:12px solid rgba(255,255,255,.18);border-radius:50%}
   .hero-eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;opacity:.75}
@@ -323,6 +324,8 @@ window.CONFIG = {
   if (tg) { tg.ready(); tg.expand(); }
   const sb = window.supabase.createClient(window.CONFIG.SUPABASE_URL, window.CONFIG.SUPABASE_ANON_KEY);
   const urlCode = new URLSearchParams(location.search).get('g') || '';
+  const LOGO_URL = 'https://github.com/user-attachments/assets/0988b696-e5ef-4ee3-9235-84cc7ad9f95f';
+  const BANNER_URL = 'https://github.com/user-attachments/assets/76ea1c95-fd62-47c8-a559-7e6ace59d3f4';
 
   const ICONS = {
     bell:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>',
@@ -437,7 +440,7 @@ window.CONFIG = {
   function renderTopbar({ search=false, unreadBell=true } = {}){
     const unread = S.notifications.filter(n=>!n.oqilgan).length;
     return `<div class="topbar">
-      <div class="logo" data-nav-home><b>ZODPRO</b><em>Santexnika &middot; Otopleniya &middot; Buyurtma</em></div>
+      <div class="logo" data-nav-home><img class="logo-img" src="${LOGO_URL}" alt="ZODPRO"><em>Santexnika &middot; Otopleniya &middot; Buyurtma</em></div>
       <div class="topbar-icons">
         <div class="icon-btn" data-open-notif>${ICONS.bell}${unread?`<span class="dot-badge">${unread}</span>`:''}</div>
       </div>
@@ -459,11 +462,7 @@ window.CONFIG = {
     const cats = [...new Set(S.products.map(p=>p.kategoriya||'Boshqa'))];
     const aksiya = S.products.filter(p=>p.aksiya_narx!=null && p.aksiya_narx < p.narx).slice(0,6);
     const ommabop = S.products.filter(p=>p.ommabop).slice(0,6);
-    const hero = `<div class="hero">
-      <div class="hero-eyebrow">${S.brigade ? S.brigade.nomi : 'Xush kelibsiz'}</div>
-      <h2>Kerakli tovarni tanlang, buyurtma qarzga yoziladi</h2>
-      <div class="hero-cta"><span class="arrow">${ICONS.chev}</span> Excel avtomatik guruhga tushadi</div>
-    </div>`;
+    const hero = `<div style="padding:14px 18px 4px"><img class="hero-img" src="${BANNER_URL}" alt="ZODPRO"></div>`;
     return `${renderTopbar()}${searchBox}${hero}
       ${!S.products.length ? `<div class="empty-state">${ICONS.box}<div>Hozircha katalogda tovar yo‘q.<br>Admin panel orqali qo‘shiladi.</div></div>` : ''}
       ${aksiya.length ? `<div class="sec-head"><h3>Aksiyalar</h3></div><div class="plist" data-plist="aksiya">${aksiya.map(productCard).join('')}</div>` : ''}
