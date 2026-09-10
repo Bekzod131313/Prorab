@@ -324,8 +324,8 @@ window.CONFIG = {
   if (tg) { tg.ready(); tg.expand(); }
   const sb = window.supabase.createClient(window.CONFIG.SUPABASE_URL, window.CONFIG.SUPABASE_ANON_KEY);
   const urlCode = new URLSearchParams(location.search).get('g') || '';
-  const LOGO_URL = 'https://github.com/user-attachments/assets/0988b696-e5ef-4ee3-9235-84cc7ad9f95f';
-  const BANNER_URL = 'https://github.com/user-attachments/assets/76ea1c95-fd62-47c8-a559-7e6ace59d3f4';
+  const LOGO_URL = '/assets/logo.png';
+  const BANNER_URL = '/assets/banner.png';
 
   const ICONS = {
     bell:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>',
