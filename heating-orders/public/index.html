@@ -321,7 +321,12 @@ window.CONFIG = {
 <script>
 (function(){
   const tg = window.Telegram && window.Telegram.WebApp;
-  if (tg) { tg.ready(); tg.expand(); }
+  if (tg) {
+    tg.ready();
+    tg.expand();
+    try { if (tg.requestFullscreen) tg.requestFullscreen(); } catch (e) {}
+    try { tg.disableVerticalSwipes && tg.disableVerticalSwipes(); } catch (e) {}
+  }
   const sb = window.supabase.createClient(window.CONFIG.SUPABASE_URL, window.CONFIG.SUPABASE_ANON_KEY);
   const urlCode = new URLSearchParams(location.search).get('g') || '';
   const LOGO_URL = '/assets/logo.png';
