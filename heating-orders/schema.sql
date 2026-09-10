@@ -66,9 +66,13 @@ create table if not exists hs_objects (
   brigade_id  uuid references hs_brigades(id) on delete cascade,
   nomi        text not null,
   manzil      text,
+  lat         double precision,
+  lng         double precision,
   created_by  bigint,
   created_at  timestamptz default now()
 );
+alter table hs_objects add column if not exists lat double precision;
+alter table hs_objects add column if not exists lng double precision;
 create index if not exists idx_hs_objects_brigade on hs_objects(brigade_id);
 
 -- ---------- Buyurtma raqami uchun ketma-ketlik ----------

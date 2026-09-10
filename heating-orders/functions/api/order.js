@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { json, sbFetch, requireUser, nextOrderNo, notify } from '../_lib.js';
+import { json, sbFetch, requireUser, nextOrderNo, notify, tgApi } from '../_lib.js';
 
 // Savatni qabul qiladi, narxlarni bazadan qayta hisoblaydi, buyurtmani
 // tanlangan OBYEKTGA bog'laydi va uning qarziga yozadi (to'lov tizimi yo'q —
@@ -94,6 +94,16 @@ export async function onRequestPost({ request, env }) {
     const tgData = await tgRes.json();
     if (!tgData.ok) {
       return json({ error: 'Telegramga yuborishda xatolik: ' + (tgData.description || 'noma’lum xato') }, 502);
+    }
+
+    // Obyektga joylashuv (lokatsiya) biriktirilgan bo'lsa, buyurtma bilan birga
+    // guruhga haqiqiy Telegram lokatsiya sifatida ham yuboramiz (xarita bilan).
+    if (object.lat != null && object.lng != null) {
+      try {
+        await tgApi(env, 'sendLocation', { chat_id: brigade.chat_id, latitude: object.lat, longitude: object.lng });
+      } catch (e) {
+        // Lokatsiya yuborilmasa ham buyurtmaning o'zi bekor bo'lmasligi kerak
+      }
     }
 
     await notify(env, {

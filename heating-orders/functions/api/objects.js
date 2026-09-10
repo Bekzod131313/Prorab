@@ -75,10 +75,15 @@ export async function onRequestPost({ request, env }) {
   const nomi = String(body.nomi || '').trim();
   if (!nomi) return json({ error: 'Obyekt nomi kiritilishi shart' }, 400);
 
+  const lat = Number(body.lat);
+  const lng = Number(body.lng);
+
   const rows = await sbFetch(env, '/rest/v1/hs_objects', 'POST', {
     brigade_id: brigadeId,
     nomi,
     manzil: String(body.manzil || '').trim() || null,
+    lat: Number.isFinite(lat) ? lat : null,
+    lng: Number.isFinite(lng) ? lng : null,
     created_by: user.id
   });
   return json(rows[0]);
@@ -95,6 +100,8 @@ export async function onRequestPatch({ request, env }) {
   const patch = {};
   if (body.nomi !== undefined) patch.nomi = String(body.nomi).trim();
   if (body.manzil !== undefined) patch.manzil = String(body.manzil).trim();
+  if (body.lat !== undefined) { const n = Number(body.lat); patch.lat = Number.isFinite(n) ? n : null; }
+  if (body.lng !== undefined) { const n = Number(body.lng); patch.lng = Number.isFinite(n) ? n : null; }
 
   const rows = await sbFetch(env, `/rest/v1/hs_objects?id=eq.${body.id}&brigade_id=eq.${brigadeId}`, 'PATCH', patch);
   if (!rows || !rows.length) return json({ error: 'Obyekt topilmadi' }, 404);
