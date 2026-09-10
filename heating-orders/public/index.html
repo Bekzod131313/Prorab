@@ -326,6 +326,15 @@ window.CONFIG = {
 <script>
 (function(){
   const tg = window.Telegram && window.Telegram.WebApp;
+  const THEME_BG = { light:'#f4f6f3', dark:'#0c130e' };
+  function syncTelegramChrome(tema){
+    if (!tg) return;
+    const dark = tema === 'dark' || (tema !== 'light' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const bg = dark ? THEME_BG.dark : THEME_BG.light;
+    try { tg.setBackgroundColor && tg.setBackgroundColor(bg); } catch (e) {}
+    try { tg.setHeaderColor && tg.setHeaderColor(bg); } catch (e) {}
+    try { tg.setBottomBarColor && tg.setBottomBarColor(bg); } catch (e) {}
+  }
   function applySafeArea(){
     if (!tg) return;
     const a = tg.contentSafeAreaInset || {};
@@ -342,12 +351,17 @@ window.CONFIG = {
     try { if (tg.requestFullscreen) tg.requestFullscreen(); } catch (e) {}
     try { tg.disableVerticalSwipes && tg.disableVerticalSwipes(); } catch (e) {}
     applySafeArea();
+    syncTelegramChrome();
     try {
       tg.onEvent && tg.onEvent('safeAreaChanged', applySafeArea);
       tg.onEvent && tg.onEvent('contentSafeAreaChanged', applySafeArea);
       tg.onEvent && tg.onEvent('fullscreenChanged', applySafeArea);
     } catch (e) {}
   }
+  try {
+    window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)')
+      .addEventListener('change', ()=>syncTelegramChrome(S.profile && S.profile.tema));
+  } catch (e) {}
   const sb = window.supabase.createClient(window.CONFIG.SUPABASE_URL, window.CONFIG.SUPABASE_ANON_KEY);
   const urlCode = new URLSearchParams(location.search).get('g') || '';
   const LOGO_URL = '/assets/logo.png';
@@ -443,6 +457,7 @@ window.CONFIG = {
     const t = S.profile && S.profile.tema;
     if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t);
     else document.documentElement.removeAttribute('data-theme');
+    syncTelegramChrome(t);
   }
 
   // ---------- Bootstrap ----------
