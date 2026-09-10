@@ -203,6 +203,13 @@
   .obj-stats .cell .v.red{color:var(--red)}
   .obj-stats .cell .v.green{color:var(--accent-deep)}
 
+  .obj-hero{margin:10px 18px 0;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:14px;box-shadow:var(--shadow)}
+  .obj-hero-top{display:flex;align-items:center;gap:12px}
+  .obj-hero-top .info{flex:1;min-width:0}
+  .obj-hero-top .name{font-size:15px;font-weight:800;font-family:'Manrope',sans-serif}
+  .obj-hero-top .loc{display:flex;align-items:center;gap:4px;font-size:11.5px;color:var(--muted);margin-top:4px}
+  .obj-hero-top .loc svg{width:12px;height:12px;flex:0 0 auto}
+
   .subtabs{display:flex;gap:7px;overflow-x:auto;padding:4px 18px 12px;scrollbar-width:none}
   .subtabs::-webkit-scrollbar{display:none}
   .subtab{flex:0 0 auto;padding:7px 13px;border-radius:10px;background:var(--panel2);border:1px solid var(--border);color:var(--muted);font-size:12px;font-weight:700;white-space:nowrap;cursor:pointer}
@@ -210,6 +217,8 @@
 
   .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:4px 18px 8px}
   .stat-tile{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px;box-shadow:var(--shadow)}
+  .stat-tile .ic{width:32px;height:32px;border-radius:9px;background:var(--green-bg);color:var(--accent-deep);display:flex;align-items:center;justify-content:center;margin-bottom:9px}
+  .stat-tile .ic svg{width:15px;height:15px}
   .stat-tile .l{font-size:11px;color:var(--muted);font-weight:600}
   .stat-tile .v{font-family:'Manrope',sans-serif;font-weight:800;font-size:17px;margin-top:6px;font-variant-numeric:tabular-nums}
   .stat-tile .v.red{color:var(--red)}
@@ -516,11 +525,11 @@ window.CONFIG = {
       success_debt_suffix:'— obyekt qarziga yozildi.', success_excel:'Excel fayl', success_group_suffix:'guruhiga yuborildi.',
       objects_title:'Obyektlar', objects_subtitle:'Barcha obyektlar va qarzdorliklar', new_label:'Yangi',
       object_search_ph:'Obyekt nomi yoki manzil...', object_not_found:'Obyekt topilmadi',
-      total_purchases:'Jami xaridlar', debt:'Qarzdorlik',
+      total_purchases:'Jami xaridlar', debt:'Qarzdorlik', status_active:'Faol',
       new_object_title:'Yangi obyekt', object_name_label:'Obyekt nomi *', object_name_ph:'masalan: Dream City',
       address_label:'Manzil', address_ph:'Shahar, tuman...', create:'Yaratish',
       location_hint:'📍 Lokatsiyani qo‘shish uchun botga (shaxsiy chatda) joylashuvni forward/yuboring — qaysi obyekt ekanini so‘raydi.',
-      view_on_map:'Xaritada ko‘rish',
+      object_location:'Obyekt joylashuvi', view_on_map:'Xaritada ko‘rish', create_order:'Buyurtma yaratish',
       subtab_dashboard:'Dashboard', subtab_orders:'Buyurtmalar', subtab_debt:'Qarzdorlik', subtab_payments:'To‘lovlar',
       subtab_products:'Mahsulotlar', subtab_docs:'Hujjatlar', subtab_stats:'Statistika', subtab_edit:"Ma'lumotlar",
       orders_count:'Buyurtmalar soni', last_purchase:'Oxirgi xarid', latest_orders:'So‘nggi buyurtmalar',
@@ -581,11 +590,11 @@ window.CONFIG = {
       success_debt_suffix:'— записано в долг объекта.', success_excel:'Excel-файл', success_group_suffix:'отправлен в группу.',
       objects_title:'Объекты', objects_subtitle:'Все объекты и задолженности', new_label:'Новый',
       object_search_ph:'Название объекта или адрес...', object_not_found:'Объект не найден',
-      total_purchases:'Общие покупки', debt:'Задолженность',
+      total_purchases:'Общие покупки', debt:'Задолженность', status_active:'Активный',
       new_object_title:'Новый объект', object_name_label:'Название объекта *', object_name_ph:'например: Dream City',
       address_label:'Адрес', address_ph:'Город, район...', create:'Создать',
       location_hint:'📍 Чтобы добавить локацию, перешлите/отправьте геометку боту (в личном чате) — он спросит, к какому объекту она относится.',
-      view_on_map:'Посмотреть на карте',
+      object_location:'Расположение объекта', view_on_map:'Посмотреть на карте', create_order:'Создать заказ',
       subtab_dashboard:'Обзор', subtab_orders:'Заказы', subtab_debt:'Задолженность', subtab_payments:'Оплаты',
       subtab_products:'Товары', subtab_docs:'Документы', subtab_stats:'Статистика', subtab_edit:'Данные',
       orders_count:'Количество заказов', last_purchase:'Последняя покупка', latest_orders:'Последние заказы',
@@ -1103,20 +1112,37 @@ window.CONFIG = {
     else if (sub==='edit') body = objTabEdit(detail);
 
     return `<div class="plist-head"><div class="back" data-pop>${ICONS.back}</div><h3>${detail.nomi}</h3></div>
+      <div class="obj-hero">
+        <div class="obj-hero-top">
+          <div class="photo t2" style="width:52px;height:52px">${ICONS.building}</div>
+          <div class="info">
+            <div class="name">${detail.nomi}</div>
+            ${detail.manzil?`<div class="loc">${ICONS.pin}${detail.manzil}</div>`:''}
+          </div>
+          <span class="pill green">● ${tr('status_active')}</span>
+        </div>
+      </div>
       <div class="subtabs">${subtabs.map(([k,l])=>`<div class="subtab ${k===sub?'active':''}" data-obj-tab="${k}">${l}</div>`).join('')}</div>
       ${body}`;
   }
   function objTabDashboard(o, orders){
+    const hasLoc = o.lat!=null && o.lng!=null;
+    const mapSection = hasLoc ? `
+      <div class="sec-head"><h3>${tr('object_location')}</h3><a href="https://maps.google.com/?q=${o.lat},${o.lng}" target="_blank">${tr('view_on_map')} ${ICONS.chev}</a></div>
+      <div style="margin:0 18px 14px">
+        <iframe width="100%" height="160" style="border:0;border-radius:14px;display:block" loading="lazy"
+          src="https://www.openstreetmap.org/export/embed.html?bbox=${o.lng-0.01}%2C${o.lat-0.008}%2C${o.lng+0.01}%2C${o.lat+0.008}&layer=mapnik&marker=${o.lat}%2C${o.lng}"></iframe>
+      </div>` : '';
     return `<div class="stat-grid">
-      <div class="stat-tile"><div class="l">${tr('total_purchases')}</div><div class="v">${fmt(o.jami)}</div></div>
-      <div class="stat-tile"><div class="l">${tr('debt')}</div><div class="v ${o.qarzdorlik>0?'red':'green'}">${fmt(o.qarzdorlik)}</div></div>
-      <div class="stat-tile"><div class="l">${tr('orders_count')}</div><div class="v">${o.orders_count}</div></div>
-      <div class="stat-tile"><div class="l">${tr('last_purchase')}</div><div class="v" style="font-size:13px">${o.last_order_at?fmtDate(o.last_order_at):'—'}</div></div>
+      <div class="stat-tile"><div class="ic">${ICONS.cart}</div><div class="l">${tr('total_purchases')}</div><div class="v">${fmt(o.jami)}</div></div>
+      <div class="stat-tile"><div class="ic">${ICONS.up}</div><div class="l">${tr('debt')}</div><div class="v ${o.qarzdorlik>0?'red':'green'}">${fmt(o.qarzdorlik)}</div></div>
+      <div class="stat-tile"><div class="ic">${ICONS.doc}</div><div class="l">${tr('orders_count')}</div><div class="v">${o.orders_count}</div></div>
+      <div class="stat-tile"><div class="ic">${ICONS.cal}</div><div class="l">${tr('last_purchase')}</div><div class="v" style="font-size:13px">${o.last_order_at?fmtDate(o.last_order_at):'—'}</div></div>
     </div>
-    ${o.manzil ? `<div style="padding:4px 18px;font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px">${ICONS.pin}${o.manzil}</div>` : ''}
-    ${o.lat!=null && o.lng!=null ? `<div style="padding:4px 18px"><a href="https://maps.google.com/?q=${o.lat},${o.lng}" target="_blank" style="font-size:12.5px;color:var(--accent-deep);font-weight:700;display:inline-flex;align-items:center;gap:6px">${ICONS.pin}${tr('view_on_map')}</a></div>` : ''}
+    ${mapSection}
     <div class="sec-head"><h3>${tr('latest_orders')}</h3><a data-obj-tab="orders">${tr('all')} ${ICONS.chev}</a></div>
-    <div class="plist">${orders.slice(0,3).map(orderCard).join('') || `<div class="empty-state">${tr('no_orders_yet')}</div>`}</div>`;
+    <div class="plist">${orders.slice(0,3).map(orderCard).join('') || `<div class="empty-state">${tr('no_orders_yet')}</div>`}</div>
+    <div class="cta-wrap"><button class="cta" data-new-order-for="${o.id}">${ICONS.plus} ${tr('create_order')}</button></div>`;
   }
   function objTabOrders(orders){
     return `<div class="plist" style="padding-top:12px">${orders.length ? orders.map(orderCard).join('') : `<div class="empty-state">${tr('no_orders_object')}</div>`}</div>`;
@@ -1379,6 +1405,7 @@ window.CONFIG = {
     app.querySelectorAll('[data-open-order]').forEach(el=>el.onclick=()=>{ S.tmp.orderDetail=null; push('order-detail', { id: el.dataset.openOrder }); });
     app.querySelectorAll('[data-open-object]').forEach(el=>el.onclick=()=>{ S.tmp.objDetail=null; S.tmp.objTab='dashboard'; push('object-detail', { id: el.dataset.openObject }); });
     app.querySelectorAll('[data-obj-tab]').forEach(el=>el.onclick=()=>{ S.tmp.objTab = el.dataset.objTab; render(); });
+    app.querySelectorAll('[data-new-order-for]').forEach(el=>el.onclick=()=>{ S.tmp.selectedObj = el.dataset.newOrderFor; switchTab('asosiy'); });
     app.querySelectorAll('[data-goto]').forEach(el=>el.onclick=()=>{ if(el.dataset.goto==='addresses') S.tmp.addresses=null; push(el.dataset.goto); });
     app.querySelectorAll('[data-goto-profile-edit]').forEach(el=>el.onclick=()=>push('profile-edit'));
     app.querySelectorAll('[data-goto-new-object]').forEach(el=>el.onclick=()=>push('new-object'));
