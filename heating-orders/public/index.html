@@ -89,7 +89,8 @@
 
   .sec-head{display:flex;align-items:baseline;justify-content:space-between;padding:22px 18px 12px}
   .sec-head h3{font-family:'Manrope',sans-serif;font-weight:800;font-size:16.5px;margin:0}
-  .sec-head a{font-size:12.5px;font-weight:700;color:var(--accent-deep);cursor:pointer}
+  .sec-head a{font-size:12.5px;font-weight:700;color:var(--accent-deep);cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+  .sec-head a svg{width:13px;height:13px;flex:0 0 auto}
 
   .cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0 18px 8px}
   .cat-card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:10px;cursor:pointer;box-shadow:var(--shadow)}
@@ -212,7 +213,8 @@
 
   .subtabs{display:flex;gap:7px;overflow-x:auto;padding:4px 18px 12px;scrollbar-width:none}
   .subtabs::-webkit-scrollbar{display:none}
-  .subtab{flex:0 0 auto;padding:7px 13px;border-radius:10px;background:var(--panel2);border:1px solid var(--border);color:var(--muted);font-size:12px;font-weight:700;white-space:nowrap;cursor:pointer}
+  .subtab{flex:0 0 auto;padding:7px 13px;border-radius:10px;background:var(--panel2);border:1px solid var(--border);color:var(--muted);font-size:12px;font-weight:700;white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+  .subtab svg{width:13px;height:13px;flex:0 0 auto}
   .subtab.active{background:var(--text);border-color:var(--text);color:var(--bg)}
 
   .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:4px 18px 8px}
@@ -460,7 +462,8 @@ window.CONFIG = {
     box:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8l9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8M12 13v8"/></svg>',
     mail:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>',
     comment:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>',
-    calc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01M8 19h.01M12 19h.01M16 19h.01"/></svg>'
+    calc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01M8 19h.01M12 19h.01M16 19h.01"/></svg>',
+    chart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>'
   };
 
   const CAT_ICONS = {
@@ -557,6 +560,7 @@ window.CONFIG = {
       toast_fill_both_fields:'Ikkala maydonni ham to‘ldiring', toast_added_to_cart:'Tovarlar savatga qo‘shildi',
       toast_close_in_telegram:'Ilovani Telegram ichida yopishingiz mumkin', toast_generic_error:'Xatolik:',
       toast_pdf_sending:'PDF tayyorlanmoqda...', toast_pdf_sent:'✅ PDF botga yuborildi',
+      toast_location_sent:'📍 Lokatsiya botga yuborildi — Telegram xabarlarida ko‘ring',
     },
     ru: {
       currency:'сум',
@@ -622,6 +626,7 @@ window.CONFIG = {
       toast_fill_both_fields:'Заполните оба поля', toast_added_to_cart:'Товары добавлены в корзину',
       toast_close_in_telegram:'Закрыть приложение можно внутри Telegram', toast_generic_error:'Ошибка:',
       toast_pdf_sending:'PDF готовится...', toast_pdf_sent:'✅ PDF отправлен в бот',
+      toast_location_sent:'📍 Локация отправлена в бот — смотрите в сообщениях Telegram',
     }
   };
   function lang(){ return (S.profile && S.profile.til==='ru') ? 'ru' : 'uz'; }
@@ -1100,7 +1105,12 @@ window.CONFIG = {
     if (!S.tmp.objDetail || S.tmp.objDetail.detail.id !== params.id) { loadObjectDetail(params.id); return `<div class="plist-head"><div class="back" data-pop>${ICONS.back}</div><h3>${tr('object_label')}</h3></div>${loadingRow()}`; }
     const { detail, orders, debt } = S.tmp.objDetail;
     const sub = S.tmp.objTab || 'dashboard';
-    const subtabs = [['dashboard',tr('subtab_dashboard')],['orders',tr('subtab_orders')],['debt',tr('subtab_debt')],['payments',tr('subtab_payments')],['products',tr('subtab_products')],['docs',tr('subtab_docs')],['stats',tr('subtab_stats')],['edit',tr('subtab_edit')]];
+    const subtabs = [
+      ['dashboard',tr('subtab_dashboard'),ICONS.chart],['orders',tr('subtab_orders'),ICONS.doc],
+      ['debt',tr('subtab_debt'),ICONS.up],['payments',tr('subtab_payments'),ICONS.down],
+      ['products',tr('subtab_products'),ICONS.box],['docs',tr('subtab_docs'),ICONS.doc],
+      ['stats',tr('subtab_stats'),ICONS.chart],['edit',tr('subtab_edit'),ICONS.user]
+    ];
     let body = '';
     if (sub==='dashboard') body = objTabDashboard(detail, orders);
     else if (sub==='orders') body = objTabOrders(orders);
@@ -1122,16 +1132,15 @@ window.CONFIG = {
           <span class="pill green">● ${tr('status_active')}</span>
         </div>
       </div>
-      <div class="subtabs">${subtabs.map(([k,l])=>`<div class="subtab ${k===sub?'active':''}" data-obj-tab="${k}">${l}</div>`).join('')}</div>
+      <div class="subtabs">${subtabs.map(([k,l,ic])=>`<div class="subtab ${k===sub?'active':''}" data-obj-tab="${k}">${ic}${l}</div>`).join('')}</div>
       ${body}`;
   }
   function objTabDashboard(o, orders){
     const hasLoc = o.lat!=null && o.lng!=null;
     const mapSection = hasLoc ? `
-      <div class="sec-head"><h3>${tr('object_location')}</h3><a href="https://maps.google.com/?q=${o.lat},${o.lng}" target="_blank">${tr('view_on_map')} ${ICONS.chev}</a></div>
-      <div style="margin:0 18px 14px">
-        <iframe width="100%" height="160" style="border:0;border-radius:14px;display:block" loading="lazy"
-          src="https://www.openstreetmap.org/export/embed.html?bbox=${o.lng-0.01}%2C${o.lat-0.008}%2C${o.lng+0.01}%2C${o.lat+0.008}&layer=mapnik&marker=${o.lat}%2C${o.lng}"></iframe>
+      <div class="sec-head"><h3>${tr('object_location')}</h3></div>
+      <div style="padding:0 18px 14px">
+        <button type="button" class="btn-ghost" style="width:100%;justify-content:center" data-send-location="${o.id}">${ICONS.pin} ${tr('view_on_map')}</button>
       </div>` : '';
     return `<div class="stat-grid">
       <div class="stat-tile"><div class="ic">${ICONS.cart}</div><div class="l">${tr('total_purchases')}</div><div class="v">${fmt(o.jami)}</div></div>
@@ -1406,6 +1415,9 @@ window.CONFIG = {
     app.querySelectorAll('[data-open-object]').forEach(el=>el.onclick=()=>{ S.tmp.objDetail=null; S.tmp.objTab='dashboard'; push('object-detail', { id: el.dataset.openObject }); });
     app.querySelectorAll('[data-obj-tab]').forEach(el=>el.onclick=()=>{ S.tmp.objTab = el.dataset.objTab; render(); });
     app.querySelectorAll('[data-new-order-for]').forEach(el=>el.onclick=()=>{ S.tmp.selectedObj = el.dataset.newOrderFor; switchTab('asosiy'); });
+    app.querySelectorAll('[data-send-location]').forEach(el=>el.onclick=async()=>{
+      try{ await api('/api/send-object-location?id='+el.dataset.sendLocation); toast(tr('toast_location_sent')); } catch(e){ toast(e.message); }
+    });
     app.querySelectorAll('[data-goto]').forEach(el=>el.onclick=()=>{ if(el.dataset.goto==='addresses') S.tmp.addresses=null; push(el.dataset.goto); });
     app.querySelectorAll('[data-goto-profile-edit]').forEach(el=>el.onclick=()=>push('profile-edit'));
     app.querySelectorAll('[data-goto-new-object]').forEach(el=>el.onclick=()=>push('new-object'));
