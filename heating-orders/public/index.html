@@ -834,7 +834,7 @@ window.CONFIG = {
           </div>
         `).join('')}</div>`;
 
-    return `<div class="page-head-row"><div class="back" data-pop>${ICONS.back}</div><div class="page-head" style="flex:1"><h1>${tr('order_hash')}${o.order_no}</h1><p>${tr('order_detail_subtitle')}</p></div></div>
+    return `<div class="page-head-row" style="padding-top:calc(2px + var(--tg-top-inset))"><div class="back" data-pop>${ICONS.back}</div><div class="page-head" style="flex:1"><h1>${tr('order_hash')}${o.order_no}</h1><p>${tr('order_detail_subtitle')}</p></div></div>
       ${statusBlock}
       <div class="action-grid">
         <div class="action-card" data-print>
