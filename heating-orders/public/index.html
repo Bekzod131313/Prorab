@@ -40,12 +40,12 @@
   body{margin:0;background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',-apple-system,sans-serif;padding-bottom:84px}
   #app{max-width:460px;margin:0 auto}
 
-  :root{--tg-top-inset:34px}
-  .topbar{display:flex;flex-direction:column;gap:8px;padding:calc(10px + var(--tg-top-inset)) 18px 0;position:sticky;top:0;background:var(--bg);z-index:5}
-  .logo{display:flex;flex-direction:column;line-height:1;cursor:pointer}
-  .logo-img{height:24px;width:auto;display:block}
-  .logo em{font-style:normal;font-size:8px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-top:5px;display:block}
-  .topbar-row2{display:flex;justify-content:flex-end}
+  :root{--tg-safe-top:50px; --tg-controls-h:40px; --tg-top-inset:calc(var(--tg-safe-top) + var(--tg-controls-h))}
+  .topbar{display:flex;flex-direction:column;gap:6px;padding:calc(6px + var(--tg-safe-top)) 60px 0;position:sticky;top:0;background:var(--bg);z-index:5}
+  .logo{display:flex;flex-direction:column;line-height:1;cursor:pointer;align-items:center}
+  .logo-img{height:18px;width:auto;display:block}
+  .logo em{font-style:normal;font-size:7px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-top:4px;display:block}
+  .topbar-row2{display:flex;justify-content:flex-end;min-height:38px;margin-top:calc(4px + var(--tg-controls-h));margin-right:-42px}
   .topbar-icons{display:flex;gap:8px}
   .icon-btn{width:38px;height:38px;border-radius:11px;background:var(--panel2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text);cursor:pointer;flex:0 0 auto;position:relative}
   .icon-btn svg{width:18px;height:18px}
@@ -327,8 +327,11 @@ window.CONFIG = {
     if (!tg) return;
     const a = tg.contentSafeAreaInset || {};
     const b = tg.safeAreaInset || {};
-    const top = Math.max(Number(a.top) || 0, Number(b.top) || 0) || 34;
-    document.documentElement.style.setProperty('--tg-top-inset', top + 'px');
+    const safeTop = Number(b.top) || 50;
+    const controlsH = Number(a.top) || 40;
+    document.documentElement.style.setProperty('--tg-safe-top', safeTop + 'px');
+    document.documentElement.style.setProperty('--tg-controls-h', controlsH + 'px');
+    document.documentElement.style.setProperty('--tg-top-inset', (safeTop + controlsH) + 'px');
   }
   if (tg) {
     tg.ready();
@@ -457,13 +460,11 @@ window.CONFIG = {
   }
 
   // ================= RENDER: header helpers =================
-  function renderTopbar({ search=false, unreadBell=true } = {}){
+  function renderTopbar({ showBell=false } = {}){
     const unread = S.notifications.filter(n=>!n.oqilgan).length;
     return `<div class="topbar">
       <div class="logo" data-nav-home><img class="logo-img" src="${LOGO_URL}" alt="ZODPRO"><em>Santexnika &middot; Otopleniya &middot; Buyurtma</em></div>
-      <div class="topbar-row2">
-        <div class="icon-btn" data-open-notif>${ICONS.bell}${unread?`<span class="dot-badge">${unread}</span>`:''}</div>
-      </div>
+      <div class="topbar-row2">${showBell ? `<div class="icon-btn" data-open-notif>${ICONS.bell}${unread?`<span class="dot-badge">${unread}</span>`:''}</div>` : ''}</div>
     </div>`;
   }
 
@@ -474,7 +475,7 @@ window.CONFIG = {
 
     if (q){
       const results = S.products.filter(p => p.nomi.toLowerCase().includes(q) || (p.artikul||'').toLowerCase().includes(q));
-      return `${renderTopbar()}${searchBox}
+      return `${renderTopbar({showBell:true})}${searchBox}
         <div class="sec-head"><h3>Qidiruv natijalari</h3></div>
         <div class="plist">${results.length ? results.map(productCard).join('') : `<div class="empty-state">Hech narsa topilmadi</div>`}</div>`;
     }
@@ -483,7 +484,7 @@ window.CONFIG = {
     const aksiya = S.products.filter(p=>p.aksiya_narx!=null && p.aksiya_narx < p.narx).slice(0,6);
     const ommabop = S.products.filter(p=>p.ommabop).slice(0,6);
     const hero = `<div style="padding:14px 18px 4px"><img class="hero-img" src="${BANNER_URL}" alt="ZODPRO"></div>`;
-    return `${renderTopbar()}${searchBox}${hero}
+    return `${renderTopbar({showBell:true})}${searchBox}${hero}
       ${!S.products.length ? `<div class="empty-state">${ICONS.box}<div>Hozircha katalogda tovar yo‘q.<br>Admin panel orqali qo‘shiladi.</div></div>` : ''}
       ${aksiya.length ? `<div class="sec-head"><h3>Aksiyalar</h3></div><div class="plist" data-plist="aksiya">${aksiya.map(productCard).join('')}</div>` : ''}
       ${ommabop.length ? `<div class="sec-head"><h3>Ommabop tovarlar</h3></div><div class="plist" data-plist="ommabop">${ommabop.map(productCard).join('')}</div>` : ''}
