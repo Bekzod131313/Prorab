@@ -651,6 +651,28 @@ window.CONFIG = {
     syncTelegramChrome(t);
   }
 
+  // ---------- Savat: qoralama sifatida qurilmada saqlanadi ----------
+  // Ilova yopilib qayta ochilganda ham savat bo'sh bo'lib qolmasligi uchun
+  // (buyurtma hali berilmagan) tanlangan tovarlar shu foydalanuvchi+brigada
+  // uchun localStorage'da saqlanadi.
+  function cartStorageKey(){
+    const tgId = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) || 'anon';
+    const brig = (S.brigade && S.brigade.code) || urlCode || 'x';
+    return `zodpro_cart_${brig}_${tgId}`;
+  }
+  function saveCart(){
+    try{ localStorage.setItem(cartStorageKey(), JSON.stringify(S.cart)); }catch(e){}
+  }
+  function loadCart(){
+    try{
+      const raw = localStorage.getItem(cartStorageKey());
+      if (raw) S.cart = JSON.parse(raw) || {};
+    }catch(e){}
+  }
+  function clearSavedCart(){
+    try{ localStorage.removeItem(cartStorageKey()); }catch(e){}
+  }
+
   // ---------- Bootstrap ----------
   async function boot(){
     render(); // loading screen
@@ -661,6 +683,7 @@ window.CONFIG = {
       ]);
       S.profile = authRes.profile; S.brigade = authRes.brigade; S.objects = authRes.objects || [];
       applyTheme();
+      loadCart();
       S.products = prodRes.data || [];
       S.booted = true;
       render();
@@ -918,6 +941,7 @@ window.CONFIG = {
     try{
       const res = await api('/api/order', { method:'POST', body: JSON.stringify({ code: S.brigade.code || urlCode, object_id: objectId, items }) });
       S.cart = {};
+      clearSavedCart();
       S.tmp.orders = null; S.tmp.objectsList = null;
       renderSuccess(res);
     } catch(e){
@@ -1238,6 +1262,7 @@ window.CONFIG = {
       </div>`;
       document.getElementById('navbarInner').innerHTML=''; return;
     }
+    saveCart();
     const t = top();
     let html = '';
     if (t.screen==='asosiy') html = screenAsosiy();
