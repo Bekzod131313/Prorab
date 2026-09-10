@@ -130,6 +130,14 @@ create table if not exists hs_debt_entries (
 );
 create index if not exists idx_hs_debt_object on hs_debt_entries(object_id);
 
+-- ---------- Botga forward qilingan lokatsiya, obyekt tanlanmaguncha kutadi ----------
+create table if not exists hs_pending_locations (
+  telegram_id bigint primary key,
+  lat         double precision not null,
+  lng         double precision not null,
+  created_at  timestamptz default now()
+);
+
 -- ---------- Bildirishnomalar (Telegram xabari bilan birga saqlanadi) ----------
 create table if not exists hs_notifications (
   id          uuid primary key default gen_random_uuid(),
@@ -150,7 +158,8 @@ alter table hs_products      enable row level security;
 alter table hs_objects       enable row level security;
 alter table hs_orders        enable row level security;
 alter table hs_debt_entries  enable row level security;
-alter table hs_notifications enable row level security;
+alter table hs_notifications  enable row level security;
+alter table hs_pending_locations enable row level security;
 
 -- Mini-app anon kalit bilan faqat faol tovarlarni o'qiy oladi.
 -- Qolgan barcha o'qish/yozish (foydalanuvchilar, obyektlar, buyurtmalar,

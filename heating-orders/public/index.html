@@ -452,8 +452,8 @@ window.CONFIG = {
       total_purchases:'Jami xaridlar', debt:'Qarzdorlik',
       new_object_title:'Yangi obyekt', object_name_label:'Obyekt nomi *', object_name_ph:'masalan: Dream City',
       address_label:'Manzil', address_ph:'Shahar, tuman...', create:'Yaratish',
-      location_label:'Lokatsiya (ixtiyoriy)', location_ph:'Google Maps havola yoki: 41.311, 69.279',
-      capture_location:'Joriy joylashuvni olish', view_on_map:'Xaritada ko‘rish',
+      location_hint:'📍 Lokatsiyani qo‘shish uchun botga (shaxsiy chatda) joylashuvni forward/yuboring — qaysi obyekt ekanini so‘raydi.',
+      view_on_map:'Xaritada ko‘rish',
       subtab_dashboard:'Dashboard', subtab_orders:'Buyurtmalar', subtab_debt:'Qarzdorlik', subtab_payments:'To‘lovlar',
       subtab_products:'Mahsulotlar', subtab_docs:'Hujjatlar', subtab_stats:'Statistika', subtab_edit:"Ma'lumotlar",
       orders_count:'Buyurtmalar soni', last_purchase:'Oxirgi xarid', latest_orders:'So‘nggi buyurtmalar',
@@ -480,8 +480,6 @@ window.CONFIG = {
       toast_message_empty:'Xabar bo‘sh', toast_message_sent:'Yuborildi — tez orada javob berishadi',
       toast_fill_both_fields:'Ikkala maydonni ham to‘ldiring', toast_added_to_cart:'Tovarlar savatga qo‘shildi',
       toast_close_in_telegram:'Ilovani Telegram ichida yopishingiz mumkin', toast_generic_error:'Xatolik:',
-      toast_location_unavailable:'Lokatsiya funksiyasi ushbu Telegram versiyasida mavjud emas', toast_location_denied:'Joylashuvga ruxsat berilmadi',
-      toast_location_captured:'Joylashuv olindi', toast_location_invalid:'Lokatsiya formati noto‘g‘ri — havola yoki "lat, lng" ko‘rinishida kiriting'
     },
     ru: {
       currency:'сум',
@@ -511,8 +509,8 @@ window.CONFIG = {
       total_purchases:'Общие покупки', debt:'Задолженность',
       new_object_title:'Новый объект', object_name_label:'Название объекта *', object_name_ph:'например: Dream City',
       address_label:'Адрес', address_ph:'Город, район...', create:'Создать',
-      location_label:'Локация (необязательно)', location_ph:'Ссылка Google Maps или: 41.311, 69.279',
-      capture_location:'Получить текущую локацию', view_on_map:'Посмотреть на карте',
+      location_hint:'📍 Чтобы добавить локацию, перешлите/отправьте геометку боту (в личном чате) — он спросит, к какому объекту она относится.',
+      view_on_map:'Посмотреть на карте',
       subtab_dashboard:'Обзор', subtab_orders:'Заказы', subtab_debt:'Задолженность', subtab_payments:'Оплаты',
       subtab_products:'Товары', subtab_docs:'Документы', subtab_stats:'Статистика', subtab_edit:'Данные',
       orders_count:'Количество заказов', last_purchase:'Последняя покупка', latest_orders:'Последние заказы',
@@ -539,8 +537,6 @@ window.CONFIG = {
       toast_message_empty:'Сообщение пустое', toast_message_sent:'Отправлено — скоро ответят',
       toast_fill_both_fields:'Заполните оба поля', toast_added_to_cart:'Товары добавлены в корзину',
       toast_close_in_telegram:'Закрыть приложение можно внутри Telegram', toast_generic_error:'Ошибка:',
-      toast_location_unavailable:'Функция локации недоступна в этой версии Telegram', toast_location_denied:'Доступ к геолокации не разрешён',
-      toast_location_captured:'Локация получена', toast_location_invalid:'Неверный формат локации — введите ссылку или "lat, lng"'
     }
   };
   function lang(){ return (S.profile && S.profile.til==='ru') ? 'ru' : 'uz'; }
@@ -863,55 +859,20 @@ window.CONFIG = {
     </div>`;
   }
 
-  // ---- lokatsiya: paste/GPS ----
-  function parseLatLng(str){
-    if (!str) return null;
-    str = str.trim();
-    let m = str.match(/@(-?\d{1,3}\.\d+),\s*(-?\d{1,3}\.\d+)/)
-      || str.match(/[?&](?:q|ll|daddr)=(-?\d{1,3}\.\d+),\s*(-?\d{1,3}\.\d+)/)
-      || str.match(/^(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)$/);
-    if (!m) return null;
-    const lat = parseFloat(m[1]), lng = parseFloat(m[2]);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat)>90 || Math.abs(lng)>180) return null;
-    return { lat, lng };
-  }
-  function requestDeviceLocation(cb){
-    if (!tg || !tg.LocationManager) { toast(tr('toast_location_unavailable')); return; }
-    const lm = tg.LocationManager;
-    const go = () => {
-      try{
-        lm.getLocation((data)=>{
-          if (data && data.latitude!=null) cb(data.latitude, data.longitude);
-          else toast(tr('toast_location_denied'));
-        });
-      } catch(e){ toast(tr('toast_location_unavailable')); }
-    };
-    try{ lm.isInited ? go() : lm.init(go); } catch(e){ toast(tr('toast_location_unavailable')); }
-  }
-  function locationField(inputId, btnId, value){
-    return `<div class="field"><label>${tr('location_label')}</label>
-      <input id="${inputId}" placeholder="${tr('location_ph')}" value="${value||''}">
-      <button type="button" class="btn-ghost" id="${btnId}" style="margin-top:8px;width:100%;display:flex;align-items:center;justify-content:center;gap:7px">${ICONS.pin} ${tr('capture_location')}</button>
-    </div>`;
-  }
-
   // ---- new object form ----
   function screenNewObject(){
     return `<div class="plist-head"><div class="back" data-pop>${ICONS.back}</div><h3>${tr('new_object_title')}</h3></div>
       <div class="field"><label>${tr('object_name_label')}</label><input id="f_nomi" placeholder="${tr('object_name_ph')}"></div>
       <div class="field"><label>${tr('address_label')}</label><input id="f_manzil" placeholder="${tr('address_ph')}"></div>
-      ${locationField('f_loc','captureLocBtn')}
+      <div style="margin:0 18px 12px;font-size:12px;color:var(--muted)">${tr('location_hint')}</div>
       <div class="cta-wrap"><button class="cta" id="createObjBtn">${ICONS.check} ${tr('create')}</button></div>`;
   }
   async function submitNewObject(){
     const nomi = document.getElementById('f_nomi').value.trim();
     const manzil = document.getElementById('f_manzil').value.trim();
-    const locStr = document.getElementById('f_loc').value.trim();
     if (!nomi) { toast(tr('toast_enter_object_name')); return; }
-    const loc = parseLatLng(locStr);
-    if (locStr && !loc) { toast(tr('toast_location_invalid')); return; }
     try{
-      const obj = await api('/api/objects', { method:'POST', body: JSON.stringify({ nomi, manzil, lat: loc?loc.lat:null, lng: loc?loc.lng:null }) });
+      const obj = await api('/api/objects', { method:'POST', body: JSON.stringify({ nomi, manzil }) });
       S.objects.push(obj); S.tmp.objectsList = null;
       toast(tr('toast_object_created')); pop();
     } catch(e){ toast(e.message); }
@@ -1011,20 +972,16 @@ window.CONFIG = {
     </div>`;
   }
   function objTabEdit(o){
-    const locVal = (o.lat!=null && o.lng!=null) ? `${o.lat}, ${o.lng}` : '';
     return `<div class="field" style="margin-top:14px"><label>${tr('object_name_label').replace(' *','')}</label><input id="e_nomi" value="${o.nomi}"></div>
       <div class="field"><label>${tr('address_label')}</label><input id="e_manzil" value="${o.manzil||''}"></div>
-      ${locationField('e_loc','captureLocEditBtn', locVal)}
+      <div style="margin:0 18px 12px;font-size:12px;color:var(--muted)">${tr('location_hint')}</div>
       <div class="cta-wrap"><button class="cta" id="saveObjBtn">${ICONS.check} ${tr('save')}</button></div>`;
   }
   async function saveObjectEdit(id){
     const nomi = document.getElementById('e_nomi').value.trim();
     const manzil = document.getElementById('e_manzil').value.trim();
-    const locStr = document.getElementById('e_loc').value.trim();
-    const loc = parseLatLng(locStr);
-    if (locStr && !loc) { toast(tr('toast_location_invalid')); return; }
     try{
-      await api('/api/objects', { method:'PATCH', body: JSON.stringify({ id, nomi, manzil, lat: loc?loc.lat:null, lng: loc?loc.lng:null }) });
+      await api('/api/objects', { method:'PATCH', body: JSON.stringify({ id, nomi, manzil }) });
       S.tmp.objDetail = null; S.tmp.objectsList = null;
       toast(tr('toast_data_saved')); render();
     } catch(e){ toast(e.message); }
@@ -1256,13 +1213,6 @@ window.CONFIG = {
     const createObjBtn = document.getElementById('createObjBtn'); if (createObjBtn) createObjBtn.onclick = submitNewObject;
     const saveObjBtn = document.getElementById('saveObjBtn'); if (saveObjBtn) saveObjBtn.onclick = ()=>saveObjectEdit(top().params.id);
     const objSearch = document.getElementById('objSearch'); if (objSearch) objSearch.oninput = (e)=>{ S.tmp.objQ = e.target.value; render(); };
-    const captureLocBtn = document.getElementById('captureLocBtn'); if (captureLocBtn) captureLocBtn.onclick = ()=>{
-      requestDeviceLocation((lat,lng)=>{ const inp=document.getElementById('f_loc'); if(inp) inp.value = lat.toFixed(6)+', '+lng.toFixed(6); toast(tr('toast_location_captured')); });
-    };
-    const captureLocEditBtn = document.getElementById('captureLocEditBtn'); if (captureLocEditBtn) captureLocEditBtn.onclick = ()=>{
-      requestDeviceLocation((lat,lng)=>{ const inp=document.getElementById('e_loc'); if(inp) inp.value = lat.toFixed(6)+', '+lng.toFixed(6); toast(tr('toast_location_captured')); });
-    };
-
     const saveProfileBtn = document.getElementById('saveProfileBtn'); if (saveProfileBtn) saveProfileBtn.onclick = saveProfile;
     app.querySelectorAll('[data-toggle]').forEach(el=>el.onchange=()=>toggleNotifPref(el.dataset.toggle, el.checked));
     const themeSel = app.querySelector('[data-set-theme]'); if (themeSel) themeSel.onchange = ()=>setTheme(themeSel.value);
