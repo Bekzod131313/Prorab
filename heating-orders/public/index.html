@@ -158,6 +158,13 @@
   .price-block .unit{font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums}
   .price-block .line{font-size:13.5px;font-weight:800;font-variant-numeric:tabular-nums}
 
+  .draft-card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:11px 12px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow)}
+  .draft-card .info{flex:1;min-width:0}
+  .draft-card .n{font-size:12.5px;font-weight:700}
+  .draft-card .a{font-size:10.5px;color:var(--muted);margin-top:2px}
+  .draft-card .amt{font-size:12px;font-weight:800;white-space:nowrap}
+  .draft-card .trash{color:var(--red);cursor:pointer;flex:0 0 auto}
+
   .field{margin:0 18px 12px}
   .field label{display:block;font-size:11.5px;font-weight:700;color:var(--muted);margin-bottom:6px}
   .field input, .field textarea, .field select{width:100%;background:var(--panel);border:1px solid var(--border);border-radius:11px;padding:11px 13px;font-size:14px;font-family:inherit;color:var(--text)}
@@ -501,6 +508,8 @@ window.CONFIG = {
       clear:'Tozalash', in_stock:'Sotuvda', which_object:'Qaysi obyekt uchun buyurtma?',
       no_objects_yet:'Sizda hali obyekt yo‘q. Buyurtma berish uchun avval obyekt yarating.', create_object:'Obyekt yaratish',
       order_summary:'Buyurtma summasi', products_label:'Tovarlar', products_count_suffix:'ta', payment_type:'To‘lov turi', on_debt:'Qarzga yoziladi',
+      save_as_draft:'Qoralamaga saqlash', drafts_title:'Qoralamalar', resume_draft:'Davom ettirish',
+      toast_draft_saved:'Qoralamaga saqlandi', toast_draft_resumed:'Qoralama savatga yuklandi',
       total_amount:'Jami summa', place_order:'Buyurtmani rasmiylashtirish', sending:'Yuborilmoqda...',
       order_success_title:'Buyurtma qabul qilindi!', view_my_orders:'Buyurtmalarimni ko‘rish',
       success_nakladnoy:'Nakladnoy:', success_object:'Obyekt:', success_total:'Jami:',
@@ -564,6 +573,8 @@ window.CONFIG = {
       clear:'Очистить', in_stock:'В наличии', which_object:'Для какого объекта заказ?',
       no_objects_yet:'У вас пока нет объекта. Чтобы оформить заказ, сначала создайте объект.', create_object:'Создать объект',
       order_summary:'Сумма заказа', products_label:'Товары', products_count_suffix:'шт', payment_type:'Тип оплаты', on_debt:'Записывается в долг',
+      save_as_draft:'Сохранить как черновик', drafts_title:'Черновики', resume_draft:'Продолжить',
+      toast_draft_saved:'Сохранено в черновики', toast_draft_resumed:'Черновик загружен в корзину',
       total_amount:'Итоговая сумма', place_order:'Оформить заказ', sending:'Отправляется...',
       order_success_title:'Заказ принят!', view_my_orders:'Посмотреть мои заказы',
       success_nakladnoy:'Накладная:', success_object:'Объект:', success_total:'Итого:',
@@ -634,7 +645,7 @@ window.CONFIG = {
   const S = {
     booted: false, error: null,
     profile: null, brigade: null, objects: [],
-    products: [], cart: {}, notifications: [],
+    products: [], cart: {}, drafts: [], notifications: [],
     stack: [{ screen: 'asosiy' }],
     tmp: {} // screen-local scratch (search text, active category, active object subtab...)
   };
@@ -673,6 +684,50 @@ window.CONFIG = {
     try{ localStorage.removeItem(cartStorageKey()); }catch(e){}
   }
 
+  // ---------- Qoralamalar: bir nechta savatni alohida-alohida saqlab qo'yish ----------
+  // "Bitta buyurtma yig'ib qoralamaga tashladi, keyingisini yig'a boshladi" —
+  // shuning uchun joriy savat va qoralamalar ro'yxati alohida saqlanadi.
+  function draftsStorageKey(){
+    const tgId = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) || 'anon';
+    const brig = (S.brigade && S.brigade.code) || urlCode || 'x';
+    return `zodpro_drafts_${brig}_${tgId}`;
+  }
+  function saveDrafts(){
+    try{ localStorage.setItem(draftsStorageKey(), JSON.stringify(S.drafts)); }catch(e){}
+  }
+  function loadDrafts(){
+    try{
+      const raw = localStorage.getItem(draftsStorageKey());
+      S.drafts = raw ? (JSON.parse(raw) || []) : [];
+    }catch(e){ S.drafts = []; }
+  }
+  function saveCurrentAsDraft(){
+    if (!Object.keys(S.cart).length) return;
+    S.drafts.unshift({ id: 'd'+Date.now(), created_at: new Date().toISOString(), cart: { ...S.cart } });
+    S.cart = {};
+    saveDrafts();
+    toast(tr('toast_draft_saved'));
+    render();
+  }
+  function resumeDraft(id){
+    const idx = S.drafts.findIndex(d=>d.id===id);
+    if (idx<0) return;
+    const draft = S.drafts[idx];
+    S.drafts.splice(idx, 1);
+    if (Object.keys(S.cart).length){
+      S.drafts.unshift({ id: 'd'+Date.now(), created_at: new Date().toISOString(), cart: { ...S.cart } });
+    }
+    S.cart = { ...draft.cart };
+    saveDrafts();
+    toast(tr('toast_draft_resumed'));
+    render();
+  }
+  function deleteDraft(id){
+    S.drafts = S.drafts.filter(d=>d.id!==id);
+    saveDrafts();
+    render();
+  }
+
   // ---------- Bootstrap ----------
   async function boot(){
     render(); // loading screen
@@ -684,6 +739,7 @@ window.CONFIG = {
       S.profile = authRes.profile; S.brigade = authRes.brigade; S.objects = authRes.objects || [];
       applyTheme();
       loadCart();
+      loadDrafts();
       S.products = prodRes.data || [];
       S.booted = true;
       render();
@@ -882,12 +938,29 @@ window.CONFIG = {
   }
 
   // ================= SCREEN: Korzina (cart) =================
+  function draftCard(d){
+    const ids = Object.keys(d.cart);
+    const total = ids.reduce((s,id)=>{ const p=S.products.find(x=>x.id===id); if(!p) return s; const price=(p.aksiya_narx!=null&&p.aksiya_narx<p.narx)?p.aksiya_narx:p.narx; return s+price*d.cart[id]; },0);
+    const qty = ids.reduce((s,id)=>s+d.cart[id],0);
+    return `<div class="draft-card">
+      <div class="info"><div class="n">${fmtDate(d.created_at)}</div><div class="a">${ids.length} ${tr('products_label').toLowerCase()} &middot; ${qty} ${tr('products_count_suffix')}</div></div>
+      <div class="amt">${fmt(total)}</div>
+      <button class="btn-ghost" data-resume-draft="${d.id}">${tr('resume_draft')}</button>
+      <span class="trash" data-del-draft="${d.id}" style="font-size:22px;font-weight:800;line-height:1">−</span>
+    </div>`;
+  }
+  function draftsSection(){
+    if (!S.drafts.length) return '';
+    return `<div class="sec-head"><h3>${tr('drafts_title')} (${S.drafts.length})</h3></div>
+      <div class="plist" style="padding-top:0">${S.drafts.map(draftCard).join('')}</div>`;
+  }
   function screenCart(){
     const ids = Object.keys(S.cart);
     if (!ids.length){
       return `${renderTopbar()}
         <div class="page-head-row"><div class="page-head"><h1>${tr('cart_title')}</h1><p>${tr('cart_subtitle')}</p></div></div>
-        <div class="empty-state">${ICONS.cart}<div>${tr('cart_empty')}<br>${tr('cart_empty_sub')}</div></div>`;
+        <div class="empty-state">${ICONS.cart}<div>${tr('cart_empty')}<br>${tr('cart_empty_sub')}</div></div>
+        ${draftsSection()}`;
     }
     const total = ids.reduce((s,id)=>{ const p=S.products.find(x=>x.id===id); if(!p) return s; const price=(p.aksiya_narx!=null&&p.aksiya_narx<p.narx)?p.aksiya_narx:p.narx; return s+price*S.cart[id]; },0);
     const rows = ids.map(id=>{
@@ -914,6 +987,9 @@ window.CONFIG = {
       <div class="page-head-row"><div class="page-head"><h1>${tr('cart_title')}</h1><p>${tr('cart_subtitle')}</p></div>
         <button class="btn-ghost danger" data-clear-cart>${ICONS.trash} ${tr('clear')}</button></div>
       <div class="plist" style="padding-top:6px">${rows}</div>
+      <div style="padding:0 18px 4px">
+        <button type="button" class="btn-ghost" style="width:100%;justify-content:center" data-save-draft>${ICONS.doc} ${tr('save_as_draft')}</button>
+      </div>
       <div class="obj-select">
         <div class="l">${ICONS.building} ${tr('which_object')}</div>
         ${S.objects.length
@@ -928,7 +1004,8 @@ window.CONFIG = {
       </div>
       <div class="cta-wrap">
         <button class="cta" id="orderBtn" ${!S.objects.length?'disabled':''}>${ICONS.check} ${tr('place_order')}</button>
-      </div>`;
+      </div>
+      ${draftsSection()}`;
   }
 
   async function submitOrder(){
@@ -1322,6 +1399,9 @@ window.CONFIG = {
       el.onkeydown = (e)=>{ if (e.key==='Enter') el.blur(); };
     });
     const clearCart = app.querySelector('[data-clear-cart]'); if (clearCart) clearCart.onclick=()=>{ S.cart={}; render(); };
+    const saveDraftBtn = app.querySelector('[data-save-draft]'); if (saveDraftBtn) saveDraftBtn.onclick = saveCurrentAsDraft;
+    app.querySelectorAll('[data-resume-draft]').forEach(el=>el.onclick=()=>resumeDraft(el.dataset.resumeDraft));
+    app.querySelectorAll('[data-del-draft]').forEach(el=>el.onclick=()=>deleteDraft(el.dataset.delDraft));
 
     const homeSearch = document.getElementById('homeSearch'); if (homeSearch) homeSearch.oninput = (e)=>{ S.tmp.q = e.target.value; render(); };
     const listSearch = document.getElementById('listSearch'); if (listSearch) listSearch.oninput = (e)=>{ S.tmp.listQ = e.target.value; render(); };
