@@ -493,6 +493,11 @@ window.CONFIG = {
   const STATUS_CLS = { yangi:'amber', jarayonda:'blue', yetkazilgan:'green', bekor_qilingan:'red' };
   const fmt = n => Math.round(n||0).toLocaleString('ru-RU') + ' ' + tr('currency');
   const fmtDate = s => { if(!s) return '—'; const d=new Date(s); return d.toLocaleDateString('ru-RU')+' '+d.toTimeString().slice(0,5); };
+  // Obyekt/profil/manzil nomlari kabi erkin matnlar boshqa foydalanuvchi
+  // (yoki guruh admini) tomonidan kiritiladi — innerHTML'ga xom holda
+  // qo'yilsa, ular boshqa a'zolarning brauzerida skript ishga tushirishi
+  // mumkin edi. Shu turdagi matnlar faqat shu funksiya orqali chiqariladi.
+  const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
   // ---------- Interfeys tili (uz / ru) ----------
   const STRINGS = {
@@ -809,7 +814,7 @@ window.CONFIG = {
     return `<div class="pcard" data-open-product="${p.id}">
       ${photo(null, p.kategoriya)}
       <div class="info">
-        <div class="name">${p.nomi}${p.ommabop?'<span class="badge-mini">TOP</span>':''}</div>
+        <div class="name">${esc(p.nomi)}${p.ommabop?'<span class="badge-mini">TOP</span>':''}</div>
         <div class="art">${tr('art_prefix')} ${p.artikul||'—'}</div>
         <div class="price">${hasDiscount?`<s>${fmt(p.narx)}</s>`:''}${fmt(price)} <small>/ ${p.birlik||tr('unit_dona')}</small></div>
       </div>
@@ -842,11 +847,11 @@ window.CONFIG = {
     const hasDiscount = p.aksiya_narx!=null && p.aksiya_narx < p.narx;
     const price = hasDiscount ? p.aksiya_narx : p.narx;
     const related = S.products.filter(x=>x.kategoriya===p.kategoriya && x.id!==p.id).slice(0,4);
-    return `<div class="plist-head"><div class="back" data-pop>${ICONS.back}</div><h3>${p.nomi}</h3></div>
+    return `<div class="plist-head"><div class="back" data-pop>${ICONS.back}</div><h3>${esc(p.nomi)}</h3></div>
       <div style="padding:0 18px"><div class="photo ${catTileClass(p.kategoriya)}" style="width:100%;height:220px;border-radius:16px">${catIcon(p.kategoriya)}</div></div>
       <div style="padding:16px 18px 0">
-        <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">${catLabel(p.kategoriya)} &middot; ${tr('art_prefix')} ${p.artikul||'—'}</div>
-        <div style="font-family:'Manrope',sans-serif;font-weight:800;font-size:19px;margin-top:6px">${p.nomi}</div>
+        <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">${catLabel(p.kategoriya)} &middot; ${tr('art_prefix')} ${esc(p.artikul)||'—'}</div>
+        <div style="font-family:'Manrope',sans-serif;font-weight:800;font-size:19px;margin-top:6px">${esc(p.nomi)}</div>
         <div style="font-size:20px;font-weight:800;color:var(--accent-deep);margin-top:10px">${hasDiscount?`<s style="color:var(--muted);font-weight:500;font-size:14px;margin-right:8px">${fmt(p.narx)}</s>`:''}${fmt(price)} <span style="font-size:13px;color:var(--muted);font-weight:500">/ ${p.birlik||tr('unit_dona')}</span></div>
       </div>
       <div style="padding:18px;display:flex;align-items:center;gap:12px">
@@ -928,7 +933,7 @@ window.CONFIG = {
         <div class="card-head"><div class="l"><div class="ic">${ICONS.doc}</div>${tr('order_info')}</div><span class="pill ${STATUS_CLS[o.status]}">${statusLabel(o.status)}</span></div>
         <div class="info-row"><div class="ic">${ICONS.cal}</div><div class="l">${tr('date_time_label')}</div><div class="v">${fmtDate(o.created_at)}</div></div>
         <div class="info-row"><div class="ic">${ICONS.building}</div><div class="l">${tr('object_label')}</div><div class="v">${objNomi}</div></div>
-        <div class="info-row"><div class="ic">${ICONS.user}</div><div class="l">${tr('customer_label')}</div><div class="v">${o.telegram_name||'—'}</div></div>
+        <div class="info-row"><div class="ic">${ICONS.user}</div><div class="l">${tr('customer_label')}</div><div class="v">${esc(o.telegram_name)||'—'}</div></div>
         <div class="info-row"><div class="ic">${ICONS.doc}</div><div class="l">${tr('invoice_no_label')}</div><div class="v">${o.order_no}</div></div>
         <div class="info-row"><div class="ic">${ICONS.comment}</div><div class="l">${tr('comment_label')}</div><div class="v" style="color:var(--muted);font-weight:600">—</div></div>
       </div>
@@ -983,8 +988,8 @@ window.CONFIG = {
       return `<div class="cart-item" data-id="${id}">
         ${photo(null, p.kategoriya)}
         <div class="info">
-          <div class="name">${p.nomi}</div>
-          <div class="art">${tr('art_prefix')} ${p.artikul||'—'}</div>
+          <div class="name">${esc(p.nomi)}</div>
+          <div class="art">${tr('art_prefix')} ${esc(p.artikul)||'—'}</div>
           <span class="stock-badge">${tr('in_stock')}</span>
           <div class="bottom-row">
             <div class="stepper"><button data-cart-dec="${id}">−</button><input class="qty-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" id="qty-cart-${id}" data-qty-input="${id}" value="${S.cart[id]}"><button data-cart-inc="${id}">+</button></div>
@@ -995,7 +1000,7 @@ window.CONFIG = {
       </div>`;
     }).join('');
 
-    const objOptions = S.objects.map(o=>`<option value="${o.id}" ${S.tmp.selectedObj===o.id?'selected':''}>${o.nomi}</option>`).join('');
+    const objOptions = S.objects.map(o=>`<option value="${o.id}" ${S.tmp.selectedObj===o.id?'selected':''}>${esc(o.nomi)}</option>`).join('');
 
     return `${renderTopbar()}
       <div class="page-head-row"><div class="page-head"><h1>${tr('cart_title')}</h1><p>${tr('cart_subtitle')}</p></div>
@@ -1044,7 +1049,7 @@ window.CONFIG = {
     document.getElementById('app').innerHTML = `<div class="success">
       <div class="ic">${ICONS.check}</div>
       <h2>${tr('order_success_title')}</h2>
-      <p>${tr('success_nakladnoy')} <b>${res.order_no}</b><br>${tr('success_object')} ${res.object}<br>${tr('success_total')} ${fmt(res.total)} ${tr('success_debt_suffix')}<br>${tr('success_excel')} <b>${res.brigade}</b> ${tr('success_group_suffix')}</p>
+      <p>${tr('success_nakladnoy')} <b>${esc(res.order_no)}</b><br>${tr('success_object')} ${esc(res.object)}<br>${tr('success_total')} ${fmt(res.total)} ${tr('success_debt_suffix')}<br>${tr('success_excel')} <b>${esc(res.brigade)}</b> ${tr('success_group_suffix')}</p>
       <button data-goto-orders>${tr('view_my_orders')}</button>
     </div>`;
     document.querySelector('[data-goto-orders]').onclick = () => { S.tmp.orders = null; switchTab('orders'); };
@@ -1066,7 +1071,7 @@ window.CONFIG = {
   }
   function objectCard(o){
     return `<div class="obj-card" data-open-object="${o.id}">
-      <div class="obj-top"><div class="photo t2" style="width:54px;height:54px">${ICONS.building}</div><div class="info"><div class="name">${o.nomi}</div>${o.manzil?`<div class="loc">${ICONS.pin}${o.manzil}</div>`:''}</div></div>
+      <div class="obj-top"><div class="photo t2" style="width:54px;height:54px">${ICONS.building}</div><div class="info"><div class="name">${esc(o.nomi)}</div>${o.manzil?`<div class="loc">${ICONS.pin}${esc(o.manzil)}</div>`:''}</div></div>
       <div class="obj-stats">
         <div class="cell"><div class="l">${tr('total_purchases')}</div><div class="v">${fmt(o.jami)}</div></div>
         <div class="cell"><div class="l">${tr('debt')}</div><div class="v ${o.qarzdorlik>0?'red':'green'}">${fmt(o.qarzdorlik)}</div></div>
@@ -1121,13 +1126,13 @@ window.CONFIG = {
     else if (sub==='stats') body = objTabStats(orders);
     else if (sub==='edit') body = objTabEdit(detail);
 
-    return `<div class="plist-head"><div class="back" data-pop>${ICONS.back}</div><h3>${detail.nomi}</h3></div>
+    return `<div class="plist-head"><div class="back" data-pop>${ICONS.back}</div><h3>${esc(detail.nomi)}</h3></div>
       <div class="obj-hero">
         <div class="obj-hero-top">
           <div class="photo t2" style="width:52px;height:52px">${ICONS.building}</div>
           <div class="info">
-            <div class="name">${detail.nomi}</div>
-            ${detail.manzil?`<div class="loc">${ICONS.pin}${detail.manzil}</div>`:''}
+            <div class="name">${esc(detail.nomi)}</div>
+            ${detail.manzil?`<div class="loc">${ICONS.pin}${esc(detail.manzil)}</div>`:''}
           </div>
           <span class="pill green">● ${tr('status_active')}</span>
         </div>
@@ -1161,7 +1166,7 @@ window.CONFIG = {
     return `<div style="margin:12px 18px;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:6px 14px;box-shadow:var(--shadow)">
       ${debt.map(d=>`<div class="debt-row">
         <div class="debt-ic ${d.turi==='qarz'?'up':'down'}">${d.turi==='qarz'?ICONS.up:ICONS.down}</div>
-        <div class="debt-mid"><div class="t">${d.izoh||(d.turi==='qarz'?tr('debt_order_label'):tr('debt_payment_label'))}</div><div class="d">${fmtDate(d.created_at)}</div></div>
+        <div class="debt-mid"><div class="t">${esc(d.izoh)||(d.turi==='qarz'?tr('debt_order_label'):tr('debt_payment_label'))}</div><div class="d">${fmtDate(d.created_at)}</div></div>
         <div class="debt-amt ${d.turi==='qarz'?'up':'down'}">${d.turi==='qarz'?'+':'−'}${fmt(d.summa)}</div>
       </div>`).join('')}
     </div>`;
@@ -1170,7 +1175,7 @@ window.CONFIG = {
     const payments = debt.filter(d=>d.turi==='tolov');
     if (!payments.length) return `<div class="empty-state">${ICONS.check}<div>${tr('no_payments_yet')}<br><span style="font-size:11.5px">${tr('no_payments_yet_sub')}</span></div></div>`;
     return `<div style="margin:12px 18px;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:6px 14px;box-shadow:var(--shadow)">
-      ${payments.map(d=>`<div class="debt-row"><div class="debt-ic down">${ICONS.down}</div><div class="debt-mid"><div class="t">${d.izoh||tr('debt_payment_label')}</div><div class="d">${fmtDate(d.created_at)}</div></div><div class="debt-amt down">${fmt(d.summa)}</div></div>`).join('')}
+      ${payments.map(d=>`<div class="debt-row"><div class="debt-ic down">${ICONS.down}</div><div class="debt-mid"><div class="t">${esc(d.izoh)||tr('debt_payment_label')}</div><div class="d">${fmtDate(d.created_at)}</div></div><div class="debt-amt down">${fmt(d.summa)}</div></div>`).join('')}
     </div>`;
   }
   function objTabProducts(orders){
@@ -1208,8 +1213,8 @@ window.CONFIG = {
     </div>`;
   }
   function objTabEdit(o){
-    return `<div class="field" style="margin-top:14px"><label>${tr('object_name_label').replace(' *','')}</label><input id="e_nomi" value="${o.nomi}"></div>
-      <div class="field"><label>${tr('address_label')}</label><input id="e_manzil" value="${o.manzil||''}"></div>
+    return `<div class="field" style="margin-top:14px"><label>${tr('object_name_label').replace(' *','')}</label><input id="e_nomi" value="${esc(o.nomi)}"></div>
+      <div class="field"><label>${tr('address_label')}</label><input id="e_manzil" value="${esc(o.manzil)}"></div>
       <div style="margin:0 18px 12px;font-size:12px;color:var(--muted)">${tr('location_hint')}</div>
       <div class="cta-wrap"><button class="cta" id="saveObjBtn">${ICONS.check} ${tr('save')}</button></div>`;
   }
@@ -1230,8 +1235,8 @@ window.CONFIG = {
     return `${renderTopbar()}
       <div class="page-head"><h1>${tr('profile_title')}</h1><p>${tr('profile_subtitle')}</p></div>
       <div class="profile-card" style="margin-top:14px">
-        <div class="avatar">${initials(p.ism)}</div>
-        <div class="info"><div class="name">${p.ism||tr('name_not_set')}</div><div class="line">${p.telefon||tr('phone_not_set')}</div><div class="line">${p.kompaniya||S.brigade&&S.brigade.nomi||''}</div></div>
+        <div class="avatar">${esc(initials(p.ism))}</div>
+        <div class="info"><div class="name">${esc(p.ism)||tr('name_not_set')}</div><div class="line">${esc(p.telefon)||tr('phone_not_set')}</div><div class="line">${esc(p.kompaniya)||esc(S.brigade&&S.brigade.nomi)||''}</div></div>
         <button class="btn-ghost" data-goto-profile-edit>${ICONS.edit}</button>
       </div>
       <div class="menu-card">
@@ -1269,9 +1274,9 @@ window.CONFIG = {
   function screenProfileEdit(){
     const p = S.profile;
     return `<div class="plist-head"><div class="back" data-pop>${ICONS.back}</div><h3>${tr('personal_data')}</h3></div>
-      <div class="field" style="margin-top:14px"><label>${tr('name_label')}</label><input id="pf_ism" value="${p.ism||''}"></div>
-      <div class="field"><label>${tr('phone_label')}</label><input id="pf_tel" value="${p.telefon||''}" placeholder="${tr('phone_ph')}"></div>
-      <div class="field"><label>${tr('company_label')}</label><input id="pf_komp" value="${p.kompaniya||''}"></div>
+      <div class="field" style="margin-top:14px"><label>${tr('name_label')}</label><input id="pf_ism" value="${esc(p.ism)}"></div>
+      <div class="field"><label>${tr('phone_label')}</label><input id="pf_tel" value="${esc(p.telefon)}" placeholder="${tr('phone_ph')}"></div>
+      <div class="field"><label>${tr('company_label')}</label><input id="pf_komp" value="${esc(p.kompaniya)}"></div>
       <div class="cta-wrap"><button class="cta" id="saveProfileBtn">${ICONS.check} ${tr('save')}</button></div>`;
   }
   async function saveProfile(){
@@ -1294,7 +1299,7 @@ window.CONFIG = {
     if (!S.tmp.addresses) { loadAddresses(); return `<div class="plist-head"><div class="back" data-pop>${ICONS.back}</div><h3>${tr('my_addresses')}</h3></div>${loadingRow()}`; }
     return `<div class="plist-head"><div class="back" data-pop>${ICONS.back}</div><h3>${tr('my_addresses')}</h3></div>
       <div class="plist">${S.tmp.addresses.map(a=>`
-        <div class="cart-item"><div class="info"><div class="name">${a.nomi}</div><div class="art">${a.manzil}</div></div><span class="trash" data-del-address="${a.id}">${ICONS.trash}</span></div>
+        <div class="cart-item"><div class="info"><div class="name">${esc(a.nomi)}</div><div class="art">${esc(a.manzil)}</div></div><span class="trash" data-del-address="${a.id}">${ICONS.trash}</span></div>
       `).join('') || `<div class="empty-state">${tr('addr_empty')}</div>`}</div>
       <div class="field"><label>${tr('addr_name_label')}</label><input id="ad_nomi" placeholder="${tr('addr_name_ph')}"></div>
       <div class="field"><label>${tr('address_label')}</label><input id="ad_manzil" placeholder="${tr('addr_full_ph')}"></div>

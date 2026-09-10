@@ -1,4 +1,4 @@
-import { json, requireUser, tgApi } from '../_lib.js';
+import { json, requireUser, tgApi, escHtml } from '../_lib.js';
 
 // Profil → Yordam → Operatorga yozish: foydalanuvchi xabarini admin/operator
 // shaxsiy chatiga (ADMIN_CHAT_ID) forward qiladi.
@@ -15,7 +15,7 @@ export async function onRequestPost({ request, env }) {
   const name = [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username || String(user.id);
   await tgApi(env, 'sendMessage', {
     chat_id: env.ADMIN_CHAT_ID,
-    text: `✉️ <b>Yangi murojaat</b>\nKimdan: ${name} (id: ${user.id})\n\n${matn}`,
+    text: `✉️ <b>Yangi murojaat</b>\nKimdan: ${escHtml(name)} (id: ${user.id})\n\n${escHtml(matn)}`,
     parse_mode: 'HTML'
   });
 

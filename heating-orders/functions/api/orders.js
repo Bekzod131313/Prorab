@@ -13,19 +13,22 @@ export async function onRequestGet({ request, env }) {
   const objectId = searchParams.get('object_id');
 
   if (id) {
-    const rows = await sbFetch(env, `/rest/v1/hs_orders?id=eq.${id}&select=*,hs_objects(nomi,manzil)`);
+    const rows = await sbFetch(env, `/rest/v1/hs_orders?id=eq.${encodeURIComponent(id)}&select=*,hs_objects(nomi,manzil)`);
     const order = rows && rows[0];
     if (!order) return json({ error: 'Buyurtma topilmadi' }, 404);
     if (!isAdmin) {
       const user = await requireUser(request, env);
       if (!user) return json({ error: 'Ruxsat yo‘q' }, 401);
+      const userRows = await sbFetch(env, `/rest/v1/hs_users?telegram_id=eq.${user.id}&select=brigade_id`);
+      const brigadeId = userRows && userRows[0] && userRows[0].brigade_id;
+      if (!brigadeId || brigadeId !== order.brigade_id) return json({ error: 'Buyurtma topilmadi' }, 404);
     }
     return json(order);
   }
 
   if (isAdmin) {
     let path = `/rest/v1/hs_orders?select=*,hs_objects(nomi),hs_brigades(nomi)&order=created_at.desc&limit=200`;
-    if (objectId) path += `&object_id=eq.${objectId}`;
+    if (objectId) path += `&object_id=eq.${encodeURIComponent(objectId)}`;
     return json(await sbFetch(env, path));
   }
 
@@ -37,7 +40,7 @@ export async function onRequestGet({ request, env }) {
   if (!brigadeId) return json([]);
 
   let path = `/rest/v1/hs_orders?brigade_id=eq.${brigadeId}&select=*,hs_objects(nomi)&order=created_at.desc&limit=100`;
-  if (objectId) path += `&object_id=eq.${objectId}`;
+  if (objectId) path += `&object_id=eq.${encodeURIComponent(objectId)}`;
 
   const orders = await sbFetch(env, path);
   return json(orders);

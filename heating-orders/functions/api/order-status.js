@@ -12,7 +12,7 @@ export async function onRequestPost({ request, env }) {
   if (!body.id) return json({ error: 'id kerak' }, 400);
   if (!STATUSES.includes(body.status)) return json({ error: 'status noto‘g‘ri' }, 400);
 
-  const rows = await sbFetch(env, `/rest/v1/hs_orders?id=eq.${body.id}`, 'PATCH', { status: body.status });
+  const rows = await sbFetch(env, `/rest/v1/hs_orders?id=eq.${encodeURIComponent(body.id)}`, 'PATCH', { status: body.status });
   const order = rows && rows[0];
   if (!order) return json({ error: 'Buyurtma topilmadi' }, 404);
 

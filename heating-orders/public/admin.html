@@ -130,6 +130,12 @@
   const fmt = n => Math.round(n||0).toLocaleString('ru-RU') + " so'm";
   const fmtDate = s => { const d=new Date(s); return d.toLocaleDateString('ru-RU')+' '+d.toTimeString().slice(0,5); };
   const STATUS_LABELS = { yangi:'Yangi', jarayonda:'Jarayonda', yetkazilgan:'Yetkazilgan', bekor_qilingan:'Bekor qilingan' };
+  // Obyekt/brigada nomlari ustalar (yoki guruh adminlari) tomonidan erkin
+  // matn sifatida kiritiladi — innerHTML'ga xom holda qo'yilsa, kimdir
+  // nom o'rniga <img onerror=...> kabi skript yozib, admin panelni ochgan
+  // operatorning ADMIN_TOKEN'ini o'g'irlashi mumkin edi. Shu uchun har
+  // qanday tashqi matn innerHTML'ga faqat shu funksiya orqali qo'shiladi.
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
   function headers(){ return { 'Content-Type':'application/json', 'X-Admin-Token': token }; }
   async function api(path, opts){
@@ -165,12 +171,12 @@
     document.getElementById('countTxt').textContent = products.length + ' ta tovar';
     document.getElementById('tbody').innerHTML = products.map(p => `
       <tr data-id="${p.id}">
-        <td><input value="${p.artikul||''}" data-f="artikul" style="width:80px"></td>
-        <td><input value="${p.nomi||''}" data-f="nomi" style="width:160px"></td>
+        <td><input value="${esc(p.artikul||'')}" data-f="artikul" style="width:80px"></td>
+        <td><input value="${esc(p.nomi||'')}" data-f="nomi" style="width:160px"></td>
         <td><input type="number" value="${p.narx||0}" data-f="narx" style="width:90px"></td>
         <td><input type="number" value="${p.aksiya_narx==null?'':p.aksiya_narx}" data-f="aksiya_narx" style="width:90px" placeholder="—"></td>
-        <td><input value="${p.birlik||''}" data-f="birlik" style="width:70px"></td>
-        <td><input value="${p.kategoriya||''}" data-f="kategoriya" style="width:100px"></td>
+        <td><input value="${esc(p.birlik||'')}" data-f="birlik" style="width:70px"></td>
+        <td><input value="${esc(p.kategoriya||'')}" data-f="kategoriya" style="width:100px"></td>
         <td><input type="checkbox" data-f="faol" ${p.faol?'checked':''}></td>
         <td><input type="checkbox" data-f="ommabop" ${p.ommabop?'checked':''}></td>
         <td style="white-space:nowrap"><button class="secondary" data-act="save">💾</button> <button class="danger" data-act="del">🗑</button></td>
@@ -237,10 +243,10 @@
     document.getElementById('ordersCountTxt').textContent = orders.length + ' ta buyurtma';
     document.getElementById('ordersBody').innerHTML = orders.map(o => `
       <tr data-id="${o.id}">
-        <td>${o.order_no||o.id.slice(0,8)}</td>
+        <td>${esc(o.order_no||o.id.slice(0,8))}</td>
         <td>${fmtDate(o.created_at)}</td>
-        <td>${o.hs_brigades?o.hs_brigades.nomi:''}</td>
-        <td>${o.hs_objects?o.hs_objects.nomi:''}</td>
+        <td>${esc(o.hs_brigades?o.hs_brigades.nomi:'')}</td>
+        <td>${esc(o.hs_objects?o.hs_objects.nomi:'')}</td>
         <td>${fmt(o.total)}</td>
         <td><select data-status>${Object.keys(STATUS_LABELS).map(k=>`<option value="${k}" ${k===o.status?'selected':''}>${STATUS_LABELS[k]}</option>`).join('')}</select></td>
         <td><button class="secondary" data-act="save-status">💾</button></td>
@@ -261,8 +267,8 @@
     document.getElementById('objectsCountTxt').textContent = objects.length + ' ta obyekt';
     document.getElementById('objectsBody').innerHTML = objects.map(o => `
       <tr data-id="${o.id}">
-        <td>${o.nomi}</td>
-        <td>${o.hs_brigades?o.hs_brigades.nomi:''}</td>
+        <td>${esc(o.nomi)}</td>
+        <td>${esc(o.hs_brigades?o.hs_brigades.nomi:'')}</td>
         <td>${fmt(o.jami)}</td>
         <td>${fmt(o.tolangan)}</td>
         <td class="${o.qarzdorlik>0?'debtpos':'debtneg'}">${fmt(o.qarzdorlik)}</td>

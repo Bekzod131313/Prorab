@@ -1,4 +1,4 @@
-import { json, sbFetch, tgApi, genCode } from '../_lib.js';
+import { json, sbFetch, tgApi, genCode, escHtml } from '../_lib.js';
 
 // Telegram bot webhook.
 //
@@ -64,7 +64,7 @@ export async function onRequestPost({ request, env }) {
       const url = `${env.MINIAPP_URL}/?g=${code}`;
       const sendRes = await tgApi(env, 'sendMessage', {
         chat_id: chat.id,
-        text: `👋 Salom! Siz <b>${brigade.nomi}</b> brigadasi nomidan buyurtma berasiz.\n\nTovar tanlash uchun pastdagi tugmani bosing 👇`,
+        text: `👋 Salom! Siz <b>${escHtml(brigade.nomi)}</b> brigadasi nomidan buyurtma berasiz.\n\nTovar tanlash uchun pastdagi tugmani bosing 👇`,
         parse_mode: 'HTML',
         reply_markup: { inline_keyboard: [[{ text: '🛒 Katalog va buyurtma', web_app: { url } }]] }
       });
@@ -127,7 +127,7 @@ export async function onRequestPost({ request, env }) {
     const deepLink = `https://t.me/${env.BOT_USERNAME}?start=brig_${brigade.code}`;
     await tgApi(env, 'sendMessage', {
       chat_id: chat.id,
-      text: `✅ <b>${nomi}</b> brigadasi ro‘yxatdan o‘tdi.\n\nBrigada a'zolari buyurtma berish uchun pastdagi tugma orqali botga o‘tishi kerak (har bir usta buni bir marta bosadi):`,
+      text: `✅ <b>${escHtml(nomi)}</b> brigadasi ro‘yxatdan o‘tdi.\n\nBrigada a'zolari buyurtma berish uchun pastdagi tugma orqali botga o‘tishi kerak (har bir usta buni bir marta bosadi):`,
       parse_mode: 'HTML',
       reply_markup: { inline_keyboard: [[{ text: '🤖 Botga o‘tish va buyurtma berish', url: deepLink }]] }
     });

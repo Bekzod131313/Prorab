@@ -24,6 +24,6 @@ export async function onRequestDelete({ request, env }) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
   if (!id) return json({ error: 'id kerak' }, 400);
-  await sbFetch(env, `/rest/v1/hs_addresses?id=eq.${id}&telegram_id=eq.${user.id}`, 'DELETE');
+  await sbFetch(env, `/rest/v1/hs_addresses?id=eq.${encodeURIComponent(id)}&telegram_id=eq.${user.id}`, 'DELETE');
   return json({ ok: true });
 }

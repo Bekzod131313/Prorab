@@ -29,14 +29,15 @@ export async function onRequestGet({ request, env }) {
   }
 
   if (id) {
-    const filter = isAdmin ? `id=eq.${id}` : `id=eq.${id}&brigade_id=eq.${brigadeId}`;
+    const encId = encodeURIComponent(id);
+    const filter = isAdmin ? `id=eq.${encId}` : `id=eq.${encId}&brigade_id=eq.${brigadeId}`;
     const rows = await sbFetch(env, `/rest/v1/hs_objects?${filter}&select=*`);
     const obj = rows && rows[0];
     if (!obj) return json({ error: 'Obyekt topilmadi' }, 404);
 
-    const debt = await sbFetch(env, `/rest/v1/hs_debt_entries?object_id=eq.${id}&select=turi,summa`);
+    const debt = await sbFetch(env, `/rest/v1/hs_debt_entries?object_id=eq.${encId}&select=turi,summa`);
     const sum = summarize(debt)[id] || { jami: 0, tolangan: 0 };
-    const orderCountRes = await sbFetch(env, `/rest/v1/hs_orders?object_id=eq.${id}&select=id,created_at&order=created_at.desc`);
+    const orderCountRes = await sbFetch(env, `/rest/v1/hs_orders?object_id=eq.${encId}&select=id,created_at&order=created_at.desc`);
     return json({
       ...obj,
       jami: sum.jami,
@@ -94,6 +95,8 @@ export async function onRequestPatch({ request, env }) {
   if (!user) return json({ error: 'Ruxsat yo‘q' }, 401);
 
   const brigadeId = await getUserBrigadeId(env, user.id);
+  if (!brigadeId) return json({ error: 'Avval brigadaga ulaning (guruhda /register)' }, 400);
+
   const body = await request.json();
   if (!body.id) return json({ error: 'id kerak' }, 400);
 
@@ -103,7 +106,7 @@ export async function onRequestPatch({ request, env }) {
   if (body.lat !== undefined) { const n = Number(body.lat); patch.lat = Number.isFinite(n) ? n : null; }
   if (body.lng !== undefined) { const n = Number(body.lng); patch.lng = Number.isFinite(n) ? n : null; }
 
-  const rows = await sbFetch(env, `/rest/v1/hs_objects?id=eq.${body.id}&brigade_id=eq.${brigadeId}`, 'PATCH', patch);
+  const rows = await sbFetch(env, `/rest/v1/hs_objects?id=eq.${encodeURIComponent(body.id)}&brigade_id=eq.${brigadeId}`, 'PATCH', patch);
   if (!rows || !rows.length) return json({ error: 'Obyekt topilmadi' }, 404);
   return json(rows[0]);
 }

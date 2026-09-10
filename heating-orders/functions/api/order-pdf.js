@@ -48,11 +48,13 @@ export async function onRequestGet({ request, env }) {
     if (!id) return json({ error: 'id kerak' }, 400);
 
     const [orderRows, userRows] = await Promise.all([
-      sbFetch(env, `/rest/v1/hs_orders?id=eq.${id}&select=*,hs_objects(nomi,manzil)`),
-      sbFetch(env, `/rest/v1/hs_users?telegram_id=eq.${user.id}&select=til`)
+      sbFetch(env, `/rest/v1/hs_orders?id=eq.${encodeURIComponent(id)}&select=*,hs_objects(nomi,manzil)`),
+      sbFetch(env, `/rest/v1/hs_users?telegram_id=eq.${user.id}&select=til,brigade_id`)
     ]);
     const order = orderRows && orderRows[0];
     if (!order) return json({ error: 'Buyurtma topilmadi' }, 404);
+    const callerBrigadeId = userRows && userRows[0] && userRows[0].brigade_id;
+    if (!callerBrigadeId || callerBrigadeId !== order.brigade_id) return json({ error: 'Buyurtma topilmadi' }, 404);
 
     const lang = (userRows && userRows[0] && userRows[0].til === 'ru') ? 'ru' : 'uz';
     const L = LABELS[lang];

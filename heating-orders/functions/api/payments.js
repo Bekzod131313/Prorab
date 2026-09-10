@@ -1,4 +1,4 @@
-import { json, sbFetch, checkAdmin, notify } from '../_lib.js';
+import { json, sbFetch, checkAdmin, notify, escHtml } from '../_lib.js';
 
 // To'lov qayd etish — faqat admin (operator) tomonidan, admin.html orqali.
 // Mijoz to'lovni naqd/bank orqali offline amalga oshiradi, operator shu
@@ -28,7 +28,7 @@ export async function onRequestPost({ request, env }) {
     await notify(env, {
       telegram_id: object.created_by,
       turi: 'tolov',
-      matn: `💰 To‘lov qabul qilindi\nObyekt: ${object.nomi}\nSumma: ${summa.toLocaleString('ru-RU')} so'm`,
+      matn: `💰 To‘lov qabul qilindi\nObyekt: ${escHtml(object.nomi)}\nSumma: ${summa.toLocaleString('ru-RU')} so'm`,
       object_id: objectId
     });
   }

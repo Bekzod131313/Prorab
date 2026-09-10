@@ -17,6 +17,6 @@ export async function onRequestPatch({ request, env }) {
     return json({ ok: true });
   }
   if (!body.id) return json({ error: 'id kerak' }, 400);
-  const rows = await sbFetch(env, `/rest/v1/hs_notifications?id=eq.${body.id}&telegram_id=eq.${user.id}`, 'PATCH', { oqilgan: true });
+  const rows = await sbFetch(env, `/rest/v1/hs_notifications?id=eq.${encodeURIComponent(body.id)}&telegram_id=eq.${user.id}`, 'PATCH', { oqilgan: true });
   return json(rows[0] || { ok: true });
 }

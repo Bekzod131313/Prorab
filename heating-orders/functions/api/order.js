@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { json, sbFetch, requireUser, nextOrderNo, notify, tgApi } from '../_lib.js';
+import { json, sbFetch, requireUser, nextOrderNo, notify, tgApi, escHtml } from '../_lib.js';
 
 // Savatni qabul qiladi, narxlarni bazadan qayta hisoblaydi, buyurtmani
 // tanlangan OBYEKTGA bog'laydi va uning qarziga yozadi (to'lov tizimi yo'q —
@@ -12,21 +12,33 @@ export async function onRequestPost({ request, env }) {
     if (!user) return json({ error: 'Foydalanuvchini tasdiqlab bo‘lmadi. Ilovani Telegram ichida oching.' }, 401);
 
     const body = await request.json();
-    const { code, object_id, items } = body;
+    const { object_id, items } = body;
 
-    if (!code) return json({ error: 'Brigada kodi topilmadi' }, 400);
     if (!object_id) return json({ error: 'Obyekt tanlanmagan' }, 400);
     if (!Array.isArray(items) || !items.length) return json({ error: 'Savat bo‘sh' }, 400);
 
-    const brigades = await sbFetch(env, `/rest/v1/hs_brigades?code=eq.${encodeURIComponent(code)}&select=*`);
+    // Brigada har doim initData bilan tasdiqlangan foydalanuvchining o'z
+    // a'zoligidan olinadi — mijoz yuborgan `code`ga hech qachon ishonilmaydi,
+    // aks holda boshqa brigadaning kodini bilgan har kim uning nomidan
+    // buyurtma berib, uning obyekt qarziga yozib qo'yishi mumkin edi.
+    const userRows = await sbFetch(env, `/rest/v1/hs_users?telegram_id=eq.${user.id}&select=brigade_id`);
+    const userBrigadeId = userRows && userRows[0] && userRows[0].brigade_id;
+    if (!userBrigadeId) return json({ error: 'Avval brigadaga ulaning (guruhda /register)' }, 400);
+
+    const brigades = await sbFetch(env, `/rest/v1/hs_brigades?id=eq.${encodeURIComponent(userBrigadeId)}&select=*`);
     const brigade = brigades && brigades[0];
     if (!brigade) return json({ error: 'Brigada topilmadi. Guruhda qaytadan /register qiling.' }, 404);
 
-    const objRows = await sbFetch(env, `/rest/v1/hs_objects?id=eq.${object_id}&brigade_id=eq.${brigade.id}&select=*`);
+    const objRows = await sbFetch(env, `/rest/v1/hs_objects?id=eq.${encodeURIComponent(object_id)}&brigade_id=eq.${brigade.id}&select=*`);
     const object = objRows && objRows[0];
     if (!object) return json({ error: 'Obyekt topilmadi' }, 404);
 
-    const ids = [...new Set(items.map(i => i.id).filter(Boolean))];
+    // PostgREST'ning or=(...) filtri o'zining mini-tilida vergul/nuqtani
+    // ajratuvchi sifatida ishlatadi — URL-encoding bu yerda yetarli emas
+    // (dekodlangach original belgi qaytadi), shuning uchun id'lar UUID
+    // formatiga qat'iy mos kelishi tekshiriladi.
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const ids = [...new Set(items.map(i => i.id).filter(id => typeof id === 'string' && UUID_RE.test(id)))];
     if (!ids.length) return json({ error: 'Tovarlar noto‘g‘ri' }, 400);
     const orFilter = ids.map(id => `id.eq.${id}`).join(',');
     const dbProducts = await sbFetch(env, `/rest/v1/hs_products?or=(${orFilter})&faol=eq.true&select=*`);
@@ -90,10 +102,25 @@ export async function onRequestPost({ request, env }) {
     );
     fd.append('document', blob, `${orderNo}.xlsx`);
 
-    const tgRes = await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/sendDocument`, { method: 'POST', body: fd });
-    const tgData = await tgRes.json();
-    if (!tgData.ok) {
-      return json({ error: 'Telegramga yuborishda xatolik: ' + (tgData.description || 'noma’lum xato') }, 502);
+    // Bu yerga kelganda buyurtma va qarzdorlik yozuvi allaqachon bazaga
+    // yozilgan (yuqorida) — shuning uchun Telegramga yuborishda xatolik
+    // bo'lsa ham foydalanuvchiga xatolik qaytarmaymiz: aks holda u "qayta
+    // urinib ko'raman" deb tugmani yana bossa, xuddi shu buyurtma va qarz
+    // ikkinchi marta yozilib, obyekt qarzi ikki baravar bo'lib qoladi.
+    // O'rniga yetkazib berilmaganini operatorga xabar qilamiz.
+    try {
+      const tgRes = await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/sendDocument`, { method: 'POST', body: fd });
+      const tgData = await tgRes.json();
+      if (!tgData.ok) throw new Error(tgData.description || 'noma’lum xato');
+    } catch (e) {
+      if (env.ADMIN_CHAT_ID) {
+        try {
+          await tgApi(env, 'sendMessage', {
+            chat_id: env.ADMIN_CHAT_ID,
+            text: `⚠️ Buyurtma ${orderNo} bazaga yozildi, lekin Excel fayl "${brigade.nomi}" guruhiga yuborilmadi.\nXato: ${e.message}\nIltimos, buyurtmani qo'lda tekshiring/yuboring.`
+          });
+        } catch (e2) {}
+      }
     }
 
     // Obyektga joylashuv (lokatsiya) biriktirilgan bo'lsa, buyurtma bilan birga
@@ -109,7 +136,7 @@ export async function onRequestPost({ request, env }) {
     await notify(env, {
       telegram_id: user.id,
       turi: 'buyurtma',
-      matn: `✅ Buyurtmangiz qabul qilindi: <b>${orderNo}</b>\nObyekt: ${object.nomi}\nJami: ${total.toLocaleString('ru-RU')} so'm\n\nStatus: Yangi`,
+      matn: `✅ Buyurtmangiz qabul qilindi: <b>${orderNo}</b>\nObyekt: ${escHtml(object.nomi)}\nJami: ${total.toLocaleString('ru-RU')} so'm\n\nStatus: Yangi`,
       order_id: order.id,
       object_id: object.id
     });

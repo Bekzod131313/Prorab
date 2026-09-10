@@ -43,7 +43,7 @@ export async function onRequestPut({ request, env }) {
   const body = await request.json();
   if (!body.id) return json({ error: 'id kerak' }, 400);
   const { id, ...rest } = normalizeRowPartial(body);
-  const data = await sbFetch(env, `/rest/v1/hs_products?id=eq.${body.id}`, 'PATCH', rest);
+  const data = await sbFetch(env, `/rest/v1/hs_products?id=eq.${encodeURIComponent(body.id)}`, 'PATCH', rest);
   return json(data[0]);
 }
 
@@ -65,6 +65,6 @@ export async function onRequestDelete({ request, env }) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
   if (!id) return json({ error: 'id kerak' }, 400);
-  await sbFetch(env, `/rest/v1/hs_products?id=eq.${id}`, 'DELETE');
+  await sbFetch(env, `/rest/v1/hs_products?id=eq.${encodeURIComponent(id)}`, 'DELETE');
   return json({ ok: true });
 }

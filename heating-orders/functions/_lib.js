@@ -1,5 +1,13 @@
 // Umumiy yordamchi funksiyalar — Cloudflare Pages Functions uchun
 
+// Bildirishnoma matniga foydalanuvchi kiritgan qiymatlar (obyekt nomi va h.k.)
+// qo'shilganda ishlatiladi: Telegram'ga parse_mode=HTML bilan yuborilganda
+// yaroqsiz teglar xatolikka olib kelmasligi, va mini-app'da bildirishnoma
+// matni innerHTML sifatida chiqarilganda skript ishga tushmasligi uchun.
+export function escHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
 export function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
