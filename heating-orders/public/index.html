@@ -449,13 +449,17 @@ window.CONFIG = {
   async function boot(){
     render(); // loading screen
     try{
-      const authRes = await api('/api/auth', { method:'POST', body: JSON.stringify({ code: urlCode }) });
+      const [authRes, prodRes] = await Promise.all([
+        api('/api/auth', { method:'POST', body: JSON.stringify({ code: urlCode }) }),
+        sb.from('hs_products').select('*').eq('faol', true).order('kategoriya').order('nomi')
+      ]);
       S.profile = authRes.profile; S.brigade = authRes.brigade; S.objects = authRes.objects || [];
       applyTheme();
-      const { data: prod } = await sb.from('hs_products').select('*').eq('faol', true).order('kategoriya').order('nomi');
-      S.products = prod || [];
-      try { S.notifications = await api('/api/notifications'); } catch(e){}
+      S.products = prodRes.data || [];
       S.booted = true;
+      render();
+      api('/api/notifications').then(n=>{ S.notifications = n; render(); }).catch(()=>{});
+      return;
     } catch(e){
       S.error = e.message;
     }
