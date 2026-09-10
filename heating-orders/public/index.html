@@ -14,21 +14,27 @@
     --bg:#f4f6f3; --panel:#ffffff; --panel2:#f1f4ee; --border:#e6eae2;
     --text:#0e1410; --muted:#6c7a72; --accent:#8fce2e; --accent-deep:#5f9c1a; --accent-ink:#12290a;
     --blue:#2f7de0; --blue-bg:#e9f1fd; --red:#e2483d; --red-bg:#fdeceb; --green-bg:#eaf7dd; --amber:#c98a12; --amber-bg:#fbf1de;
-    --shadow:0 1px 2px rgba(16,21,26,.04),0 8px 24px -12px rgba(16,21,26,.12);
+    --shadow:0 1px 3px rgba(16,21,26,.06),0 10px 28px -12px rgba(16,21,26,.16);
+    --tile1:#eaf7dd; --tile1-ink:#4c8a12; --tile2:#e6f0fb; --tile2-ink:#3467c9; --tile3:#fdeee0; --tile3-ink:#c26a1c;
+    --tile4:#f3e8fb; --tile4-ink:#8846c4; --tile5:#fdeaee; --tile5-ink:#c53d63; --tile6:#e2f6f4; --tile6-ink:#188c81;
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
       --bg:#0c130e; --panel:#131c15; --panel2:#182219; --border:#233028;
       --text:#eef3ea; --muted:#93a396; --accent:#9ee02f; --accent-deep:#7cc21e; --accent-ink:#0c2006;
       --blue:#5b9bee; --blue-bg:#132234; --red:#f2685e; --red-bg:#2c1613; --green-bg:#152614; --amber:#e0ac4b; --amber-bg:#2a2110;
-      --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -12px rgba(0,0,0,.5);
+      --shadow:0 1px 3px rgba(0,0,0,.35),0 10px 28px -12px rgba(0,0,0,.55);
+      --tile1:#173420; --tile1-ink:#8ed860; --tile2:#152a3c; --tile2-ink:#7cabec; --tile3:#3a2513; --tile3-ink:#eba05a;
+      --tile4:#2a1c38; --tile4-ink:#c79aeb; --tile5:#3a1720; --tile5-ink:#ec8ba3; --tile6:#12312d; --tile6-ink:#5fd9cb;
     }
   }
   :root[data-theme="dark"]{
     --bg:#0c130e; --panel:#131c15; --panel2:#182219; --border:#233028;
     --text:#eef3ea; --muted:#93a396; --accent:#9ee02f; --accent-deep:#7cc21e; --accent-ink:#0c2006;
     --blue:#5b9bee; --blue-bg:#132234; --red:#f2685e; --red-bg:#2c1613; --green-bg:#152614; --amber:#e0ac4b; --amber-bg:#2a2110;
-    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -12px rgba(0,0,0,.5);
+    --shadow:0 1px 3px rgba(0,0,0,.35),0 10px 28px -12px rgba(0,0,0,.55);
+    --tile1:#173420; --tile1-ink:#8ed860; --tile2:#152a3c; --tile2-ink:#7cabec; --tile3:#3a2513; --tile3-ink:#eba05a;
+    --tile4:#2a1c38; --tile4-ink:#c79aeb; --tile5:#3a1720; --tile5-ink:#ec8ba3; --tile6:#12312d; --tile6-ink:#5fd9cb;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',-apple-system,sans-serif;padding-bottom:84px}
@@ -58,8 +64,22 @@
   .search-box input{border:none;background:transparent;outline:none;color:var(--text);font-family:inherit;font-size:14px;width:100%}
   .search-box input::placeholder{color:var(--muted)}
 
-  .photo{background:var(--panel2);border:1px dashed var(--border);border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--muted);flex:0 0 auto}
-  .photo svg{width:38%;height:38%;opacity:.8}
+  .photo{background:var(--tile1);border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--tile1-ink);flex:0 0 auto}
+  .photo svg{width:46%;height:46%}
+  .photo.t2{background:var(--tile2);color:var(--tile2-ink)}
+  .photo.t3{background:var(--tile3);color:var(--tile3-ink)}
+  .photo.t4{background:var(--tile4);color:var(--tile4-ink)}
+  .photo.t5{background:var(--tile5);color:var(--tile5-ink)}
+  .photo.t6{background:var(--tile6);color:var(--tile6-ink)}
+
+  .hero{margin:14px 18px 4px;border-radius:18px;background:linear-gradient(135deg,var(--accent) 0%,var(--accent-deep) 100%);position:relative;overflow:hidden;padding:20px 20px 22px;color:var(--accent-ink)}
+  .hero::before{content:"";position:absolute;right:-28px;top:-36px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.16)}
+  .hero::after{content:"";position:absolute;right:16px;bottom:-22px;width:96px;height:96px;border:12px solid rgba(255,255,255,.18);border-radius:50%}
+  .hero-eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;opacity:.75}
+  .hero h2{font-family:'Manrope',sans-serif;font-weight:800;font-size:19px;line-height:1.22;margin:6px 0 12px;max-width:74%;text-wrap:balance}
+  .hero-cta{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700}
+  .hero-cta .arrow{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.9);color:var(--accent-deep);display:flex;align-items:center;justify-content:center}
+  .hero-cta .arrow svg{width:12px;height:12px}
 
   .sec-head{display:flex;align-items:baseline;justify-content:space-between;padding:22px 18px 12px}
   .sec-head h3{font-family:'Manrope',sans-serif;font-weight:800;font-size:16.5px;margin:0}
@@ -330,7 +350,31 @@ window.CONFIG = {
     box:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8l9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8M12 13v8"/></svg>',
     mail:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>'
   };
-  const photo = (size) => `<div class="photo"${size?` style="width:${size}px;height:${size}px"`:''}>${ICONS.photoIcon}</div>`;
+
+  const CAT_ICONS = {
+    'Trubalar': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="9" width="20" height="6" rx="1"/><path d="M6 9v6M18 9v6"/></svg>',
+    'Fitinglar': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v7a2 2 0 0 0 2 2h7"/><rect x="13" y="11" width="7" height="7" rx="1"/><rect x="2" y="2" width="6" height="6" rx="1"/></svg>',
+    'Armaturalar': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M2 12h6M16 12h6M12 2l4 4-4 4-4-4z"/></svg>',
+    'Kranlar': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M2 12h6M16 12h6M12 2l4 4-4 4-4-4z"/></svg>',
+    'Radiatorlar': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M7 4v16M11 4v16M15 4v16"/></svg>',
+    'Qozonlar': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="9" cy="9" r="1.4" fill="currentColor" stroke="none"/><path d="M7 15h10M7 18h6"/></svg>',
+    'Kotyollar': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="9" cy="9" r="1.4" fill="currentColor" stroke="none"/><path d="M7 15h10M7 18h6"/></svg>',
+    'Nasoslar': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/><path d="M12 5V2M19 12h3"/></svg>',
+    'Kollektorlar': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16"/><path d="M7 6v13M12 6v13M17 6v13"/></svg>',
+    'Boylerlar': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="6"/><path d="M9 8h6M9 12h6"/></svg>',
+    'Aksessuarlar': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L2 19l3 3 7.3-7.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2-2z"/></svg>'
+  };
+  const CAT_TILE_ORDER = ['', 't2', 't3', 't4', 't5', 't6'];
+  const catTileClass = (cat) => {
+    let h = 0; for (let i = 0; i < (cat || '').length; i++) h = (h * 31 + cat.charCodeAt(i)) >>> 0;
+    return CAT_TILE_ORDER[h % CAT_TILE_ORDER.length];
+  };
+  const catIcon = (cat) => CAT_ICONS[cat] || ICONS.box;
+  const photo = (size, cat) => {
+    const cls = 'photo' + (cat ? ' ' + catTileClass(cat) : '');
+    const style = size ? ` style="width:${size}px;height:${size}px"` : '';
+    return `<div class="${cls}"${style}>${cat ? catIcon(cat) : ICONS.photoIcon}</div>`;
+  };
   const STATUS_LABELS = { yangi:'Yangi', jarayonda:'Jarayonda', yetkazilgan:'Yetkazilgan', bekor_qilingan:'Bekor qilingan' };
   const STATUS_CLS = { yangi:'amber', jarayonda:'blue', yetkazilgan:'green', bekor_qilingan:'red' };
   const fmt = n => Math.round(n||0).toLocaleString('ru-RU') + " so'm";
@@ -393,7 +437,7 @@ window.CONFIG = {
   function renderTopbar({ search=false, unreadBell=true } = {}){
     const unread = S.notifications.filter(n=>!n.oqilgan).length;
     return `<div class="topbar">
-      <div class="logo" data-nav-home><b>OTOPRO</b><em>Santexnika &middot; Otopleniya &middot; Buyurtma</em></div>
+      <div class="logo" data-nav-home><b>ZODPRO</b><em>Santexnika &middot; Otopleniya &middot; Buyurtma</em></div>
       <div class="topbar-icons">
         <div class="icon-btn" data-open-notif>${ICONS.bell}${unread?`<span class="dot-badge">${unread}</span>`:''}</div>
       </div>
@@ -415,13 +459,18 @@ window.CONFIG = {
     const cats = [...new Set(S.products.map(p=>p.kategoriya||'Boshqa'))];
     const aksiya = S.products.filter(p=>p.aksiya_narx!=null && p.aksiya_narx < p.narx).slice(0,6);
     const ommabop = S.products.filter(p=>p.ommabop).slice(0,6);
-    return `${renderTopbar()}${searchBox}
+    const hero = `<div class="hero">
+      <div class="hero-eyebrow">${S.brigade ? S.brigade.nomi : 'Xush kelibsiz'}</div>
+      <h2>Kerakli tovarni tanlang, buyurtma qarzga yoziladi</h2>
+      <div class="hero-cta"><span class="arrow">${ICONS.chev}</span> Excel avtomatik guruhga tushadi</div>
+    </div>`;
+    return `${renderTopbar()}${searchBox}${hero}
       ${!S.products.length ? `<div class="empty-state">${ICONS.box}<div>Hozircha katalogda tovar yo‘q.<br>Admin panel orqali qo‘shiladi.</div></div>` : ''}
       ${aksiya.length ? `<div class="sec-head"><h3>Aksiyalar</h3></div><div class="plist" data-plist="aksiya">${aksiya.map(productCard).join('')}</div>` : ''}
       ${ommabop.length ? `<div class="sec-head"><h3>Ommabop tovarlar</h3></div><div class="plist" data-plist="ommabop">${ommabop.map(productCard).join('')}</div>` : ''}
       <div class="sec-head"><h3>Kategoriyalar</h3><a data-open-cat="Barchasi">Barchasi ${ICONS.chev}</a></div>
       <div class="cat-grid">${cats.map(c=>`
-        <div class="cat-card" data-open-cat="${c}">${photo()}<div class="row"><div class="n">${c}</div>${ICONS.chev}</div></div>
+        <div class="cat-card" data-open-cat="${c}">${photo(null, c)}<div class="row"><div class="n">${c}</div>${ICONS.chev}</div></div>
       `).join('')}</div>`;
   }
 
@@ -430,7 +479,7 @@ window.CONFIG = {
     const hasDiscount = p.aksiya_narx!=null && p.aksiya_narx < p.narx;
     const price = hasDiscount ? p.aksiya_narx : p.narx;
     return `<div class="pcard" data-open-product="${p.id}">
-      ${photo()}
+      ${photo(null, p.kategoriya)}
       <div class="info">
         <div class="name">${p.nomi}${p.ommabop?'<span class="badge-mini">TOP</span>':''}</div>
         <div class="art">Art. ${p.artikul||'—'}</div>
@@ -466,7 +515,7 @@ window.CONFIG = {
     const price = hasDiscount ? p.aksiya_narx : p.narx;
     const related = S.products.filter(x=>x.kategoriya===p.kategoriya && x.id!==p.id).slice(0,4);
     return `<div class="plist-head"><div class="back" data-pop>${ICONS.back}</div><h3>${p.nomi}</h3></div>
-      <div style="padding:0 18px">${photo(150).replace('class="photo"','class="photo" style="width:100%;height:220px;border-radius:16px"')}</div>
+      <div style="padding:0 18px"><div class="photo ${catTileClass(p.kategoriya)}" style="width:100%;height:220px;border-radius:16px">${catIcon(p.kategoriya)}</div></div>
       <div style="padding:16px 18px 0">
         <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">${p.kategoriya||'Boshqa'} &middot; Art. ${p.artikul||'—'}</div>
         <div style="font-family:'Manrope',sans-serif;font-weight:800;font-size:19px;margin-top:6px">${p.nomi}</div>
@@ -552,7 +601,7 @@ window.CONFIG = {
       const p = S.products.find(x=>x.id===id); if (!p) return '';
       const price = (p.aksiya_narx!=null&&p.aksiya_narx<p.narx)?p.aksiya_narx:p.narx;
       return `<div class="cart-item" data-id="${id}">
-        ${photo()}
+        ${photo(null, p.kategoriya)}
         <div class="info">
           <div class="name">${p.nomi}</div>
           <div class="art">Art. ${p.artikul||'—'}</div>
@@ -632,7 +681,7 @@ window.CONFIG = {
   }
   function objectCard(o){
     return `<div class="obj-card" data-open-object="${o.id}">
-      <div class="obj-top">${photo()}<div class="info"><div class="name">${o.nomi}</div>${o.manzil?`<div class="loc">${ICONS.pin}${o.manzil}</div>`:''}</div></div>
+      <div class="obj-top"><div class="photo t2" style="width:54px;height:54px">${ICONS.building}</div><div class="info"><div class="name">${o.nomi}</div>${o.manzil?`<div class="loc">${ICONS.pin}${o.manzil}</div>`:''}</div></div>
       <div class="obj-stats">
         <div class="cell"><div class="l">Jami xaridlar</div><div class="v">${fmt(o.jami)}</div></div>
         <div class="cell"><div class="l">Qarzdorlik</div><div class="v ${o.qarzdorlik>0?'red':'green'}">${fmt(o.qarzdorlik)}</div></div>
