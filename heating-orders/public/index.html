@@ -276,17 +276,6 @@
   .notif-mid .d{font-size:11px;color:var(--muted);margin-top:4px}
   .notif-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:0 0 auto;margin-top:5px}
 
-  .nakladnoy{display:none;margin:0 18px;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:var(--shadow)}
-  .nak-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px dashed var(--border);padding-bottom:14px;margin-bottom:14px}
-  .nak-head .id{font-family:'Manrope',sans-serif;font-weight:800;font-size:16px}
-  .nak-head .d{font-size:11.5px;color:var(--muted);margin-top:3px}
-  .nak-row{display:flex;justify-content:space-between;font-size:12.5px;padding:4px 0;color:var(--muted)}
-  .nak-row b{color:var(--text);font-weight:600}
-  table.nak-table{width:100%;border-collapse:collapse;margin-top:14px;font-size:12px}
-  table.nak-table th{text-align:left;color:var(--muted);font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;padding:6px 4px;border-bottom:1px solid var(--border)}
-  table.nak-table td{padding:8px 4px;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums}
-  table.nak-table tfoot td{font-weight:800;border-bottom:none;padding-top:10px}
-
   .otrack{display:flex;align-items:flex-start;margin:0 18px;background:var(--panel);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:18px 10px 16px}
   .ostep{display:flex;flex-direction:column;align-items:center;gap:8px;flex:1;position:relative;min-width:0}
   .ostep::before{content:"";position:absolute;top:19px;left:-50%;width:100%;height:2px;background:var(--border);z-index:0}
@@ -371,12 +360,6 @@
   .loading-screen{padding:120px 24px;text-align:center;color:var(--muted);font-size:13.5px}
   .spin{width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--accent-deep);border-radius:50%;margin:0 auto 16px;animation:spin .7s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
-
-  @media print{
-    body *{visibility:hidden}
-    .nakladnoy, .nakladnoy *{visibility:visible}
-    .nakladnoy{display:block;position:absolute;top:0;left:0;right:0;margin:0;border:none;box-shadow:none}
-  }
 </style>
 </head>
 <body>
@@ -505,10 +488,9 @@ window.CONFIG = {
       orders_title:'Buyurtmalarim', orders_subtitle:'Barcha buyurtmalaringiz tarixi', orders_empty:'Bu bo‘limda buyurtma yo‘q', items_count_suffix:'xil tovar',
       status_barchasi:'Barchasi', status_yangi:'Yangi', status_jarayonda:'Jarayonda', status_yetkazilgan:'Yetkazilgan', status_bekor_qilingan:'Bekor qilingan',
       order_detail_title:'Buyurtma', print_pdf:'PDF / Chop etish', reorder:'Qayta buyurtma',
-      nakladnoy_no:'Nakladnoy №', object_label:'Obyekt', customer_label:'Buyurtmachi',
-      th_artikul:'Artikul', th_nomi:'Nomi', th_narx:'Narx', th_son:'Son', th_summa:'Summa', jami:'Jami',
+      object_label:'Obyekt', customer_label:'Buyurtmachi', jami:'Jami',
       order_hash:'Buyurtma #', order_detail_subtitle:'Buyurtma tafsilotlari',
-      download_invoice:'Nakladnoyni yuklab olish', add_all_items:'Barcha tovarlarni qo‘shish',
+      download_invoice:'PDF botga yuboriladi', add_all_items:'Barcha tovarlarni qo‘shish',
       order_info:'Buyurtma haqida', date_time_label:'Sana va vaqt', invoice_no_label:'Nakladnoy raqami', comment_label:'Izoh',
       products_title:'Tovarlar', position_suffix:'pozitsiya',
       need_help_title:'Yordam kerakmi?', need_help_desc:'Ushbu buyurtma bo‘yicha savollaringiz bo‘lsa, operatorga murojaat qiling.',
@@ -554,6 +536,7 @@ window.CONFIG = {
       toast_message_empty:'Xabar bo‘sh', toast_message_sent:'Yuborildi — tez orada javob berishadi',
       toast_fill_both_fields:'Ikkala maydonni ham to‘ldiring', toast_added_to_cart:'Tovarlar savatga qo‘shildi',
       toast_close_in_telegram:'Ilovani Telegram ichida yopishingiz mumkin', toast_generic_error:'Xatolik:',
+      toast_pdf_sending:'PDF tayyorlanmoqda...', toast_pdf_sent:'✅ PDF botga yuborildi',
     },
     ru: {
       currency:'сум',
@@ -568,10 +551,9 @@ window.CONFIG = {
       orders_title:'Мои заказы', orders_subtitle:'История всех ваших заказов', orders_empty:'В этом разделе заказов нет', items_count_suffix:'видов товара',
       status_barchasi:'Все', status_yangi:'Новый', status_jarayonda:'В процессе', status_yetkazilgan:'Доставлен', status_bekor_qilingan:'Отменён',
       order_detail_title:'Заказ', print_pdf:'PDF / Печать', reorder:'Повторить заказ',
-      nakladnoy_no:'Накладная №', object_label:'Объект', customer_label:'Заказчик',
-      th_artikul:'Артикул', th_nomi:'Наименование', th_narx:'Цена', th_son:'Кол-во', th_summa:'Сумма', jami:'Итого',
+      object_label:'Объект', customer_label:'Заказчик', jami:'Итого',
       order_hash:'Заказ #', order_detail_subtitle:'Детали заказа',
-      download_invoice:'Скачать накладную', add_all_items:'Добавить все товары',
+      download_invoice:'PDF будет отправлен в бот', add_all_items:'Добавить все товары',
       order_info:'Информация о заказе', date_time_label:'Дата и время', invoice_no_label:'Номер накладной', comment_label:'Комментарий',
       products_title:'Товары', position_suffix:'позиция',
       need_help_title:'Нужна помощь?', need_help_desc:'Свяжитесь с нашим оператором, если у вас есть вопросы по этому заказу.',
@@ -617,6 +599,7 @@ window.CONFIG = {
       toast_message_empty:'Сообщение пустое', toast_message_sent:'Отправлено — скоро ответят',
       toast_fill_both_fields:'Заполните оба поля', toast_added_to_cart:'Товары добавлены в корзину',
       toast_close_in_telegram:'Закрыть приложение можно внутри Telegram', toast_generic_error:'Ошибка:',
+      toast_pdf_sending:'PDF готовится...', toast_pdf_sent:'✅ PDF отправлен в бот',
     }
   };
   function lang(){ return (S.profile && S.profile.til==='ru') ? 'ru' : 'uz'; }
@@ -870,19 +853,6 @@ window.CONFIG = {
           <div class="s">${tr('need_help_desc')}</div>
           <button type="button" class="btn" data-goto="operator">${ICONS.mail} ${tr('write_btn')}</button>
         </div>
-      </div>
-      <div class="nakladnoy">
-        <div class="nak-head">
-          <div><div class="id">${tr('nakladnoy_no')} ${o.order_no}</div><div class="d">${fmtDate(o.created_at)}</div></div>
-          <span class="pill ${STATUS_CLS[o.status]}">${statusLabel(o.status)}</span>
-        </div>
-        <div class="nak-row"><span>${tr('object_label')}</span><b>${objNomi}</b></div>
-        <div class="nak-row"><span>${tr('customer_label')}</span><b>${o.telegram_name||''}</b></div>
-        <table class="nak-table">
-          <thead><tr><th>${tr('th_artikul')}</th><th>${tr('th_nomi')}</th><th>${tr('th_narx')}</th><th>${tr('th_son')}</th><th>${tr('th_summa')}</th></tr></thead>
-          <tbody>${items.map(it=>`<tr><td>${it.artikul||''}</td><td>${it.nomi}</td><td>${fmt(it.narx)}</td><td>${it.miqdor} ${it.birlik||''}</td><td>${fmt(it.summa)}</td></tr>`).join('')}</tbody>
-          <tfoot><tr><td colspan="4">${tr('jami')}</td><td>${fmt(o.total)}</td></tr></tfoot>
-        </table>
       </div>`;
   }
 
@@ -1336,7 +1306,11 @@ window.CONFIG = {
       (o.items||[]).forEach(it=>{ if (S.products.find(p=>p.id===it.id)) S.cart[it.id]=(S.cart[it.id]||0)+it.miqdor; });
       toast(tr('toast_added_to_cart')); switchTab('cart');
     });
-    const printBtn = app.querySelector('[data-print]'); if (printBtn) printBtn.onclick = ()=>window.print();
+    const printBtn = app.querySelector('[data-print]'); if (printBtn) printBtn.onclick = async ()=>{
+      const o = S.tmp.orderDetail; if (!o) return;
+      toast(tr('toast_pdf_sending'));
+      try{ await api('/api/order-pdf?id='+o.id); toast(tr('toast_pdf_sent')); } catch(e){ toast(e.message); }
+    };
 
     const createObjBtn = document.getElementById('createObjBtn'); if (createObjBtn) createObjBtn.onclick = submitNewObject;
     const saveObjBtn = document.getElementById('saveObjBtn'); if (saveObjBtn) saveObjBtn.onclick = ()=>saveObjectEdit(top().params.id);
