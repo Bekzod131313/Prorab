@@ -1319,7 +1319,7 @@ window.CONFIG = {
     document.getElementById('navbarInner').innerHTML = tabs.map(([k,l,ic])=>`
       <button class="navtab ${k===cur?'active':''}" data-tab="${k}">${ic}${l}${k==='cart'&&cartCount?`<span class="badge">${cartCount}</span>`:''}</button>
     `).join('');
-    document.querySelectorAll('.navtab').forEach(b=>b.onclick=()=>{ S.tmp.orders=null; S.tmp.objectsList=null; switchTab(b.dataset.tab); });
+    document.querySelectorAll('.navtab').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
   }
 
   // ================= main render =================
