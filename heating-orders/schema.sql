@@ -169,3 +169,15 @@ alter table hs_pending_locations enable row level security;
 -- jadvallar uchun boshqa policy shart emas.
 drop policy if exists hs_products_public_read on hs_products;
 create policy hs_products_public_read on hs_products for select using (faol = true);
+
+-- ---------- v3: brigada login/parol (guruh uchun umumiy hisob) ----------
+-- Endi usta va uning shogirdlari bitta login/parol bilan kiradi; barcha
+-- buyurtmalar shu brigadaning guruhiga tushadi. Brigadani admin panelda
+-- yaratamiz va guruhga o'zimiz bog'laymiz (chat_id).
+alter table hs_brigades add column if not exists login       text;
+alter table hs_brigades add column if not exists parol_hash  text;
+alter table hs_brigades add column if not exists parol_salt  text;
+alter table hs_brigades add column if not exists faol        boolean not null default true;
+-- guruh keyinroq bog'lanishi mumkin, shuning uchun chat_id bo'sh bo'la oladi
+alter table hs_brigades alter column chat_id drop not null;
+create unique index if not exists hs_brigades_login_key on hs_brigades (lower(login)) where login is not null;

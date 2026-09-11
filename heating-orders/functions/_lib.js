@@ -81,6 +81,32 @@ export function genCode(len = 6) {
   return s;
 }
 
+// ---- Brigada paroli (PBKDF2-SHA256, 100k iteratsiya) ----
+// Parol hech qachon ochiq saqlanmaydi: har brigadaga tasodifiy salt beriladi.
+export function randomSalt(bytes = 16) {
+  const a = new Uint8Array(bytes);
+  crypto.getRandomValues(a);
+  return [...a].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+export async function hashPassword(parol, salt) {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey('raw', enc.encode(parol), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt: enc.encode(salt), iterations: 100000, hash: 'SHA-256' },
+    key, 256
+  );
+  return [...new Uint8Array(bits)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Vaqt bo'yicha teng taqqoslash (parolni bit-bit topishga yo'l qo'ymaslik uchun)
+export function safeEqual(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 export function checkAdmin(request, env) {
   const token = request.headers.get('X-Admin-Token');
   return !!(token && env.ADMIN_TOKEN && token === env.ADMIN_TOKEN);

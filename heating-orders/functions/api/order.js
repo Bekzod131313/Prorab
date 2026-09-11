@@ -27,7 +27,7 @@ export async function onRequestPost({ request, env }) {
 
     const brigades = await sbFetch(env, `/rest/v1/hs_brigades?id=eq.${encodeURIComponent(userBrigadeId)}&select=*`);
     const brigade = brigades && brigades[0];
-    if (!brigade) return json({ error: 'Brigada topilmadi. Guruhda qaytadan /register qiling.' }, 404);
+    if (!brigade) return json({ error: 'Brigada topilmadi. Ilovadan chiqib, qaytadan login qiling.' }, 404);
 
     const objRows = await sbFetch(env, `/rest/v1/hs_objects?id=eq.${encodeURIComponent(object_id)}&brigade_id=eq.${brigade.id}&select=*`);
     const object = objRows && objRows[0];
@@ -109,6 +109,10 @@ export async function onRequestPost({ request, env }) {
     // ikkinchi marta yozilib, obyekt qarzi ikki baravar bo'lib qoladi.
     // O'rniga yetkazib berilmaganini operatorga xabar qilamiz.
     try {
+      // Brigada hali guruhga bog'lanmagan bo'lishi mumkin (admin panelda
+      // chat_id kiritilmagan) — bunda buyurtma baribir saqlanadi, faqat
+      // operatorga xabar ketadi.
+      if (!brigade.chat_id) throw new Error('brigadaga guruh (chat_id) bog‘lanmagan');
       const tgRes = await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/sendDocument`, { method: 'POST', body: fd });
       const tgData = await tgRes.json();
       if (!tgData.ok) throw new Error(tgData.description || 'noma’lum xato');
@@ -125,7 +129,7 @@ export async function onRequestPost({ request, env }) {
 
     // Obyektga joylashuv (lokatsiya) biriktirilgan bo'lsa, buyurtma bilan birga
     // guruhga haqiqiy Telegram lokatsiya sifatida ham yuboramiz (xarita bilan).
-    if (object.lat != null && object.lng != null) {
+    if (brigade.chat_id && object.lat != null && object.lng != null) {
       try {
         await tgApi(env, 'sendLocation', { chat_id: brigade.chat_id, latitude: object.lat, longitude: object.lng });
       } catch (e) {

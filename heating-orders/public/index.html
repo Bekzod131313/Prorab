@@ -295,6 +295,7 @@
   .menu-item .right svg{width:14px;height:14px}
   .logout-btn{margin:16px 18px 0;width:calc(100% - 36px);background:var(--red-bg);color:var(--red);border:none;border-radius:13px;padding:14px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:7px}
   .logout-btn svg{width:15px;height:15px}
+  .logout-btn.quiet{background:var(--panel2);color:var(--muted);border:1px solid var(--border)}
 
   .switch-row{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;gap:10px}
   .switch-row + .switch-row{border-top:1px solid var(--border)}
@@ -407,6 +408,20 @@
 
   /* Navbar ustidan biroz yuqorida — kontentni yopib qolmasligi uchun */
   .toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--text);color:var(--bg);padding:11px 18px;border-radius:11px;font-size:13px;z-index:60;max-width:88vw;text-align:center;font-weight:600;box-shadow:var(--shadow)}
+  .login-wrap{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:max(40px, calc(20px + var(--tg-top-inset))) 20px 40px;gap:0}
+  .login-logo{width:168px;max-width:60%;height:auto}
+  .login-tagline{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-top:4px;text-align:center}
+  .login-card{width:100%;max-width:340px;background:var(--panel);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);padding:20px 18px 18px;margin-top:26px}
+  .login-card h2{margin:0;font-family:'Manrope',sans-serif;font-size:18px;font-weight:800}
+  .login-card p{margin:5px 0 16px;font-size:12.5px;color:var(--muted);line-height:1.5}
+  .login-card .field{margin:0 0 12px}
+  .login-card .cta{width:100%;margin-top:4px}
+  .login-err{background:var(--red-bg);color:var(--red);border-radius:10px;padding:9px 11px;font-size:12.5px;font-weight:600;margin-bottom:14px;line-height:1.45}
+  .pw-wrap{position:relative}
+  .pw-wrap input{padding-right:62px}
+  .pw-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--accent-deep);font-size:11.5px;font-weight:700;font-family:inherit;cursor:pointer;padding:6px 8px}
+  .login-hint{width:100%;max-width:340px;margin-top:16px;display:flex;gap:9px;align-items:flex-start;font-size:11.5px;color:var(--muted);line-height:1.5}
+  .login-hint svg{color:var(--muted);margin-top:1px}
   .loading-screen{padding:120px 24px;text-align:center;color:var(--muted);font-size:13.5px}
   .spin{width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--accent-deep);border-radius:50%;margin:0 auto 16px;animation:spin .7s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
@@ -498,6 +513,7 @@ window.CONFIG = {
     comment:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>',
     calc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01M8 19h.01M12 19h.01M16 19h.01"/></svg>',
     chart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>',
+    users:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>',
     globe:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20a15 15 0 0 1 0-20"/></svg>',
     moon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8"/></svg>',
     tag:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 12 22l-9-9V4a1 1 0 0 1 1-1h9l7.6 7.6a2 2 0 0 1 0 2.8Z"/><path d="M7.5 7.5h.01"/></svg>'
@@ -614,6 +630,13 @@ window.CONFIG = {
       addr_empty:"Manzil qo'shilmagan", addr_name_label:'Nomi', addr_name_ph:'masalan: Ombor', addr_full_ph:"To'liq manzil", add_btn:"Qo'shish",
       operator_title:'Operatorga yozish', your_message:'Xabaringiz', message_ph:'Savolingizni yozing...', send:'Yuborish',
       notifications_title:'Bildirishnomalar', mark_all_read:'Barchasini o‘qilgan qilish', no_notifications:'Bildirishnoma yo‘q',
+      login_title:'Kirish', login_subtitle:'Brigadangiz uchun berilgan login va parolni kiriting.',
+      login_label:'Login', login_ph:'masalan: usta_akmal', parol_label:'Parol', parol_ph:'Parolingiz',
+      login_btn:'Kirish', login_busy:'Tekshirilmoqda...', login_empty:'Login va parolni kiriting',
+      login_hint:'Login va parolni operator beradi. Bitta login bilan usta ham, shogirdlari ham kira oladi — buyurtma bir xil guruhga tushadi.',
+      show:'Ko‘rsatish', hide:'Yashirish',
+      logout_btn:'Hisobdan chiqish', logout_confirm:'Hisobdan chiqasizmi? Savatdagi tovarlar o‘chadi.',
+      brigade_label:'Brigada',
       loading:'Yuklanmoqda...', brigade_not_linked_title:'Brigada ulanmagan',
       brigade_not_linked_pre:'Bu ilovadan foydalanish uchun avval botni ustalar guruhingizga qo‘shing va guruhda',
       brigade_not_linked_post:'deb yozing — so‘ng chiqqan havola orqali qayta oching.',
@@ -684,6 +707,13 @@ window.CONFIG = {
       addr_empty:'Адрес не добавлен', addr_name_label:'Название', addr_name_ph:'например: Склад', addr_full_ph:'Полный адрес', add_btn:'Добавить',
       operator_title:'Написать оператору', your_message:'Ваше сообщение', message_ph:'Напишите ваш вопрос...', send:'Отправить',
       notifications_title:'Уведомления', mark_all_read:'Отметить все как прочитанные', no_notifications:'Уведомлений нет',
+      login_title:'Вход', login_subtitle:'Введите логин и пароль, выданные для вашей бригады.',
+      login_label:'Логин', login_ph:'например: usta_akmal', parol_label:'Пароль', parol_ph:'Ваш пароль',
+      login_btn:'Войти', login_busy:'Проверяем...', login_empty:'Введите логин и пароль',
+      login_hint:'Логин и пароль выдаёт оператор. По одному логину могут входить и мастер, и его помощники — заказы попадают в одну группу.',
+      show:'Показать', hide:'Скрыть',
+      logout_btn:'Выйти из аккаунта', logout_confirm:'Выйти из аккаунта? Корзина будет очищена.',
+      brigade_label:'Бригада',
       loading:'Загрузка...', brigade_not_linked_title:'Бригада не подключена',
       brigade_not_linked_pre:'Чтобы пользоваться приложением, сначала добавьте бота в группу мастеров и в группе напишите',
       brigade_not_linked_post:'— затем откройте приложение снова по появившейся ссылке.',
@@ -806,6 +836,70 @@ window.CONFIG = {
   function deleteDraft(id){
     S.drafts = S.drafts.filter(d=>d.id!==id);
     saveDrafts();
+    render();
+  }
+
+  // ================= SCREEN: Kirish (brigada login/parol) =================
+  // Bitta login/parol butun guruh uchun: usta va shogirdlari o'z akkauntidan
+  // kiradi, lekin buyurtma bir xil brigada nomidan va bir xil guruhga ketadi.
+  function screenLogin(){
+    const err = S.tmp.loginErr ? `<div class="login-err">${esc(S.tmp.loginErr)}</div>` : '';
+    return `<div class="login-wrap">
+      <img class="login-logo" src="${LOGO_URL}" alt="ZODPRO">
+      <div class="login-tagline">${tr('logo_tagline')}</div>
+      <div class="login-card">
+        <h2>${tr('login_title')}</h2>
+        <p>${tr('login_subtitle')}</p>
+        ${err}
+        <div class="field"><label>${tr('login_label')}</label>
+          <input id="lg_login" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="${tr('login_ph')}" value="${esc(S.tmp.loginVal)}"></div>
+        <div class="field"><label>${tr('parol_label')}</label>
+          <div class="pw-wrap">
+            <input id="lg_parol" type="${S.tmp.showPw?'text':'password'}" placeholder="${tr('parol_ph')}" value="${esc(S.tmp.parolVal)}">
+            <button type="button" class="pw-eye" data-toggle-pw>${S.tmp.showPw?tr('hide'):tr('show')}</button>
+          </div>
+        </div>
+        <button class="cta" id="loginBtn" ${S.tmp.loginBusy?'disabled':''}>${S.tmp.loginBusy?tr('login_busy'):tr('login_btn')}</button>
+      </div>
+      <div class="login-hint">${ICONS.help}<div>${tr('login_hint')}</div></div>
+    </div>`;
+  }
+  function wireLogin(){
+    const lg = document.getElementById('lg_login');
+    const pw = document.getElementById('lg_parol');
+    const btn = document.getElementById('loginBtn');
+    // Qayta render'da yozilgan matn yo'qolmasin
+    if (lg) lg.oninput = e => { S.tmp.loginVal = e.target.value; };
+    if (pw) pw.oninput = e => { S.tmp.parolVal = e.target.value; };
+    if (pw) pw.onkeydown = e => { if (e.key === 'Enter') doLogin(); };
+    if (lg) lg.onkeydown = e => { if (e.key === 'Enter' && pw) pw.focus(); };
+    if (btn) btn.onclick = doLogin;
+    const eye = document.querySelector('[data-toggle-pw]');
+    if (eye) eye.onclick = () => { S.tmp.showPw = !S.tmp.showPw; render(); };
+  }
+  async function doLogin(){
+    if (S.tmp.loginBusy) return;
+    const login = (S.tmp.loginVal||'').trim();
+    const parol = S.tmp.parolVal||'';
+    if (!login || !parol) { S.tmp.loginErr = tr('login_empty'); render(); return; }
+    S.tmp.loginBusy = true; S.tmp.loginErr = ''; render();
+    try{
+      const res = await api('/api/login', { method:'POST', body: JSON.stringify({ login, parol }) });
+      S.profile = res.profile; S.brigade = res.brigade; S.objects = res.objects || [];
+      S.tmp = {};
+      applyTheme(); loadCart(); loadDrafts();
+      S.stack = [{ screen:'asosiy', params:{} }];
+      render();
+      api('/api/notifications').then(n=>{ S.notifications = n; render(); }).catch(()=>{});
+    } catch(e){
+      S.tmp.loginErr = e.message;
+    }
+    S.tmp.loginBusy = false; render();
+  }
+  async function doLogout(){
+    try{ await api('/api/logout', { method:'POST' }); } catch(e){}
+    S.brigade = null; S.objects = []; S.cart = {}; S.drafts = []; S.notifications = [];
+    S.tmp = {}; S.stack = [{ screen:'asosiy', params:{} }];
     render();
   }
 
@@ -1318,6 +1412,7 @@ window.CONFIG = {
         <div class="menu-item" data-goto-profile-edit><div class="ic">${ICONS.user}</div><div class="mid"><div class="t">${tr('personal_data')}</div><div class="s">${tr('personal_data_sub')}</div></div><div class="right">${ICONS.chev}</div></div>
         <div class="menu-item" data-goto="addresses"><div class="ic">${ICONS.pin}</div><div class="mid"><div class="t">${tr('my_addresses')}</div></div><div class="right">${ICONS.chev}</div></div>
         <div class="menu-item" data-goto-tab="objects"><div class="ic">${ICONS.building}</div><div class="mid"><div class="t">${tr('my_objects')}</div></div><div class="right">${ICONS.chev}</div></div>
+        <div class="menu-item" style="cursor:default"><div class="ic">${ICONS.users}</div><div class="mid"><div class="t">${tr('brigade_label')}</div></div><div class="right" style="font-weight:700;color:var(--text)">${esc(S.brigade&&S.brigade.nomi)}</div></div>
       </div>
       <div class="sec-head" style="margin-top:4px"><h3>${tr('notif_section')}</h3></div>
       <div class="menu-card" style="margin-top:0">
@@ -1346,7 +1441,8 @@ window.CONFIG = {
         <div class="menu-item" data-goto="operator"><div class="ic">${ICONS.mail}</div><div class="mid"><div class="t">${tr('write_operator')}</div></div><div class="right">${ICONS.chev}</div></div>
         <div class="menu-item"><div class="ic">${ICONS.info}</div><div class="mid"><div class="t">${tr('about_app')}</div></div><div class="right">v1.0.0</div></div>
       </div>
-      <button class="logout-btn" data-close-app>${ICONS.logout} ${tr('close_app')}</button>`;
+      <button class="logout-btn" data-logout>${ICONS.logout} ${tr('logout_btn')}</button>
+      <button class="logout-btn quiet" style="margin-top:8px" data-close-app>${tr('close_app')}</button>`;
   }
   function screenProfileEdit(){
     const p = S.profile;
@@ -1389,12 +1485,14 @@ window.CONFIG = {
       ["Как оформить заказ?", "Выберите товар на главной странице, добавьте в корзину, в разделе «Корзина» выберите объект и нажмите «Оформить заказ»."],
       ["Как произвести оплату?", "Пока все заказы записываются в долг объекта. Оплату вы производите наличными или через банк оффлайн, оператор фиксирует её в системе."],
       ["Где взять накладную?", "Откройте заказ в разделе «Мои заказы» — там есть кнопка «PDF / Печать»."],
-      ["Наша группа не зарегистрирована, что делать?", "Добавьте бота в группу мастеров как админа и в группе напишите /register Название бригады."]
+      ["Забыли логин или пароль?", "Напишите оператору — он выдаст новый пароль. Логин и пароль одни на всю бригаду: ими пользуются и мастер, и его помощники."],
+      ["Заказ не дошёл в группу", "Скорее всего, группа ещё не привязана к бригаде. Добавьте бота в группу, напишите там /id и передайте номер оператору."]
     ] : [
       ["Buyurtma qanday beriladi?", "Asosiy sahifadan tovar tanlang, savatga qo‘shing, Korzina bo‘limida obyektni tanlab \"Buyurtmani rasmiylashtirish\"ni bosing."],
       ["To‘lovni qanday amalga oshiraman?", "Hozircha barcha buyurtmalar obyekt qarziga yoziladi. To‘lovni naqd yoki bank orqali offline amalga oshirasiz, operator uni tizimda qayd etadi."],
       ["Nakladnoyni qayerdan olaman?", "Buyurtmalarim bo‘limida buyurtmani oching — u yerda \"PDF / Chop etish\" tugmasi bor."],
-      ["Guruhimiz ro‘yxatdan o‘tmagan, nima qilay?", "Botni ustalar guruhingizga admin qilib qo‘shing va guruhda /register Brigada nomi deb yozing."]
+      ["Login yoki parolni unutdim", "Operatorga yozing — yangi parol beradi. Login va parol butun brigada uchun bitta: usta ham, shogirdlari ham shu bilan kiradi."],
+      ["Buyurtma guruhga tushmadi", "Ehtimol guruh brigadaga bog‘lanmagan. Botni guruhga qo‘shib, u yerda /id deb yozing va chiqqan raqamni operatorga yuboring."]
     ];
   }
   function screenHelp(){
@@ -1450,11 +1548,10 @@ window.CONFIG = {
     if (!S.booted && !S.error){ app.innerHTML = loadingRow(); document.getElementById('navbarInner').innerHTML=''; return; }
     if (S.error){ app.innerHTML = `<div class="loading-screen">⚠️ ${S.error}</div>`; return; }
     if (!S.brigade){
-      app.innerHTML = `<div class="loading-screen">
-        <b>${tr('brigade_not_linked_title')}</b><br><br>
-        ${tr('brigade_not_linked_pre')} <code>/register Brigada nomi</code> ${tr('brigade_not_linked_post')}
-      </div>`;
-      document.getElementById('navbarInner').innerHTML=''; return;
+      app.innerHTML = screenLogin();
+      document.getElementById('navbarInner').innerHTML='';
+      wireLogin();
+      return;
     }
     saveCart();
     const t = top();
@@ -1489,6 +1586,7 @@ window.CONFIG = {
     const app = document.getElementById('app');
     app.querySelectorAll('[data-nav-home]').forEach(el=>el.onclick=()=>switchTab('asosiy'));
     app.querySelectorAll('[data-goto-tab]').forEach(el=>el.onclick=()=>switchTab(el.dataset.gotoTab));
+    app.querySelectorAll('[data-logout]').forEach(el=>el.onclick=()=>{ if (confirm(tr('logout_confirm'))) doLogout(); });
     // Faol subtab ekrandan chiqib ketmasin — gorizontal ro'yxatni suramiz
     const activeSub = app.querySelector('.subtab.active');
     if (activeSub && activeSub.parentElement) {

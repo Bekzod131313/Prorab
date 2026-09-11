@@ -57,6 +57,7 @@
     <div class="tab active" data-tab="products">Tovarlar</div>
     <div class="tab" data-tab="orders">Buyurtmalar</div>
     <div class="tab" data-tab="objects">Obyektlar / To‘lovlar</div>
+    <div class="tab" data-tab="brigades">Brigadalar</div>
   </div>
 
   <!-- ===== TOVARLAR ===== -->
@@ -120,6 +121,43 @@
       </div>
     </div>
   </div>
+  <!-- ===== BRIGADALAR (login/parol) ===== -->
+  <div class="pane" id="pane-brigades">
+    <div class="card">
+      <b>Yangi brigada hisobi</b>
+      <div class="muted" style="margin:6px 0 10px">
+        Bitta login/parol butun guruh uchun: usta ham, shogirdlari ham shu bilan kiradi va buyurtma bir xil guruhga tushadi.
+        Guruh ID raqamini olish uchun botni guruhga qo‘shib, guruhda <b>/id</b> deb yozing.
+      </div>
+      <div class="row">
+        <div><label>Brigada nomi</label><input id="b_nomi" placeholder="Usta Akmal brigadasi"></div>
+        <div><label>Login</label><input id="b_login" placeholder="usta_akmal" autocapitalize="none"></div>
+        <div><label>Parol</label><input id="b_parol" placeholder="kamida 5 belgi"></div>
+        <div><label>Guruh chat_id</label><input id="b_chat" placeholder="-1001234567890"></div>
+      </div>
+      <button id="addBrigadeBtn">Yaratish</button>
+    </div>
+
+    <div class="card">
+      <div class="top-actions"><b>Brigadalar ro‘yxati</b><span class="muted" id="brigadesCountTxt"></span></div>
+      <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Nomi</th><th>Login</th><th>Yangi parol</th><th>Guruh chat_id</th><th>Faol</th><th></th></tr></thead>
+        <tbody id="brigadesBody"></tbody>
+      </table>
+      </div>
+      <div class="muted" style="margin-top:10px">Parol saqlanmaydi — faqat xesh. Unutilsa, yangi parol yozib «💾» bosing.</div>
+    </div>
+
+    <div class="card">
+      <b>Botni sozlash</b>
+      <div class="muted" style="margin:6px 0 10px">
+        Webhook, buyruqlar va yozuv maydoni yonidagi doimiy «Ochish» tugmasini o‘rnatadi. Bir marta bosilsa yetarli.
+      </div>
+      <button class="secondary" id="setupBotBtn">Botni sozlash</button>
+      <div class="muted" id="setupResult" style="margin-top:10px;white-space:pre-wrap"></div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -148,7 +186,7 @@
   function showApp(){
     document.getElementById('loginBox').style.display = 'none';
     document.getElementById('app').style.display = 'block';
-    loadProducts(); loadOrders(); loadObjects();
+    loadProducts(); loadOrders(); loadObjects(); loadBrigades();
   }
   document.getElementById('loginBtn').onclick = async () => {
     token = document.getElementById('tokenInput').value.trim();
@@ -164,6 +202,62 @@
     t.classList.add('active');
     document.getElementById('pane-'+t.dataset.tab).classList.add('active');
   });
+
+  // ---------------- Brigadalar (guruh hisoblari) ----------------
+  let brigades = [];
+  async function loadBrigades(){ try{ brigades = await api('/api/admin-brigades'); renderBrigades(); } catch(e){ console.error(e); } }
+  function renderBrigades(){
+    document.getElementById('brigadesCountTxt').textContent = brigades.length + ' ta brigada';
+    document.getElementById('brigadesBody').innerHTML = brigades.map(b => `
+      <tr data-id="${esc(b.id)}">
+        <td><input value="${esc(b.nomi||'')}" data-f="nomi" style="width:170px"></td>
+        <td><input value="${esc(b.login||'')}" data-f="login" style="width:130px" autocapitalize="none"></td>
+        <td><input data-f="parol" style="width:120px" placeholder="${b.parol_bor?'o‘zgarmaydi':'parol yo‘q!'}"></td>
+        <td><input value="${b.chat_id==null?'':esc(String(b.chat_id))}" data-f="chat_id" style="width:140px" placeholder="—"></td>
+        <td><input type="checkbox" data-f="faol" ${b.faol!==false?'checked':''}></td>
+        <td style="white-space:nowrap"><button class="secondary" data-act="save">💾</button> <button class="danger" data-act="del">🗑</button></td>
+      </tr>`).join('');
+    document.querySelectorAll('#brigadesBody tr').forEach(tr => {
+      const id = tr.dataset.id;
+      tr.querySelector('[data-act="save"]').onclick = async () => {
+        const body = { id };
+        tr.querySelectorAll('[data-f]').forEach(inp => {
+          if (inp.type === 'checkbox') body[inp.dataset.f] = inp.checked;
+          else if (inp.dataset.f === 'parol') { if (inp.value) body.parol = inp.value; }
+          else body[inp.dataset.f] = inp.value;
+        });
+        try { await api('/api/admin-brigades', { method:'PATCH', body: JSON.stringify(body) }); loadBrigades(); }
+        catch(e){ alert(e.message); }
+      };
+      tr.querySelector('[data-act="del"]').onclick = async () => {
+        if (!confirm('Brigada o‘chirilsinmi? Uning obyektlari va buyurtmalari ham o‘chishi mumkin.')) return;
+        try { await api('/api/admin-brigades?id='+encodeURIComponent(id), { method:'DELETE' }); loadBrigades(); }
+        catch(e){ alert(e.message); }
+      };
+    });
+  }
+  document.getElementById('addBrigadeBtn').onclick = async () => {
+    const body = {
+      nomi: document.getElementById('b_nomi').value.trim(),
+      login: document.getElementById('b_login').value.trim(),
+      parol: document.getElementById('b_parol').value,
+      chat_id: document.getElementById('b_chat').value.trim() || null
+    };
+    try {
+      await api('/api/admin-brigades', { method:'POST', body: JSON.stringify(body) });
+      ['b_nomi','b_login','b_parol','b_chat'].forEach(i => document.getElementById(i).value = '');
+      loadBrigades();
+    } catch(e){ alert(e.message); }
+  };
+  document.getElementById('setupBotBtn').onclick = async () => {
+    const out = document.getElementById('setupResult');
+    out.textContent = 'Sozlanmoqda...';
+    try {
+      const r = await api('/api/admin-setup', { method:'POST' });
+      const ok = x => x && x.ok ? '✅' : ('❌ ' + ((x && x.description) || 'xato'));
+      out.textContent = `Ochish tugmasi: ${ok(r.menu_button)}\nBuyruqlar: ${ok(r.commands)}\nWebhook: ${ok(r.webhook)}`;
+    } catch(e){ out.textContent = '❌ ' + e.message; }
+  };
 
   // ---------------- Tovarlar ----------------
   async function loadProducts(){ try{ products = await api('/api/admin-products'); renderProducts(); } catch(e){ alert(e.message); } }

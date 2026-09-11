@@ -31,7 +31,7 @@ sifatida ishlaydi, lekin bitta GitHub repozitoriyda saqlanadi.
 
 | Jadval | Nima uchun |
 |---|---|
-| `hs_brigades` | Har bir Telegram guruh = bitta brigada |
+| `hs_brigades` | Brigada = bitta guruh hisobi (nomi, login, parol xeshi, guruh `chat_id`) |
 | `hs_users` | Har bir usta profili (ism, telefon, kompaniya, sozlamalar) |
 | `hs_addresses` | Foydalanuvchining saqlangan manzillari |
 | `hs_products` | Tovar katalogi (+ `aksiya_narx`, `ommabop` belgilari) |
@@ -109,27 +109,45 @@ Javobda `"ok":true` chiqishi kerak.
 
 ## 6) Foydalanish
 
-1. Botni brigada Telegram guruhiga qo'shing va **admin** qiling.
-2. Guruhda admin: `/register Brigada nomi` deb yozadi (masalan `/register Anvar brigadasi`).
-3. Bot guruhga "🤖 Botga o'tish va buyurtma berish" tugmasi bilan xabar yuboradi
-   (Telegram cheklovi tufayli mini-app tugmasi guruhda emas, faqat botning
-   shaxsiy chatida ishlaydi — shu sababli oraliq qadam kerak).
-4. Har bir brigada a'zosi shu tugmani **bir marta** bosadi → botning shaxsiy
-   chatiga o'tadi → bot u yerda "🛒 Katalog va buyurtma" (mini-app) tugmasini yuboradi.
-5. Mini-app birinchi ochilganda avtomatik profil yaratiladi va brigadaga ulanadi.
-6. Usta **Obyektlar** bo'limida obyekt yaratadi (yoki mavjudidan foydalanadi),
-   Asosiy sahifadan tovar tanlab savatga qo'shadi, Korzina'da obyektni tanlab
-   "Buyurtmani rasmiylashtirish"ni bosadi.
-7. Excel fayl brigada guruhiga yuboriladi, buyurtma summasi avtomatik shu
+Brigadalar botda emas, **admin panelda** yaratiladi: har bir brigadaga bitta
+login/parol beriladi va u brigadaning Telegram guruhiga bog'lanadi.
+
+### Operator (siz) nima qiladi
+
+1. Admin panelda **Botni sozlash** tugmasini bir marta bosing — webhook,
+   bot buyruqlari va yozuv maydoni yonidagi doimiy **«Ochish»** tugmasi
+   o'rnatiladi.
+2. Botni brigada guruhiga qo'shing (admin qilishning hojati yo'q, lekin
+   guruhda yozish huquqi bo'lsin).
+3. Guruhda `/id` deb yozing — bot guruh ID raqamini qaytaradi.
+4. Admin panel → **Brigadalar** → brigada nomi, login, parol va shu
+   `chat_id`ni kiritib "Yaratish"ni bosing.
+5. Login va parolni ustaga bering.
+
+### Usta nima qiladi
+
+6. Botni ochadi, `/start` bosadi (yoki yozuv maydoni yonidagi **«Ochish»**
+   tugmasini bosadi) → mini-app ochiladi.
+7. Brigadaning login/parolini kiritadi. **Bitta login butun brigada uchun**:
+   usta ham, uning shogirdlari ham o'z Telegram akkauntidan shu login bilan
+   kiradi va buyurtma bir xil brigada nomidan, bir xil guruhga tushadi.
+8. **Obyektlar** bo'limida obyekt yaratadi, Asosiy sahifadan tovar tanlab
+   savatga qo'shadi, Korzina'da obyektni tanlab "Buyurtmani rasmiylashtirish"ni
+   bosadi.
+9. Excel fayl brigada guruhiga yuboriladi, buyurtma summasi avtomatik shu
    obyektning **qarziga** yoziladi, foydalanuvchiga Telegram orqali tasdiqlovchi
    xabar keladi.
-8. Obyekt qarzini yopish uchun mijoz naqd/bank orqali offline to'laydi, operator
-   buni admin panelda ("Obyektlar / To'lovlar" bo'limi) qayd etadi — qarzdorlik
-   avtomatik kamayadi va mijozga xabar boradi.
+10. Obyekt qarzini yopish uchun mijoz naqd/bank orqali offline to'laydi,
+    operator buni admin panelda ("Obyektlar / To'lovlar" bo'limi) qayd etadi —
+    qarzdorlik avtomatik kamayadi va mijozga xabar boradi.
+
+> Parol bazada ochiq saqlanmaydi — har brigadaga alohida tasodifiy salt bilan
+> PBKDF2-SHA256 (100 000 iteratsiya) xeshi yoziladi. Parol unutilsa, admin
+> panelda yangisini yozib saqlash kifoya.
 
 ## 7) Admin panel (`admin.html`)
 
-`https://<MINIAPP_URL>/admin.html` sahifasini oching, `ADMIN_TOKEN`ni kiriting. Uch bo'lim:
+`https://<MINIAPP_URL>/admin.html` sahifasini oching, `ADMIN_TOKEN`ni kiriting. To'rt bo'lim:
 
 - **Tovarlar** — qo'lda qo'shish/tahrirlash, Excel import, aksiya narxi va
   "ommabop (TOP)" belgisini boshqarish.
@@ -139,6 +157,9 @@ Javobda `"ok":true` chiqishi kerak.
 - **Obyektlar / To'lovlar** — har bir obyektning jami xaridi, to'langan
   summasi va joriy qarzdorligi; to'lov qabul qilinganda summani kiritib
   "To'lov qo'shish"ni bosasiz — qarz kamayadi, mijozga xabar boradi.
+- **Brigadalar** — guruh hisoblari: nomi, login, parol va guruh `chat_id`.
+  Shu yerda yangi brigada yaratasiz, parolni almashtirasiz, hisobni vaqtincha
+  o'chirasiz (`faol` belgisi) va botni bir marta sozlaysiz.
 
 ## Xavfsizlik eslatmalari
 
