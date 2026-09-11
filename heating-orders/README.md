@@ -107,6 +107,15 @@ curl -X POST "https://api.telegram.org/bot<BOT_TOKEN>/setWebhook" \
 
 Javobda `"ok":true` chiqishi kerak.
 
+### Baza yangilangan bo'lsin
+
+Kod yangilanganda bazaga ham yangi ustunlar kerak bo'ladi. `migration.sql`
+faylini butunlay nusxalab, Supabase → **SQL Editor** → **Run** qiling
+(qayta ishga tushirsangiz ham xato bermaydi).
+
+Hammasi joyidami yoki yo'qmi — brauzerda **`<MINIAPP_URL>/api/health`** ni
+oching: qaysi ustun yetishmayotgani va qaysi sozlama qo'yilmagani ko'rinadi.
+
 ## 6) Foydalanish
 
 Brigadani **ustaning o'zi** mini-appda yaratadi. Faqat bitta narsa sizda
