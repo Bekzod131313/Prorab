@@ -177,6 +177,38 @@ export async function onRequestPost({ request, env }) {
     return json({ ok: true });
   }
 
+  // Admin panelga bir bosishda kirish havolasi (faqat operatorga)
+  if (cmd === '/admin') {
+    if (!isOperator(env, msg.from)) return json({ ok: true });
+    if (!isPrivate) {
+      await tgApi(env, 'sendMessage', { chat_id: chat.id, text: 'Bu buyruqni menga shaxsiy chatda yozing.' });
+      return json({ ok: true });
+    }
+    if (!env.ADMIN_TOKEN) {
+      await tgApi(env, 'sendMessage', {
+        chat_id: chat.id,
+        text: 'ADMIN_TOKEN sozlanmagan. Cloudflare Pages → Settings → Environment variables bo‘limida <code>ADMIN_TOKEN</code> qo‘shing (istalgan uzun maxfiy so‘z) va qayta deploy qiling.',
+        parse_mode: 'HTML'
+      });
+      return json({ ok: true });
+    }
+    const asos = String(env.MINIAPP_URL || '').replace(/\/+$/, '');
+    await tgApi(env, 'sendMessage', {
+      chat_id: chat.id,
+      text:
+        'Admin panel — tugmani bosing, parol so‘ramaydi:\n\n' +
+        '• <b>Tovarlar</b> — Excel import, narx, aksiya\n' +
+        '• <b>Buyurtmalar</b> — status o‘zgartirish\n' +
+        '• <b>Obyektlar / To‘lovlar</b> — qarzni yopish\n' +
+        '• <b>Kategoriyalar</b> — katalog daraxti va rasmlar\n' +
+        '• <b>Brigadalar</b> — hisoblar va guruhlar\n\n' +
+        '⚠️ Havolada maxfiy kalit bor — birovga uzatmang.',
+      parse_mode: 'HTML',
+      reply_markup: { inline_keyboard: [[{ text: '⚙️ Admin panelni ochish', url: `${asos}/admin.html#token=${encodeURIComponent(env.ADMIN_TOKEN)}` }]] }
+    });
+    return json({ ok: true });
+  }
+
   // Qaysi kategoriyalarda rasm yo'qligini ko'rsatadi
   if (cmd === '/rasm') {
     if (!isOperator(env, msg.from)) return json({ ok: true });
@@ -215,7 +247,8 @@ export const BOT_COMMANDS = [
   { command: 'bogla', description: 'Guruhni brigadaga bog\u2018lash (operator)' },
   { command: 'brigadalar', description: 'Brigadalar ro\u2018yxati (operator)' },
   { command: 'sozla', description: 'Botni sozlash (operator)' },
-  { command: 'rasm', description: 'Kategoriya rasmlari holati (operator)' }
+  { command: 'rasm', description: 'Kategoriya rasmlari holati (operator)' },
+  { command: 'admin', description: 'Admin panelni ochish (operator)' }
 ];
 
 // Kategoriya rasmi: operator botga rasm tashlaydi, izohida kategoriya nomi.

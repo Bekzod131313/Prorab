@@ -154,6 +154,7 @@ Hammasi botdan — admin panel shart emas.
 
 | Buyruq | Qayerda | Nima qiladi |
 |---|---|---|
+| `/admin` | shaxsiy chatda | Admin panelni bir bosishda ochadi (parol so'ramaydi) |
 | `/sozla` | bot bilan shaxsiy chatda | «Ochish» tugmasi va bot buyruqlarini o'rnatadi (bir marta) |
 | `/brigadalar` | shaxsiy chatda | Guruh kutayotgan va bog'langan brigadalar ro'yxati |
 | `/bogla <login>` | brigada guruhida | Shu guruhni o'sha loginli brigadaga bog'laydi |
@@ -198,7 +199,13 @@ va mijozga xabar boradi.
 
 ## 7) Admin panel (`admin.html`)
 
-`https://<MINIAPP_URL>/admin.html` sahifasini oching, `ADMIN_TOKEN`ni kiriting. To'rt bo'lim:
+Eng oson yo'li — botga **`/admin`** deb yozish: u tugmali havola beradi,
+bosasiz va parol so'ramasdan kiradi (kalit havolaning `#` qismida ketadi,
+serverga yuborilmaydi va brauzerda saqlanib qoladi — keyingi safar
+to'g'ridan-to'g'ri ochiladi).
+
+Qo'lda: `https://<MINIAPP_URL>/admin.html` sahifasini ochib, `ADMIN_TOKEN`ni
+kiritasiz. Telefonda ham ishlaydi. Besh bo'lim:
 
 - **Tovarlar** — qo'lda qo'shish/tahrirlash, Excel import, aksiya narxi va
   "ommabop (TOP)" belgisini boshqarish. Katalog ikki bosqichli:
