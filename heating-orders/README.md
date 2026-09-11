@@ -116,6 +116,10 @@ faylini butunlay nusxalab, Supabase → **SQL Editor** → **Run** qiling
 So'ng `kategoriyalar.sql` ni ham ishga tushiring — u katalog daraxtini
 (22 kategoriya, 66 brend) bazaga yozadi.
 
+Kategoriya rasmlari uchun Supabase → **Storage** → **New bucket** →
+nomi `katalog`, **Public** belgisi yoqilgan holda yarating. Shundan keyin
+admin panelda rasm yuklash ishlaydi.
+
 **Muhim:** ilovadagi kategoriyalar ikki manbadan yig'iladi — `hs_categories`
 jadvali va tovarlarning o'zi. Jadval tovarlardan mustaqil, shuning uchun
 tovar hali yuklanmagan bo'lsa ham kategoriyalar ro'yxati ko'rinib turadi.
@@ -194,6 +198,10 @@ va mijozga xabar boradi.
 - **Obyektlar / To'lovlar** — har bir obyektning jami xaridi, to'langan
   summasi va joriy qarzdorligi; to'lov qabul qilinganda summani kiritib
   "To'lov qo'shish"ni bosasiz — qarz kamayadi, mijozga xabar boradi.
+- **Kategoriyalar** — katalog daraxti: kategoriya qo'shish/o'chirish, brend
+  qo'shish, tartibini o'zgartirish va har biriga **rasm yuklash**. Rasm
+  brauzerda 500&times;500 ga kichrayadi va Supabase Storage'ning `katalog`
+  paketiga tushadi. Rasmi yo'q kategoriya ilovada ikonka bilan chiqadi.
 - **Brigadalar** — guruh hisoblari: nomi, login, parol va guruh `chat_id`.
   Kundalik ishda kerak emas (hammasi botdan qilinadi), lekin shu yerda parolni
   almashtirish, hisobni vaqtincha o'chirish (`faol` belgisi) va brigadani

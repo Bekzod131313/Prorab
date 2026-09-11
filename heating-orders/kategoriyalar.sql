@@ -118,3 +118,6 @@ select
   count(*) filter (where ota is null) as kategoriyalar,
   count(*) filter (where ota is not null) as brendlar
 from hs_categories;
+
+-- ---- Kategoriya rasmi (admin panelda yuklanadi) ----
+alter table hs_categories add column if not exists rasm text;

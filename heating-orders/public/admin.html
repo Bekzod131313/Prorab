@@ -60,6 +60,7 @@
     <div class="tab active" data-tab="products">Tovarlar</div>
     <div class="tab" data-tab="orders">Buyurtmalar</div>
     <div class="tab" data-tab="objects">Obyektlar / To‘lovlar</div>
+    <div class="tab" data-tab="cats">Kategoriyalar</div>
     <div class="tab" data-tab="brigades">Brigadalar</div>
   </div>
 
@@ -126,6 +127,36 @@
       </div>
     </div>
   </div>
+  <!-- ===== KATALOG DARAXTI ===== -->
+  <div class="pane" id="pane-cats">
+    <div class="card">
+      <b>Yangi kategoriya yoki brend</b>
+      <div class="muted" style="margin:6px 0 10px">
+        Brend qo‘shish uchun «Ota» maydonida kategoriyani tanlang. Bo‘sh qoldirsangiz — yangi yuqori kategoriya bo‘ladi.
+      </div>
+      <div class="row">
+        <div><label>Nomi</label><input id="c_nomi" placeholder="AKSESSUAR"></div>
+        <div><label>Ota (kategoriya)</label><select id="c_ota"><option value="">— yuqori kategoriya —</option></select></div>
+        <div><label>Tartib</label><input id="c_tartib" type="number" placeholder="100"></div>
+      </div>
+      <button id="addCatBtn">Qo‘shish</button>
+    </div>
+
+    <div class="card">
+      <div class="top-actions"><b>Katalog daraxti</b><span class="muted" id="catsCountTxt"></span></div>
+      <div class="muted" style="margin-bottom:10px">
+        Rasm qo‘shish uchun «Rasm» ustunidagi tugmani bosing va faylni tanlang — u avtomat 500&times;500 ga kichrayadi va Supabase Storage‘ga yuklanadi.
+        Rasmi yo‘q kategoriya ilovada ikonka bilan chiqadi.
+      </div>
+      <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Rasm</th><th>Nomi</th><th>Ota</th><th>Tartib</th><th>Faol</th><th></th></tr></thead>
+        <tbody id="catsBody"></tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== BRIGADALAR (login/parol) ===== -->
   <div class="pane" id="pane-brigades">
     <div class="card">
@@ -191,7 +222,7 @@
   function showApp(){
     document.getElementById('loginBox').style.display = 'none';
     document.getElementById('app').style.display = 'block';
-    loadProducts(); loadOrders(); loadObjects(); loadBrigades();
+    loadProducts(); loadOrders(); loadObjects(); loadBrigades(); loadCats();
   }
   document.getElementById('loginBtn').onclick = async () => {
     token = document.getElementById('tokenInput').value.trim();
@@ -207,6 +238,115 @@
     t.classList.add('active');
     document.getElementById('pane-'+t.dataset.tab).classList.add('active');
   });
+
+  // ---------------- Katalog daraxti ----------------
+  let cats = [];
+  async function loadCats(){ try{ cats = await api('/api/admin-categories'); renderCats(); } catch(e){ console.error(e); } }
+
+  // Rasmni brauzerda kichraytiramiz — serverga kichik fayl boradi
+  function kichraytir(file, olcham = 500){
+    return new Promise((res, rej) => {
+      const img = new Image();
+      img.onload = () => {
+        const k = Math.min(olcham / img.width, olcham / img.height, 1);
+        const w = Math.round(img.width * k), h = Math.round(img.height * k);
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        const ctx = cv.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);  // shaffof PNG oq fonda
+        ctx.drawImage(img, 0, 0, w, h);
+        cv.toBlob(b => b ? res(b) : rej(new Error('Rasmni qayta ishlab bo‘lmadi')), 'image/jpeg', 0.85);
+        URL.revokeObjectURL(img.src);
+      };
+      img.onerror = () => rej(new Error('Rasmni o‘qib bo‘lmadi'));
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  async function rasmYukla(file){
+    const blob = await kichraytir(file);
+    const fd = new FormData();
+    fd.append('file', blob, 'rasm.jpg');
+    const r = await fetch('/api/admin-upload', { method:'POST', headers: { 'X-Admin-Token': token }, body: fd });
+    const d = await r.json().catch(()=>({}));
+    if (!r.ok) throw new Error(d.error || 'Yuklanmadi');
+    return d.url;
+  }
+
+  function renderCats(){
+    const yuqori = cats.filter(c => !c.ota);
+    document.getElementById('catsCountTxt').textContent = `${yuqori.length} kategoriya, ${cats.length - yuqori.length} brend`;
+    document.getElementById('c_ota').innerHTML = '<option value="">— yuqori kategoriya —</option>' +
+      yuqori.map(c=>`<option value="${esc(c.nomi)}">${esc(c.nomi)}</option>`).join('');
+
+    // Daraxt tartibida: kategoriya, keyin uning brendlari
+    const tartibli = [];
+    yuqori.forEach(c => { tartibli.push(c); cats.filter(x => x.ota === c.nomi).forEach(x => tartibli.push(x)); });
+
+    document.getElementById('catsBody').innerHTML = tartibli.map(c => `
+      <tr data-nomi="${esc(c.nomi)}" data-ota="${esc(c.ota||'')}">
+        <td>${c.rasm
+          ? `<img src="${esc(c.rasm)}" style="width:40px;height:40px;object-fit:cover;border-radius:8px;background:#fff">`
+          : '<span class="muted">—</span>'}</td>
+        <td><input value="${esc(c.nomi)}" data-f="nomi" style="width:${c.ota?'140':'150'}px${c.ota?';margin-left:14px':''}"></td>
+        <td class="muted">${c.ota ? esc(c.ota) : '<b style="color:var(--text)">kategoriya</b>'}</td>
+        <td><input type="number" value="${c.tartib==null?100:c.tartib}" data-f="tartib" style="width:70px"></td>
+        <td><input type="checkbox" data-f="faol" ${c.faol!==false?'checked':''}></td>
+        <td style="white-space:nowrap">
+          <button class="secondary" data-act="rasm">🖼</button>
+          ${c.rasm?'<button class="secondary" data-act="rasmoch">✖</button>':''}
+          <button class="secondary" data-act="save">💾</button>
+          <button class="danger" data-act="del">🗑</button>
+        </td>
+      </tr>`).join('');
+
+    document.querySelectorAll('#catsBody tr').forEach(tr => {
+      const nomi = tr.dataset.nomi, ota = tr.dataset.ota || null;
+      const patch = async body => {
+        try { await api('/api/admin-categories', { method:'PATCH', body: JSON.stringify(Object.assign({ eski_nomi: nomi, ota }, body)) }); loadCats(); }
+        catch(e){ alert(e.message); }
+      };
+      tr.querySelector('[data-act="save"]').onclick = () => {
+        const body = {};
+        tr.querySelectorAll('[data-f]').forEach(i => { body[i.dataset.f] = i.type === 'checkbox' ? i.checked : i.value; });
+        patch(body);
+      };
+      tr.querySelector('[data-act="rasm"]').onclick = () => {
+        const inp = document.createElement('input');
+        inp.type = 'file'; inp.accept = 'image/*';
+        inp.onchange = async () => {
+          if (!inp.files[0]) return;
+          const btn = tr.querySelector('[data-act="rasm"]');
+          btn.textContent = '…'; btn.disabled = true;
+          try { patch({ rasm: await rasmYukla(inp.files[0]) }); }
+          catch(e){ alert(e.message); btn.textContent = '🖼'; btn.disabled = false; }
+        };
+        inp.click();
+      };
+      const och = tr.querySelector('[data-act="rasmoch"]');
+      if (och) och.onclick = () => patch({ rasm: '' });
+      tr.querySelector('[data-act="del"]').onclick = async () => {
+        if (!confirm(ota ? 'Brend o‘chirilsinmi?' : 'Kategoriya va uning barcha brendlari o‘chirilsinmi?')) return;
+        try {
+          await api(`/api/admin-categories?nomi=${encodeURIComponent(nomi)}${ota?'&ota='+encodeURIComponent(ota):''}`, { method:'DELETE' });
+          loadCats();
+        } catch(e){ alert(e.message); }
+      };
+    });
+  }
+
+  document.getElementById('addCatBtn').onclick = async () => {
+    const body = {
+      nomi: document.getElementById('c_nomi').value.trim(),
+      ota: document.getElementById('c_ota').value,
+      tartib: document.getElementById('c_tartib').value || 100
+    };
+    try {
+      await api('/api/admin-categories', { method:'POST', body: JSON.stringify(body) });
+      document.getElementById('c_nomi').value = ''; document.getElementById('c_tartib').value = '';
+      loadCats();
+    } catch(e){ alert(e.message); }
+  };
 
   // ---------------- Brigadalar (guruh hisoblari) ----------------
   let brigades = [];
