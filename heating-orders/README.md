@@ -159,6 +159,8 @@ Hammasi botdan — admin panel shart emas.
 | `/bogla <login>` | brigada guruhida | Shu guruhni o'sha loginli brigadaga bog'laydi |
 | `/bogla` | brigada guruhida | Guruh hozir qaysi brigadaga bog'langanini ko'rsatadi |
 | `/id` | istalgan joyda | Chat ID raqamini chiqaradi |
+| `/rasm` | shaxsiy chatda | Qaysi kategoriyada rasm yo'qligini ko'rsatadi |
+| rasm + izoh | shaxsiy chatda | Rasmni kategoriyaga biriktiradi |
 
 Bu buyruqlar faqat `ADMIN_CHAT_ID` da ko'rsatilgan Telegram ID uchun ishlaydi
 (vergul bilan bir nechta ID yozsa ham bo'ladi). Boshqa hech kim guruhni
@@ -166,6 +168,17 @@ bog'lay olmaydi.
 
 Yangi brigada ro'yxatdan o'tganda sizga bot avtomatik xabar yuboradi —
 brigada nomi, login va tayyor `/bogla <login>` buyrug'i bilan.
+
+**Kategoriya rasmlari.** Rasmni botga (shaxsiy chatda) tashlang va izohiga
+kategoriya nomini yozing:
+
+- `AKSESSUAR` — kategoriya rasmi
+- `ARMATURA GIACOMINI` — brend rasmi
+
+Bot rasmni Supabase Storage'ga yuklaydi va ilovada darrov ko'rinadi.
+Brend nomi bitta kategoriyada bo'lsa, kategoriyasiz yozsa ham bo'ladi
+(`GIACOMINI`); bir nechtasida bo'lsa (DANFOSS, FERRO) kategoriyani ham
+yozish shart. Qaysi biri rasmsiz qolganini `/rasm` ko'rsatadi.
 
 ### Nima uchun bu xavfsiz
 

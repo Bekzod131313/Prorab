@@ -49,6 +49,14 @@ export async function onRequestPost({ request, env }) {
     return json({ ok: true });
   }
 
+  // Operator kategoriya rasmini shu yerga tashlaydi: rasm + izohda kategoriya nomi
+  if (isPrivate && (msg.photo || (msg.document && /^image\//.test(msg.document.mime_type || '')))) {
+    if (isOperator(env, msg.from)) {
+      await handleCategoryPhoto(msg, env);
+      return json({ ok: true });
+    }
+  }
+
   if (!msg.text) return json({ ok: true });
   const text = msg.text.trim();
   const parts = text.split(/\s+/);
@@ -169,6 +177,27 @@ export async function onRequestPost({ request, env }) {
     return json({ ok: true });
   }
 
+  // Qaysi kategoriyalarda rasm yo'qligini ko'rsatadi
+  if (cmd === '/rasm') {
+    if (!isOperator(env, msg.from)) return json({ ok: true });
+    const rows = await sbFetch(env, '/rest/v1/hs_categories?select=nomi,ota,rasm&order=ota.asc,tartib.asc');
+    const yoq = (rows || []).filter(r => !r.rasm);
+    const bor = (rows || []).filter(r => r.rasm);
+    const nom = r => r.ota ? `${escHtml(r.ota)} ${escHtml(r.nomi)}` : `<b>${escHtml(r.nomi)}</b>`;
+    await tgApi(env, 'sendMessage', {
+      chat_id: chat.id,
+      text:
+        `🖼 Rasmi bor: ${bor.length} ta\nRasmi yo'q: ${yoq.length} ta\n\n` +
+        (yoq.length
+          ? yoq.slice(0, 60).map(nom).join('\n') + (yoq.length > 60 ? `\n… va yana ${yoq.length - 60} ta` : '')
+          : 'Hammasiga rasm qo\u2018yilgan 👍') +
+        `\n\nRasm qo'yish: rasmni shu yerga tashlang va izohiga kategoriya nomini yozing.\n` +
+        `Masalan: <code>AKSESSUAR</code>\nBrend uchun: <code>ARMATURA GIACOMINI</code>`,
+      parse_mode: 'HTML'
+    });
+    return json({ ok: true });
+  }
+
   if (cmd === '/register') {
     await tgApi(env, 'sendMessage', {
       chat_id: chat.id,
@@ -185,8 +214,118 @@ export const BOT_COMMANDS = [
   { command: 'id', description: 'Guruh ID raqamini ko\u2018rsatish' },
   { command: 'bogla', description: 'Guruhni brigadaga bog\u2018lash (operator)' },
   { command: 'brigadalar', description: 'Brigadalar ro\u2018yxati (operator)' },
-  { command: 'sozla', description: 'Botni sozlash (operator)' }
+  { command: 'sozla', description: 'Botni sozlash (operator)' },
+  { command: 'rasm', description: 'Kategoriya rasmlari holati (operator)' }
 ];
+
+// Kategoriya rasmi: operator botga rasm tashlaydi, izohida kategoriya nomi.
+//   "AKSESSUAR"            -> kategoriya rasmi
+//   "ARMATURA GIACOMINI"   -> shu kategoriyadagi brend rasmi
+// Rasm Supabase Storage'ga tushadi, havolasi hs_categories.rasm ga yoziladi.
+async function handleCategoryPhoto(msg, env) {
+  const chatId = msg.chat.id;
+  const izoh = String(msg.caption || '').trim();
+
+  if (!izoh) {
+    await tgApi(env, 'sendMessage', {
+      chat_id: chatId,
+      text: 'Rasm izohiga kategoriya nomini yozing.\nMasalan: <code>AKSESSUAR</code>\nBrend uchun: <code>ARMATURA GIACOMINI</code>\n\nRo\u2018yxatni ko\u2018rish: /rasm',
+      parse_mode: 'HTML'
+    });
+    return;
+  }
+
+  const nishon = await topCategory(env, izoh);
+  if (!nishon) {
+    await tgApi(env, 'sendMessage', {
+      chat_id: chatId,
+      text: `❌ "${escHtml(izoh)}" topilmadi. /rasm buyrug\u2018i bilan ro\u2018yxatni ko\u2018ring.`,
+      parse_mode: 'HTML'
+    });
+    return;
+  }
+
+  // Telegram rasmni bir nechta o'lchamda beradi — 500px dan katta eng
+  // kichigini olamiz: sifati yetarli, hajmi kichik.
+  let fileId;
+  if (msg.photo && msg.photo.length) {
+    const tartibli = [...msg.photo].sort((a, b) => a.width - b.width);
+    fileId = (tartibli.find(p => p.width >= 500) || tartibli[tartibli.length - 1]).file_id;
+  } else {
+    fileId = msg.document.file_id;
+  }
+
+  try {
+    const url = await rasmniYukla(env, fileId);
+    const shart = nishon.ota
+      ? `nomi=eq.${encodeURIComponent(nishon.nomi)}&ota=eq.${encodeURIComponent(nishon.ota)}`
+      : `nomi=eq.${encodeURIComponent(nishon.nomi)}&ota=is.null`;
+    await sbFetch(env, `/rest/v1/hs_categories?${shart}`, 'PATCH', { rasm: url });
+
+    await tgApi(env, 'sendMessage', {
+      chat_id: chatId,
+      text: `✅ ${escHtml(nishon.ota ? nishon.ota + ' → ' + nishon.nomi : nishon.nomi)} rasmi saqlandi.`,
+      parse_mode: 'HTML'
+    });
+  } catch (e) {
+    await tgApi(env, 'sendMessage', { chat_id: chatId, text: '❌ ' + (e.message || 'Rasmni saqlab bo\u2018lmadi') });
+  }
+}
+
+// Izohdagi matnni katalog daraxtidan topadi.
+// Avval butun matnni kategoriya deb qaraymiz, keyin "KATEGORIYA BREND" deb.
+async function topCategory(env, izoh) {
+  const rows = await sbFetch(env, '/rest/v1/hs_categories?select=nomi,ota');
+  const teng = (a, b) => String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
+
+  const kat = (rows || []).find(r => !r.ota && teng(r.nomi, izoh));
+  if (kat) return kat;
+
+  const bolaklar = izoh.split(/\s+/);
+  for (let i = 1; i < bolaklar.length; i++) {
+    const ota = bolaklar.slice(0, i).join(' ');
+    const brend = bolaklar.slice(i).join(' ');
+    const topildi = (rows || []).find(r => r.ota && teng(r.ota, ota) && teng(r.nomi, brend));
+    if (topildi) return topildi;
+  }
+  // Kategoriyasiz yozilgan brend nomi — bittagina bo'lsa qabul qilamiz
+  const brendlar = (rows || []).filter(r => r.ota && teng(r.nomi, izoh));
+  return brendlar.length === 1 ? brendlar[0] : null;
+}
+
+// Telegram faylini Supabase Storage'ning ochiq "katalog" paketiga ko'chiradi
+async function rasmniYukla(env, fileId) {
+  const info = await tgApi(env, 'getFile', { file_id: fileId });
+  if (!info.ok) throw new Error('Faylni olib bo\u2018lmadi: ' + (info.description || ''));
+
+  const res = await fetch(`https://api.telegram.org/file/bot${env.BOT_TOKEN}/${info.result.file_path}`);
+  if (!res.ok) throw new Error('Faylni yuklab bo\u2018lmadi');
+  const bytes = await res.arrayBuffer();
+
+  const kengaytma = (info.result.file_path.split('.').pop() || 'jpg').toLowerCase();
+  const turi = kengaytma === 'png' ? 'image/png' : kengaytma === 'webp' ? 'image/webp' : 'image/jpeg';
+  const nom = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${kengaytma}`;
+
+  const up = await fetch(`${env.SUPABASE_URL}/storage/v1/object/katalog/${nom}`, {
+    method: 'POST',
+    headers: {
+      apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: 'Bearer ' + env.SUPABASE_SERVICE_ROLE_KEY,
+      'Content-Type': turi,
+      'x-upsert': 'true'
+    },
+    body: bytes
+  });
+  if (!up.ok) {
+    const matn = await up.text();
+    if (/bucket not found/i.test(matn)) {
+      throw new Error('Supabase Storage\'da "katalog" nomli ochiq (public) bucket yarating.');
+    }
+    throw new Error('Storage xatosi: ' + matn.slice(0, 150));
+  }
+
+  return `${env.SUPABASE_URL}/storage/v1/object/public/katalog/${nom}`;
+}
 
 // Operator — ADMIN_CHAT_ID da ko'rsatilgan shaxs (vergul bilan bir nechta
 // bo'lishi ham mumkin). Faqat u guruhni brigadaga bog'lay oladi.
