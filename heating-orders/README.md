@@ -109,6 +109,14 @@ Javobda `"ok":true` chiqishi kerak.
 
 ### Baza yangilangan bo'lsin
 
+Eng oson yo'li: **`heating-orders/baza.sql`** faylini to'liq nusxalab,
+Supabase → SQL Editor → New query → Run. Unda hamma o'zgarish bor
+(obyekt lokatsiyasi, brigada login/paroli, katalog daraxti, rasmlar) va
+qayta ishga tushirilsa ham xato bermaydi.
+
+Pastdagi `migration.sql` va `kategoriyalar.sql` — o'sha faylning
+bo'laklari, alohida kerak bo'lsa ishlatiladi.
+
 Kod yangilanganda bazaga ham yangi ustunlar kerak bo'ladi. `migration.sql`
 faylini butunlay nusxalab, Supabase → **SQL Editor** → **Run** qiling
 (qayta ishga tushirsangiz ham xato bermaydi).
