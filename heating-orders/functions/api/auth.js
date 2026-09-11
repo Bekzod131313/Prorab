@@ -39,12 +39,14 @@ export async function onRequestPost({ request, env }) {
 
   const [upserted, brows, objects] = await Promise.all([
     upsertP,
-    effectiveBrigadeId ? sbFetch(env, `/rest/v1/hs_brigades?id=eq.${effectiveBrigadeId}&select=id,nomi,code`) : Promise.resolve(null),
+    effectiveBrigadeId ? sbFetch(env, `/rest/v1/hs_brigades?id=eq.${effectiveBrigadeId}&select=id,nomi,code,login,chat_id`) : Promise.resolve(null),
     effectiveBrigadeId ? sbFetch(env, `/rest/v1/hs_objects?brigade_id=eq.${effectiveBrigadeId}&select=*&order=created_at.desc`) : Promise.resolve([])
   ]);
 
   const profile = upserted[0];
-  const brigade = (brows && brows[0]) || null;
+  const b = (brows && brows[0]) || null;
+  // chat_id — ichki ma'lumot, mijozga faqat "guruh bog'langanmi" belgisi ketadi
+  const brigade = b ? { id: b.id, nomi: b.nomi, code: b.code, login: b.login, guruh_bogli: b.chat_id != null } : null;
 
   return json({ profile, brigade, objects: objects || [] });
 }

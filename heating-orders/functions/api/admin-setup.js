@@ -1,4 +1,5 @@
 import { json, tgApi, checkAdmin } from '../_lib.js';
+import { BOT_COMMANDS } from './bot.js';
 
 // Bir martalik sozlash: webhook + hamma uchun standart "Ochish" tugmasi.
 //
@@ -16,12 +17,7 @@ export async function onRequestPost({ request, env }) {
     menu_button: { type: 'web_app', text: 'Ochish', web_app: { url } }
   });
 
-  const commands = await tgApi(env, 'setMyCommands', {
-    commands: [
-      { command: 'start', description: 'Katalogni ochish' },
-      { command: 'id', description: 'Guruh ID raqamini ko‘rsatish' }
-    ]
-  });
+  const commands = await tgApi(env, 'setMyCommands', { commands: BOT_COMMANDS });
 
   const webhook = await tgApi(env, 'setWebhook', {
     url: `${url.replace(/\/+$/, '')}/api/bot`,

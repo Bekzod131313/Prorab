@@ -20,7 +20,7 @@ export async function onRequestPost({ request, env }) {
 
   const rows = await sbFetch(
     env,
-    `/rest/v1/hs_brigades?login=eq.${encodeURIComponent(login)}&select=id,nomi,code,faol,parol_hash,parol_salt`
+    `/rest/v1/hs_brigades?login=eq.${encodeURIComponent(login)}&select=id,nomi,code,login,chat_id,faol,parol_hash,parol_salt`
   );
   const brigade = rows && rows[0];
 
@@ -55,7 +55,7 @@ export async function onRequestPost({ request, env }) {
 
   return json({
     profile: profileRows[0],
-    brigade: { id: brigade.id, nomi: brigade.nomi, code: brigade.code },
+    brigade: { id: brigade.id, nomi: brigade.nomi, code: brigade.code, login: brigade.login, guruh_bogli: brigade.chat_id != null },
     objects: objects || []
   });
 }

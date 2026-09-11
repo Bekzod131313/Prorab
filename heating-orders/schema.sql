@@ -181,3 +181,8 @@ alter table hs_brigades add column if not exists faol        boolean not null de
 -- guruh keyinroq bog'lanishi mumkin, shuning uchun chat_id bo'sh bo'la oladi
 alter table hs_brigades alter column chat_id drop not null;
 create unique index if not exists hs_brigades_login_key on hs_brigades (lower(login)) where login is not null;
+
+-- ---------- v3.1: ustaning o'zi ro'yxatdan o'tadi ----------
+-- Brigadani endi ustaning o'zi mini-appda yaratadi (login/parol o'ylab topadi).
+-- Guruh bilan bog'lashni (chat_id) faqat operator botdan qiladi.
+alter table hs_brigades add column if not exists yaratgan_telegram_id bigint;

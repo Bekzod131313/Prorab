@@ -235,6 +235,11 @@
   .stat-rows .srow + .srow{border-top:1px solid var(--border)}
   .stat-rows .srow b{color:var(--text);font-size:13px}
   .pd-photo svg{width:64px;height:64px}
+  .warn-card{margin:12px 18px 0;display:flex;gap:10px;align-items:flex-start;background:var(--amber-bg);border:1px solid var(--amber-bg);border-radius:14px;padding:12px 13px}
+  .warn-card svg{color:var(--amber);flex:0 0 auto;margin-top:1px}
+  .warn-card .t{font-size:12.5px;font-weight:800;color:var(--amber)}
+  .warn-card .s{font-size:11.5px;color:var(--muted);line-height:1.5;margin-top:3px}
+  .warn-card code{background:var(--panel);padding:1px 5px;border-radius:5px;font-size:11px}
   .hint-card{margin:0 18px 12px;display:flex;gap:9px;align-items:flex-start;background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:11px 12px;font-size:12px;color:var(--muted);line-height:1.5}
   .hint-card svg{color:var(--accent-deep);margin-top:1px}
   .subtabs{display:flex;gap:7px;overflow-x:auto;padding:4px 18px 12px;scrollbar-width:none}
@@ -412,7 +417,9 @@
   .login-logo{width:168px;max-width:60%;height:auto}
   .login-tagline{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-top:4px;text-align:center}
   .login-card{width:100%;max-width:340px;background:var(--panel);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);padding:20px 18px 18px;margin-top:26px}
-  .login-card h2{margin:0;font-family:'Manrope',sans-serif;font-size:18px;font-weight:800}
+  .auth-tabs{display:flex;gap:6px;background:var(--panel2);border-radius:12px;padding:4px;margin-bottom:12px}
+  .auth-tab{flex:1;padding:9px 8px;border-radius:9px;border:none;background:none;color:var(--muted);font-family:'Manrope',sans-serif;font-size:13.5px;font-weight:800;cursor:pointer}
+  .auth-tab.active{background:var(--panel);color:var(--text);box-shadow:var(--shadow)}
   .login-card p{margin:5px 0 16px;font-size:12.5px;color:var(--muted);line-height:1.5}
   .login-card .field{margin:0 0 12px}
   .login-card .cta{width:100%;margin-top:4px}
@@ -513,6 +520,7 @@ window.CONFIG = {
     comment:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>',
     calc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01M8 19h.01M12 19h.01M16 19h.01"/></svg>',
     chart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>',
+    alert:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>',
     users:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>',
     globe:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20a15 15 0 0 1 0-20"/></svg>',
     moon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8"/></svg>',
@@ -630,7 +638,15 @@ window.CONFIG = {
       addr_empty:"Manzil qo'shilmagan", addr_name_label:'Nomi', addr_name_ph:'masalan: Ombor', addr_full_ph:"To'liq manzil", add_btn:"Qo'shish",
       operator_title:'Operatorga yozish', your_message:'Xabaringiz', message_ph:'Savolingizni yozing...', send:'Yuborish',
       notifications_title:'Bildirishnomalar', mark_all_read:'Barchasini o‘qilgan qilish', no_notifications:'Bildirishnoma yo‘q',
-      login_title:'Kirish', login_subtitle:'Brigadangiz uchun berilgan login va parolni kiriting.',
+      login_title:'Kirish', login_subtitle:'Brigadangiz login va parolini kiriting.',
+      register_title:'Ro‘yxatdan o‘tish', register_subtitle:'Brigadangiz uchun nom, login va parol o‘ylab toping.',
+      register_btn:'Ro‘yxatdan o‘tish', register_empty:'Barcha maydonlarni to‘ldiring',
+      brigade_name_label:'Brigada nomi', brigade_name_ph:'masalan: Akmal aka brigadasi',
+      parol_new_ph:'Kamida 5 belgi', parol2_label:'Parolni takrorlang', parol2_ph:'Yana bir marta',
+      parol_mismatch:'Parollar mos kelmadi', parol_short:'Parol kamida 5 belgi bo‘lsin',
+      register_hint:'Ro‘yxatdan o‘tgach, guruhingizga botni qo‘shing va operatorga login‘ingizni yuboring — u guruhni brigadangizga bog‘laydi.',
+      group_not_linked_title:'Guruh hali bog‘lanmagan',
+      group_not_linked_sub:'Buyurtma berish uchun botni ustalar guruhingizga qo‘shing va operatorga login‘ingizni yuboring:',
       login_label:'Login', login_ph:'masalan: usta_akmal', parol_label:'Parol', parol_ph:'Parolingiz',
       login_btn:'Kirish', login_busy:'Tekshirilmoqda...', login_empty:'Login va parolni kiriting',
       login_hint:'Login va parolni operator beradi. Bitta login bilan usta ham, shogirdlari ham kira oladi — buyurtma bir xil guruhga tushadi.',
@@ -707,7 +723,15 @@ window.CONFIG = {
       addr_empty:'Адрес не добавлен', addr_name_label:'Название', addr_name_ph:'например: Склад', addr_full_ph:'Полный адрес', add_btn:'Добавить',
       operator_title:'Написать оператору', your_message:'Ваше сообщение', message_ph:'Напишите ваш вопрос...', send:'Отправить',
       notifications_title:'Уведомления', mark_all_read:'Отметить все как прочитанные', no_notifications:'Уведомлений нет',
-      login_title:'Вход', login_subtitle:'Введите логин и пароль, выданные для вашей бригады.',
+      login_title:'Вход', login_subtitle:'Введите логин и пароль вашей бригады.',
+      register_title:'Регистрация', register_subtitle:'Придумайте название, логин и пароль для вашей бригады.',
+      register_btn:'Зарегистрироваться', register_empty:'Заполните все поля',
+      brigade_name_label:'Название бригады', brigade_name_ph:'например: Бригада Акмала',
+      parol_new_ph:'Минимум 5 символов', parol2_label:'Повторите пароль', parol2_ph:'Ещё раз',
+      parol_mismatch:'Пароли не совпадают', parol_short:'Пароль минимум 5 символов',
+      register_hint:'После регистрации добавьте бота в вашу группу и отправьте оператору свой логин — он привяжет группу к бригаде.',
+      group_not_linked_title:'Группа ещё не привязана',
+      group_not_linked_sub:'Чтобы оформлять заказы, добавьте бота в группу мастеров и отправьте оператору свой логин:',
       login_label:'Логин', login_ph:'например: usta_akmal', parol_label:'Пароль', parol_ph:'Ваш пароль',
       login_btn:'Войти', login_busy:'Проверяем...', login_empty:'Введите логин и пароль',
       login_hint:'Логин и пароль выдаёт оператор. По одному логину могут входить и мастер, и его помощники — заказы попадают в одну группу.',
@@ -843,39 +867,75 @@ window.CONFIG = {
   // Bitta login/parol butun guruh uchun: usta va shogirdlari o'z akkauntidan
   // kiradi, lekin buyurtma bir xil brigada nomidan va bir xil guruhga ketadi.
   function screenLogin(){
+    const reg = S.tmp.authMode === 'register';
     const err = S.tmp.loginErr ? `<div class="login-err">${esc(S.tmp.loginErr)}</div>` : '';
+    const pwField = (id, val, ph) => `<div class="pw-wrap">
+      <input id="${id}" type="${S.tmp.showPw?'text':'password'}" placeholder="${ph}" value="${esc(val)}">
+      <button type="button" class="pw-eye" data-toggle-pw>${S.tmp.showPw?tr('hide'):tr('show')}</button>
+    </div>`;
     return `<div class="login-wrap">
       <img class="login-logo" src="${LOGO_URL}" alt="ZODPRO">
       <div class="login-tagline">${tr('logo_tagline')}</div>
       <div class="login-card">
-        <h2>${tr('login_title')}</h2>
-        <p>${tr('login_subtitle')}</p>
+        <div class="auth-tabs">
+          <button type="button" class="auth-tab ${reg?'':'active'}" data-auth-mode="login">${tr('login_title')}</button>
+          <button type="button" class="auth-tab ${reg?'active':''}" data-auth-mode="register">${tr('register_title')}</button>
+        </div>
+        <p>${reg ? tr('register_subtitle') : tr('login_subtitle')}</p>
         ${err}
+        ${reg ? `<div class="field"><label>${tr('brigade_name_label')}</label>
+          <input id="rg_nomi" placeholder="${tr('brigade_name_ph')}" value="${esc(S.tmp.nomiVal)}"></div>` : ''}
         <div class="field"><label>${tr('login_label')}</label>
           <input id="lg_login" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="${tr('login_ph')}" value="${esc(S.tmp.loginVal)}"></div>
-        <div class="field"><label>${tr('parol_label')}</label>
-          <div class="pw-wrap">
-            <input id="lg_parol" type="${S.tmp.showPw?'text':'password'}" placeholder="${tr('parol_ph')}" value="${esc(S.tmp.parolVal)}">
-            <button type="button" class="pw-eye" data-toggle-pw>${S.tmp.showPw?tr('hide'):tr('show')}</button>
-          </div>
-        </div>
-        <button class="cta" id="loginBtn" ${S.tmp.loginBusy?'disabled':''}>${S.tmp.loginBusy?tr('login_busy'):tr('login_btn')}</button>
+        <div class="field"><label>${tr('parol_label')}</label>${pwField('lg_parol', S.tmp.parolVal, reg?tr('parol_new_ph'):tr('parol_ph'))}</div>
+        ${reg ? `<div class="field"><label>${tr('parol2_label')}</label>${pwField('rg_parol2', S.tmp.parol2Val, tr('parol2_ph'))}</div>` : ''}
+        <button class="cta" id="loginBtn" ${S.tmp.loginBusy?'disabled':''}>${S.tmp.loginBusy?tr('login_busy'):(reg?tr('register_btn'):tr('login_btn'))}</button>
       </div>
-      <div class="login-hint">${ICONS.help}<div>${tr('login_hint')}</div></div>
+      <div class="login-hint">${ICONS.help}<div>${reg ? tr('register_hint') : tr('login_hint')}</div></div>
     </div>`;
   }
   function wireLogin(){
-    const lg = document.getElementById('lg_login');
-    const pw = document.getElementById('lg_parol');
-    const btn = document.getElementById('loginBtn');
+    const reg = S.tmp.authMode === 'register';
+    const bind = (id, key) => { const el = document.getElementById(id); if (el) el.oninput = e => { S.tmp[key] = e.target.value; }; return el; };
     // Qayta render'da yozilgan matn yo'qolmasin
-    if (lg) lg.oninput = e => { S.tmp.loginVal = e.target.value; };
-    if (pw) pw.oninput = e => { S.tmp.parolVal = e.target.value; };
-    if (pw) pw.onkeydown = e => { if (e.key === 'Enter') doLogin(); };
-    if (lg) lg.onkeydown = e => { if (e.key === 'Enter' && pw) pw.focus(); };
-    if (btn) btn.onclick = doLogin;
-    const eye = document.querySelector('[data-toggle-pw]');
-    if (eye) eye.onclick = () => { S.tmp.showPw = !S.tmp.showPw; render(); };
+    const nm = bind('rg_nomi', 'nomiVal');
+    const lg = bind('lg_login', 'loginVal');
+    const pw = bind('lg_parol', 'parolVal');
+    const p2 = bind('rg_parol2', 'parol2Val');
+    const submit = () => reg ? doRegister() : doLogin();
+    [nm, lg, pw, p2].forEach(el => { if (el) el.onkeydown = e => { if (e.key === 'Enter') submit(); }; });
+    const btn = document.getElementById('loginBtn');
+    if (btn) btn.onclick = submit;
+    const eye = document.querySelectorAll('[data-toggle-pw]');
+    eye.forEach(b => b.onclick = () => { S.tmp.showPw = !S.tmp.showPw; render(); });
+    document.querySelectorAll('[data-auth-mode]').forEach(b => b.onclick = () => {
+      S.tmp.authMode = b.dataset.authMode; S.tmp.loginErr = ''; render();
+    });
+  }
+  // Kirish/ro'yxatdan o'tish muvaffaqiyatli tugaganda ikkalasi ham shu yerga keladi
+  function onAuthed(res){
+    S.profile = res.profile; S.brigade = res.brigade; S.objects = res.objects || [];
+    S.tmp = {};
+    applyTheme(); loadCart(); loadDrafts();
+    S.stack = [{ screen:'asosiy', params:{} }];
+    render();
+    api('/api/notifications').then(n=>{ S.notifications = n; render(); }).catch(()=>{});
+  }
+  async function doRegister(){
+    if (S.tmp.loginBusy) return;
+    const nomi = (S.tmp.nomiVal||'').trim();
+    const login = (S.tmp.loginVal||'').trim();
+    const parol = S.tmp.parolVal||'';
+    const parol2 = S.tmp.parol2Val||'';
+    if (!nomi || !login || !parol) { S.tmp.loginErr = tr('register_empty'); render(); return; }
+    if (parol !== parol2) { S.tmp.loginErr = tr('parol_mismatch'); render(); return; }
+    if (parol.length < 5) { S.tmp.loginErr = tr('parol_short'); render(); return; }
+    S.tmp.loginBusy = true; S.tmp.loginErr = ''; render();
+    try{
+      onAuthed(await api('/api/register', { method:'POST', body: JSON.stringify({ nomi, login, parol }) }));
+      return;
+    } catch(e){ S.tmp.loginErr = e.message; }
+    S.tmp.loginBusy = false; render();
   }
   async function doLogin(){
     if (S.tmp.loginBusy) return;
@@ -884,16 +944,9 @@ window.CONFIG = {
     if (!login || !parol) { S.tmp.loginErr = tr('login_empty'); render(); return; }
     S.tmp.loginBusy = true; S.tmp.loginErr = ''; render();
     try{
-      const res = await api('/api/login', { method:'POST', body: JSON.stringify({ login, parol }) });
-      S.profile = res.profile; S.brigade = res.brigade; S.objects = res.objects || [];
-      S.tmp = {};
-      applyTheme(); loadCart(); loadDrafts();
-      S.stack = [{ screen:'asosiy', params:{} }];
-      render();
-      api('/api/notifications').then(n=>{ S.notifications = n; render(); }).catch(()=>{});
-    } catch(e){
-      S.tmp.loginErr = e.message;
-    }
+      onAuthed(await api('/api/login', { method:'POST', body: JSON.stringify({ login, parol }) }));
+      return;
+    } catch(e){ S.tmp.loginErr = e.message; }
     S.tmp.loginBusy = false; render();
   }
   async function doLogout(){
@@ -933,6 +986,17 @@ window.CONFIG = {
     </div>`;
   }
 
+  // Guruh hali brigadaga bog'lanmagan bo'lsa — buyurtma hech qayerga
+  // tushmaydi, shuning uchun ochiq ogohlantiramiz va buyurtmani bloklaymiz.
+  function groupLinked(){ return !S.brigade || S.brigade.guruh_bogli !== false; }
+  function groupWarn(){
+    if (groupLinked()) return '';
+    return `<div class="warn-card">${ICONS.alert}<div>
+      <div class="t">${tr('group_not_linked_title')}</div>
+      <div class="s">${tr('group_not_linked_sub')} <code>${esc(S.brigade.login)}</code></div>
+    </div></div>`;
+  }
+
   // ================= SCREEN: Asosiy =================
   function screenAsosiy(){
     const q = (S.tmp.q||'').trim().toLowerCase();
@@ -941,6 +1005,8 @@ window.CONFIG = {
       <div class="search-box">${ICONS.search}<input id="homeSearch" placeholder="${tr('home_search_ph')}" value="${S.tmp.q||''}"></div>
       <div class="icon-btn" data-open-notif>${ICONS.bell}${unread?`<span class="dot-badge">${unread}</span>`:''}</div>
     </div>`;
+
+    const warn = groupWarn();
 
     if (q){
       const results = S.products.filter(p => p.nomi.toLowerCase().includes(q) || (p.artikul||'').toLowerCase().includes(q));
@@ -953,7 +1019,7 @@ window.CONFIG = {
     const aksiya = S.products.filter(p=>p.aksiya_narx!=null && p.aksiya_narx < p.narx).slice(0,6);
     const ommabop = S.products.filter(p=>p.ommabop).slice(0,6);
     const hero = `<div style="padding:14px 18px 4px"><img class="hero-img" src="${BANNER_URL}" alt="ZODPRO"></div>`;
-    return `${renderTopbar()}${searchBox}${hero}
+    return `${renderTopbar()}${searchBox}${warn}${hero}
       ${!S.products.length ? `<div class="empty-state">${ICONS.box}<div>${tr('catalog_empty')}<br>${tr('catalog_empty_sub')}</div></div>` : ''}
       ${aksiya.length ? `<div class="sec-head"><h3>${tr('promotions')}</h3></div><div class="plist" data-plist="aksiya">${aksiya.map(productCard).join('')}</div>` : ''}
       ${ommabop.length ? `<div class="sec-head"><h3>${tr('popular_products')}</h3></div><div class="plist" data-plist="ommabop">${ommabop.map(productCard).join('')}</div>` : ''}
@@ -1177,13 +1243,15 @@ window.CONFIG = {
         <div class="srow"><span>${tr('payment_type')}</span><span style="color:var(--amber);font-weight:700">${tr('on_debt')}</span></div>
         <div class="srow total"><span>${tr('total_amount')}</span><b>${fmt(total)}</b></div>
       </div>
+      ${groupWarn()}
       <div class="cta-wrap">
-        <button class="cta" id="orderBtn" ${!S.objects.length?'disabled':''}>${ICONS.check} ${tr('place_order')}</button>
+        <button class="cta" id="orderBtn" ${(!S.objects.length || !groupLinked())?'disabled':''}>${ICONS.check} ${tr('place_order')}</button>
       </div>
       ${draftsSection()}`;
   }
 
   async function submitOrder(){
+    if (!groupLinked()) { toast(tr('group_not_linked_title')); return; }
     const sel = document.getElementById('objSelect');
     const objectId = sel ? sel.value : (S.objects[0] && S.objects[0].id);
     if (!objectId) { toast(tr('toast_select_object_first')); return; }

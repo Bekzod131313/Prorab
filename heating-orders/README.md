@@ -109,41 +109,58 @@ Javobda `"ok":true` chiqishi kerak.
 
 ## 6) Foydalanish
 
-Brigadalar botda emas, **admin panelda** yaratiladi: har bir brigadaga bitta
-login/parol beriladi va u brigadaning Telegram guruhiga bog'lanadi.
-
-### Operator (siz) nima qiladi
-
-1. Admin panelda **Botni sozlash** tugmasini bir marta bosing — webhook,
-   bot buyruqlari va yozuv maydoni yonidagi doimiy **«Ochish»** tugmasi
-   o'rnatiladi.
-2. Botni brigada guruhiga qo'shing (admin qilishning hojati yo'q, lekin
-   guruhda yozish huquqi bo'lsin).
-3. Guruhda `/id` deb yozing — bot guruh ID raqamini qaytaradi.
-4. Admin panel → **Brigadalar** → brigada nomi, login, parol va shu
-   `chat_id`ni kiritib "Yaratish"ni bosing.
-5. Login va parolni ustaga bering.
+Brigadani **ustaning o'zi** mini-appda yaratadi. Faqat bitta narsa sizda
+qoladi: qaysi guruhga buyurtma tushishini belgilash.
 
 ### Usta nima qiladi
 
-6. Botni ochadi, `/start` bosadi (yoki yozuv maydoni yonidagi **«Ochish»**
+1. Botni ochadi, `/start` bosadi (yoki yozuv maydoni yonidagi **«Ochish»**
    tugmasini bosadi) → mini-app ochiladi.
-7. Brigadaning login/parolini kiritadi. **Bitta login butun brigada uchun**:
-   usta ham, uning shogirdlari ham o'z Telegram akkauntidan shu login bilan
-   kiradi va buyurtma bir xil brigada nomidan, bir xil guruhga tushadi.
-8. **Obyektlar** bo'limida obyekt yaratadi, Asosiy sahifadan tovar tanlab
-   savatga qo'shadi, Korzina'da obyektni tanlab "Buyurtmani rasmiylashtirish"ni
-   bosadi.
-9. Excel fayl brigada guruhiga yuboriladi, buyurtma summasi avtomatik shu
-   obyektning **qarziga** yoziladi, foydalanuvchiga Telegram orqali tasdiqlovchi
-   xabar keladi.
-10. Obyekt qarzini yopish uchun mijoz naqd/bank orqali offline to'laydi,
-    operator buni admin panelda ("Obyektlar / To'lovlar" bo'limi) qayd etadi —
-    qarzdorlik avtomatik kamayadi va mijozga xabar boradi.
+2. **«Ro'yxatdan o'tish»** ni tanlab, brigadasiga nom + login + parol o'ylab
+   topadi.
+3. Botni ustalar guruhiga qo'shadi va sizga login'ini yuboradi.
+4. Siz guruhni bog'lagandan keyin: **Obyektlar** bo'limida obyekt yaratadi,
+   Asosiy sahifadan tovar tanlab savatga qo'shadi, Korzina'da obyektni tanlab
+   "Buyurtmani rasmiylashtirish"ni bosadi.
+
+> **Bitta login butun brigada uchun.** Usta ham, shogirdlari ham o'z Telegram
+> akkauntidan shu login bilan kiradi; buyurtma bir xil brigada nomidan, bir xil
+> guruhga tushadi.
+
+### Operator (siz) nima qiladi
+
+Hammasi botdan — admin panel shart emas.
+
+| Buyruq | Qayerda | Nima qiladi |
+|---|---|---|
+| `/sozla` | bot bilan shaxsiy chatda | «Ochish» tugmasi va bot buyruqlarini o'rnatadi (bir marta) |
+| `/brigadalar` | shaxsiy chatda | Guruh kutayotgan va bog'langan brigadalar ro'yxati |
+| `/bogla <login>` | brigada guruhida | Shu guruhni o'sha loginli brigadaga bog'laydi |
+| `/bogla` | brigada guruhida | Guruh hozir qaysi brigadaga bog'langanini ko'rsatadi |
+| `/id` | istalgan joyda | Chat ID raqamini chiqaradi |
+
+Bu buyruqlar faqat `ADMIN_CHAT_ID` da ko'rsatilgan Telegram ID uchun ishlaydi
+(vergul bilan bir nechta ID yozsa ham bo'ladi). Boshqa hech kim guruhni
+bog'lay olmaydi.
+
+Yangi brigada ro'yxatdan o'tganda sizga bot avtomatik xabar yuboradi —
+brigada nomi, login va tayyor `/bogla <login>` buyrug'i bilan.
+
+### Nima uchun bu xavfsiz
+
+Guruh bog'lanmagan brigada **buyurtma berolmaydi** — ilovada sariq
+ogohlantirish chiqadi va "Buyurtmani rasmiylashtirish" tugmasi o'chiq turadi.
+Ya'ni begona odam ro'yxatdan o'tsa ham, na sizning guruhingizga fayl
+yuboradi, na haqiqiy qarzdorlik yozadi.
+
+### Qarzni yopish
+
+Mijoz naqd/bank orqali offline to'laydi, operator buni admin panelda
+("Obyektlar / To'lovlar" bo'limi) qayd etadi — qarzdorlik avtomatik kamayadi
+va mijozga xabar boradi.
 
 > Parol bazada ochiq saqlanmaydi — har brigadaga alohida tasodifiy salt bilan
-> PBKDF2-SHA256 (100 000 iteratsiya) xeshi yoziladi. Parol unutilsa, admin
-> panelda yangisini yozib saqlash kifoya.
+> PBKDF2-SHA256 (100 000 iteratsiya) xeshi yoziladi.
 
 ## 7) Admin panel (`admin.html`)
 
@@ -158,8 +175,9 @@ login/parol beriladi va u brigadaning Telegram guruhiga bog'lanadi.
   summasi va joriy qarzdorligi; to'lov qabul qilinganda summani kiritib
   "To'lov qo'shish"ni bosasiz — qarz kamayadi, mijozga xabar boradi.
 - **Brigadalar** — guruh hisoblari: nomi, login, parol va guruh `chat_id`.
-  Shu yerda yangi brigada yaratasiz, parolni almashtirasiz, hisobni vaqtincha
-  o'chirasiz (`faol` belgisi) va botni bir marta sozlaysiz.
+  Kundalik ishda kerak emas (hammasi botdan qilinadi), lekin shu yerda parolni
+  almashtirish, hisobni vaqtincha o'chirish (`faol` belgisi) va brigadani
+  o'chirish mumkin.
 
 ## Xavfsizlik eslatmalari
 
