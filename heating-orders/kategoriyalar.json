@@ -1,5 +1,5 @@
 {
-  "_izoh": "SAP'dagi katalog daraxti: kategoriya -> brend/kichik kategoriya. Bekzod yuborgan skrinshotlardan. To'liq bo'lmaganlari _todo da.",
+  "_izoh": "SAP katalog daraxti: kategoriya -> brend/kichik kategoriya. Bo'sh ro'yxat = bu kategoriyada podgruppa yo'q, tovarlar to'g'ridan-to'g'ri kategoriyada turadi.",
   "kategoriyalar": {
     "AKSESSUAR": [],
     "ARMATURA": [
@@ -104,8 +104,14 @@
     "SHLANG": [],
     "VENTILYATSIYA": []
   },
-  "_todo": [
-    "ARMATURA ro'yxati TIEMME da kesilgan bo'lishi mumkin — davomini tekshirish",
-    "Kutilyapti: AKSESSUAR, BOYLER, KATYOL, LATUN FITING, NERJAVEYKA, PRESS FITING, SHLANG, VENTILYATSIYA"
+  "podgruppasiz": [
+    "AKSESSUAR",
+    "BOYLER",
+    "KATYOL",
+    "LATUN FITING",
+    "NERJAVEYKA",
+    "PRESS FITING",
+    "SHLANG",
+    "VENTILYATSIYA"
   ]
 }
