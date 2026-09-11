@@ -11,13 +11,14 @@ function normalizeRow(r) {
     ommabop: !!r.ommabop,
     birlik: String(r.birlik || 'dona').trim() || 'dona',
     kategoriya: String(r.kategoriya || 'Boshqa').trim() || 'Boshqa',
+    kichik_kategoriya: String(r.kichik_kategoriya || '').trim() || null,
     faol: r.faol !== false
   };
 }
 
 export async function onRequestGet({ request, env }) {
   if (!checkAdmin(request, env)) return json({ error: 'Ruxsat yo‘q' }, 401);
-  const data = await sbFetch(env, '/rest/v1/hs_products?select=*&order=kategoriya.asc,nomi.asc');
+  const data = await sbFetch(env, '/rest/v1/hs_products?select=*&order=kategoriya.asc,kichik_kategoriya.asc,nomi.asc');
   return json(data);
 }
 
@@ -56,6 +57,7 @@ function normalizeRowPartial(body) {
   if (body.ommabop !== undefined) out.ommabop = !!body.ommabop;
   if (body.birlik !== undefined) out.birlik = String(body.birlik).trim() || 'dona';
   if (body.kategoriya !== undefined) out.kategoriya = String(body.kategoriya).trim() || 'Boshqa';
+  if (body.kichik_kategoriya !== undefined) out.kichik_kategoriya = String(body.kichik_kategoriya).trim() || null;
   if (body.faol !== undefined) out.faol = !!body.faol;
   return out;
 }

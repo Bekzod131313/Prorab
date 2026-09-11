@@ -8,6 +8,7 @@ import { json, sbFetch } from '../_lib.js';
 const KERAK = {
   hs_brigades: ['login', 'parol_hash', 'parol_salt', 'faol', 'yaratgan_telegram_id'],
   hs_objects: ['lat', 'lng'],
+  hs_products: ['kichik_kategoriya'],
   hs_pending_locations: ['telegram_id', 'lat', 'lng']
 };
 

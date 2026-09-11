@@ -186,3 +186,8 @@ create unique index if not exists hs_brigades_login_key on hs_brigades (lower(lo
 -- Brigadani endi ustaning o'zi mini-appda yaratadi (login/parol o'ylab topadi).
 -- Guruh bilan bog'lashni (chat_id) faqat operator botdan qiladi.
 alter table hs_brigades add column if not exists yaratgan_telegram_id bigint;
+
+-- ---------- v3.2: ikki bosqichli katalog ----------
+-- Kategoriya (ARMATURA) -> kichik kategoriya / brend (GIACOMINI) -> tovar
+alter table hs_products add column if not exists kichik_kategoriya text;
+create index if not exists hs_products_kat_idx on hs_products (kategoriya, kichik_kategoriya);

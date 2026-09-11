@@ -31,6 +31,10 @@ alter table hs_brigades alter column chat_id drop not null;
 create unique index if not exists hs_brigades_login_key
   on hs_brigades (lower(login)) where login is not null;
 
+-- ---- Ikki bosqichli katalog: kategoriya -> brend/kichik kategoriya ----
+alter table hs_products add column if not exists kichik_kategoriya text;
+create index if not exists hs_products_kat_idx on hs_products (kategoriya, kichik_kategoriya);
+
 -- ============================================================
 --  Tekshirish: quyidagi so'rov xatosiz ishlashi kerak
 -- ============================================================

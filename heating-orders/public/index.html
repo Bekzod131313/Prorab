@@ -100,7 +100,7 @@
   .sec-head a{font-size:12.5px;font-weight:700;color:var(--accent-deep);cursor:pointer;display:inline-flex;align-items:center;gap:4px}
   .sec-head a svg{width:13px;height:13px;flex:0 0 auto}
 
-  .cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:0 18px 8px}
+  .cat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:0 18px 8px}
   .cat-card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:10px;cursor:pointer;box-shadow:var(--shadow)}
   .cat-card .photo{width:100%;aspect-ratio:1;border-radius:11px}
   .cat-card .row{display:flex;align-items:center;justify-content:space-between;gap:4px;margin-top:8px}
@@ -235,6 +235,20 @@
   .stat-rows .srow + .srow{border-top:1px solid var(--border)}
   .stat-rows .srow b{color:var(--text);font-size:13px}
   .pd-photo svg{width:64px;height:64px}
+  .cat-card{display:flex;flex-direction:column}
+  .cat-card .row{align-items:center;margin-top:auto;padding-top:8px}
+  .cat-card .n{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .cat-card .n > span:first-child{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+  .sub-count{font-size:10px;font-weight:600;color:var(--muted)}
+  /* Brendlar ro'yxati — bittada 19 tagacha bo'lishi mumkin, shuning uchun
+     kartochka emas, ixcham qator */
+  .brand-list{padding:0 18px 8px;display:flex;flex-direction:column;gap:8px}
+  .brand-row{display:flex;align-items:center;gap:11px;background:var(--panel);border:1px solid var(--border);border-radius:13px;padding:10px 12px;cursor:pointer;box-shadow:var(--shadow)}
+  .brand-row .ic{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .brand-row .ic svg{width:17px;height:17px}
+  .brand-row .n{flex:1;min-width:0;font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .brand-row .c{font-size:11px;color:var(--muted);font-weight:600;flex:0 0 auto}
+  .brand-row > svg{width:14px;height:14px;color:var(--muted);flex:0 0 auto}
   .warn-card{margin:12px 18px 0;display:flex;gap:10px;align-items:flex-start;background:var(--amber-bg);border:1px solid var(--amber-bg);border-radius:14px;padding:12px 13px}
   .warn-card svg{color:var(--amber);flex:0 0 auto;margin-top:1px}
   .warn-card .t{font-size:12.5px;font-weight:800;color:var(--amber)}
@@ -527,25 +541,54 @@ window.CONFIG = {
     tag:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 12 22l-9-9V4a1 1 0 0 1 1-1h9l7.6 7.6a2 2 0 0 1 0 2.8Z"/><path d="M7.5 7.5h.01"/></svg>'
   };
 
+  // Kategoriya ikonkalari — kalit SAP'dagi nom (katta harfda solishtiriladi),
+  // shuning uchun "ARMATURA", "Armatura", "armatura" bir xil ishlaydi.
+  const I = (d, w) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w||1.8}" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+  const SVG = {
+    truba:      I('<rect x="2" y="9" width="20" height="6" rx="1"/><path d="M6 9v6M18 9v6"/>'),
+    fiting:     I('<path d="M4 4v7a2 2 0 0 0 2 2h7"/><rect x="13" y="11" width="7" height="7" rx="1"/><rect x="2" y="2" width="6" height="6" rx="1"/>'),
+    ventil:     I('<circle cx="12" cy="12" r="4"/><path d="M2 12h6M16 12h6M12 2l4 4-4 4-4-4z"/>'),
+    radiator:   I('<rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M7 4v16M11 4v16M15 4v16"/>'),
+    katyol:     I('<rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="9" cy="9" r="1.4" fill="currentColor" stroke="none"/><path d="M7 15h10M7 18h6"/>'),
+    nasos:      I('<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/><path d="M12 5V2M19 12h3"/>'),
+    boyler:     I('<rect x="6" y="2" width="12" height="20" rx="6"/><path d="M9 8h6M9 12h6"/>'),
+    kalit:      I('<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L2 19l3 3 7.3-7.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2-2z"/>'),
+    chip:       I('<rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M10 2v3M14 2v3M10 19v3M14 19v3M2 10h3M2 14h3M19 10h3M19 14h3"/>'),
+    dimaxod:    I('<path d="M8 21V7a3 3 0 0 1 3-3h2a3 3 0 0 1 3 3v14"/><path d="M6 21h12M10 4V2M14 4V2"/>'),
+    filtr:      I('<path d="M3 4h18l-7 8v7l-4 2v-9L3 4z"/>'),
+    gaz:        I('<path d="M12 22c4 0 7-2.7 7-6.5 0-4.5-4-6-4-9.5 0 0-3 1.5-3 5 0 1.5-1 2-1.6 1.2C9.6 11 9.4 9.8 9.4 9.8S5 12 5 15.5C5 19.3 8 22 12 22z"/>'),
+    izol:       I('<path d="m12 2 9 5-9 5-9-5 9-5z"/><path d="m3 12 9 5 9-5M3 17l9 5 9-5"/>'),
+    kanal:      I('<path d="M4 4v10a4 4 0 0 0 4 4h8"/><path d="m13 15 3 3-3 3"/><path d="M2 4h4"/>'),
+    konvektor:  I('<rect x="2" y="7" width="20" height="10" rx="2"/><path d="M6 11h12M6 14h8"/>'),
+    nerjaveyka: I('<path d="M3 7h18v10H3z"/><path d="m3 7 4-4h10l4 4M7 7v10"/>'),
+    poliv:      I('<path d="M12 22a6 6 0 0 0 6-6c0-4-6-12-6-12S6 12 6 16a6 6 0 0 0 6 6z"/>'),
+    bak:        I('<circle cx="12" cy="12" r="9"/><path d="M3.5 14.5c3-2 5-2 8.5 0s5.5 2 8.5 0"/>'),
+    santexnika: I('<path d="M7 3v6a5 5 0 0 0 5 5h5"/><path d="M5 21h8a2 2 0 0 0 2-2v-3H3v3a2 2 0 0 0 2 2z"/><path d="M5 3h4"/>'),
+    shlang:     I('<path d="M3 6h4a5 5 0 0 1 0 10 5 5 0 0 0 0 10h0"/><path d="M3 4v4"/>', 1.8),
+    ventilyats: I('<circle cx="12" cy="12" r="2"/><path d="M12 10c0-4 1-8-2-8S7 7 10 10M14 12c4 0 8 1 8-2s-5-3-8 0M12 14c0 4-1 8 2 8s3-5 0-8M10 12c-4 0-8-1-8 2s5 3 8 0"/>')
+  };
   const CAT_ICONS = {
-    'Trubalar': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="9" width="20" height="6" rx="1"/><path d="M6 9v6M18 9v6"/></svg>',
-    'Fitinglar': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v7a2 2 0 0 0 2 2h7"/><rect x="13" y="11" width="7" height="7" rx="1"/><rect x="2" y="2" width="6" height="6" rx="1"/></svg>',
-    'Armaturalar': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M2 12h6M16 12h6M12 2l4 4-4 4-4-4z"/></svg>',
-    'Kranlar': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M2 12h6M16 12h6M12 2l4 4-4 4-4-4z"/></svg>',
-    'Radiatorlar': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M7 4v16M11 4v16M15 4v16"/></svg>',
-    'Qozonlar': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="9" cy="9" r="1.4" fill="currentColor" stroke="none"/><path d="M7 15h10M7 18h6"/></svg>',
-    'Kotyollar': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="9" cy="9" r="1.4" fill="currentColor" stroke="none"/><path d="M7 15h10M7 18h6"/></svg>',
-    'Nasoslar': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/><path d="M12 5V2M19 12h3"/></svg>',
-    'Kollektorlar': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16"/><path d="M7 6v13M12 6v13M17 6v13"/></svg>',
-    'Boylerlar': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="6"/><path d="M9 8h6M9 12h6"/></svg>',
-    'Aksessuarlar': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L2 19l3 3 7.3-7.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2-2z"/></svg>'
+    'AKSESSUAR': SVG.kalit,      'ARMATURA': SVG.ventil,       'AVTOMATIKA': SVG.chip,
+    'BOYLER': SVG.boyler,        'DIMAXOD': SVG.dimaxod,       'FILTR': SVG.filtr,
+    'GAZ': SVG.gaz,              'IZOLYATSIYA': SVG.izol,      'KANALIZATSIYA': SVG.kanal,
+    'KATYOL': SVG.katyol,        'KONVEKTOR': SVG.konvektor,   'LATUN FITING': SVG.fiting,
+    'NASOS': SVG.nasos,          'NERJAVEYKA': SVG.nerjaveyka, 'POLIV': SVG.poliv,
+    'PPR': SVG.truba,            'PRESS FITING': SVG.fiting,   'RADIATOR': SVG.radiator,
+    'RASH.BAK': SVG.bak,         'SANTEXNIKA': SVG.santexnika, 'SHLANG': SVG.shlang,
+    'VENTILYATSIYA': SVG.ventilyats,
+    // eski nomlar ham ishlashda davom etsin
+    'TRUBALAR': SVG.truba, 'FITINGLAR': SVG.fiting, 'ARMATURALAR': SVG.ventil, 'KRANLAR': SVG.ventil,
+    'RADIATORLAR': SVG.radiator, 'QOZONLAR': SVG.katyol, 'KOTYOLLAR': SVG.katyol, 'NASOSLAR': SVG.nasos,
+    'KOLLEKTORLAR': I('<path d="M4 6h16"/><path d="M7 6v13M12 6v13M17 6v13"/>'),
+    'BOYLERLAR': SVG.boyler, 'AKSESSUARLAR': SVG.kalit
   };
   const CAT_TILE_ORDER = ['', 't2', 't3', 't4', 't5', 't6'];
   const catTileClass = (cat) => {
     let h = 0; for (let i = 0; i < (cat || '').length; i++) h = (h * 31 + cat.charCodeAt(i)) >>> 0;
     return CAT_TILE_ORDER[h % CAT_TILE_ORDER.length];
   };
-  const catIcon = (cat) => CAT_ICONS[cat] || ICONS.box;
+  const catKey = (cat) => String(cat || '').trim().toUpperCase();
+  const catIcon = (cat) => CAT_ICONS[catKey(cat)] || ICONS.box;
   const photo = (size, cat) => {
     const cls = 'photo' + (cat ? ' ' + catTileClass(cat) : '');
     const style = size ? ` style="width:${size}px;height:${size}px"` : '';
@@ -599,6 +642,7 @@ window.CONFIG = {
       products_title:'Tovarlar', position_suffix:'pozitsiya',
       need_help_title:'Yordam kerakmi?', need_help_desc:'Ushbu buyurtma bo‘yicha savollaringiz bo‘lsa, operatorga murojaat qiling.',
       write_btn:'Yozish', order_cancelled_msg:'Bu buyurtma bekor qilingan',
+      brands:'Brendlar', brands_suffix:'brend', other_products:'Boshqa tovarlar',
       add_more:'Yana qo‘shish', notif_section:'Bildirishnomalar', settings_section:'Sozlamalar',
       stats_period_total:'Davr bo‘yicha jami', stats_avg_month:'O‘rtacha oylik', stats_avg_order:'O‘rtacha buyurtma',
       cart_title:'Korzina', cart_subtitle:'Tanlangan tovarlar', cart_empty:'Savat hali bo‘sh', cart_empty_sub:'Katalogdan tovar tanlang',
@@ -684,6 +728,7 @@ window.CONFIG = {
       products_title:'Товары', position_suffix:'позиция',
       need_help_title:'Нужна помощь?', need_help_desc:'Свяжитесь с нашим оператором, если у вас есть вопросы по этому заказу.',
       write_btn:'Написать', order_cancelled_msg:'Этот заказ отменён',
+      brands:'Бренды', brands_suffix:'брендов', other_products:'Другие товары',
       add_more:'Добавить ещё', notif_section:'Уведомления', settings_section:'Настройки',
       stats_period_total:'Итого за период', stats_avg_month:'В среднем в месяц', stats_avg_order:'Средний заказ',
       cart_title:'Корзина', cart_subtitle:'Выбранные товары', cart_empty:'Корзина пока пуста', cart_empty_sub:'Выберите товар из каталога',
@@ -1015,7 +1060,7 @@ window.CONFIG = {
         <div class="plist">${results.length ? results.map(productCard).join('') : `<div class="empty-state">${tr('nothing_found')}</div>`}</div>`;
     }
 
-    const cats = [...new Set(S.products.map(p=>p.kategoriya||'Boshqa'))];
+    const cats = catList();
     const aksiya = S.products.filter(p=>p.aksiya_narx!=null && p.aksiya_narx < p.narx).slice(0,6);
     const ommabop = S.products.filter(p=>p.ommabop).slice(0,6);
     const hero = `<div style="padding:14px 18px 4px"><img class="hero-img" src="${BANNER_URL}" alt="ZODPRO"></div>`;
@@ -1024,9 +1069,10 @@ window.CONFIG = {
       ${aksiya.length ? `<div class="sec-head"><h3>${tr('promotions')}</h3></div><div class="plist" data-plist="aksiya">${aksiya.map(productCard).join('')}</div>` : ''}
       ${ommabop.length ? `<div class="sec-head"><h3>${tr('popular_products')}</h3></div><div class="plist" data-plist="ommabop">${ommabop.map(productCard).join('')}</div>` : ''}
       <div class="sec-head"><h3>${tr('categories')}</h3><a data-open-cat="Barchasi">${tr('all')} ${ICONS.chev}</a></div>
-      <div class="cat-grid">${cats.map(c=>`
-        <div class="cat-card" data-open-cat="${c}">${photo(null, c)}<div class="row"><div class="n">${catLabel(c)}</div>${ICONS.chev}</div></div>
-      `).join('')}</div>`;
+      <div class="cat-grid">${cats.map(c=>{
+        const n = subList(c).length;
+        return `<div class="cat-card" data-open-cat="${esc(c)}">${photo(null, c)}<div class="row"><div class="n"><span>${catLabel(c)}</span>${n?`<span class="sub-count">${n} ${tr('brands_suffix')}</span>`:''}</div></div></div>`;
+      }).join('')}</div>`;
   }
 
   function productCard(p){
@@ -1048,16 +1094,65 @@ window.CONFIG = {
     </div>`;
   }
 
+  // ---------- Katalog daraxti: kategoriya -> brend/kichik kategoriya ----------
+  // Ro'yxat tovarlardan hosil qilinadi, shuning uchun Excel import qilinganda
+  // hech narsani qo'lda yangilash kerak emas.
+  function catList(){
+    return [...new Set(S.products.map(p => (p.kategoriya||'').trim() || 'Boshqa'))].sort((a,b)=>a.localeCompare(b,'uz'));
+  }
+  function subList(cat){
+    return [...new Set(S.products
+      .filter(p => ((p.kategoriya||'').trim()||'Boshqa') === cat)
+      .map(p => (p.kichik_kategoriya||'').trim())
+      .filter(Boolean))].sort((a,b)=>a.localeCompare(b,'uz'));
+  }
+  function catProducts(cat, sub){
+    return S.products.filter(p => {
+      if (cat !== 'Barchasi' && ((p.kategoriya||'').trim()||'Boshqa') !== cat) return false;
+      if (sub) return (p.kichik_kategoriya||'').trim() === sub;
+      return true;
+    });
+  }
+
   // ================= SCREEN: category product list =================
   function screenList(params){
     const cat = params.cat || 'Barchasi';
+    const sub = params.sub || '';
     const q = (S.tmp.listQ||'').toLowerCase();
-    let items = S.products.filter(p => cat==='Barchasi' || p.kategoriya===cat);
+    const subs = cat === 'Barchasi' ? [] : subList(cat);
+    const sarlavha = sub ? sub : (cat==='Barchasi' ? tr('all_products') : catLabel(cat));
+
+    const head = `<div class="plist-head"><div class="back" data-pop>${ICONS.back}</div><h3>${esc(sarlavha)}</h3></div>`;
+    const search = `<div class="search"><div class="search-box">${ICONS.search}<input id="listSearch" placeholder="${tr('home_search_ph')}" value="${esc(S.tmp.listQ)}"></div></div>`;
+
+    // Kategoriyada brendlar bor va hali biri tanlanmagan bo'lsa — avval brendlar.
+    // Qidiruv yozilsa, to'g'ridan-to'g'ri tovarlar bo'yicha izlaymiz.
+    if (subs.length && !sub && !q){
+      const bevosita = catProducts(cat).filter(p => !(p.kichik_kategoriya||'').trim());
+      return `${head}${search}
+        <div class="sec-head"><h3>${tr('brands')}</h3><a data-open-cat="${esc(cat)}" data-sub="*">${tr('all_products')} ${ICONS.chev}</a></div>
+        <div class="brand-list">${subs.map(b=>{
+          const n = catProducts(cat, b).length;
+          return `<div class="brand-row" data-open-cat="${esc(cat)}" data-sub="${esc(b)}">
+            <div class="ic photo ${catTileClass(b)}">${catIcon(cat)}</div>
+            <div class="n">${esc(b)}</div><div class="c">${n}</div>${ICONS.chev}</div>`;
+        }).join('')}</div>
+        ${bevosita.length ? `<div class="sec-head"><h3>${tr('other_products')}</h3></div><div class="plist">${bevosita.map(productCard).join('')}</div>` : ''}`;
+    }
+
+    let items = catProducts(cat, sub === '*' ? '' : sub);
     if (q) items = items.filter(p => p.nomi.toLowerCase().includes(q) || (p.artikul||'').toLowerCase().includes(q));
-    const cats = ['Barchasi', ...new Set(S.products.map(p=>p.kategoriya||'Boshqa'))];
-    return `<div class="plist-head"><div class="back" data-pop>${ICONS.back}</div><h3>${cat==='Barchasi'?tr('all_products'):catLabel(cat)}</h3></div>
-      <div class="chips">${cats.map(c=>`<div class="chip ${c===cat?'active':''}" data-set-cat="${c}">${c==='Barchasi'?tr('all'):catLabel(c)}</div>`).join('')}</div>
-      <div class="search"><div class="search-box">${ICONS.search}<input id="listSearch" placeholder="${tr('home_search_ph')}" value="${S.tmp.listQ||''}"></div></div>
+
+    // Chiplar: brend ichida bo'lsak — birodar brendlar, aks holda kategoriyalar
+    const chips = subs.length
+      ? [['', tr('all')], ...subs.map(b=>[b, b])].map(([v,l])=>
+          `<div class="chip ${((sub==='*'?'':sub)===v)?'active':''}" data-set-sub="${esc(v)}" data-cat="${esc(cat)}">${esc(l)}</div>`).join('')
+      : ['Barchasi', ...catList()].map(c=>
+          `<div class="chip ${c===cat?'active':''}" data-set-cat="${esc(c)}">${c==='Barchasi'?tr('all'):catLabel(c)}</div>`).join('');
+
+    return `${head}
+      <div class="chips">${chips}</div>
+      ${search}
       <div class="plist">${items.length ? items.map(productCard).join('') : `<div class="empty-state">${tr('product_list_empty')}</div>`}</div>`;
   }
 
@@ -1663,8 +1758,16 @@ window.CONFIG = {
     }
     app.querySelectorAll('[data-open-notif]').forEach(el=>el.onclick=()=>push('notifications'));
     app.querySelectorAll('[data-pop]').forEach(el=>el.onclick=pop);
-    app.querySelectorAll('[data-open-cat]').forEach(el=>el.onclick=()=>{ S.tmp.listQ=''; push('list', { cat: el.dataset.openCat }); });
-    app.querySelectorAll('[data-set-cat]').forEach(el=>el.onclick=()=>{ top().params.cat = el.dataset.setCat; render(); });
+    app.querySelectorAll('[data-open-cat]').forEach(el=>el.onclick=()=>{
+      S.tmp.listQ='';
+      push('list', { cat: el.dataset.openCat, sub: el.dataset.sub || '' });
+    });
+    app.querySelectorAll('[data-set-cat]').forEach(el=>el.onclick=()=>{ top().params.cat = el.dataset.setCat; top().params.sub = ''; render(); });
+    app.querySelectorAll('[data-set-sub]').forEach(el=>el.onclick=()=>{
+      // Bo'sh qiymat = "Barchasi": kategoriyaning hamma tovari
+      top().params.sub = el.dataset.setSub || '*';
+      window.scrollTo(0,0); render();
+    });
     app.querySelectorAll('[data-open-product]').forEach(el=>el.onclick=(e)=>{ if(e.target.closest('[data-stop]')) return; push('product', { id: el.dataset.openProduct }); });
     app.querySelectorAll('[data-open-order]').forEach(el=>el.onclick=()=>{ S.tmp.orderDetail=null; push('order-detail', { id: el.dataset.openOrder }); });
     app.querySelectorAll('[data-open-object]').forEach(el=>el.onclick=()=>{ S.tmp.objDetail=null; S.tmp.objTab='dashboard'; push('object-detail', { id: el.dataset.openObject }); });

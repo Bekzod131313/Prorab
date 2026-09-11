@@ -52,6 +52,9 @@
   <button id="loginBtn">Kirish</button>
 </div>
 
+<datalist id="catList"></datalist>
+<datalist id="subList"></datalist>
+
 <div id="app" style="display:none">
   <div class="tabs">
     <div class="tab active" data-tab="products">Tovarlar</div>
@@ -68,7 +71,8 @@
         <button class="secondary" id="chooseFileBtn">Faylni tanlash</button>
       </div>
       <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none">
-      <div class="muted">Ustunlar: <b>artikul, nomi, narx, birlik, kategoriya</b> (birinchi qator sarlavha bo‘lishi kerak). Ustunlar tartibi muhim emas, nomlarini mos yozing.</div>
+      <div class="muted">Ustunlar: <b>artikul, nomi, narx, birlik, kategoriya, brend</b> (birinchi qator sarlavha bo‘lishi kerak). Ustunlar tartibi muhim emas, nomlarini mos yozing.<br>
+        <b>kategoriya</b> — katalogning yuqori bo‘limi (ARMATURA, NASOS...), <b>brend</b> — uning ichidagi kichik bo‘lim (GIACOMINI, WILO...). Brend bo‘sh bo‘lsa, tovar to‘g‘ridan-to‘g‘ri kategoriyada turadi.</div>
     </div>
 
     <div class="card">
@@ -79,7 +83,8 @@
         <div><label>Narx</label><input id="f_narx" type="number"></div>
         <div><label>Aksiya narxi</label><input id="f_aksiya" type="number" placeholder="bo‘sh = aksiya yo‘q"></div>
         <div><label>Birlik</label><input id="f_birlik" value="dona"></div>
-        <div><label>Kategoriya</label><input id="f_kategoriya" value="Boshqa"></div>
+        <div><label>Kategoriya</label><input id="f_kategoriya" value="Boshqa" list="catList"></div>
+        <div><label>Brend / kichik kategoriya</label><input id="f_kichik" placeholder="ixtiyoriy" list="subList"></div>
       </div>
       <label style="display:flex;align-items:center;gap:6px;margin-bottom:12px"><input type="checkbox" id="f_ommabop" style="margin:0"> Ommabop (TOP) tovar sifatida belgilash</label>
       <button id="addBtn">Qo‘shish</button>
@@ -89,7 +94,7 @@
       <div class="top-actions"><b>Tovarlar ro‘yxati</b><span class="muted" id="countTxt"></span></div>
       <div style="overflow-x:auto">
       <table>
-        <thead><tr><th>Artikul</th><th>Nomi</th><th>Narx</th><th>Aksiya</th><th>Birlik</th><th>Kategoriya</th><th>Faol</th><th>TOP</th><th></th></tr></thead>
+        <thead><tr><th>Artikul</th><th>Nomi</th><th>Narx</th><th>Aksiya</th><th>Birlik</th><th>Kategoriya</th><th>Brend</th><th>Faol</th><th>TOP</th><th></th></tr></thead>
         <tbody id="tbody"></tbody>
       </table>
       </div>
@@ -263,6 +268,10 @@
   async function loadProducts(){ try{ products = await api('/api/admin-products'); renderProducts(); } catch(e){ alert(e.message); } }
   function renderProducts(){
     document.getElementById('countTxt').textContent = products.length + ' ta tovar';
+    // Yangi tovar qo'shganda mavjud nomlarni taklif qilamiz — xato yozilishi kamayadi
+    const uniq = f => [...new Set(products.map(p => (p[f]||'').trim()).filter(Boolean))].sort();
+    document.getElementById('catList').innerHTML = uniq('kategoriya').map(v=>`<option value="${esc(v)}">`).join('');
+    document.getElementById('subList').innerHTML = uniq('kichik_kategoriya').map(v=>`<option value="${esc(v)}">`).join('');
     document.getElementById('tbody').innerHTML = products.map(p => `
       <tr data-id="${p.id}">
         <td><input value="${esc(p.artikul||'')}" data-f="artikul" style="width:80px"></td>
@@ -270,7 +279,8 @@
         <td><input type="number" value="${p.narx||0}" data-f="narx" style="width:90px"></td>
         <td><input type="number" value="${p.aksiya_narx==null?'':p.aksiya_narx}" data-f="aksiya_narx" style="width:90px" placeholder="—"></td>
         <td><input value="${esc(p.birlik||'')}" data-f="birlik" style="width:70px"></td>
-        <td><input value="${esc(p.kategoriya||'')}" data-f="kategoriya" style="width:100px"></td>
+        <td><input value="${esc(p.kategoriya||'')}" data-f="kategoriya" style="width:110px" list="catList"></td>
+        <td><input value="${esc(p.kichik_kategoriya||'')}" data-f="kichik_kategoriya" style="width:110px" placeholder="—" list="subList"></td>
         <td><input type="checkbox" data-f="faol" ${p.faol?'checked':''}></td>
         <td><input type="checkbox" data-f="ommabop" ${p.ommabop?'checked':''}></td>
         <td style="white-space:nowrap"><button class="secondary" data-act="save">💾</button> <button class="danger" data-act="del">🗑</button></td>
@@ -298,12 +308,13 @@
       aksiya_narx: document.getElementById('f_aksiya').value,
       birlik: document.getElementById('f_birlik').value,
       kategoriya: document.getElementById('f_kategoriya').value,
+      kichik_kategoriya: document.getElementById('f_kichik').value,
       ommabop: document.getElementById('f_ommabop').checked
     };
     if (!body.nomi.trim()) { alert('Nomi kiritilishi shart'); return; }
     try {
       await api('/api/admin-products', { method:'POST', body: JSON.stringify(body) });
-      ['f_artikul','f_nomi','f_narx','f_aksiya'].forEach(id=>document.getElementById(id).value='');
+      ['f_artikul','f_nomi','f_narx','f_aksiya','f_kichik'].forEach(id=>document.getElementById(id).value='');
       document.getElementById('f_ommabop').checked = false;
       loadProducts();
     } catch(e){ alert(e.message); }
@@ -322,7 +333,8 @@
       nomi: pick(r, ['nomi','name','название','наименование','tovar']),
       narx: pick(r, ['narx','price','цена']),
       birlik: pick(r, ['birlik','unit','ед','ед.изм','единица']) || 'dona',
-      kategoriya: pick(r, ['kategoriya','category','категория']) || 'Boshqa'
+      kategoriya: pick(r, ['kategoriya','category','категория','kategoriya1','guruh']) || 'Boshqa',
+      kichik_kategoriya: pick(r, ['kichik_kategoriya','brend','brand','бренд','subcategory','podkategoriya','kategoriya2','ichki'])
     })).filter(r => String(r.nomi).trim());
     if (!items.length) { alert('Faylda yaroqli qatorlar topilmadi'); return; }
     if (!confirm(items.length + ' ta tovar import qilinsinmi?')) return;

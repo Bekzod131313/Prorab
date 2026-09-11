@@ -176,7 +176,10 @@ va mijozga xabar boradi.
 `https://<MINIAPP_URL>/admin.html` sahifasini oching, `ADMIN_TOKEN`ni kiriting. To'rt bo'lim:
 
 - **Tovarlar** — qo'lda qo'shish/tahrirlash, Excel import, aksiya narxi va
-  "ommabop (TOP)" belgisini boshqarish.
+  "ommabop (TOP)" belgisini boshqarish. Katalog ikki bosqichli:
+  **kategoriya** (ARMATURA, NASOS...) → **brend / kichik kategoriya**
+  (GIACOMINI, WILO...). Excel'da mos ustunlar: `kategoriya` va `brend`.
+  Brend bo'sh bo'lsa, tovar to'g'ridan-to'g'ri kategoriyada turadi.
 - **Buyurtmalar** — barcha brigadalarning buyurtmalari, statusni o'zgartirish
   (Yangi → Jarayonda → Yetkazilgan, yoki Bekor qilingan) — o'zgarganda
   buyurtmachiga Telegram orqali avtomatik xabar boradi.

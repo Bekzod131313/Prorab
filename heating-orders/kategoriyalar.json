@@ -1,0 +1,111 @@
+{
+  "_izoh": "SAP'dagi katalog daraxti: kategoriya -> brend/kichik kategoriya. Bekzod yuborgan skrinshotlardan. To'liq bo'lmaganlari _todo da.",
+  "kategoriyalar": {
+    "AKSESSUAR": [],
+    "ARMATURA": [
+      "BARBERI",
+      "CALEFFI",
+      "CARLO POLETTI",
+      "DANFOSS",
+      "FAR",
+      "FERRO",
+      "GIACOMINI",
+      "HERZ",
+      "IVAR",
+      "KAN THERM",
+      "KAS",
+      "OVENTROP",
+      "POWER",
+      "RBM",
+      "REFLEX",
+      "S-PRESS",
+      "SITEM",
+      "TDS",
+      "TIEMME"
+    ],
+    "AVTOMATIKA": [
+      "CLIMATE HOUSE",
+      "DANFOSS",
+      "Neptun",
+      "Smartheat"
+    ],
+    "BOYLER": [],
+    "DIMAXOD": [
+      "A.D.M",
+      "COX GEELAN"
+    ],
+    "FILTR": [
+      "BTW SLIM",
+      "BWT SOFTNER",
+      "BWT WODA-PRUE",
+      "BWT-ZAPCHAST"
+    ],
+    "GAZ": [
+      "GECA",
+      "MADAS"
+    ],
+    "IZOLYATSIYA": [
+      "ENERGOFLEX",
+      "TONLOS"
+    ],
+    "KANALIZATSIYA": [
+      "OSTENDORF HTEM",
+      "OSTENDORF KG-2000",
+      "OSTENDORF KGEM",
+      "OSTENDORF SKEM"
+    ],
+    "KATYOL": [],
+    "KONVEKTOR": [
+      "ISOTERM"
+    ],
+    "LATUN FITING": [],
+    "NASOS": [
+      "CALPEDA",
+      "DAB",
+      "FERRO",
+      "GRUNFOS",
+      "LEO",
+      "PEDROLLO",
+      "WILO"
+    ],
+    "NERJAVEYKA": [],
+    "POLIV": [
+      "HUNTER",
+      "POLESAN"
+    ],
+    "PPR": [
+      "PILSA"
+    ],
+    "PRESS FITING": [],
+    "RADIATOR": [
+      "Akfa",
+      "ARBONIA",
+      "CALIDO",
+      "Global",
+      "IDMAR",
+      "IMAS",
+      "IRSAP",
+      "Royal P",
+      "Royal S"
+    ],
+    "RASH.BAK": [
+      "RASHBAK",
+      "REFLEX"
+    ],
+    "SANTEXNIKA": [
+      "ALCAPLAST",
+      "CHINA",
+      "FRENDO",
+      "GEBERIT",
+      "GROHE",
+      "HKSC",
+      "VIEGA"
+    ],
+    "SHLANG": [],
+    "VENTILYATSIYA": []
+  },
+  "_todo": [
+    "ARMATURA ro'yxati TIEMME da kesilgan bo'lishi mumkin — davomini tekshirish",
+    "Kutilyapti: AKSESSUAR, BOYLER, KATYOL, LATUN FITING, NERJAVEYKA, PRESS FITING, SHLANG, VENTILYATSIYA"
+  ]
+}
