@@ -1104,10 +1104,21 @@ window.CONFIG = {
   // ---------- Katalog daraxti: kategoriya -> brend/kichik kategoriya ----------
   // Ro'yxat tovarlardan hosil qilinadi, shuning uchun Excel import qilinganda
   // hech narsani qo'lda yangilash kerak emas.
-  // Kategoriya/brend rasmi (admin panelda yuklanadi). Yo'q bo'lsa — ikonka.
+  // Repodagi kategoriya rasmlari (public/assets/kategoriya/).
+  // Bu yerda sanab o'tilganlarigina qidiriladi — bo'lmagan fayl uchun
+  // ilova bekorga 404 so'rov yubormasin.
+  const CAT_IMG = new Set([
+    // rasm qo'shilganda fayl nomi shu yerga yoziladi, masalan: 'aksessuar'
+  ]);
+  const catSlug = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+  // Rasm ikki manbadan: avval admin panelda yuklangani, keyin repodagi fayl.
+  // Ikkalasi ham bo'lmasa — ikonka.
   function catRasm(nomi, ota){
     const c = S.catTree.find(x => x.nomi === nomi && (x.ota || null) === (ota || null));
-    return (c && c.rasm) || '';
+    if (c && c.rasm) return c.rasm;
+    const nom = ota ? `${catSlug(ota)}--${catSlug(nomi)}` : catSlug(nomi);
+    return CAT_IMG.has(nom) ? `assets/kategoriya/${nom}.jpg` : '';
   }
   function catTile(nomi, ota, cls){
     const rasm = catRasm(nomi, ota);
