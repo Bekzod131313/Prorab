@@ -642,7 +642,7 @@ window.CONFIG = {
       products_title:'Tovarlar', position_suffix:'pozitsiya',
       need_help_title:'Yordam kerakmi?', need_help_desc:'Ushbu buyurtma bo‘yicha savollaringiz bo‘lsa, operatorga murojaat qiling.',
       write_btn:'Yozish', order_cancelled_msg:'Bu buyurtma bekor qilingan',
-      brands:'Brendlar', brands_suffix:'brend', other_products:'Boshqa tovarlar',
+      brands:'Brendlar', brands_suffix:'brend', cat_no_products:'Bu bo‘limga tovar hali yuklanmagan', other_products:'Boshqa tovarlar',
       add_more:'Yana qo‘shish', notif_section:'Bildirishnomalar', settings_section:'Sozlamalar',
       stats_period_total:'Davr bo‘yicha jami', stats_avg_month:'O‘rtacha oylik', stats_avg_order:'O‘rtacha buyurtma',
       cart_title:'Korzina', cart_subtitle:'Tanlangan tovarlar', cart_empty:'Savat hali bo‘sh', cart_empty_sub:'Katalogdan tovar tanlang',
@@ -728,7 +728,7 @@ window.CONFIG = {
       products_title:'Товары', position_suffix:'позиция',
       need_help_title:'Нужна помощь?', need_help_desc:'Свяжитесь с нашим оператором, если у вас есть вопросы по этому заказу.',
       write_btn:'Написать', order_cancelled_msg:'Этот заказ отменён',
-      brands:'Бренды', brands_suffix:'брендов', other_products:'Другие товары',
+      brands:'Бренды', brands_suffix:'брендов', cat_no_products:'В этот раздел товары ещё не загружены', other_products:'Другие товары',
       add_more:'Добавить ещё', notif_section:'Уведомления', settings_section:'Настройки',
       stats_period_total:'Итого за период', stats_avg_month:'В среднем в месяц', stats_avg_order:'Средний заказ',
       cart_title:'Корзина', cart_subtitle:'Выбранные товары', cart_empty:'Корзина пока пуста', cart_empty_sub:'Выберите товар из каталога',
@@ -825,7 +825,7 @@ window.CONFIG = {
   const S = {
     booted: false, error: null,
     profile: null, brigade: null, objects: [],
-    products: [], cart: {}, drafts: [], notifications: [],
+    products: [], catTree: [], cart: {}, drafts: [], notifications: [],
     stack: [{ screen: 'asosiy' }],
     tmp: {} // screen-local scratch (search text, active category, active object subtab...)
   };
@@ -1005,15 +1005,19 @@ window.CONFIG = {
   async function boot(){
     render(); // loading screen
     try{
-      const [authRes, prodRes] = await Promise.all([
+      const [authRes, prodRes, catRes] = await Promise.all([
         api('/api/auth', { method:'POST', body: JSON.stringify({ code: urlCode }) }),
-        sb.from('hs_products').select('*').eq('faol', true).order('kategoriya').order('nomi')
+        sb.from('hs_products').select('*').eq('faol', true).order('kategoriya').order('nomi'),
+        // Katalog daraxti tovarlardan mustaqil saqlanadi — tovar hali
+        // yuklanmagan bo'lsa ham kategoriyalar ko'rinib tursin.
+        sb.from('hs_categories').select('*').eq('faol', true).order('tartib').order('nomi')
       ]);
       S.profile = authRes.profile; S.brigade = authRes.brigade; S.objects = authRes.objects || [];
       applyTheme();
       loadCart();
       loadDrafts();
       S.products = prodRes.data || [];
+      S.catTree = (catRes && catRes.data) || [];
       S.booted = true;
       render();
       api('/api/notifications').then(n=>{ S.notifications = n; render(); }).catch(()=>{});
@@ -1098,13 +1102,20 @@ window.CONFIG = {
   // Ro'yxat tovarlardan hosil qilinadi, shuning uchun Excel import qilinganda
   // hech narsani qo'lda yangilash kerak emas.
   function catList(){
-    return [...new Set(S.products.map(p => (p.kategoriya||'').trim() || 'Boshqa'))].sort((a,b)=>a.localeCompare(b,'uz'));
+    const jadval = S.catTree.filter(c => !c.ota).map(c => c.nomi);
+    const tovardan = S.products.map(p => (p.kategoriya||'').trim() || 'Boshqa');
+    const bor = new Set(jadval);
+    // Jadval tartibi saqlanadi; jadvalga kiritilmagan kategoriyalar oxiriga
+    return [...jadval, ...[...new Set(tovardan)].filter(c => !bor.has(c)).sort((a,b)=>a.localeCompare(b,'uz'))];
   }
   function subList(cat){
-    return [...new Set(S.products
+    const jadval = S.catTree.filter(c => c.ota === cat).map(c => c.nomi);
+    const bor = new Set(jadval);
+    const tovardan = S.products
       .filter(p => ((p.kategoriya||'').trim()||'Boshqa') === cat)
       .map(p => (p.kichik_kategoriya||'').trim())
-      .filter(Boolean))].sort((a,b)=>a.localeCompare(b,'uz'));
+      .filter(b => b && !bor.has(b));
+    return [...jadval, ...[...new Set(tovardan)].sort((a,b)=>a.localeCompare(b,'uz'))];
   }
   function catProducts(cat, sub){
     return S.products.filter(p => {
@@ -1153,7 +1164,7 @@ window.CONFIG = {
     return `${head}
       <div class="chips">${chips}</div>
       ${search}
-      <div class="plist">${items.length ? items.map(productCard).join('') : `<div class="empty-state">${tr('product_list_empty')}</div>`}</div>`;
+      <div class="plist">${items.length ? items.map(productCard).join('') : `<div class="empty-state">${ICONS.box}<div>${q ? tr('nothing_found') : tr('cat_no_products')}</div></div>`}</div>`;
   }
 
   // ================= SCREEN: product detail =================

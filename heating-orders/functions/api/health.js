@@ -9,7 +9,8 @@ const KERAK = {
   hs_brigades: ['login', 'parol_hash', 'parol_salt', 'faol', 'yaratgan_telegram_id'],
   hs_objects: ['lat', 'lng'],
   hs_products: ['kichik_kategoriya'],
-  hs_pending_locations: ['telegram_id', 'lat', 'lng']
+  hs_pending_locations: ['telegram_id', 'lat', 'lng'],
+  hs_categories: ['nomi', 'ota', 'tartib']
 };
 
 async function jadvalHolati(env, jadval, ustunlar) {

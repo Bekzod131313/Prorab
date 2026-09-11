@@ -113,6 +113,14 @@ Kod yangilanganda bazaga ham yangi ustunlar kerak bo'ladi. `migration.sql`
 faylini butunlay nusxalab, Supabase → **SQL Editor** → **Run** qiling
 (qayta ishga tushirsangiz ham xato bermaydi).
 
+So'ng `kategoriyalar.sql` ni ham ishga tushiring — u katalog daraxtini
+(22 kategoriya, 66 brend) bazaga yozadi.
+
+**Muhim:** ilovadagi kategoriyalar ikki manbadan yig'iladi — `hs_categories`
+jadvali va tovarlarning o'zi. Jadval tovarlardan mustaqil, shuning uchun
+tovar hali yuklanmagan bo'lsa ham kategoriyalar ro'yxati ko'rinib turadi.
+Kategoriyani o'zgartirish/qo'shish kerak bo'lsa, shu jadvalni tahrirlang.
+
 Hammasi joyidami yoki yo'qmi — brauzerda **`<MINIAPP_URL>/api/health`** ni
 oching: qaysi ustun yetishmayotgani va qaysi sozlama qo'yilmagani ko'rinadi.
 
