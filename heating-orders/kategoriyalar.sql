@@ -22,6 +22,14 @@ alter table hs_categories alter column ota drop not null;
 create unique index if not exists hs_categories_key
   on hs_categories (nomi, coalesce(ota, ''));
 
+-- Kategoriya rasmi (botga tashlansa yoki admin panelda yuklansa shu yerga yoziladi)
+alter table hs_categories add column if not exists rasm text;
+
+-- PostgREST ustunlar ro'yxatini keshlaydi — yangi ustun darrov ko'rinishi uchun
+-- keshni yangilashni so'raymiz (aks holda "Could not find the 'rasm' column"
+-- xatosi bir necha daqiqa davom etishi mumkin).
+notify pgrst, 'reload schema';
+
 -- Ilova anon kalit bilan faqat o'qiydi
 alter table hs_categories enable row level security;
 drop policy if exists hs_categories_public_read on hs_categories;
@@ -126,6 +134,3 @@ select
   count(*) filter (where ota is null) as kategoriyalar,
   count(*) filter (where ota is not null) as brendlar
 from hs_categories;
-
--- ---- Kategoriya rasmi (admin panelda yuklanadi) ----
-alter table hs_categories add column if not exists rasm text;

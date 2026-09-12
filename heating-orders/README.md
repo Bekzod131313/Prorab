@@ -121,6 +121,11 @@ SQL haqiqiy PostgreSQL'da sinaladi (`pgserver`): toza bazada ham, allaqachon
 qisman bajarilgan bazada ham xatosiz o'tadi va ikki marta ishga tushirilsa
 yozuvlarni takrorlamaydi.
 
+`baza.sql` qo'lda yozilmaydi — `tools/baza-yig.py` uni `migration.sql` va
+`kategoriyalar.sql` dan yig'adi va qismlardagi birorta `alter`/`create`
+tushib qolmaganini tekshiradi (ilgari shunday bir buyruq yo'qolib,
+"Could not find the 'rasm' column" xatosiga olib kelgan edi).
+
 Kod yangilanganda bazaga ham yangi ustunlar kerak bo'ladi. `migration.sql`
 faylini butunlay nusxalab, Supabase → **SQL Editor** → **Run** qiling
 (qayta ishga tushirsangiz ham xato bermaydi).
