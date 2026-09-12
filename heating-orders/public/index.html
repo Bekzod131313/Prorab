@@ -631,7 +631,7 @@ window.CONFIG = {
       logo_tagline:'Santexnika &middot; Otopleniya &middot; Buyurtma',
       home_search_ph:'Tovar qidirish...', search_results:'Qidiruv natijalari', nothing_found:'Hech narsa topilmadi',
       catalog_empty:'Hozircha katalogda tovar yo‘q.', catalog_empty_sub:'Admin panel orqali qo‘shiladi.',
-      promotions:'Aksiyalar', popular_products:'Ommabop tovarlar', categories:'Kategoriyalar', all:'Barchasi', cat_other:'Boshqa',
+      popular_products:'Ommabop tovarlar', categories:'Kategoriyalar', all:'Barchasi', cat_other:'Boshqa',
       art_prefix:'Art.', unit_dona:'dona',
       all_products:'Barcha tovarlar', product_not_found_title:'Tovar', product_not_found:'Topilmadi',
       product_list_empty:'Tovar topilmadi', add_to_cart:'Savatga qo‘shish', similar_products:'O‘xshash tovarlar',
@@ -717,7 +717,7 @@ window.CONFIG = {
       logo_tagline:'Сантехника &middot; Отопление &middot; Заказ',
       home_search_ph:'Поиск товара...', search_results:'Результаты поиска', nothing_found:'Ничего не найдено',
       catalog_empty:'Пока в каталоге нет товаров.', catalog_empty_sub:'Будут добавлены через админ-панель.',
-      promotions:'Акции', popular_products:'Популярные товары', categories:'Категории', all:'Все', cat_other:'Другое',
+      popular_products:'Популярные товары', categories:'Категории', all:'Все', cat_other:'Другое',
       art_prefix:'Арт.', unit_dona:'шт',
       all_products:'Все товары', product_not_found_title:'Товар', product_not_found:'Не найдено',
       product_list_empty:'Товар не найден', add_to_cart:'Добавить в корзину', similar_products:'Похожие товары',
@@ -1068,12 +1068,10 @@ window.CONFIG = {
     }
 
     const cats = catList();
-    const aksiya = S.products.filter(p=>p.aksiya_narx!=null && p.aksiya_narx < p.narx).slice(0,6);
     const ommabop = S.products.filter(p=>p.ommabop).slice(0,6);
     const hero = `<div style="padding:14px 18px 4px"><img class="hero-img" src="${BANNER_URL}" alt="ZODPRO"></div>`;
     return `${renderTopbar()}${searchBox}${warn}${hero}
       ${!S.products.length ? `<div class="empty-state">${ICONS.box}<div>${tr('catalog_empty')}<br>${tr('catalog_empty_sub')}</div></div>` : ''}
-      ${aksiya.length ? `<div class="sec-head"><h3>${tr('promotions')}</h3></div><div class="plist" data-plist="aksiya">${aksiya.map(productCard).join('')}</div>` : ''}
       ${ommabop.length ? `<div class="sec-head"><h3>${tr('popular_products')}</h3></div><div class="plist" data-plist="ommabop">${ommabop.map(productCard).join('')}</div>` : ''}
       <div class="sec-head"><h3>${tr('categories')}</h3><a data-open-cat="Barchasi">${tr('all')} ${ICONS.chev}</a></div>
       <div class="cat-grid">${cats.map(c=>{
