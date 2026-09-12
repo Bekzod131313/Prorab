@@ -719,6 +719,7 @@ window.CONFIG = {
       register_hint:'Ro‘yxatdan o‘tgach, guruhingizga botni qo‘shing va operatorga login‘ingizni yuboring — u guruhni brigadangizga bog‘laydi.',
       group_not_linked_title:'Guruh hali bog‘lanmagan',
       group_not_linked_sub:'Buyurtma berishingiz mumkin — fayl hozircha o‘zingizning botdagi chatingizga tushadi. Guruhga tushishi uchun botni guruhga qo‘shing va operatorga login‘ingizni yuboring:',
+      load_failed:'Ma’lumotni yuklab bo‘lmadi', retry:'Qayta urinish',
       success_excel_lichka:'Excel fayl <b>botdagi chatingizga</b> yuborildi — guruh hali bog‘lanmagan.',
       order_phone_label:'Telefon raqamingiz', order_phone_hint:'Yetkazib berish uchun — buyurtma bilan birga yuboriladi',
       toast_phone_needed:'Telefon raqamini to‘g‘ri kiriting',
@@ -735,9 +736,7 @@ window.CONFIG = {
       show:'Ko‘rsatish', hide:'Yashirish',
       logout_btn:'Hisobdan chiqish', logout_confirm:'Hisobdan chiqasizmi? Savatdagi tovarlar o‘chadi.',
       brigade_label:'Brigada',
-      loading:'Yuklanmoqda...', brigade_not_linked_title:'Brigada ulanmagan',
-      brigade_not_linked_pre:'Bu ilovadan foydalanish uchun avval botni ustalar guruhingizga qo‘shing va guruhda',
-      brigade_not_linked_post:'deb yozing — so‘ng chiqqan havola orqali qayta oching.',
+      loading:'Yuklanmoqda...',
       toast_select_object_first:'Avval obyekt tanlang', toast_enter_object_name:'Obyekt nomini kiriting',
       toast_object_created:'Obyekt yaratildi', toast_data_saved:"Ma'lumotlar saqlandi", toast_saved:'Saqlandi',
       toast_message_empty:'Xabar bo‘sh', toast_message_sent:'Yuborildi — tez orada javob berishadi',
@@ -815,6 +814,7 @@ window.CONFIG = {
       register_hint:'После регистрации добавьте бота в вашу группу и отправьте оператору свой логин — он привяжет группу к бригаде.',
       group_not_linked_title:'Группа ещё не привязана',
       group_not_linked_sub:'Заказ оформить можно — файл пока придёт в ваш личный чат с ботом. Чтобы он попадал в группу, добавьте бота в группу и отправьте оператору свой логин:',
+      load_failed:'Не удалось загрузить данные', retry:'Повторить',
       success_excel_lichka:'Excel-файл отправлен <b>в ваш чат с ботом</b> — группа ещё не привязана.',
       order_phone_label:'Ваш телефон', order_phone_hint:'Для доставки — отправляется вместе с заказом',
       toast_phone_needed:'Введите телефон корректно',
@@ -831,9 +831,7 @@ window.CONFIG = {
       show:'Показать', hide:'Скрыть',
       logout_btn:'Выйти из аккаунта', logout_confirm:'Выйти из аккаунта? Корзина будет очищена.',
       brigade_label:'Бригада',
-      loading:'Загрузка...', brigade_not_linked_title:'Бригада не подключена',
-      brigade_not_linked_pre:'Чтобы пользоваться приложением, сначала добавьте бота в группу мастеров и в группе напишите',
-      brigade_not_linked_post:'— затем откройте приложение снова по появившейся ссылке.',
+      loading:'Загрузка...',
       toast_select_object_first:'Сначала выберите объект', toast_enter_object_name:'Введите название объекта',
       toast_object_created:'Объект создан', toast_data_saved:'Данные сохранены', toast_saved:'Сохранено',
       toast_message_empty:'Сообщение пустое', toast_message_sent:'Отправлено — скоро ответят',
@@ -874,6 +872,7 @@ window.CONFIG = {
     booted: false, error: null,
     profile: null, brigade: null, objects: [],
     products: [], catTree: [], cart: {}, drafts: [], notifications: [],
+    yuklanmoqda: {}, yukXato: {},
     stack: [{ screen: 'asosiy' }],
     tmp: {} // screen-local scratch (search text, active category, active object subtab...)
   };
@@ -1352,9 +1351,9 @@ window.CONFIG = {
   }
 
   // ================= SCREEN: Buyurtmalarim =================
-  async function loadOrders(){ S.tmp.orders = await api('/api/orders'); render(); }
+  function loadOrders(){ yukla('orders', async()=>{ S.tmp.orders = await api('/api/orders'); }); }
   function screenOrders(){
-    if (!S.tmp.orders) { loadOrders(); return `${renderTopbar()}<div class="page-head"><h1>${tr('orders_title')}</h1><p>${tr('orders_subtitle')}</p></div>${loadingRow()}`; }
+    if (!S.tmp.orders) { loadOrders(); return `${renderTopbar()}<div class="page-head"><h1>${tr('orders_title')}</h1><p>${tr('orders_subtitle')}</p></div>${holatRow('orders')}`; }
     const orders = S.tmp.orders;
     const filter = S.tmp.orderFilter || 'barchasi';
     const counts = { barchasi: orders.length };
@@ -1385,11 +1384,11 @@ window.CONFIG = {
   }
 
   // ================= SCREEN: order detail / nakladnoy =================
-  async function loadOrderDetail(id){ S.tmp.orderDetail = await api('/api/orders?id='+id); render(); }
+  function loadOrderDetail(id){ yukla('orderDetail', async()=>{ S.tmp.orderDetail = await api('/api/orders?id='+id); }); }
   const ORDER_STEPS = ['yangi','jarayonda','yetkazilgan'];
   const ORDER_STEP_ICON = { yangi: ICONS.doc, jarayonda: ICONS.box, yetkazilgan: ICONS.check };
   function screenOrderDetail(params){
-    if (!S.tmp.orderDetail || S.tmp.orderDetail.id !== params.id) { loadOrderDetail(params.id); return `<div class="plist-head"><div class="back" data-pop>${ICONS.back}</div><h3>${tr('order_detail_title')}</h3></div>${loadingRow()}`; }
+    if (!S.tmp.orderDetail || S.tmp.orderDetail.id !== params.id) { loadOrderDetail(params.id); return `<div class="plist-head"><div class="back" data-pop>${ICONS.back}</div><h3>${tr('order_detail_title')}</h3></div>${holatRow('orderDetail')}`; }
     const o = S.tmp.orderDetail;
     const objNomi = o.hs_objects ? o.hs_objects.nomi : '—';
     const items = o.items || [];
@@ -1564,9 +1563,9 @@ window.CONFIG = {
   }
 
   // ================= SCREEN: Obyektlar =================
-  async function loadObjects(){ S.tmp.objectsList = await api('/api/objects'); render(); }
+  function loadObjects(){ yukla('objects', async()=>{ S.tmp.objectsList = await api('/api/objects'); }); }
   function screenObjects(){
-    if (!S.tmp.objectsList) { loadObjects(); return `${renderTopbar()}<div class="page-head-row"><div class="page-head"><h1>${tr('objects_title')}</h1><p>${tr('objects_subtitle')}</p></div></div>${loadingRow()}`; }
+    if (!S.tmp.objectsList) { loadObjects(); return `${renderTopbar()}<div class="page-head-row"><div class="page-head"><h1>${tr('objects_title')}</h1><p>${tr('objects_subtitle')}</p></div></div>${holatRow('objects')}`; }
     const q = (S.tmp.objQ||'').toLowerCase();
     let items = S.tmp.objectsList;
     if (q) items = items.filter(o=>o.nomi.toLowerCase().includes(q) || (o.manzil||'').toLowerCase().includes(q));
@@ -1609,15 +1608,17 @@ window.CONFIG = {
   }
 
   // ---- object detail with subtabs ----
-  async function loadObjectDetail(id){
-    const [detail, orders, debt] = await Promise.all([
-      api('/api/objects?id='+id), api('/api/orders?object_id='+id), api('/api/debt?object_id='+id)
-    ]);
-    S.tmp.objDetail = { detail, orders, debt };
-    render();
+  function loadObjectDetail(id){
+    yukla('objDetail', async()=>{
+      const [detail, orders, debt] = await Promise.all([
+        api('/api/objects?id='+id), api('/api/orders?object_id='+id), api('/api/debt?object_id='+id)
+      ]);
+      if (!detail || !detail.id) throw new Error(tr('object_not_found'));
+      S.tmp.objDetail = { detail, orders, debt };
+    });
   }
   function screenObjectDetail(params){
-    if (!S.tmp.objDetail || S.tmp.objDetail.detail.id !== params.id) { loadObjectDetail(params.id); return `<div class="plist-head"><div class="back" data-pop>${ICONS.back}</div><h3>${tr('object_label')}</h3></div>${loadingRow()}`; }
+    if (!S.tmp.objDetail || !S.tmp.objDetail.detail || S.tmp.objDetail.detail.id !== params.id) { loadObjectDetail(params.id); return `<div class="plist-head"><div class="back" data-pop>${ICONS.back}</div><h3>${tr('object_label')}</h3></div>${holatRow('objDetail')}`; }
     const { detail, orders, debt } = S.tmp.objDetail;
     const sub = S.tmp.objTab || 'dashboard';
     const subtabs = [
@@ -1918,9 +1919,9 @@ window.CONFIG = {
   }
 
   // ---- addresses ----
-  async function loadAddresses(){ S.tmp.addresses = await api('/api/addresses'); render(); }
+  function loadAddresses(){ yukla('addresses', async()=>{ S.tmp.addresses = await api('/api/addresses'); }); }
   function screenAddresses(){
-    if (!S.tmp.addresses) { loadAddresses(); return `<div class="plist-head"><div class="back" data-pop>${ICONS.back}</div><h3>${tr('my_addresses')}</h3></div>${loadingRow()}`; }
+    if (!S.tmp.addresses) { loadAddresses(); return `<div class="plist-head"><div class="back" data-pop>${ICONS.back}</div><h3>${tr('my_addresses')}</h3></div>${holatRow('addresses')}`; }
     return `<div class="plist-head"><div class="back" data-pop>${ICONS.back}</div><h3>${tr('my_addresses')}</h3></div>
       <div class="plist">${S.tmp.addresses.map(a=>`
         <div class="cart-item"><div class="info"><div class="name">${esc(a.nomi)}</div><div class="art">${esc(a.manzil)}</div></div><span class="trash" data-del-address="${a.id}">${ICONS.trash}</span></div>
@@ -1976,6 +1977,28 @@ window.CONFIG = {
 
   // ================= misc =================
   function loadingRow(){ return `<div class="loading-screen"><div class="spin"></div>${tr('loading')}</div>`; }
+
+  // Ma'lumot yuklanmasa ekran abadiy "Yuklanmoqda"da qolib ketmasin:
+  // xatoni eslab qolamiz va "Qayta urinish" tugmasini ko'rsatamiz.
+  // Bir xil so'rov bir vaqtda ikki marta ketmasligini ham shu ta'minlaydi.
+  async function yukla(kalit, fn){
+    // Xato bo'lgan bo'lsa o'z-o'zidan qayta urinmaymiz: ekran qayta
+    // chizilganda so'rov yana ketib, cheksiz aylanib qolardi. Faqat
+    // "Qayta urinish" tugmasi xatoni tozalaydi.
+    if (S.yuklanmoqda[kalit] || S.yukXato[kalit]) return;
+    S.yuklanmoqda[kalit] = true;
+    try { await fn(); }
+    catch (e) { S.yukXato[kalit] = e.message || tr('toast_generic_error'); }
+    S.yuklanmoqda[kalit] = false;
+    render();
+  }
+  function holatRow(kalit){
+    const x = S.yukXato[kalit];
+    if (!x) return loadingRow();
+    return `<div class="empty-state">${ICONS.alert}
+      <div>${tr('load_failed')}<br><span style="font-size:11.5px">${esc(x)}</span></div>
+      <button class="btn-accent" data-retry="${esc(kalit)}">${tr('retry')}</button></div>`;
+  }
 
   // ================= bottom nav =================
   function renderNav(){
@@ -2038,6 +2061,7 @@ window.CONFIG = {
     const app = document.getElementById('app');
     app.querySelectorAll('[data-nav-home]').forEach(el=>el.onclick=()=>switchTab('asosiy'));
     app.querySelectorAll('[data-goto-tab]').forEach(el=>el.onclick=()=>switchTab(el.dataset.gotoTab));
+    app.querySelectorAll('[data-retry]').forEach(el=>el.onclick=()=>{ delete S.yukXato[el.dataset.retry]; render(); });
     const ordTel = document.getElementById('ordTel');
     if (ordTel) ordTel.oninput = e => { S.tmp.telVal = e.target.value; };
 

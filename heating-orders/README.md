@@ -238,6 +238,9 @@ kiritasiz. Telefonda ham ishlaydi. Besh bo'lim:
 - **Telefon** — buyurtma berishda so'raladi, Excel, PDF va guruhdagi
   xabarga qo'shiladi; profilga ham saqlanadi va keyingi safar tayyor turadi.
 - **Miqdor** — bitta tovar uchun 99 999 tagacha.
+- **Ma'lumot yuklanmasa** ekran cheksiz "Yuklanmoqda"da qolmaydi: xato
+  matni va "Qayta urinish" tugmasi chiqadi, so'rov esa takror-takror
+  yuborilmaydi.
 - **Guruh bog'lanmagan bo'lsa** buyurtma baribir beriladi: Excel ustaning
   o'z chatiga tushadi va operatorga xabar ketadi. Guruh bog'langach
   o'z-o'zidan guruhga tusha boshlaydi.
