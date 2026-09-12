@@ -37,7 +37,7 @@
     --tile4:#2a1c38; --tile4-ink:#c79aeb; --tile5:#3a1720; --tile5-ink:#ec8ba3; --tile6:#12312d; --tile6-ink:#5fd9cb;
   }
   *{box-sizing:border-box}
-  html,body{touch-action:manipulation}
+  html,body{overscroll-behavior-x:contain;touch-action:manipulation}
   /* Ikonkalar uchun umumiy default o'lcham. Bularsiz o'lchami belgilanmagan
      har qanday yangi ikonka brauzerning standart (juda katta) o'lchamida
      chiziladi — shu sabab bir necha marta "kattaaa strelka" muammosi chiqdi.
@@ -446,6 +446,11 @@
   .pw-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--accent-deep);font-size:11.5px;font-weight:700;font-family:inherit;cursor:pointer;padding:6px 8px}
   .login-hint{width:100%;max-width:340px;margin-top:16px;display:flex;gap:9px;align-items:flex-start;font-size:11.5px;color:var(--muted);line-height:1.5}
   .login-hint svg{color:var(--muted);margin-top:1px}
+  /* Chapdan o'ngga surib orqaga qaytish */
+  #app{will-change:transform}
+  #app.swiping{transition:none}
+  #app.swipe-back{transition:transform .22s cubic-bezier(.22,.61,.36,1)}
+  .swipe-shade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:5;transition:opacity .22s}
   .loading-screen{padding:120px 24px;text-align:center;color:var(--muted);font-size:13.5px}
   .spin{width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--accent-deep);border-radius:50%;margin:0 auto 16px;animation:spin .7s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
@@ -1002,6 +1007,98 @@ window.CONFIG = {
     S.brigade = null; S.objects = []; S.cart = {}; S.drafts = []; S.notifications = [];
     S.tmp = {}; S.stack = [{ screen:'asosiy', params:{} }];
     render();
+  }
+
+  // ---------- Chapdan o'ngga surib orqaga qaytish ----------
+  // Telefonda odatiy imo-ishora: barmoqni chapdan o'ngga sursa, oldingi
+  // ekranga qaytadi. Tepadagi strelka ham o'z joyida qoladi.
+  function initSwipeBack(){
+    const app = document.getElementById('app');
+    const shade = document.createElement('div');
+    shade.className = 'swipe-shade';
+    document.body.appendChild(shade);
+
+    let x0 = 0, y0 = 0, dx = 0;
+    let kuzatyapmiz = false;   // barmoq tushdi, hali qaror qilinmagan
+    let surilyapti = false;    // orqaga surish boshlandi
+    const EN = () => window.innerWidth;
+
+    // Gorizontal suriladigan element ichida boshlansa — aralashmaymiz
+    // (chiplar, subtablar, filtrlar, jadvallar).
+    function gorizontalScrollIchidami(el){
+      for (let n = el; n && n !== app; n = n.parentElement) {
+        if (n.scrollWidth > n.clientWidth + 2) {
+          const ox = getComputedStyle(n).overflowX;
+          if (ox === 'auto' || ox === 'scroll') return true;
+        }
+      }
+      return false;
+    }
+
+    function tiklash(animatsiya){
+      app.classList.toggle('swipe-back', !!animatsiya);
+      app.classList.remove('swiping');
+      app.style.transform = '';
+      shade.style.opacity = '0';
+      if (animatsiya) setTimeout(() => app.classList.remove('swipe-back'), 240);
+    }
+
+    app.addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1 || S.stack.length < 2) return;
+      const t = e.touches[0];
+      const el = e.target;
+      if (el.closest('input, textarea, select, .stepper')) return;
+      if (gorizontalScrollIchidami(el)) return;
+      x0 = t.clientX; y0 = t.clientY; dx = 0;
+      kuzatyapmiz = true; surilyapti = false;
+    }, { passive: true });
+
+    app.addEventListener('touchmove', (e) => {
+      if (!kuzatyapmiz) return;
+      const t = e.touches[0];
+      dx = t.clientX - x0;
+      const dy = t.clientY - y0;
+
+      if (!surilyapti) {
+        // Niyat aniq bo'lguncha kutamiz: 12px dan keyin qaror qilamiz
+        if (Math.abs(dx) < 12 && Math.abs(dy) < 12) return;
+        // Faqat o'ngga va aniq gorizontal bo'lsa
+        if (dx > 0 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+          surilyapti = true;
+          app.classList.add('swiping');
+          app.classList.remove('swipe-back');
+        } else {
+          kuzatyapmiz = false;   // vertikal scroll — tegmaymiz
+          return;
+        }
+      }
+
+      e.preventDefault();                 // vertikal scroll qo'zg'almasin
+      const siljish = Math.max(0, Math.min(dx, EN()));
+      app.style.transform = `translateX(${siljish}px)`;
+      shade.style.opacity = String(0.18 * (1 - siljish / EN()));
+    }, { passive: false });
+
+    function tugadi(){
+      if (!kuzatyapmiz) return;
+      kuzatyapmiz = false;
+      if (!surilyapti) return;
+      surilyapti = false;
+
+      // Ekran kengligining chorakidan ko'p surilgan bo'lsa — qaytamiz
+      if (dx > Math.min(90, EN() * 0.25)) {
+        app.classList.add('swipe-back');
+        app.classList.remove('swiping');
+        app.style.transform = `translateX(${EN()}px)`;
+        shade.style.opacity = '0';
+        setTimeout(() => { tiklash(false); pop(); }, 200);
+      } else {
+        tiklash(true);
+      }
+    }
+
+    app.addEventListener('touchend', tugadi, { passive: true });
+    app.addEventListener('touchcancel', tugadi, { passive: true });
   }
 
   // ---------- Bootstrap ----------
@@ -1882,6 +1979,7 @@ window.CONFIG = {
     };
   }
 
+  initSwipeBack();
   boot();
 })();
 </script>
