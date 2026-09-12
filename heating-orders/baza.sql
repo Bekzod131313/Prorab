@@ -49,9 +49,17 @@ create table if not exists hs_categories (
   ota        text,                      -- null = yuqori kategoriya, aks holda brend
   tartib     int  not null default 100,
   faol       boolean not null default true,
-  created_at timestamptz default now(),
-  primary key (nomi, ota)
+  created_at timestamptz default now()
 );
+
+-- MUHIM: (nomi, ota) ni primary key qilib bo'lmaydi — PostgreSQL primary key
+-- ustunlarini majburan NOT NULL qiladi, yuqori kategoriyalarda esa `ota` bo'sh.
+-- Shuning uchun kalit sifatida ifodali (expression) unique indeks ishlatamiz:
+-- unda null'lar ham taqqoslanadi, ya'ni bir xil nom ikki marta tushmaydi.
+alter table hs_categories drop constraint if exists hs_categories_pkey;
+alter table hs_categories alter column ota drop not null;
+create unique index if not exists hs_categories_key
+  on hs_categories (nomi, coalesce(ota, ''));
 
 -- Ilova anon kalit bilan faqat o'qiydi
 alter table hs_categories enable row level security;
@@ -150,7 +158,7 @@ insert into hs_categories (nomi, ota, tartib) values
   ('VIEGA', 'SANTEXNIKA', 70),
   ('SHLANG', null, 210),
   ('VENTILYATSIYA', null, 220)
-on conflict (nomi, ota) do update set tartib = excluded.tartib, faol = true;
+on conflict (nomi, coalesce(ota, '')) do update set tartib = excluded.tartib, faol = true;
 
 -- ============================================================
 --  TEKSHIRISH — quyidagilar xatosiz chiqishi kerak

@@ -117,6 +117,10 @@ qayta ishga tushirilsa ham xato bermaydi.
 Pastdagi `migration.sql` va `kategoriyalar.sql` — o'sha faylning
 bo'laklari, alohida kerak bo'lsa ishlatiladi.
 
+SQL haqiqiy PostgreSQL'da sinaladi (`pgserver`): toza bazada ham, allaqachon
+qisman bajarilgan bazada ham xatosiz o'tadi va ikki marta ishga tushirilsa
+yozuvlarni takrorlamaydi.
+
 Kod yangilanganda bazaga ham yangi ustunlar kerak bo'ladi. `migration.sql`
 faylini butunlay nusxalab, Supabase → **SQL Editor** → **Run** qiling
 (qayta ishga tushirsangiz ham xato bermaydi).
