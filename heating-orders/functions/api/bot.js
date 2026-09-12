@@ -55,6 +55,7 @@ export async function onRequestPost({ request, env }) {
       await handleCategoryPhoto(msg, env);
       return json({ ok: true });
     }
+    await operatorEmas(env, msg);
   }
 
   if (!msg.text) return json({ ok: true });
@@ -91,7 +92,7 @@ export async function onRequestPost({ request, env }) {
   // Usta o'zi mini-appda ro'yxatdan o'tadi, lekin qaysi guruhga buyurtma
   // tushishini faqat operator hal qiladi.
   if (cmd === '/bogla' || cmd === '/link') {
-    if (!isOperator(env, msg.from)) return json({ ok: true });
+    if (!isOperator(env, msg.from)) { await operatorEmas(env, msg); return json({ ok: true }); }
 
     if (!isGroup) {
       await tgApi(env, 'sendMessage', {
@@ -144,7 +145,7 @@ export async function onRequestPost({ request, env }) {
 
   // Operator uchun: hali guruhga bog'lanmagan brigadalar ro'yxati
   if (cmd === '/brigadalar') {
-    if (!isOperator(env, msg.from)) return json({ ok: true });
+    if (!isOperator(env, msg.from)) { await operatorEmas(env, msg); return json({ ok: true }); }
     const rows = await sbFetch(env, '/rest/v1/hs_brigades?select=nomi,login,chat_id&order=created_at.desc&limit=50');
     const bosh = (rows || []).filter(b => b.chat_id == null);
     const bogli = (rows || []).filter(b => b.chat_id != null);
@@ -163,7 +164,7 @@ export async function onRequestPost({ request, env }) {
   // Operator uchun: yozuv maydoni yonidagi doimiy "Ochish" tugmasini va bot
   // buyruqlarini hamma uchun o'rnatadi. Admin panelsiz ham ishlaydi.
   if (cmd === '/sozla') {
-    if (!isOperator(env, msg.from)) return json({ ok: true });
+    if (!isOperator(env, msg.from)) { await operatorEmas(env, msg); return json({ ok: true }); }
     const url = env.MINIAPP_URL;
     const menu = await tgApi(env, 'setChatMenuButton', {
       menu_button: { type: 'web_app', text: 'Ochish', web_app: { url } }
@@ -179,7 +180,7 @@ export async function onRequestPost({ request, env }) {
 
   // Admin panelga bir bosishda kirish havolasi (faqat operatorga)
   if (cmd === '/admin') {
-    if (!isOperator(env, msg.from)) return json({ ok: true });
+    if (!isOperator(env, msg.from)) { await operatorEmas(env, msg); return json({ ok: true }); }
     if (!isPrivate) {
       await tgApi(env, 'sendMessage', { chat_id: chat.id, text: 'Bu buyruqni menga shaxsiy chatda yozing.' });
       return json({ ok: true });
@@ -211,7 +212,7 @@ export async function onRequestPost({ request, env }) {
 
   // Qaysi kategoriyalarda rasm yo'qligini ko'rsatadi
   if (cmd === '/rasm') {
-    if (!isOperator(env, msg.from)) return json({ ok: true });
+    if (!isOperator(env, msg.from)) { await operatorEmas(env, msg); return json({ ok: true }); }
     const rows = await sbFetch(env, '/rest/v1/hs_categories?select=nomi,ota,rasm&order=ota.asc,tartib.asc');
     const yoq = (rows || []).filter(r => !r.rasm);
     const bor = (rows || []).filter(r => r.rasm);
@@ -358,6 +359,24 @@ async function rasmniYukla(env, fileId) {
   }
 
   return `${env.SUPABASE_URL}/storage/v1/object/public/katalog/${nom}`;
+}
+
+// Operator buyrug'i ishlamaganda sababini aytamiz — lekin faqat
+// ADMIN_CHAT_ID umuman sozlanmagan bo'lsa. Sozlangan bo'lsa, begona odamga
+// hech narsa demaymiz: bunday buyruq borligini ham bilmasin.
+async function operatorEmas(env, msg) {
+  if (env.ADMIN_CHAT_ID) return;
+  await tgApi(env, 'sendMessage', {
+    chat_id: msg.chat.id,
+    text:
+      '⚠️ Operator buyruqlari hali yoqilmagan.\n\n' +
+      `Sizning Telegram ID raqamingiz: <code>${msg.from.id}</code>\n\n` +
+      'Cloudflare Pages → Settings → Environment variables bo‘limida\n' +
+      `<code>ADMIN_CHAT_ID</code> = <code>${msg.from.id}</code>\n` +
+      'qo‘shing va qayta deploy qiling. Shundan keyin /sozla, /admin, ' +
+      '/bogla, /brigadalar, /rasm ishlay boshlaydi.',
+    parse_mode: 'HTML'
+  });
 }
 
 // Operator — ADMIN_CHAT_ID da ko'rsatilgan shaxs (vergul bilan bir nechta
