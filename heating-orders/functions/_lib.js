@@ -107,6 +107,68 @@ export function safeEqual(a, b) {
   return diff === 0;
 }
 
+// ---- Supabase Storage ----
+// Bucket nomi STORAGE_BUCKET env'idan olinadi, bo'lmasa "katalog".
+// Supabase bucket nomlarida katta-kichik harf farq qiladi, shuning uchun
+// topilmasa bir marta ro'yxatdan katta-kichik harfga qaramay qidiramiz —
+// "Katalog" deb yaratilgan bo'lsa ham ishlaydi.
+export async function storageUpload(env, bytes, contentType, ext) {
+  const nom = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
+  const kerakli = env.STORAGE_BUCKET || 'katalog';
+
+  const yubor = async (bucket) => {
+    const res = await fetch(`${env.SUPABASE_URL}/storage/v1/object/${encodeURIComponent(bucket)}/${nom}`, {
+      method: 'POST',
+      headers: {
+        apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: 'Bearer ' + env.SUPABASE_SERVICE_ROLE_KEY,
+        'Content-Type': contentType,
+        'x-upsert': 'true'
+      },
+      body: bytes
+    });
+    return { ok: res.ok, matn: res.ok ? '' : await res.text() };
+  };
+
+  let bucket = kerakli;
+  let r = await yubor(bucket);
+
+  if (!r.ok && /bucket not found/i.test(r.matn)) {
+    const topilgan = await bucketTop(env, kerakli);
+    if (topilgan && topilgan !== bucket) {
+      bucket = topilgan;
+      r = await yubor(bucket);
+    }
+  }
+
+  if (!r.ok) {
+    if (/bucket not found/i.test(r.matn)) {
+      throw new Error(`Supabase Storage'da "${kerakli}" nomli ochiq (public) bucket yarating.`);
+    }
+    throw new Error('Storage xatosi: ' + r.matn.slice(0, 150));
+  }
+
+  return `${env.SUPABASE_URL}/storage/v1/object/public/${encodeURIComponent(bucket)}/${nom}`;
+}
+
+// Bucket ro'yxatidan nomni katta-kichik harfga qaramay topadi
+async function bucketTop(env, nom) {
+  try {
+    const res = await fetch(`${env.SUPABASE_URL}/storage/v1/bucket`, {
+      headers: {
+        apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: 'Bearer ' + env.SUPABASE_SERVICE_ROLE_KEY
+      }
+    });
+    if (!res.ok) return null;
+    const royxat = await res.json();
+    const mos = (royxat || []).find(b => String(b.name).toLowerCase() === String(nom).toLowerCase());
+    return mos ? mos.name : null;
+  } catch (e) {
+    return null;
+  }
+}
+
 export function checkAdmin(request, env) {
   const token = request.headers.get('X-Admin-Token');
   return !!(token && env.ADMIN_TOKEN && token === env.ADMIN_TOKEN);

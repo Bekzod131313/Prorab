@@ -129,8 +129,10 @@ So'ng `kategoriyalar.sql` ni ham ishga tushiring — u katalog daraxtini
 (22 kategoriya, 66 brend) bazaga yozadi.
 
 Kategoriya rasmlari uchun Supabase → **Storage** → **New bucket** →
-nomi `katalog`, **Public** belgisi yoqilgan holda yarating. Shundan keyin
-admin panelda rasm yuklash ishlaydi.
+nomi `katalog`, **Public** belgisi yoqilgan holda yarating. Nomni boshqacha
+yozgan bo'lsangiz (`Katalog`, `KATALOG`) ham ishlaydi — kod katta-kichik
+harfga qaramay topadi; butunlay boshqa nom bo'lsa `STORAGE_BUCKET`
+env o'zgaruvchisiga yozing.
 
 **Muhim:** ilovadagi kategoriyalar ikki manbadan yig'iladi — `hs_categories`
 jadvali va tovarlarning o'zi. Jadval tovarlardan mustaqil, shuning uchun

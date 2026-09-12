@@ -1,4 +1,4 @@
-import { json, sbFetch, tgApi, escHtml } from '../_lib.js';
+import { json, sbFetch, tgApi, escHtml, storageUpload } from '../_lib.js';
 
 // Telegram bot webhook.
 //
@@ -327,7 +327,7 @@ async function topCategory(env, izoh) {
   return brendlar.length === 1 ? brendlar[0] : null;
 }
 
-// Telegram faylini Supabase Storage'ning ochiq "katalog" paketiga ko'chiradi
+// Telegram faylini Supabase Storage'ga ko'chiradi
 async function rasmniYukla(env, fileId) {
   const info = await tgApi(env, 'getFile', { file_id: fileId });
   if (!info.ok) throw new Error('Faylni olib bo\u2018lmadi: ' + (info.description || ''));
@@ -336,29 +336,9 @@ async function rasmniYukla(env, fileId) {
   if (!res.ok) throw new Error('Faylni yuklab bo\u2018lmadi');
   const bytes = await res.arrayBuffer();
 
-  const kengaytma = (info.result.file_path.split('.').pop() || 'jpg').toLowerCase();
-  const turi = kengaytma === 'png' ? 'image/png' : kengaytma === 'webp' ? 'image/webp' : 'image/jpeg';
-  const nom = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${kengaytma}`;
-
-  const up = await fetch(`${env.SUPABASE_URL}/storage/v1/object/katalog/${nom}`, {
-    method: 'POST',
-    headers: {
-      apikey: env.SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: 'Bearer ' + env.SUPABASE_SERVICE_ROLE_KEY,
-      'Content-Type': turi,
-      'x-upsert': 'true'
-    },
-    body: bytes
-  });
-  if (!up.ok) {
-    const matn = await up.text();
-    if (/bucket not found/i.test(matn)) {
-      throw new Error('Supabase Storage\'da "katalog" nomli ochiq (public) bucket yarating.');
-    }
-    throw new Error('Storage xatosi: ' + matn.slice(0, 150));
-  }
-
-  return `${env.SUPABASE_URL}/storage/v1/object/public/katalog/${nom}`;
+  const ext = (info.result.file_path.split('.').pop() || 'jpg').toLowerCase();
+  const turi = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+  return storageUpload(env, bytes, turi, ext);
 }
 
 // Operator buyrug'i ishlamaganda sababini aytamiz — lekin faqat
