@@ -603,18 +603,18 @@ window.CONFIG = {
     return `<div class="${cls}"${style}>${cat ? catIcon(cat) : ICONS.photoIcon}</div>`;
   };
   const STATUS_CLS = { yangi:'amber', jarayonda:'blue', yetkazilgan:'green', bekor_qilingan:'red' };
-  const fmt = n => Math.round(n||0).toLocaleString('ru-RU') + ' ' + tr('currency');
+  // Narxlar dollarda: tiyinlar yo'qolmasligi uchun 2 xona bilan ko'rsatamiz
+  const pul = n => (Number(n) || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmt = n => pul(n) + ' ' + tr('currency');
   // Valyutasiz — chizib tashlangan eski narx kabi joy tor bo'lgan joylar uchun
-  const fmtNum = n => Math.round(n||0).toLocaleString('ru-RU');
-  // Diagramma ustunlari uchun qisqa format: 12 480 000 -> "12,5 mln"
+  const fmtNum = n => pul(n);
+  // Diagramma ustunlari uchun qisqa format
   const fmtShort = n => {
-    n = Math.round(n||0);
-    if (n >= 1e9) return (n/1e9).toFixed(1).replace('.0','').replace('.',',') + ' mlrd';
+    n = Number(n) || 0;
     if (n >= 1e6) return (n/1e6).toFixed(1).replace('.0','').replace('.',',') + ' mln';
-    if (n >= 1e3) return Math.round(n/1e3) + ' ming';
-    return String(n);
+    if (n >= 1e3) return (n/1e3).toFixed(1).replace('.0','').replace('.',',') + ' ming';
+    return pul(n);
   };
-  // Birliklar bazada o'zbekcha saqlanadi — ruscha interfeys uchun moslashtiramiz
   const UNIT_RU = { dona:'шт', metr:'м', kg:'кг', komplekt:'компл', quti:'кор', litr:'л', rulon:'рулон', paket:'пач' };
   const unitLabel = u => {
     const s = String(u||'').trim();
@@ -631,7 +631,7 @@ window.CONFIG = {
   // ---------- Interfeys tili (uz / ru) ----------
   const STRINGS = {
     uz: {
-      currency:"so'm",
+      currency:'$',
       nav_asosiy:'Asosiy', nav_orders:'Buyurtmalarim', nav_cart:'Korzina', nav_objects:'Obyektlar', nav_profile:'Profil',
       logo_tagline:'Santexnika &middot; Otopleniya &middot; Buyurtma',
       home_search_ph:'Tovar qidirish...', search_results:'Qidiruv natijalari', nothing_found:'Hech narsa topilmadi',
@@ -717,7 +717,7 @@ window.CONFIG = {
       toast_location_sent:'📍 Lokatsiya botga yuborildi — Telegram xabarlarida ko‘ring',
     },
     ru: {
-      currency:'сум',
+      currency:'$',
       nav_asosiy:'Главная', nav_orders:'Мои заказы', nav_cart:'Корзина', nav_objects:'Объекты', nav_profile:'Профиль',
       logo_tagline:'Сантехника &middot; Отопление &middot; Заказ',
       home_search_ph:'Поиск товара...', search_results:'Результаты поиска', nothing_found:'Ничего не найдено',

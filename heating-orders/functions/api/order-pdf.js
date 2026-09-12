@@ -1,6 +1,6 @@
 import { PDFDocument, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
-import { json, sbFetch, requireUser } from '../_lib.js';
+import { json, sbFetch, requireUser, pul} from '../_lib.js';
 
 // Buyurtmani A4 PDF (nakladnoy) ko'rinishida yasab, foydalanuvchining
 // shaxsiy Telegram chatiga hujjat sifatida yuboradi. Brauzer print()
@@ -12,17 +12,17 @@ import { json, sbFetch, requireUser } from '../_lib.js';
 const LABELS = {
   uz: {
     nakladnoy: 'Nakladnoy №', sana: 'Sana', obyekt: 'Obyekt', buyurtmachi: 'Buyurtmachi',
-    artikul: 'Artikul', nomi: 'Nomi', narx: 'Narx', son: 'Son', summa: 'Summa', jami: 'Jami', currency: "so'm",
+    artikul: 'Artikul', nomi: 'Nomi', narx: 'Narx', son: 'Son', summa: 'Summa', jami: 'Jami', currency: '$',
     status: { yangi: 'Yangi', jarayonda: 'Jarayonda', yetkazilgan: 'Yetkazilgan', bekor_qilingan: 'Bekor qilingan' }
   },
   ru: {
     nakladnoy: 'Накладная №', sana: 'Дата', obyekt: 'Объект', buyurtmachi: 'Заказчик',
-    artikul: 'Артикул', nomi: 'Наименование', narx: 'Цена', son: 'Кол-во', summa: 'Сумма', jami: 'Итого', currency: 'сум',
+    artikul: 'Артикул', nomi: 'Наименование', narx: 'Цена', son: 'Кол-во', summa: 'Сумма', jami: 'Итого', currency: '$',
     status: { yangi: 'Новый', jarayonda: 'В процессе', yetkazilgan: 'Доставлен', bekor_qilingan: 'Отменён' }
   }
 };
 
-function fmtNum(n) { return Math.round(n || 0).toLocaleString('ru-RU'); }
+const fmtNum = pul;
 function fmtDate(s) {
   if (!s) return '—';
   const d = new Date(s);

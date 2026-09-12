@@ -226,6 +226,11 @@ to'g'ridan-to'g'ri ochiladi).
 Qo'lda: `https://<MINIAPP_URL>/admin.html` sahifasini ochib, `ADMIN_TOKEN`ni
 kiritasiz. Telefonda ham ishlaydi. Besh bo'lim:
 
+> **Valyuta.** Narxlar **dollarda** saqlanadi va hamma joyda `$` bilan
+> ko'rsatiladi: katalog, savat, buyurtma, qarzdorlik, guruhga ketadigan
+> Excel va PDF nakladnoy. `narx` ustuni `numeric`, shuning uchun tiyinlar
+> (5,00 / 1,88) yo'qolmaydi.
+
 - **Tovarlar** — qo'lda qo'shish/tahrirlash, Excel import, aksiya narxi va
   "ommabop (TOP)" belgisini boshqarish. Katalog ikki bosqichli:
   **kategoriya** (ARMATURA, NASOS...) → **brend / kichik kategoriya**

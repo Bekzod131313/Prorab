@@ -216,7 +216,7 @@
     history.replaceState(null, '', location.pathname);
   }
   let products = [], orders = [], objects = [];
-  const fmt = n => Math.round(n||0).toLocaleString('ru-RU') + " so'm";
+  const fmt = n => (Number(n)||0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' $';
   const fmtDate = s => { const d=new Date(s); return d.toLocaleDateString('ru-RU')+' '+d.toTimeString().slice(0,5); };
   const STATUS_LABELS = { yangi:'Yangi', jarayonda:'Jarayonda', yetkazilgan:'Yetkazilgan', bekor_qilingan:'Bekor qilingan' };
   // Obyekt/brigada nomlari ustalar (yoki guruh adminlari) tomonidan erkin

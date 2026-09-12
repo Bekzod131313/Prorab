@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { json, sbFetch, requireUser, nextOrderNo, notify, tgApi, escHtml } from '../_lib.js';
+import { json, sbFetch, requireUser, nextOrderNo, notify, tgApi, escHtml, pul} from '../_lib.js';
 
 // Savatni qabul qiladi, narxlarni bazadan qayta hisoblaydi, buyurtmani
 // tanlangan OBYEKTGA bog'laydi va uning qarziga yozadi (to'lov tizimi yo'q —
@@ -83,7 +83,7 @@ export async function onRequestPost({ request, env }) {
     });
 
     const aoa = [
-      ['Artikul', 'Nomi', 'Narx', 'Birlik', 'Miqdor', 'Summa'],
+      ['Artikul', 'Nomi', 'Narx, $', 'Birlik', 'Miqdor', 'Summa, $'],
       ...rows.map(r => [r.artikul, r.nomi, r.narx, r.birlik, r.miqdor, r.summa]),
       ['', '', '', '', 'Jami:', total]
     ];
@@ -98,7 +98,7 @@ export async function onRequestPost({ request, env }) {
     fd.append('chat_id', String(brigade.chat_id));
     fd.append(
       'caption',
-      `🛒 Yangi buyurtma ${orderNo}\nUsta: ${buyerName}\nObyekt: ${object.nomi}\nJami: ${total.toLocaleString('ru-RU')} so'm (qarzga yozildi)`
+      `🛒 Yangi buyurtma ${orderNo}\nUsta: ${buyerName}\nObyekt: ${object.nomi}\nJami: ${pul(total)} $ (qarzga yozildi)`
     );
     fd.append('document', blob, `${orderNo}.xlsx`);
 
@@ -140,7 +140,7 @@ export async function onRequestPost({ request, env }) {
     await notify(env, {
       telegram_id: user.id,
       turi: 'buyurtma',
-      matn: `✅ Buyurtmangiz qabul qilindi: <b>${orderNo}</b>\nObyekt: ${escHtml(object.nomi)}\nJami: ${total.toLocaleString('ru-RU')} so'm\n\nStatus: Yangi`,
+      matn: `✅ Buyurtmangiz qabul qilindi: <b>${orderNo}</b>\nObyekt: ${escHtml(object.nomi)}\nJami: ${pul(total)} $\n\nStatus: Yangi`,
       order_id: order.id,
       object_id: object.id
     });

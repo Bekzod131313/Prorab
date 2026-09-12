@@ -8,6 +8,11 @@ export function escHtml(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+// Narxlar dollarda — tiyinlar yo'qolmasligi uchun har doim 2 xona
+export function pul(n) {
+  return (Number(n) || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 export function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
