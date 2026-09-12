@@ -226,6 +226,22 @@ to'g'ridan-to'g'ri ochiladi).
 Qo'lda: `https://<MINIAPP_URL>/admin.html` sahifasini ochib, `ADMIN_TOKEN`ni
 kiritasiz. Telefonda ham ishlaydi. Besh bo'lim:
 
+### Ilovadagi qulayliklar
+
+- **Orqaga qaytish** — tepadagi strelka yoki ekranni chapdan o'ngga surish
+  (ekranning istalgan joyidan; yonga suriladigan chiplar/subtablar bundan
+  mustasno).
+- **Profil rasmi** — Profil → Shaxsiy ma'lumotlar → rasm ustiga bosib
+  yuklanadi (brauzerda 400×400 ga kichrayadi).
+- **Login/parol** — Profil → Login va parol. Joriy parolni bilish shart,
+  chunki o'zgarish butun brigadaga taalluqli.
+- **Telefon** — buyurtma berishda so'raladi, Excel, PDF va guruhdagi
+  xabarga qo'shiladi; profilga ham saqlanadi va keyingi safar tayyor turadi.
+- **Miqdor** — bitta tovar uchun 99 999 tagacha.
+- **Guruh bog'lanmagan bo'lsa** buyurtma baribir beriladi: Excel ustaning
+  o'z chatiga tushadi va operatorga xabar ketadi. Guruh bog'langach
+  o'z-o'zidan guruhga tusha boshlaydi.
+
 > **Valyuta.** Narxlar **dollarda** saqlanadi va hamma joyda `$` bilan
 > ko'rsatiladi: katalog, savat, buyurtma, qarzdorlik, guruhga ketadigan
 > Excel va PDF nakladnoy. `narx` ustuni `numeric`, shuning uchun tiyinlar

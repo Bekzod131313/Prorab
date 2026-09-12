@@ -185,7 +185,8 @@
   .obj-select{margin:14px 18px 0;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:13px 14px;box-shadow:var(--shadow)}
   .obj-select .l{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:6px}
   .obj-select .l svg{width:13px;height:13px}
-  .obj-select select{width:100%;background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:13.5px;font-family:inherit;color:var(--text)}
+  .obj-select select,.obj-select input{width:100%;background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:13.5px;font-family:inherit;color:var(--text)}
+  .obj-select input:focus{outline:none;border-color:var(--accent)}
 
   .summary{margin:14px 18px 0;background:var(--panel2);border:1px solid var(--border);border-radius:16px;padding:16px}
   .summary h4{font-family:'Manrope',sans-serif;font-weight:800;font-size:14px;margin:0 0 10px}
@@ -300,7 +301,13 @@
   .bar-col .lbl{font-size:9.5px;color:var(--muted)}
 
   .profile-card{margin:0 18px;background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--shadow);display:flex;align-items:center;gap:13px}
-  .avatar{width:56px;height:56px;border-radius:50%;background:var(--green-bg);color:var(--accent-deep);display:flex;align-items:center;justify-content:center;font-family:'Manrope',sans-serif;font-weight:800;font-size:19px;flex:0 0 auto}
+  .avatar{width:56px;height:56px;border-radius:50%;background:var(--green-bg);color:var(--accent-deep);display:flex;align-items:center;justify-content:center;font-family:'Manrope',sans-serif;font-weight:800;font-size:19px;flex:0 0 auto;overflow:hidden;position:relative}
+  .avatar img{width:100%;height:100%;object-fit:cover;display:block}
+  .avatar-edit{width:96px;height:96px;font-size:30px;margin:0 auto;cursor:pointer}
+  .avatar-edit .cam{position:absolute;right:0;bottom:0;width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;border:3px solid var(--panel)}
+  .avatar-edit .cam svg{width:14px;height:14px}
+  .avatar-wrap{text-align:center;padding:18px 18px 4px}
+  .avatar-actions{display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap}
   .profile-card .info{flex:1;min-width:0}
   .profile-card .name{font-size:15px;font-weight:800;font-family:'Manrope',sans-serif}
   .profile-card .line{font-size:11.5px;color:var(--muted);margin-top:2px}
@@ -542,6 +549,8 @@ window.CONFIG = {
     comment:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>',
     calc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01M8 19h.01M12 19h.01M16 19h.01"/></svg>',
     chart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>',
+    camera:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>',
+    key:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 8.3-8.3M17 7l3 3M14 10l3 3"/></svg>',
     alert:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>',
     users:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>',
     globe:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20a15 15 0 0 1 0-20"/></svg>',
@@ -602,6 +611,7 @@ window.CONFIG = {
     const style = size ? ` style="width:${size}px;height:${size}px"` : '';
     return `<div class="${cls}"${style}>${cat ? catIcon(cat) : ICONS.photoIcon}</div>`;
   };
+  const MAX_QTY = 99999;   // bitta tovar uchun eng ko'p miqdor
   const STATUS_CLS = { yangi:'amber', jarayonda:'blue', yetkazilgan:'green', bekor_qilingan:'red' };
   // Narxlar dollarda: tiyinlar yo'qolmasligi uchun 2 xona bilan ko'rsatamiz
   const pul = n => (Number(n) || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -698,7 +708,16 @@ window.CONFIG = {
       parol_mismatch:'Parollar mos kelmadi', parol_short:'Parol kamida 5 belgi bo‘lsin',
       register_hint:'Ro‘yxatdan o‘tgach, guruhingizga botni qo‘shing va operatorga login‘ingizni yuboring — u guruhni brigadangizga bog‘laydi.',
       group_not_linked_title:'Guruh hali bog‘lanmagan',
-      group_not_linked_sub:'Buyurtma berish uchun botni ustalar guruhingizga qo‘shing va operatorga login‘ingizni yuboring:',
+      group_not_linked_sub:'Buyurtma berishingiz mumkin — fayl hozircha o‘zingizning botdagi chatingizga tushadi. Guruhga tushishi uchun botni guruhga qo‘shing va operatorga login‘ingizni yuboring:',
+      order_phone_label:'Telefon raqamingiz', order_phone_hint:'Yetkazib berish uchun — buyurtma bilan birga yuboriladi',
+      toast_phone_needed:'Telefon raqamini to‘g‘ri kiriting',
+      photo_change:'Rasmni almashtirish', photo_remove:'Rasmni o‘chirish', photo_uploading:'Yuklanmoqda...',
+      toast_photo_saved:'Rasm saqlandi', toast_photo_removed:'Rasm o‘chirildi',
+      creds_title:'Login va parol', creds_sub:'Brigadaning login/paroli — o‘zgarsa, hamma a’zoga taalluqli.',
+      creds_current:'Joriy parol', creds_new_login:'Yangi login', creds_new_parol:'Yangi parol',
+      creds_hint:'Faqat o‘zgartirmoqchi bo‘lgan maydonni to‘ldiring. Joriy parol har doim kerak.',
+      creds_save:'Saqlash', toast_creds_saved:'Login/parol yangilandi',
+      phone_label_short:'Telefon',
       login_label:'Login', login_ph:'masalan: usta_akmal', parol_label:'Parol', parol_ph:'Parolingiz',
       login_btn:'Kirish', login_busy:'Tekshirilmoqda...', login_empty:'Login va parolni kiriting',
       login_hint:'Login va parolni operator beradi. Bitta login bilan usta ham, shogirdlari ham kira oladi — buyurtma bir xil guruhga tushadi.',
@@ -784,7 +803,16 @@ window.CONFIG = {
       parol_mismatch:'Пароли не совпадают', parol_short:'Пароль минимум 5 символов',
       register_hint:'После регистрации добавьте бота в вашу группу и отправьте оператору свой логин — он привяжет группу к бригаде.',
       group_not_linked_title:'Группа ещё не привязана',
-      group_not_linked_sub:'Чтобы оформлять заказы, добавьте бота в группу мастеров и отправьте оператору свой логин:',
+      group_not_linked_sub:'Заказ оформить можно — файл пока придёт в ваш личный чат с ботом. Чтобы он попадал в группу, добавьте бота в группу и отправьте оператору свой логин:',
+      order_phone_label:'Ваш телефон', order_phone_hint:'Для доставки — отправляется вместе с заказом',
+      toast_phone_needed:'Введите телефон корректно',
+      photo_change:'Изменить фото', photo_remove:'Удалить фото', photo_uploading:'Загрузка...',
+      toast_photo_saved:'Фото сохранено', toast_photo_removed:'Фото удалено',
+      creds_title:'Логин и пароль', creds_sub:'Логин/пароль бригады — изменение касается всех участников.',
+      creds_current:'Текущий пароль', creds_new_login:'Новый логин', creds_new_parol:'Новый пароль',
+      creds_hint:'Заполните только то, что меняете. Текущий пароль нужен всегда.',
+      creds_save:'Сохранить', toast_creds_saved:'Логин/пароль обновлены',
+      phone_label_short:'Телефон',
       login_label:'Логин', login_ph:'например: usta_akmal', parol_label:'Пароль', parol_ph:'Ваш пароль',
       login_btn:'Войти', login_busy:'Проверяем...', login_empty:'Введите логин и пароль',
       login_hint:'Логин и пароль выдаёт оператор. По одному логину могут входить и мастер, и его помощники — заказы попадают в одну группу.',
@@ -1043,17 +1071,18 @@ window.CONFIG = {
       if (animatsiya) setTimeout(() => app.classList.remove('swipe-back'), 240);
     }
 
-    app.addEventListener('touchstart', (e) => {
+    document.addEventListener('touchstart', (e) => {
       if (e.touches.length !== 1 || S.stack.length < 2) return;
       const t = e.touches[0];
       const el = e.target;
-      if (el.closest('input, textarea, select, .stepper')) return;
+      if (!(el instanceof Element)) return;
+      if (el.closest('.navbar, input, textarea, select, .stepper')) return;
       if (gorizontalScrollIchidami(el)) return;
       x0 = t.clientX; y0 = t.clientY; dx = 0;
       kuzatyapmiz = true; surilyapti = false;
     }, { passive: true });
 
-    app.addEventListener('touchmove', (e) => {
+    document.addEventListener('touchmove', (e) => {
       if (!kuzatyapmiz) return;
       const t = e.touches[0];
       dx = t.clientX - x0;
@@ -1097,8 +1126,8 @@ window.CONFIG = {
       }
     }
 
-    app.addEventListener('touchend', tugadi, { passive: true });
-    app.addEventListener('touchcancel', tugadi, { passive: true });
+    document.addEventListener('touchend', tugadi, { passive: true });
+    document.addEventListener('touchcancel', tugadi, { passive: true });
   }
 
   // ---------- Bootstrap ----------
@@ -1190,7 +1219,7 @@ window.CONFIG = {
       </div>
       <div data-stop>
         ${qty>0
-          ? `<div class="stepper"><button data-cart-dec="${p.id}">−</button><input class="qty-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" id="qty-${p.id}" data-qty-input="${p.id}" value="${qty}"><button data-cart-inc="${p.id}">+</button></div>`
+          ? `<div class="stepper"><button data-cart-dec="${p.id}">−</button><input class="qty-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="5" id="qty-${p.id}" data-qty-input="${p.id}" value="${qty}"><button data-cart-inc="${p.id}">+</button></div>`
           : `<button class="add-pill" data-cart-add="${p.id}">+</button>`}
       </div>
     </div>`;
@@ -1304,7 +1333,7 @@ window.CONFIG = {
       </div>
       <div style="padding:18px;display:flex;align-items:center;gap:12px">
         ${qty>0
-          ? `<div class="stepper" style="height:44px"><button data-cart-dec="${p.id}" style="width:44px">−</button><input class="qty-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" id="qty-detail-${p.id}" data-qty-input="${p.id}" style="min-width:34px" value="${qty}"><button data-cart-inc="${p.id}" style="width:44px">+</button></div>`
+          ? `<div class="stepper" style="height:44px"><button data-cart-dec="${p.id}" style="width:44px">−</button><input class="qty-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="5" id="qty-detail-${p.id}" data-qty-input="${p.id}" style="min-width:34px" value="${qty}"><button data-cart-inc="${p.id}" style="width:44px">+</button></div>`
           : `<button class="cta" data-cart-add="${p.id}">${ICONS.cart} ${tr('add_to_cart')}</button>`}
       </div>
       ${related.length ? `<div class="sec-head"><h3>${tr('similar_products')}</h3></div><div class="plist">${related.map(productCard).join('')}</div>` : ''}`;
@@ -1383,6 +1412,7 @@ window.CONFIG = {
         <div class="info-row"><div class="ic">${ICONS.building}</div><div class="l">${tr('object_label')}</div><div class="v">${objNomi}</div></div>
         ${o.hs_objects && o.hs_objects.manzil ? `<div class="info-row"><div class="ic">${ICONS.pin}</div><div class="l">${tr('address_label')}</div><div class="v">${esc(o.hs_objects.manzil)}</div></div>` : ''}
         <div class="info-row"><div class="ic">${ICONS.user}</div><div class="l">${tr('customer_label')}</div><div class="v">${esc(o.telegram_name)||'—'}</div></div>
+        ${o.telefon ? `<div class="info-row"><div class="ic">${ICONS.mail}</div><div class="l">${tr('phone_label_short')}</div><div class="v">${esc(o.telefon)}</div></div>` : ''}
       </div>
       <div class="prod-card">
         <div class="card-head"><div class="l"><div class="ic">${ICONS.box}</div>${tr('products_title')} (${items.length})</div></div>
@@ -1439,7 +1469,7 @@ window.CONFIG = {
           <div class="name">${esc(p.nomi)}</div>
           <div class="art">${tr('art_prefix')} ${esc(p.artikul)||'—'}</div>
           <div class="bottom-row">
-            <div class="stepper"><button data-cart-dec="${id}">−</button><input class="qty-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" id="qty-cart-${id}" data-qty-input="${id}" value="${S.cart[id]}"><button data-cart-inc="${id}">+</button></div>
+            <div class="stepper"><button data-cart-dec="${id}">−</button><input class="qty-input" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="5" id="qty-cart-${id}" data-qty-input="${id}" value="${S.cart[id]}"><button data-cart-inc="${id}">+</button></div>
             <div class="price-block"><div class="unit">${fmt(price)} / ${unitLabel(p.birlik)}</div><div class="line">${fmt(price*S.cart[id])}</div></div>
           </div>
         </div>
@@ -1462,6 +1492,9 @@ window.CONFIG = {
         ${S.objects.length
           ? `<select id="objSelect">${objOptions}</select>`
           : `<div style="font-size:12.5px;color:var(--muted);margin-bottom:8px">${tr('no_objects_yet')}</div><button class="btn-accent" data-goto-new-object>${ICONS.plus} ${tr('create_object')}</button>`}
+        <div class="l" style="margin-top:14px">${ICONS.mail} ${tr('order_phone_label')}</div>
+        <input id="ordTel" type="tel" inputmode="tel" placeholder="${tr('phone_ph')}" value="${esc(S.tmp.telVal != null ? S.tmp.telVal : (S.profile && S.profile.telefon) || '')}">
+        <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.45">${tr('order_phone_hint')}</div>
       </div>
       <div class="summary">
         <h4>${tr('order_summary')}</h4>
@@ -1471,21 +1504,31 @@ window.CONFIG = {
       </div>
       ${groupWarn()}
       <div class="cta-wrap">
-        <button class="cta" id="orderBtn" ${(!S.objects.length || !groupLinked())?'disabled':''}>${ICONS.check} ${tr('place_order')}</button>
+        <button class="cta" id="orderBtn" ${!S.objects.length?'disabled':''}>${ICONS.check} ${tr('place_order')}</button>
       </div>
       ${draftsSection()}`;
   }
 
   async function submitOrder(){
-    if (!groupLinked()) { toast(tr('group_not_linked_title')); return; }
     const sel = document.getElementById('objSelect');
     const objectId = sel ? sel.value : (S.objects[0] && S.objects[0].id);
     if (!objectId) { toast(tr('toast_select_object_first')); return; }
+
+    const telInput = document.getElementById('ordTel');
+    const telefon = (telInput ? telInput.value : '').trim();
+    if ((telefon.match(/\d/g) || []).length < 7) {
+      toast(tr('toast_phone_needed'));
+      if (telInput) telInput.focus();
+      return;
+    }
+
     const items = Object.keys(S.cart).map(id=>({ id, miqdor: S.cart[id] }));
     const btn = document.getElementById('orderBtn');
     btn.disabled = true; btn.textContent = tr('sending');
     try{
-      const res = await api('/api/order', { method:'POST', body: JSON.stringify({ code: S.brigade.code || urlCode, object_id: objectId, items }) });
+      const res = await api('/api/order', { method:'POST', body: JSON.stringify({ object_id: objectId, items, telefon }) });
+      if (S.profile) S.profile.telefon = telefon;
+      S.tmp.telVal = null;
       S.cart = {};
       clearSavedCart();
       S.tmp.orders = null; S.tmp.objectsList = null;
@@ -1693,17 +1736,23 @@ window.CONFIG = {
 
   // ================= SCREEN: Profil =================
   function initials(name){ return (name||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
+  // Profil rasmi bo'lsa rasm, bo'lmasa ism harflari
+  function avatarHtml(p, cls){
+    const ichi = p && p.avatar ? `<img src="${esc(p.avatar)}" alt="">` : esc(initials(p && p.ism));
+    return `<div class="avatar ${cls||''}">${ichi}</div>`;
+  }
   function screenProfile(){
     const p = S.profile;
     return `${renderTopbar()}
       <div class="page-head"><h1>${tr('profile_title')}</h1><p>${tr('profile_subtitle')}</p></div>
       <div class="profile-card" style="margin-top:14px">
-        <div class="avatar">${esc(initials(p.ism))}</div>
+        ${avatarHtml(p)}
         <div class="info"><div class="name">${esc(p.ism)||tr('name_not_set')}</div><div class="line">${esc(p.telefon)||tr('phone_not_set')}</div><div class="line">${esc(p.kompaniya)||esc(S.brigade&&S.brigade.nomi)||''}</div></div>
         <button class="btn-ghost" data-goto-profile-edit>${ICONS.edit}</button>
       </div>
       <div class="menu-card">
         <div class="menu-item" data-goto-profile-edit><div class="ic">${ICONS.user}</div><div class="mid"><div class="t">${tr('personal_data')}</div><div class="s">${tr('personal_data_sub')}</div></div><div class="right">${ICONS.chev}</div></div>
+        <div class="menu-item" data-goto="creds"><div class="ic">${ICONS.key}</div><div class="mid"><div class="t">${tr('creds_title')}</div><div class="s">${esc((S.brigade&&S.brigade.login)||'')}</div></div><div class="right">${ICONS.chev}</div></div>
         <div class="menu-item" data-goto="addresses"><div class="ic">${ICONS.pin}</div><div class="mid"><div class="t">${tr('my_addresses')}</div></div><div class="right">${ICONS.chev}</div></div>
         <div class="menu-item" data-goto-tab="objects"><div class="ic">${ICONS.building}</div><div class="mid"><div class="t">${tr('my_objects')}</div></div><div class="right">${ICONS.chev}</div></div>
         <div class="menu-item" style="cursor:default"><div class="ic">${ICONS.users}</div><div class="mid"><div class="t">${tr('brigade_label')}</div></div><div class="right" style="font-weight:700;color:var(--text)">${esc(S.brigade&&S.brigade.nomi)}</div></div>
@@ -1741,10 +1790,104 @@ window.CONFIG = {
   function screenProfileEdit(){
     const p = S.profile;
     return `<div class="plist-head"><div class="back" data-pop>${ICONS.back}</div><h3>${tr('personal_data')}</h3></div>
+      <div class="avatar-wrap">
+        <div style="position:relative;width:96px;margin:0 auto" data-pick-photo>
+          ${avatarHtml(p, 'avatar-edit')}
+          <div class="cam" style="position:absolute;right:0;bottom:0;width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;border:3px solid var(--bg)">${ICONS.camera}</div>
+        </div>
+        <div class="avatar-actions">
+          <button type="button" class="btn-ghost" data-pick-photo>${ICONS.camera} ${tr('photo_change')}</button>
+          ${p.avatar ? `<button type="button" class="btn-ghost danger" data-remove-photo>${ICONS.trash} ${tr('photo_remove')}</button>` : ''}
+        </div>
+      </div>
       <div class="field" style="margin-top:14px"><label>${tr('name_label')}</label><input id="pf_ism" value="${esc(p.ism)}"></div>
       <div class="field"><label>${tr('phone_label')}</label><input id="pf_tel" value="${esc(p.telefon)}" placeholder="${tr('phone_ph')}"></div>
       <div class="field"><label>${tr('company_label')}</label><input id="pf_komp" value="${esc(p.kompaniya)}"></div>
       <div class="cta-wrap"><button class="cta" id="saveProfileBtn">${ICONS.check} ${tr('save')}</button></div>`;
+  }
+
+  // ================= SCREEN: login/parol o'zgartirish =================
+  function screenCreds(){
+    const err = S.tmp.credsErr ? `<div class="login-err" style="margin:0 18px 12px">${esc(S.tmp.credsErr)}</div>` : '';
+    const pw = (id, val, ph) => `<div class="pw-wrap">
+      <input id="${id}" type="${S.tmp.showPw?'text':'password'}" placeholder="${ph}" value="${esc(val)}">
+      <button type="button" class="pw-eye" data-toggle-pw>${S.tmp.showPw?tr('hide'):tr('show')}</button>
+    </div>`;
+    return `<div class="plist-head"><div class="back" data-pop>${ICONS.back}</div><h3>${tr('creds_title')}</h3></div>
+      <div class="hint-card" style="margin:14px 18px 12px">${ICONS.key}<div>${tr('creds_sub')}</div></div>
+      ${err}
+      <div class="field"><label>${tr('creds_current')}</label>${pw('cr_joriy', S.tmp.crJoriy, tr('parol_ph'))}</div>
+      <div class="field"><label>${tr('creds_new_login')}</label>
+        <input id="cr_login" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="${esc((S.brigade&&S.brigade.login)||'')}" value="${esc(S.tmp.crLogin)}"></div>
+      <div class="field"><label>${tr('creds_new_parol')}</label>${pw('cr_parol', S.tmp.crParol, tr('parol_new_ph'))}</div>
+      <div style="margin:0 18px 12px;font-size:11.5px;color:var(--muted);line-height:1.5">${tr('creds_hint')}</div>
+      <div class="cta-wrap"><button class="cta" id="saveCredsBtn" ${S.tmp.credsBusy?'disabled':''}>${ICONS.check} ${S.tmp.credsBusy?tr('login_busy'):tr('creds_save')}</button></div>`;
+  }
+
+  async function saveCreds(){
+    if (S.tmp.credsBusy) return;
+    const joriy = (S.tmp.crJoriy||'').trim();
+    const login = (S.tmp.crLogin||'').trim();
+    const parol = (S.tmp.crParol||'').trim();
+    if (!joriy) { S.tmp.credsErr = tr('creds_current'); render(); return; }
+    if (!login && !parol) { S.tmp.credsErr = tr('creds_hint'); render(); return; }
+    S.tmp.credsBusy = true; S.tmp.credsErr = ''; render();
+    try{
+      const res = await api('/api/brigade-credentials', { method:'POST', body: JSON.stringify({ joriy_parol: joriy, login, parol }) });
+      if (S.brigade) S.brigade.login = res.login;
+      S.tmp = {};
+      toast(tr('toast_creds_saved'));
+      pop();
+      return;
+    } catch(e){ S.tmp.credsErr = e.message; }
+    S.tmp.credsBusy = false; render();
+  }
+
+  // Rasmni brauzerda kichraytirib yuboramiz — trafik va vaqt tejaladi
+  function rasmKichraytir(file, olcham = 400){
+    return new Promise((res, rej) => {
+      const img = new Image();
+      img.onload = () => {
+        const k = Math.min(olcham / img.width, olcham / img.height, 1);
+        const w = Math.round(img.width * k), h = Math.round(img.height * k);
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        const ctx = cv.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        cv.toBlob(b => b ? res(b) : rej(new Error('Rasmni qayta ishlab bo‘lmadi')), 'image/jpeg', 0.85);
+        URL.revokeObjectURL(img.src);
+      };
+      img.onerror = () => rej(new Error('Rasmni o‘qib bo‘lmadi'));
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  async function profilRasmYukla(file){
+    toast(tr('photo_uploading'));
+    try{
+      const blob = await rasmKichraytir(file);
+      const fd = new FormData();
+      fd.append('file', blob, 'avatar.jpg');
+      const r = await fetch('/api/profile-photo', {
+        method: 'POST',
+        headers: { 'X-Telegram-Init-Data': tg ? tg.initData : '' },
+        body: fd
+      });
+      const d = await r.json().catch(()=>({}));
+      if (!r.ok) throw new Error(d.error || tr('toast_generic_error'));
+      S.profile = d;
+      toast(tr('toast_photo_saved'));
+      render();
+    } catch(e){ toast(e.message); }
+  }
+
+  async function profilRasmOchir(){
+    try{
+      S.profile = await api('/api/profile-photo', { method:'DELETE' });
+      toast(tr('toast_photo_removed'));
+      render();
+    } catch(e){ toast(e.message); }
   }
   async function saveProfile(){
     const patch = { ism: document.getElementById('pf_ism').value.trim(), telefon: document.getElementById('pf_tel').value.trim(), kompaniya: document.getElementById('pf_komp').value.trim() };
@@ -1861,6 +2004,7 @@ window.CONFIG = {
     else if (t.screen==='object-detail') html = screenObjectDetail(t.params);
     else if (t.screen==='profile') html = screenProfile();
     else if (t.screen==='profile-edit') html = screenProfileEdit();
+    else if (t.screen==='creds') html = screenCreds();
     else if (t.screen==='addresses') html = screenAddresses();
     else if (t.screen==='help') html = screenHelp();
     else if (t.screen==='operator') html = screenOperator();
@@ -1880,6 +2024,23 @@ window.CONFIG = {
     const app = document.getElementById('app');
     app.querySelectorAll('[data-nav-home]').forEach(el=>el.onclick=()=>switchTab('asosiy'));
     app.querySelectorAll('[data-goto-tab]').forEach(el=>el.onclick=()=>switchTab(el.dataset.gotoTab));
+    const ordTel = document.getElementById('ordTel');
+    if (ordTel) ordTel.oninput = e => { S.tmp.telVal = e.target.value; };
+
+    app.querySelectorAll('[data-pick-photo]').forEach(el=>el.onclick=()=>{
+      const inp = document.createElement('input');
+      inp.type = 'file'; inp.accept = 'image/*';
+      inp.onchange = () => { if (inp.files[0]) profilRasmYukla(inp.files[0]); };
+      inp.click();
+    });
+    app.querySelectorAll('[data-remove-photo]').forEach(el=>el.onclick=profilRasmOchir);
+
+    // Login/parol ekrani
+    const bogla = (id, kalit) => { const el = document.getElementById(id); if (el) el.oninput = e => { S.tmp[kalit] = e.target.value; }; };
+    bogla('cr_joriy', 'crJoriy'); bogla('cr_login', 'crLogin'); bogla('cr_parol', 'crParol');
+    const credsBtn = document.getElementById('saveCredsBtn');
+    if (credsBtn) credsBtn.onclick = saveCreds;
+    app.querySelectorAll('[data-toggle-pw]').forEach(b=>b.onclick=()=>{ S.tmp.showPw = !S.tmp.showPw; render(); });
     app.querySelectorAll('[data-logout]').forEach(el=>el.onclick=()=>{ if (confirm(tr('logout_confirm'))) doLogout(); });
     // Faol subtab ekrandan chiqib ketmasin — gorizontal ro'yxatni suramiz
     const activeSub = app.querySelector('.subtab.active');
@@ -1907,12 +2068,16 @@ window.CONFIG = {
     app.querySelectorAll('[data-send-location]').forEach(el=>el.onclick=async()=>{
       try{ await api('/api/send-object-location?id='+el.dataset.sendLocation); toast(tr('toast_location_sent')); } catch(e){ toast(e.message); }
     });
-    app.querySelectorAll('[data-goto]').forEach(el=>el.onclick=()=>{ if(el.dataset.goto==='addresses') S.tmp.addresses=null; push(el.dataset.goto); });
+    app.querySelectorAll('[data-goto]').forEach(el=>el.onclick=()=>{
+      if (el.dataset.goto==='addresses') S.tmp.addresses = null;
+      if (el.dataset.goto==='creds') { S.tmp.crJoriy=''; S.tmp.crLogin=''; S.tmp.crParol=''; S.tmp.credsErr=''; S.tmp.showPw=false; }
+      push(el.dataset.goto);
+    });
     app.querySelectorAll('[data-goto-profile-edit]').forEach(el=>el.onclick=()=>push('profile-edit'));
     app.querySelectorAll('[data-goto-new-object]').forEach(el=>el.onclick=()=>push('new-object'));
 
     app.querySelectorAll('[data-cart-add]').forEach(el=>el.onclick=(e)=>{ e.stopPropagation(); S.cart[el.dataset.cartAdd]=(S.cart[el.dataset.cartAdd]||0)+1; render(); });
-    app.querySelectorAll('[data-cart-inc]').forEach(el=>el.onclick=(e)=>{ e.stopPropagation(); S.cart[el.dataset.cartInc]=(S.cart[el.dataset.cartInc]||0)+1; render(); });
+    app.querySelectorAll('[data-cart-inc]').forEach(el=>el.onclick=(e)=>{ e.stopPropagation(); S.cart[el.dataset.cartInc]=Math.min((S.cart[el.dataset.cartInc]||0)+1, MAX_QTY); render(); });
     app.querySelectorAll('[data-cart-dec]').forEach(el=>el.onclick=(e)=>{ e.stopPropagation(); const id=el.dataset.cartDec; S.cart[id]--; if(S.cart[id]<=0) delete S.cart[id]; render(); });
     app.querySelectorAll('[data-cart-del]').forEach(el=>el.onclick=(e)=>{ e.stopPropagation(); delete S.cart[el.dataset.cartDel]; render(); });
     app.querySelectorAll('[data-qty-input]').forEach(el=>{
@@ -1920,7 +2085,7 @@ window.CONFIG = {
       const commit = ()=>{
         const id = el.dataset.qtyInput;
         const n = parseInt(el.value, 10);
-        if (!n || n<=0) delete S.cart[id]; else S.cart[id] = n;
+        if (!n || n<=0) delete S.cart[id]; else S.cart[id] = Math.min(n, MAX_QTY);
         render();
       };
       el.onchange = commit;

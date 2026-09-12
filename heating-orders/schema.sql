@@ -191,3 +191,7 @@ alter table hs_brigades add column if not exists yaratgan_telegram_id bigint;
 -- Kategoriya (ARMATURA) -> kichik kategoriya / brend (GIACOMINI) -> tovar
 alter table hs_products add column if not exists kichik_kategoriya text;
 create index if not exists hs_products_kat_idx on hs_products (kategoriya, kichik_kategoriya);
+
+-- ---------- v3.3: profil rasmi, buyurtmada telefon ----------
+alter table hs_users  add column if not exists avatar  text;
+alter table hs_orders add column if not exists telefon text;

@@ -13,11 +13,13 @@ const LABELS = {
   uz: {
     nakladnoy: 'Nakladnoy №', sana: 'Sana', obyekt: 'Obyekt', buyurtmachi: 'Buyurtmachi',
     artikul: 'Artikul', nomi: 'Nomi', narx: 'Narx', son: 'Son', summa: 'Summa', jami: 'Jami', currency: '$',
+    telefon: 'Telefon',
     status: { yangi: 'Yangi', jarayonda: 'Jarayonda', yetkazilgan: 'Yetkazilgan', bekor_qilingan: 'Bekor qilingan' }
   },
   ru: {
     nakladnoy: 'Накладная №', sana: 'Дата', obyekt: 'Объект', buyurtmachi: 'Заказчик',
     artikul: 'Артикул', nomi: 'Наименование', narx: 'Цена', son: 'Кол-во', summa: 'Сумма', jami: 'Итого', currency: '$',
+    telefon: 'Телефон',
     status: { yangi: 'Новый', jarayonda: 'В процессе', yetkazilgan: 'Доставлен', bekor_qilingan: 'Отменён' }
   }
 };
@@ -122,6 +124,11 @@ export async function onRequestGet({ request, env }) {
     y -= 14;
     text(`${L.buyurtmachi}: `, M, 9.5, { color: gray });
     text(order.telegram_name || '', M + fontBold.widthOfTextAtSize(`${L.buyurtmachi}: `, 9.5), 9.5, { bold: true });
+    if (order.telefon) {
+      y -= 14;
+      text(`${L.telefon}: `, M, 9.5, { color: gray });
+      text(order.telefon, M + fontBold.widthOfTextAtSize(`${L.telefon}: `, 9.5), 9.5, { bold: true });
+    }
     y -= 20;
 
     tableHead();

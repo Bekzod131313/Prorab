@@ -13,9 +13,12 @@ export async function onRequestPost({ request, env }) {
 
     const body = await request.json();
     const { object_id, items } = body;
+    const telefon = String(body.telefon || '').trim().slice(0, 32);
 
     if (!object_id) return json({ error: 'Obyekt tanlanmagan' }, 400);
     if (!Array.isArray(items) || !items.length) return json({ error: 'Savat bo‘sh' }, 400);
+    // Yetkazib berish uchun bog'lanadigan raqam — kamida 7 ta raqam bo'lsin
+    if ((telefon.match(/\d/g) || []).length < 7) return json({ error: 'Telefon raqamini to‘g‘ri kiriting' }, 400);
 
     // Brigada har doim initData bilan tasdiqlangan foydalanuvchining o'z
     // a'zoligidan olinadi — mijoz yuborgan `code`ga hech qachon ishonilmaydi,
@@ -23,7 +26,7 @@ export async function onRequestPost({ request, env }) {
     // buyurtma berib, uning obyekt qarziga yozib qo'yishi mumkin edi.
     const userRows = await sbFetch(env, `/rest/v1/hs_users?telegram_id=eq.${user.id}&select=brigade_id`);
     const userBrigadeId = userRows && userRows[0] && userRows[0].brigade_id;
-    if (!userBrigadeId) return json({ error: 'Avval brigadaga ulaning (guruhda /register)' }, 400);
+    if (!userBrigadeId) return json({ error: 'Avval brigadaga kiring yoki ro‘yxatdan o‘ting' }, 400);
 
     const brigades = await sbFetch(env, `/rest/v1/hs_brigades?id=eq.${encodeURIComponent(userBrigadeId)}&select=*`);
     const brigade = brigades && brigades[0];
@@ -66,11 +69,17 @@ export async function onRequestPost({ request, env }) {
       object_id: object.id,
       telegram_id: user.id,
       telegram_name: buyerName,
+      telefon,
       items: rows,
       total,
       status: 'yangi'
     });
     const order = inserted[0];
+
+    // Keyingi buyurtmada qayta yozmasin
+    try {
+      await sbFetch(env, `/rest/v1/hs_users?telegram_id=eq.${user.id}`, 'PATCH', { telefon });
+    } catch (e) { /* profil yangilanmasa ham buyurtma bekor bo'lmasin */ }
 
     // Tovar faqat qarzdorlikka yoziladi — to'lov qadam yo'q
     await sbFetch(env, '/rest/v1/hs_debt_entries', 'POST', {
@@ -85,7 +94,11 @@ export async function onRequestPost({ request, env }) {
     const aoa = [
       ['Artikul', 'Nomi', 'Narx, $', 'Birlik', 'Miqdor', 'Summa, $'],
       ...rows.map(r => [r.artikul, r.nomi, r.narx, r.birlik, r.miqdor, r.summa]),
-      ['', '', '', '', 'Jami:', total]
+      ['', '', '', '', 'Jami:', total],
+      [],
+      ['Usta:', buyerName],
+      ['Telefon:', telefon],
+      ['Obyekt:', object.nomi]
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws['!cols'] = [{ wch: 14 }, { wch: 34 }, { wch: 12 }, { wch: 8 }, { wch: 8 }, { wch: 14 }];
@@ -94,11 +107,17 @@ export async function onRequestPost({ request, env }) {
     const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
     const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 
+    // Guruh bog'lanmagan bo'lsa buyurtma yo'qolmasin — faylni ustaning
+    // o'ziga yuboramiz, u qo'lda uzatadi. Operatorga ham xabar ketadi.
+    const guruhBor = !!brigade.chat_id;
+    const qabulQiluvchi = guruhBor ? brigade.chat_id : user.id;
+
     const fd = new FormData();
-    fd.append('chat_id', String(brigade.chat_id));
+    fd.append('chat_id', String(qabulQiluvchi));
     fd.append(
       'caption',
-      `🛒 Yangi buyurtma ${orderNo}\nUsta: ${buyerName}\nObyekt: ${object.nomi}\nJami: ${pul(total)} $ (qarzga yozildi)`
+      `🛒 Yangi buyurtma ${orderNo}\nUsta: ${buyerName}\nTelefon: ${telefon}\nObyekt: ${object.nomi}\nJami: ${pul(total)} $ (qarzga yozildi)` +
+      (guruhBor ? '' : '\n\n⚠️ Brigadangiz guruhga bog‘lanmagan — fayl shu yerga yuborildi. Operator guruhni bog‘lagach, buyurtmalar to‘g‘ridan-to‘g‘ri guruhga tushadi.')
     );
     fd.append('document', blob, `${orderNo}.xlsx`);
 
@@ -109,10 +128,6 @@ export async function onRequestPost({ request, env }) {
     // ikkinchi marta yozilib, obyekt qarzi ikki baravar bo'lib qoladi.
     // O'rniga yetkazib berilmaganini operatorga xabar qilamiz.
     try {
-      // Brigada hali guruhga bog'lanmagan bo'lishi mumkin (admin panelda
-      // chat_id kiritilmagan) — bunda buyurtma baribir saqlanadi, faqat
-      // operatorga xabar ketadi.
-      if (!brigade.chat_id) throw new Error('brigadaga guruh (chat_id) bog‘lanmagan');
       const tgRes = await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/sendDocument`, { method: 'POST', body: fd });
       const tgData = await tgRes.json();
       if (!tgData.ok) throw new Error(tgData.description || 'noma’lum xato');
@@ -121,17 +136,31 @@ export async function onRequestPost({ request, env }) {
         try {
           await tgApi(env, 'sendMessage', {
             chat_id: env.ADMIN_CHAT_ID,
-            text: `⚠️ Buyurtma ${orderNo} bazaga yozildi, lekin Excel fayl "${brigade.nomi}" guruhiga yuborilmadi.\nXato: ${e.message}\nIltimos, buyurtmani qo'lda tekshiring/yuboring.`
+            text: `⚠️ Buyurtma ${orderNo} bazaga yozildi, lekin Excel fayl yuborilmadi.\nBrigada: ${brigade.nomi}\nXato: ${e.message}\nIltimos, buyurtmani qo'lda tekshiring/yuboring.`
           });
         } catch (e2) {}
       }
     }
 
+    // Guruhi yo'q brigadadan buyurtma kelsa — operator bilib tursin
+    if (!guruhBor && env.ADMIN_CHAT_ID) {
+      try {
+        await tgApi(env, 'sendMessage', {
+          chat_id: env.ADMIN_CHAT_ID,
+          text:
+            `📦 Guruhsiz brigadadan buyurtma: <b>${escHtml(brigade.nomi)}</b> (<code>${escHtml(brigade.login || '—')}</code>)\n` +
+            `${orderNo} · ${escHtml(buyerName)} · ${escHtml(telefon)}\nObyekt: ${escHtml(object.nomi)} · ${pul(total)} $\n\n` +
+            `Guruhga bog‘lash: guruhda <code>/bogla ${escHtml(brigade.login || '')}</code>`,
+          parse_mode: 'HTML'
+        });
+      } catch (e) {}
+    }
+
     // Obyektga joylashuv (lokatsiya) biriktirilgan bo'lsa, buyurtma bilan birga
     // guruhga haqiqiy Telegram lokatsiya sifatida ham yuboramiz (xarita bilan).
-    if (brigade.chat_id && object.lat != null && object.lng != null) {
+    if (object.lat != null && object.lng != null) {
       try {
-        await tgApi(env, 'sendLocation', { chat_id: brigade.chat_id, latitude: object.lat, longitude: object.lng });
+        await tgApi(env, 'sendLocation', { chat_id: qabulQiluvchi, latitude: object.lat, longitude: object.lng });
       } catch (e) {
         // Lokatsiya yuborilmasa ham buyurtmaning o'zi bekor bo'lmasligi kerak
       }
