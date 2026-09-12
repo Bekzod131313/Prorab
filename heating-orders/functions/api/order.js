@@ -174,7 +174,11 @@ export async function onRequestPost({ request, env }) {
       object_id: object.id
     });
 
-    return json({ ok: true, order_id: order.id, order_no: orderNo, total, brigade: brigade.nomi, object: object.nomi });
+    return json({
+      ok: true, order_id: order.id, order_no: orderNo, total,
+      brigade: brigade.nomi, object: object.nomi,
+      guruhga: guruhBor          // fayl guruhga ketdimi yoki ustaning chatigami
+    });
   } catch (e) {
     return json({ error: e.message }, 500);
   }
