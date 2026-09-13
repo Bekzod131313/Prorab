@@ -20,8 +20,8 @@
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
-      --bg:#0c130e; --panel:#131c15; --panel2:#182219; --border:#233028;
-      --text:#eef3ea; --muted:#93a396; --accent:#9ee02f; --accent-deep:#7cc21e; --accent-ink:#0c2006;
+      --bg:#0e1012; --panel:#16181c; --panel2:#1c1f24; --border:#292c33;
+      --text:#eff1f4; --muted:#949aa5; --accent:#9ee02f; --accent-deep:#7cc21e; --accent-ink:#0c2006;
       --blue:#5b9bee; --blue-bg:#132234; --red:#f2685e; --red-bg:#2c1613; --green-bg:#152614; --amber:#e0ac4b; --amber-bg:#2a2110;
       --shadow:0 1px 3px rgba(0,0,0,.35),0 10px 28px -12px rgba(0,0,0,.55);
       --tile1:#173420; --tile1-ink:#8ed860; --tile2:#152a3c; --tile2-ink:#7cabec; --tile3:#3a2513; --tile3-ink:#eba05a;
@@ -29,8 +29,8 @@
     }
   }
   :root[data-theme="dark"]{
-    --bg:#0c130e; --panel:#131c15; --panel2:#182219; --border:#233028;
-    --text:#eef3ea; --muted:#93a396; --accent:#9ee02f; --accent-deep:#7cc21e; --accent-ink:#0c2006;
+    --bg:#0e1012; --panel:#16181c; --panel2:#1c1f24; --border:#292c33;
+    --text:#eff1f4; --muted:#949aa5; --accent:#9ee02f; --accent-deep:#7cc21e; --accent-ink:#0c2006;
     --blue:#5b9bee; --blue-bg:#132234; --red:#f2685e; --red-bg:#2c1613; --green-bg:#152614; --amber:#e0ac4b; --amber-bg:#2a2110;
     --shadow:0 1px 3px rgba(0,0,0,.35),0 10px 28px -12px rgba(0,0,0,.55);
     --tile1:#173420; --tile1-ink:#8ed860; --tile2:#152a3c; --tile2-ink:#7cabec; --tile3:#3a2513; --tile3-ink:#eba05a;
@@ -476,7 +476,7 @@ window.CONFIG = {
 <script>
 (function(){
   const tg = window.Telegram && window.Telegram.WebApp;
-  const THEME_BG = { light:'#f4f6f3', dark:'#0c130e' };
+  const THEME_BG = { light:'#f4f6f3', dark:'#0e1012' };
   function syncTelegramChrome(tema){
     if (!tg) return;
     const dark = tema === 'dark' || (tema !== 'light' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
