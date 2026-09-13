@@ -10,131 +10,45 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@700;800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  /* ============ Liquid Glass ============
-     Yuzalar shaffof: orqasidagi kontent blur bo'lib ko'rinadi, chetida
-     ingichka yorug' chiziq (specular) turadi. Fon esa yumshoq rangli
-     dog'lardan iborat — shusiz shishaning sinishi ko'rinmaydi. */
   :root{
-    --bg:#eceef3; --bg-2:#e4e7ef;
-    --panel:rgba(255,255,255,.58); --panel2:rgba(255,255,255,.42);
-    --border:rgba(17,20,34,.07);
-    --glass-line:rgba(255,255,255,.85);      /* yuqori chetidagi yorug'lik */
-    --glass-blur:saturate(180%) blur(18px);
-    --text:#10131c; --muted:#666b7d; --accent:#8fce2e; --accent-deep:#548c12; --accent-ink:#12290a;
-    --blue:#2f7de0; --blue-bg:rgba(47,125,224,.12); --red:#e2483d; --red-bg:rgba(226,72,61,.12);
-    --green-bg:rgba(143,206,46,.16); --amber:#b8790a; --amber-bg:rgba(224,160,30,.16);
-    --shadow:0 1px 2px rgba(16,21,34,.05),0 12px 30px -14px rgba(16,21,34,.22);
-    --tile1:rgba(143,206,46,.18); --tile1-ink:#4c8a12; --tile2:rgba(52,103,201,.16); --tile2-ink:#2f62c4;
-    --tile3:rgba(194,106,28,.16); --tile3-ink:#b8601a; --tile4:rgba(136,70,196,.16); --tile4-ink:#8043bd;
-    --tile5:rgba(197,61,99,.15); --tile5-ink:#bc3a5e; --tile6:rgba(24,140,129,.16); --tile6-ink:#15837a;
-    /* fon dog'lari */
-    --orb1:rgba(143,206,46,.30); --orb2:rgba(60,130,230,.22); --orb3:rgba(190,120,240,.16);
-    --chrome:rgba(246,247,250,.80);          /* navbar/topbar — quyuqroq shisha */
-    --glass-edge:rgba(255,255,255,.55);      /* suzuvchi shisha panelning qirrasi */
-    --nav-active:rgba(143,206,46,.20);
-    --nav-shadow:0 10px 30px -10px rgba(16,21,34,.28), 0 2px 8px -4px rgba(16,21,34,.16);
+    --bg:#f4f6f3; --panel:#ffffff; --panel2:#f1f4ee; --border:#e6eae2;
+    --text:#0e1410; --muted:#6c7a72; --accent:#8fce2e; --accent-deep:#5f9c1a; --accent-ink:#12290a;
+    --blue:#2f7de0; --blue-bg:#e9f1fd; --red:#e2483d; --red-bg:#fdeceb; --green-bg:#eaf7dd; --amber:#c98a12; --amber-bg:#fbf1de;
+    --shadow:0 1px 3px rgba(16,21,26,.06),0 10px 28px -12px rgba(16,21,26,.16);
+    --tile1:#eaf7dd; --tile1-ink:#4c8a12; --tile2:#e6f0fb; --tile2-ink:#3467c9; --tile3:#fdeee0; --tile3-ink:#c26a1c;
+    --tile4:#f3e8fb; --tile4-ink:#8846c4; --tile5:#fdeaee; --tile5-ink:#c53d63; --tile6:#e2f6f4; --tile6-ink:#188c81;
   }
-  /* Tungi: yashilliksiz, sof qora-kulrang */
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
-      --bg:#08090b; --bg-2:#0d0e12;
-      --panel:rgba(255,255,255,.065); --panel2:rgba(255,255,255,.10);
-      --border:rgba(255,255,255,.10);
-      --glass-line:rgba(255,255,255,.16);
-      --text:#f3f4f8; --muted:#9195a5; --accent:#9ee02f; --accent-deep:#a9e64a; --accent-ink:#0c2006;
-      --blue:#5b9bee; --blue-bg:rgba(91,155,238,.18); --red:#f2685e; --red-bg:rgba(242,104,94,.18);
-      --green-bg:rgba(158,224,47,.16); --amber:#e0ac4b; --amber-bg:rgba(224,172,75,.18);
-      --shadow:0 1px 2px rgba(0,0,0,.5),0 14px 34px -16px rgba(0,0,0,.8);
-      --tile1:rgba(158,224,47,.16); --tile1-ink:#b6ea6a; --tile2:rgba(91,155,238,.18); --tile2-ink:#8fbcf5;
-      --tile3:rgba(235,160,90,.16); --tile3-ink:#f0ae68; --tile4:rgba(199,154,235,.16); --tile4-ink:#cfa9f0;
-      --tile5:rgba(236,139,163,.16); --tile5-ink:#f09fb4; --tile6:rgba(95,217,203,.15); --tile6-ink:#78e2d4;
-      --orb1:rgba(120,190,40,.13); --orb2:rgba(50,110,220,.13); --orb3:rgba(150,90,230,.10);
-      --chrome:rgba(16,17,21,.78);
-    --glass-edge:rgba(255,255,255,.13);
-    --nav-active:rgba(158,224,47,.16);
-    --nav-shadow:0 12px 34px -12px rgba(0,0,0,.85), 0 2px 10px -5px rgba(0,0,0,.7);
+      --bg:#0c130e; --panel:#131c15; --panel2:#182219; --border:#233028;
+      --text:#eef3ea; --muted:#93a396; --accent:#9ee02f; --accent-deep:#7cc21e; --accent-ink:#0c2006;
+      --blue:#5b9bee; --blue-bg:#132234; --red:#f2685e; --red-bg:#2c1613; --green-bg:#152614; --amber:#e0ac4b; --amber-bg:#2a2110;
+      --shadow:0 1px 3px rgba(0,0,0,.35),0 10px 28px -12px rgba(0,0,0,.55);
+      --tile1:#173420; --tile1-ink:#8ed860; --tile2:#152a3c; --tile2-ink:#7cabec; --tile3:#3a2513; --tile3-ink:#eba05a;
+      --tile4:#2a1c38; --tile4-ink:#c79aeb; --tile5:#3a1720; --tile5-ink:#ec8ba3; --tile6:#12312d; --tile6-ink:#5fd9cb;
     }
   }
   :root[data-theme="dark"]{
-    --bg:#08090b; --bg-2:#0d0e12;
-    --panel:rgba(255,255,255,.065); --panel2:rgba(255,255,255,.10);
-    --border:rgba(255,255,255,.10);
-    --glass-line:rgba(255,255,255,.16);
-    --text:#f3f4f8; --muted:#9195a5; --accent:#9ee02f; --accent-deep:#a9e64a; --accent-ink:#0c2006;
-    --blue:#5b9bee; --blue-bg:rgba(91,155,238,.18); --red:#f2685e; --red-bg:rgba(242,104,94,.18);
-    --green-bg:rgba(158,224,47,.16); --amber:#e0ac4b; --amber-bg:rgba(224,172,75,.18);
-    --shadow:0 1px 2px rgba(0,0,0,.5),0 14px 34px -16px rgba(0,0,0,.8);
-    --tile1:rgba(158,224,47,.16); --tile1-ink:#b6ea6a; --tile2:rgba(91,155,238,.18); --tile2-ink:#8fbcf5;
-    --tile3:rgba(235,160,90,.16); --tile3-ink:#f0ae68; --tile4:rgba(199,154,235,.16); --tile4-ink:#cfa9f0;
-    --tile5:rgba(236,139,163,.16); --tile5-ink:#f09fb4; --tile6:rgba(95,217,203,.15); --tile6-ink:#78e2d4;
-    --orb1:rgba(120,190,40,.13); --orb2:rgba(50,110,220,.13); --orb3:rgba(150,90,230,.10);
-    --chrome:rgba(16,17,21,.78);
-    --glass-edge:rgba(255,255,255,.13);
-    --nav-active:rgba(158,224,47,.16);
-    --nav-shadow:0 12px 34px -12px rgba(0,0,0,.85), 0 2px 10px -5px rgba(0,0,0,.7);
+    --bg:#0c130e; --panel:#131c15; --panel2:#182219; --border:#233028;
+    --text:#eef3ea; --muted:#93a396; --accent:#9ee02f; --accent-deep:#7cc21e; --accent-ink:#0c2006;
+    --blue:#5b9bee; --blue-bg:#132234; --red:#f2685e; --red-bg:#2c1613; --green-bg:#152614; --amber:#e0ac4b; --amber-bg:#2a2110;
+    --shadow:0 1px 3px rgba(0,0,0,.35),0 10px 28px -12px rgba(0,0,0,.55);
+    --tile1:#173420; --tile1-ink:#8ed860; --tile2:#152a3c; --tile2-ink:#7cabec; --tile3:#3a2513; --tile3-ink:#eba05a;
+    --tile4:#2a1c38; --tile4-ink:#c79aeb; --tile5:#3a1720; --tile5-ink:#ec8ba3; --tile6:#12312d; --tile6-ink:#5fd9cb;
   }
   *{box-sizing:border-box}
-  /* Brauzerning gorizontal "orqaga" imo-ishorasi ilovadan chiqarib
-     yubormasin — bizda o'z surish-orqaga imo-ishoramiz bor. */
-  html,body{touch-action:manipulation;overscroll-behavior-x:none}
-
-  /* ---- Fon: shisha nimani sindirishini beruvchi yumshoq dog'lar ----
-     Qimirlamaydi (fixed), shuning uchun scroll paytida hisoblanmaydi. */
-  body::before{
-    content:'';position:fixed;inset:-20%;z-index:-1;pointer-events:none;
-    background:
-      radial-gradient(38% 30% at 12% 8%,  var(--orb1) 0%, transparent 70%),
-      radial-gradient(42% 32% at 88% 22%, var(--orb2) 0%, transparent 72%),
-      radial-gradient(46% 34% at 30% 82%, var(--orb3) 0%, transparent 74%),
-      linear-gradient(160deg, var(--bg) 0%, var(--bg-2) 100%);
-  }
-
-  /* ---- Shisha yuza: shaffoflik + orqa fonni blur + yuqori chetda yorug'lik ---- */
-  .pcard,.cat-card,.brand-row,.obj-card,.order-card,.cart-item,.info-card,.prod-card,
-  .total-card,.summary,.obj-select,.menu-card,.profile-card,.stat-tile,.obj-hero,
-  .loc-card,.draft-card,.login-card,.warn-card,.hint-card,.help-card,.action-card,
-  .accordion,.otrack,.field input,.field textarea,.field select,.search-box,.chip,.subtab,
-  .ftab,.stepper,.icon-btn,.back,.btn-ghost,.logout-btn,.obj-stats,.auth-tabs,.success,
-  .navbar-inner,.toast,.empty-state .btn-accent{
-    -webkit-backdrop-filter:var(--glass-blur);
-    backdrop-filter:var(--glass-blur);
-  }
-  /* Yuqori chetdagi ingichka yorug' chiziq — shisha qirrasi shundan bilinadi */
-  .pcard,.cat-card,.brand-row,.obj-card,.order-card,.cart-item,.info-card,.prod-card,
-  .total-card,.summary,.obj-select,.menu-card,.profile-card,.stat-tile,.obj-hero,
-  .loc-card,.draft-card,.login-card,.help-card,.action-card,.accordion,.otrack,
-  .navbar-inner,.success{
-    box-shadow:inset 0 1px 0 var(--glass-line), var(--shadow);
-  }
-  /* Blur ishlamaydigan brauzerda yuzalar shaffof bo'lib qolmasin */
-  /* ---- iOS jilosi: to'ldirilgan tugmalarda yuqoridan yorug'lik ---- */
-  .cta,.btn-accent,.add-pill,.subtab.active,.chip.active,.ftab.active{
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.42), 0 6px 18px -8px rgba(0,0,0,.45);
-  }
-  .cta{background-image:linear-gradient(to bottom, rgba(255,255,255,.22), rgba(255,255,255,0) 55%)}
-  /* Kichik boshqaruvlar — to'liq kapsula (iOS uslubi) */
-  .chip,.ftab,.subtab,.pill,.stepper,.btn-ghost,.icon-btn,.back,.add-pill{border-radius:999px}
-  .stepper input{border-radius:0}
-  .cta,.btn-accent,.logout-btn{border-radius:16px}
-
-  @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
-    :root{--panel:rgba(255,255,255,.92); --panel2:rgba(255,255,255,.8); --chrome:#f6f7fa; --glass-edge:rgba(17,20,34,.10)}
-    :root[data-theme="dark"]{--panel:#15161a; --panel2:#1c1e24; --chrome:#101115; --glass-edge:rgba(255,255,255,.12)}
-    @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--panel:#15161a; --panel2:#1c1e24; --chrome:#101115; --glass-edge:rgba(255,255,255,.12)}}
-  }
+  html,body{overscroll-behavior-x:contain;touch-action:manipulation}
   /* Ikonkalar uchun umumiy default o'lcham. Bularsiz o'lchami belgilanmagan
      har qanday yangi ikonka brauzerning standart (juda katta) o'lchamida
      chiziladi — shu sabab bir necha marta "kattaaa strelka" muammosi chiqdi.
      Klass bo'yicha yozilgan qoidalar (specificity yuqoriroq) buni bemalol
      o'zgartira oladi. */
   svg{width:16px;height:16px;flex:0 0 auto}
-  body{margin:0;background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',-apple-system,sans-serif;padding-bottom:96px}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',-apple-system,sans-serif;padding-bottom:84px}
   #app{max-width:460px;margin:0 auto}
 
   :root{--tg-safe-top:50px; --tg-controls-h:40px; --tg-top-inset:calc(var(--tg-safe-top) + var(--tg-controls-h))}
-  .topbar{display:flex;flex-direction:column;padding:max(8px, var(--tg-safe-top)) 60px 0;position:sticky;top:0;z-index:5;
-    background:linear-gradient(to bottom, var(--chrome) 55%, transparent);
-    -webkit-backdrop-filter:saturate(180%) blur(22px);backdrop-filter:saturate(180%) blur(22px)}
+  .topbar{display:flex;flex-direction:column;padding:max(8px, var(--tg-safe-top)) 60px 0;position:sticky;top:0;background:var(--bg);z-index:5}
   .logo{display:flex;flex-direction:column;line-height:1;cursor:pointer;align-items:center}
   .logo-img{height:18px;width:auto;display:block}
   .logo em{font-style:normal;font-size:7px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-top:4px;display:block}
@@ -200,7 +114,7 @@
   .back svg{width:16px;height:16px}
   .plist-head h3{font-family:'Manrope',sans-serif;font-weight:800;font-size:17px;margin:0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-  .chips{display:flex;gap:8px;overflow-x:auto;padding:12px 18px 4px;scrollbar-width:none;overscroll-behavior-x:contain}
+  .chips{display:flex;gap:8px;overflow-x:auto;padding:12px 18px 4px;scrollbar-width:none}
   .chips::-webkit-scrollbar{display:none}
   .chip{flex:0 0 auto;padding:7px 14px;border-radius:999px;background:var(--panel2);border:1px solid var(--border);color:var(--muted);font-size:12.5px;font-weight:600;white-space:nowrap;cursor:pointer}
   .chip.active{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
@@ -225,7 +139,7 @@
   .stepper .qty-input::-webkit-outer-spin-button,.stepper .qty-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
   .add-pill{background:var(--accent);color:var(--accent-ink);border:none;border-radius:10px;width:34px;height:34px;font-size:18px;font-weight:700;cursor:pointer;flex:0 0 auto}
 
-  .filter-tabs{display:flex;gap:8px;overflow-x:auto;padding:14px 18px 4px;scrollbar-width:none;overscroll-behavior-x:contain}
+  .filter-tabs{display:flex;gap:8px;overflow-x:auto;padding:14px 18px 4px;scrollbar-width:none}
   .filter-tabs::-webkit-scrollbar{display:none}
   .ftab{flex:0 0 auto;padding:8px 14px;border-radius:999px;background:var(--panel2);border:1px solid var(--border);color:var(--muted);font-size:12.5px;font-weight:700;white-space:nowrap;cursor:pointer}
   .ftab.active{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
@@ -332,7 +246,7 @@
   .sub-count{font-size:10px;font-weight:600;color:var(--muted)}
   /* Brendlar ro'yxati — bittada 19 tagacha bo'lishi mumkin, shuning uchun
      kartochka emas, ixcham qator */
-  .brand-list{padding:0 18px 8px;display:flex;flex-direction:column;gap:8px;overscroll-behavior-x:contain}
+  .brand-list{padding:0 18px 8px;display:flex;flex-direction:column;gap:8px}
   .brand-row{display:flex;align-items:center;gap:11px;background:var(--panel);border:1px solid var(--border);border-radius:13px;padding:10px 12px;cursor:pointer;box-shadow:var(--shadow)}
   .brand-row .ic{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
   .brand-row .ic svg{width:17px;height:17px}
@@ -346,7 +260,7 @@
   .warn-card code{background:var(--panel);padding:1px 5px;border-radius:5px;font-size:11px}
   .hint-card{margin:0 18px 12px;display:flex;gap:9px;align-items:flex-start;background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:11px 12px;font-size:12px;color:var(--muted);line-height:1.5}
   .hint-card svg{color:var(--accent-deep);margin-top:1px}
-  .subtabs{display:flex;gap:7px;overflow-x:auto;padding:4px 18px 12px;scrollbar-width:none;overscroll-behavior-x:contain}
+  .subtabs{display:flex;gap:7px;overflow-x:auto;padding:4px 18px 12px;scrollbar-width:none}
   .subtabs::-webkit-scrollbar{display:none}
   .subtab{flex:0 0 auto;padding:7px 13px;border-radius:10px;background:var(--panel2);border:1px solid var(--border);color:var(--muted);font-size:12px;font-weight:700;white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
   .subtab svg{width:13px;height:13px;flex:0 0 auto}
@@ -507,20 +421,12 @@
   .help-card .btn{margin-top:10px;background:var(--panel);color:var(--accent-deep);border:none;border-radius:10px;padding:8px 12px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px}
   .help-card .btn svg{width:13px;height:13px}
 
-  /* iOS 26 uslubidagi "suzuvchi" tab bar: ekran chetiga yopishmaydi, to'liq
-     kapsula shaklida, ostidagi kontent shisha orqali ko'rinib turadi. */
-  .navbar{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;pointer-events:none;z-index:10;
-    padding:0 14px calc(10px + env(safe-area-inset-bottom))}
-  .navbar-inner{width:100%;max-width:430px;background:var(--chrome);border:1px solid var(--glass-edge);
-    border-radius:28px;display:flex;padding:7px 6px;pointer-events:all;
-    -webkit-backdrop-filter:saturate(220%) blur(34px);backdrop-filter:saturate(220%) blur(34px);
-    box-shadow:inset 0 1px 0 var(--glass-line), inset 0 -1px 0 rgba(255,255,255,.06), var(--nav-shadow)}
-  .navtab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);cursor:pointer;position:relative;font-size:10px;font-weight:600;padding:6px 2px;background:none;border:none;font-family:inherit;
-    border-radius:19px;transition:background .18s ease, color .18s ease, transform .18s ease}
+  .navbar{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;pointer-events:none;z-index:10}
+  .navbar-inner{width:100%;max-width:460px;background:var(--panel);border-top:1px solid var(--border);display:flex;padding:8px 6px calc(8px + env(safe-area-inset-bottom));pointer-events:all}
+  .navtab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);cursor:pointer;position:relative;font-size:10px;font-weight:600;padding:4px 2px;background:none;border:none;font-family:inherit}
   .navtab svg{width:20px;height:20px}
-  .navtab:active{transform:scale(.94)}
-  .navtab.active{color:var(--accent-deep);background:var(--nav-active);box-shadow:inset 0 1px 0 rgba(255,255,255,.28)}
-  .navtab .badge{position:absolute;top:0;right:19%;background:var(--accent);color:var(--accent-ink);font-size:9px;font-weight:800;min-width:14px;height:14px;border-radius:7px;display:flex;align-items:center;justify-content:center;padding:0 3px}
+  .navtab.active{color:var(--accent-deep)}
+  .navtab .badge{position:absolute;top:-2px;right:23%;background:var(--accent);color:var(--accent-ink);font-size:9px;font-weight:800;min-width:14px;height:14px;border-radius:7px;display:flex;align-items:center;justify-content:center;padding:0 3px}
 
   .success{padding:80px 26px;text-align:center}
   .success .ic{width:72px;height:72px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;margin:0 auto 18px}
@@ -530,7 +436,7 @@
   .success button{margin-top:22px;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:11px;padding:11px 20px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:600}
 
   /* Navbar ustidan biroz yuqorida — kontentni yopib qolmasligi uchun */
-  .toast{position:fixed;left:50%;bottom:calc(104px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--text);color:var(--bg);padding:11px 18px;border-radius:11px;font-size:13px;z-index:60;max-width:88vw;text-align:center;font-weight:600;box-shadow:var(--shadow)}
+  .toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--text);color:var(--bg);padding:11px 18px;border-radius:11px;font-size:13px;z-index:60;max-width:88vw;text-align:center;font-weight:600;box-shadow:var(--shadow)}
   .login-wrap{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:max(40px, calc(20px + var(--tg-top-inset))) 20px 40px;gap:0}
   .login-logo{width:168px;max-width:60%;height:auto}
   .login-tagline{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-top:4px;text-align:center}
@@ -570,7 +476,7 @@ window.CONFIG = {
 <script>
 (function(){
   const tg = window.Telegram && window.Telegram.WebApp;
-  const THEME_BG = { light:'#eceef3', dark:'#08090b' };
+  const THEME_BG = { light:'#f4f6f3', dark:'#0c130e' };
   function syncTelegramChrome(tema){
     if (!tg) return;
     const dark = tema === 'dark' || (tema !== 'light' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
