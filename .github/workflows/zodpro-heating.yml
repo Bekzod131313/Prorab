@@ -1,0 +1,30 @@
+name: ZODPRO Heating BIM tests
+
+on:
+  push:
+    paths:
+      - 'zodpro-heating/**'
+      - '.github/workflows/zodpro-heating.yml'
+  pull_request:
+    paths:
+      - 'zodpro-heating/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: zodpro-heating
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax check
+        run: for f in $(find src -name '*.js'); do node --check "$f"; done
+      - name: Engineering, integration and core tests
+        run: npm test

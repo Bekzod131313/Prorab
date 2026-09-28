@@ -294,11 +294,11 @@ export class PlanView {
   }
 
   // ---------- hit testing ----------
-  hitTest(p) {
+  hitTest(p, onlyCats = null) {
     const lv = this.store.activeLevelId;
     const proj = this.store.project;
     const tol = 6 / this.scale;
-    const els = Object.values(proj.elements).filter((e) => (e.levelId === lv || (e.cat === 'riser' && (e.levelFrom === lv || e.levelTo === lv))) && !this.hidden.has(e.cat));
+    const els = Object.values(proj.elements).filter((e) => (e.levelId === lv || (e.cat === 'riser' && (e.levelFrom === lv || e.levelTo === lv))) && !this.hidden.has(e.cat) && (!onlyCats || onlyCats.includes(e.cat)));
     const inRect = (e, L, y0, y1) => {
       const a = (-(e.angle ?? 0) * Math.PI) / 180;
       const dx = p.x - e.x;
@@ -847,7 +847,7 @@ export class PlanView {
         break;
       case 'offset': {
         if (!s.target) {
-          const id = this.hitTest(p);
+          const id = this.hitTest(p, ['wall', 'pipe', 'dline']);
           const el = id && proj.elements[id];
           if (!el || !(el.cat === 'wall' || el.cat === 'pipe' || el.cat === 'dline')) break;
           this.ts = { target: el };
@@ -860,7 +860,7 @@ export class PlanView {
       }
       case 'trim':
       case 'extend': {
-        const id = this.hitTest(p);
+        const id = this.hitTest(p, ['wall', 'pipe', 'dline']);
         const el = id && proj.elements[id];
         if (!el || !(el.cat === 'wall' || el.cat === 'pipe' || el.cat === 'dline')) break;
         const patch = extendToBoundary(proj, el, p, lv, T === 'trim');
@@ -869,7 +869,7 @@ export class PlanView {
         break;
       }
       case 'split': {
-        const id = this.hitTest(p);
+        const id = this.hitTest(p, ['wall', 'pipe', 'dline']);
         const el = id && proj.elements[id];
         if (!el) break;
         const r = splitAt(proj, el, p);
@@ -877,7 +877,7 @@ export class PlanView {
         break;
       }
       case 'fillet': {
-        const id = this.hitTest(p);
+        const id = this.hitTest(p, ['wall']);
         const el = id && proj.elements[id];
         if (!el || el.cat !== 'wall') break;
         if (!s.first) this.ts = { first: el };

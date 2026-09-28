@@ -280,6 +280,14 @@ export function renderProperties(el, app, tab) {
       const updates = sel.map((x) => {
         const patch = setPathPatch(x, f.k, v === undefined ? null : v);
         if (f.k === 'mark') patch.markLocked = !!v;
+        if (f.k === 'heating' && (v === 'ufh' || v === 'mixed') && !x.ufh?.collectorId) {
+          // attach to the nearest UFH manifold on the level so the loops are hydraulically connected
+          const cols = elementsOf(p, 'collector', x.levelId).filter((c) => c.kind === 'ufh');
+          const c0 = x.points.reduce((a, q) => ({ x: a.x + q.x / x.points.length, y: a.y + q.y / x.points.length }), { x: 0, y: 0 });
+          cols.sort((a, b) => Math.hypot(a.x - c0.x, a.y - c0.y) - Math.hypot(b.x - c0.x, b.y - c0.y));
+          patch.ufh = { ...(x.ufh ?? {}), collectorId: cols[0]?.id ?? null };
+          if (!cols.length) app.toast('Qavatda pol isitish kollektori yo‘q — "Pol isitish kollektori" ni joylashtiring', 'error');
+        }
         return { id: x.id, patch };
       });
       store.apply({ update: updates }, `edit:${f.k}`);
