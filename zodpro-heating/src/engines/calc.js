@@ -118,6 +118,9 @@ export function runCalculation(project, opts = {}) {
       ts: s.ufhRegime.ts,
       tr: s.ufhRegime.tr,
       spacing: r.ufh?.spacing ?? null,
+      // bathrooms / small rooms: comfort floor at ≥ 150 mm, no densification
+      minSpacing: bath || hl.inputs.area < 8 ? 0.15 : undefined,
+      comfortFloor: bath,
       leadLength: col ? (Math.abs(col.x - cen.x) + Math.abs(col.y - cen.y)) / 2 : 4,
       maxLoop: s.ufhMaxLoopM,
       maxSurface,

@@ -125,7 +125,11 @@ export function validate(project, res, net) {
     const ufhOut = hl.emitters?.ufhOutput ?? res.ufh[r.id]?.Qout ?? 0;
     const cover = (radOut + ufhOut) / hl.required;
     if (radOut + ufhOut <= 0) add('R02', 'error', 'room_no_heating', { room: r.name, q: Math.round(hl.required) }, r.id);
-    else if (cover < 0.95) add('R03', cover < 0.85 ? 'error' : 'warning', 'room_under_heated', { room: r.name, pct: Math.round(cover * 100) }, r.id);
+    else if (cover < 0.95) {
+      // a bathroom with only a comfort floor is normal practice → warning, never an error
+      const comfort = (r.roomType === 'bathroom' || r.roomType === 'wc') && r.heating === 'ufh';
+      add('R03', cover < 0.85 && !comfort ? 'error' : 'warning', 'room_under_heated', { room: r.name, pct: Math.round(cover * 100) }, r.id);
+    }
     if ((r.heating === 'ufh' || r.heating === 'mixed') && !r.ufh?.collectorId && !r.ufh?.transit) add('R17', 'error', 'ufh_no_collector', { room: r.name }, r.id);
   }
   for (const [id, rr] of Object.entries(res.radiators)) {

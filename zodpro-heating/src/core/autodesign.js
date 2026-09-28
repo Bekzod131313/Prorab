@@ -302,9 +302,10 @@ export function applyChangeSet(project, cs) {
 const UFH_MAX_OUTLETS = 12;
 const NO_UFH_TYPES = ['boiler', 'stair', 'technical'];
 
-/** Estimated number of UFH loops of a room (≈ one loop per 12 m² at 150 mm spacing, ≤ 90 m). */
-export function estimateUfhLoops(room) {
-  return Math.max(1, Math.ceil(Math.abs(polygonArea(room.points)) / 12));
+/** Estimated number of UFH loops of a room: pipe ≈ area / 0.15 m + leads, split so no loop exceeds `maxLoop` (default 60 m). */
+export function estimateUfhLoops(room, maxLoop = 60) {
+  const pipe = (Math.abs(polygonArea(room.points)) * 0.92) / 0.15 + 8;
+  return Math.max(1, Math.ceil(pipe / maxLoop));
 }
 
 /**
@@ -383,13 +384,14 @@ export function autoUfh(project, levelId, { roomIds = null } = {}) {
   const update = [];
   const warnings = [];
   if (!rooms.length) return { add, update, remove: [], warnings };
-  const need = new Map(rooms.map((r) => [r.id, estimateUfhLoops(r)]));
+  const maxLoop = project.settings.ufhMaxLoopM ?? 60;
+  const need = new Map(rooms.map((r) => [r.id, estimateUfhLoops(r, maxLoop)]));
   const d2 = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
   const assign = new Map();
   // 1) existing manifolds: rooms containing or adjacent to the manifold's room, while outlets last
   const cols = elementsOf(project, 'collector', levelId).filter((c) => c.kind === 'ufh');
   const used = new Map(cols.map((c) => [c.id, 0]));
-  for (const r of all) if (r.ufh?.collectorId && used.has(r.ufh.collectorId) && !need.has(r.id)) used.set(r.ufh.collectorId, used.get(r.ufh.collectorId) + estimateUfhLoops(r));
+  for (const r of all) if (r.ufh?.collectorId && used.has(r.ufh.collectorId) && !need.has(r.id)) used.set(r.ufh.collectorId, used.get(r.ufh.collectorId) + estimateUfhLoops(r, maxLoop));
   for (const r of [...rooms].sort((a, b) => need.get(b.id) - need.get(a.id))) {
     const ok = cols.filter((c) => {
       if (used.get(c.id) + need.get(r.id) > UFH_MAX_OUTLETS) return false;

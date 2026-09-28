@@ -140,3 +140,18 @@ test('auto UFH: whole level grouped to ≤ 12-outlet manifolds, every room conne
   }
   for (const c of cs.add) assert.ok((r.ufhPorts?.[c.id] ?? 0) <= 12, `manifold outlets ${r.ufhPorts?.[c.id]}`);
 });
+
+import { designUfh, refineWithLayout } from '../src/engines/ufh.js';
+
+test('loops ≤ 60 m: fewest loops that fit (70 m → 2), small rooms keep one short loop', () => {
+  for (const [w, h] of [[2, 1.8], [3, 3], [4, 3.5], [6, 5]]) {
+    const polygon = [{ x: 0, y: 0 }, { x: w, y: 0 }, { x: w, y: h }, { x: 0, y: h }];
+    const ports = Array.from({ length: 12 }, (_, k) => ({ supply: { x: -0.4, y: 0.3 + k * 0.05 }, return: { x: -0.6, y: 0.3 + k * 0.05 } }));
+    const d0 = designUfh({ Q: 60 * w * h, area: w * h, ti: 20, ts: 45, tr: 35, spacing: 0.15, maxLoop: 60 });
+    const fn = (n) => layoutRoomUfh({ polygon, loops: n, spacing: 0.15, inset: 0.3, ports, toward: ports[0].supply });
+    const d = refineWithLayout(d0, fn, { ts: 45, tr: 35, maxLoop: 60, maxLoopKpa: 20 });
+    assert.ok(d.layout.every((l) => l.length <= 60), `${w}×${h}: ${d.layout.map((l) => l.length.toFixed(0))}`);
+    if (d.loops > 1) assert.ok(fn(d.loops - 1).loops.some((l) => l.length > 60), `${w}×${h}: ${d.loops} loops is not the minimum`);
+    if (w * h < 4) assert.equal(d.loops, 1, 'small room: one short loop');
+  }
+});

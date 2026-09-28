@@ -63,7 +63,7 @@ export function defaultSettings() {
     maxBranchKpa: 25,
     pipeMaterial: 'PPR',
     pipeElevation: 0.05,
-    ufhMaxLoopM: 100,
+    ufhMaxLoopM: 60,
     ufhMaxSurface: { occupied: 29, bathroom: 33, perimeter: 35 },
     ufhMaxLoopKpa: 20,
     boilerReserve: 1.1,

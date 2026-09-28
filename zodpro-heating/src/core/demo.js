@@ -197,7 +197,7 @@ export function createSampleProject() {
   E(newElement('collector', { levelId: 'lvl_1', x: 6.3, y: 12.75, angle: 0, outlets: 12, kind: 'radiator' }));
   E(newElement('collector', { levelId: 'lvl_1', x: 10.3, y: 6.8, angle: 0, outlets: 12, kind: 'radiator' }));
   p.settings.pipeMaterial = 'PEX';
-  p.settings.ufhMaxLoopM = 90;
+  p.settings.ufhMaxLoopM = 60;
   // auto design: convectors under the windows, towel dryer in the bathroom, routing, risers
   applyChangeSet(p, autoPlaceRadiators(p));
   for (const r of Object.values(p.elements)) {

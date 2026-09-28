@@ -49,10 +49,13 @@ export function designUfh(args) {
   const activeArea = area * 0.92; // furniture/edge exclusions
   const q = activeArea > 0 ? Q / activeArea : 0;
   // spacing: largest that still covers the load (lower cost), unless forced
+  // comfort floors (bathrooms, small rooms) never go denser than `minSpacing`: a short loop there is
+  // normal, the rest of the load is covered by the towel dryer / radiator
+  const minSpacing = args.minSpacing ?? SPACINGS[0];
   let spacing = args.spacing;
   if (!spacing) {
-    spacing = 0.1;
-    for (const s of [...SPACINGS].reverse()) {
+    spacing = minSpacing;
+    for (const s of [...SPACINGS].reverse().filter((x) => x >= minSpacing - 1e-9)) {
       if (fluxCapacity(s, ts, tr, ti) >= q) {
         spacing = s;
         break;
@@ -62,7 +65,7 @@ export function designUfh(args) {
   const capacity = fluxCapacity(spacing, ts, tr, ti);
   const qOut = Math.min(q, capacity);
   const Qout = qOut * activeArea;
-  if (capacity < q) warnings.push({ code: 'ufh_insufficient', params: { q: Math.round(q), cap: Math.round(capacity) } });
+  if (capacity < q && !args.comfortFloor) warnings.push({ code: 'ufh_insufficient', params: { q: Math.round(q), cap: Math.round(capacity) } });
   const tSurf = surfaceTemp(qOut, ti);
   if (tSurf > maxSurface) warnings.push({ code: 'ufh_surface_high', params: { t: tSurf.toFixed(1), max: maxSurface } });
 
@@ -125,36 +128,36 @@ export function designUfh(args) {
  * @param layoutFn (loops) => layoutRoomUfh(...) result
  */
 export function refineWithLayout(d, layoutFn, { ts, tr, maxLoop = 100, maxLoopKpa = 20, downwardShare = 0.1 }) {
-  let loops = d.loops;
-  let lay = layoutFn(loops);
-  if (!lay.loops.length) return { ...d, layout: [], layoutApprox: lay.approx, warnings: [...d.warnings, { code: 'ufh_room_too_small' }] };
-  const longest = (l) => Math.max(...l.loops.map((x) => x.length));
-  if (lay.loops.length > loops) {
-    loops = lay.loops.length;
-    lay = layoutFn(loops);
-  }
-  while (longest(lay) > maxLoop && loops < 20) {
-    loops++;
-    lay = layoutFn(loops);
-  }
-  loops = lay.loops.length;
+  // fewest loops whose real length (coil + leads) stays ≤ maxLoop and Δp ≤ maxLoopKpa:
+  // a 70 m room gets 2 loops, a small bathroom keeps one short loop
   const mat = PIPE_MATERIALS[d.pipe.material];
   const size = mat?.sizes.find((z) => z.dn === String(d.pipe.dn)) ?? { id: 0.012 };
   const tm = (ts + tr) / 2;
-  let dpMax = 0;
-  let totalLength = 0;
-  const details = lay.loops.map((l) => {
-    // heat split by coil length (each loop covers the floor it is laid in)
+  const evaluate = (lay) => {
     const coilTotal = lay.loops.reduce((a, x) => a + x.coilLength, 0) || 1;
-    const Q = d.Qout * (1 + downwardShare) * (l.coilLength / coilTotal);
-    const f = flowFromHeat(Math.max(Q, 1), ts - tr, tm);
-    const seg = pipeSegment({ vM3s: f.vM3s, dInner: size.id, k: mat?.k ?? 7e-6, length: l.length, zeta: l.corners * 0.3, tm });
-    dpMax = Math.max(dpMax, seg.dp);
-    totalLength += l.length;
-    return { ...l, Q, flowLh: f.vLh, velocity: seg.v, dp: seg.dp };
-  });
+    return lay.loops.map((l) => {
+      const Q = d.Qout * (1 + downwardShare) * (l.coilLength / coilTotal);
+      const f = flowFromHeat(Math.max(Q, 1), ts - tr, tm);
+      const seg = pipeSegment({ vM3s: f.vM3s, dInner: size.id, k: mat?.k ?? 7e-6, length: l.length, zeta: l.corners * 0.3, tm });
+      return { ...l, Q, flowLh: f.vLh, velocity: seg.v, dp: seg.dp };
+    });
+  };
+  let loops = 1;
+  let lay = layoutFn(loops);
+  if (!lay.loops.length) return { ...d, layout: [], layoutApprox: lay.approx, warnings: [...d.warnings, { code: 'ufh_room_too_small' }] };
+  let details = evaluate(lay);
+  const ok = (ds) => Math.max(...ds.map((x) => x.length)) <= maxLoop && Math.max(...ds.map((x) => x.dp)) / 1000 <= maxLoopKpa;
+  while (!ok(details) && loops < 20) {
+    loops = Math.max(loops + 1, lay.loops.length + 1);
+    const next = layoutFn(loops);
+    if (!next.loops.length) break;
+    lay = next;
+    details = evaluate(lay);
+  }
+  loops = lay.loops.length;
+  const dpMax = Math.max(...details.map((x) => x.dp));
+  const totalLength = details.reduce((a, x) => a + x.length, 0);
   const warnings = d.warnings.filter((w) => w.code !== 'ufh_loop_long' && w.code !== 'ufh_loops_increased');
-  if (loops !== d.loops) warnings.push({ code: 'ufh_loops_increased', params: { from: d.loops, to: loops } });
   const maxL = Math.max(...details.map((x) => x.length));
   if (maxL > maxLoop) warnings.push({ code: 'ufh_loop_long', params: { L: maxL.toFixed(0), max: maxLoop } });
   if (dpMax / 1000 > maxLoopKpa) warnings.push({ code: 'ufh_dp_high', params: { dp: (dpMax / 1000).toFixed(1), max: maxLoopKpa } });

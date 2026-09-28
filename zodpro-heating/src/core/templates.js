@@ -6,5 +6,5 @@ export const TEMPLATES = {
   school: { name: 'Maktab (klasslar, 2 ACH)', settings: { regime: { ts: 75, tr: 65, name: '75/65/20' }, pipeMaterial: 'STEEL', velMax: 1.0, maxRPaM: 300, infiltrationAch: 0.5 } },
   office: { name: 'Ofis', settings: { regime: { ts: 70, tr: 55, name: '70/55/20' }, pipeMaterial: 'CU', velMax: 0.8, internalGainsWm2: 5 } },
   boiler_room: { name: 'Qozonxona', settings: { pipeMaterial: 'STEEL', velMax: 1.2, velCritical: 1.8, maxRPaM: 400, staticHeightM: 12, safetyValveBar: 6 } },
-  ufh: { name: 'Pol isitish (45/35)', settings: { ufhRegime: { ts: 45, tr: 35 }, ufhMaxLoopM: 100, ufhMaxLoopKpa: 20 } },
+  ufh: { name: 'Pol isitish (45/35)', settings: { ufhRegime: { ts: 45, tr: 35 }, ufhMaxLoopM: 60, ufhMaxLoopKpa: 20 } },
 };
