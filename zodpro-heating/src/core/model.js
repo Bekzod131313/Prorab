@@ -191,8 +191,9 @@ export function connectorsOf(project, el, productLookup) {
   };
   switch (el.cat) {
     case 'radiator': {
-      // stored length wins so attached pipes stay consistent; syncRadiatorGeometry() updates it
-      const L = el.length ?? productLookup?.(el)?.length ?? 1;
+      // the stored length is the single source of truth for connector positions (attached pipes
+      // stay consistent); syncRadiatorGeometry() updates it and drags pipes when selection changes
+      const L = el.length ?? 1;
       const flip = el.flip ? -1 : 1;
       push('supply', 'supply', -flip * (L / 2 + 0.05), 0.05, { kind: 'consumer_in', dn: '15' });
       push('return', 'return', flip * (L / 2 + 0.05), 0.05, { kind: 'consumer_out', dn: '15' });

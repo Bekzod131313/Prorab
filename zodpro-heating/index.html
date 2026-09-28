@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ZODPRO Heating BIM</title>
+  <meta name="description" content="Isitish tizimlarini loyihalash uchun BIM/CAD platforma" />
+  <link rel="stylesheet" href="css/app.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three/three.module.js",
+        "three/addons/": "./vendor/three/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" class="logo" aria-hidden="true"><path d="M16 2 L28 9 L28 23 L16 30 L4 23 L4 9 Z" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M16 9 C 20 14, 21 17, 16 23 C 11 17, 12 14, 16 9 Z" fill="currentColor"/></svg>
+      <div><b>ZODPRO</b><small id="brand-sub">Heating BIM</small></div>
+    </div>
+    <nav class="menutabs" id="menutabs"></nav>
+    <div class="top-right">
+      <input id="global-search" class="search" type="search" placeholder="Qidirish…" autocomplete="off" />
+      <button class="icon-btn" id="btn-undo" title="Ctrl+Z">↶</button>
+      <button class="icon-btn" id="btn-redo" title="Ctrl+Y">↷</button>
+      <select id="lang-select" class="small-select" aria-label="Til"></select>
+      <button class="icon-btn" id="btn-theme" title="Mavzu">◐</button>
+      <button class="icon-btn" id="btn-ai" title="Yordamchi">✦</button>
+      <span class="user-chip" id="user-chip" title="Rol">U</span>
+    </div>
+  </header>
+
+  <div class="ribbon" id="ribbon"></div>
+
+  <main class="workspace" id="workspace">
+    <aside class="panel left" id="left-panel">
+      <div class="panel-tabs" id="left-tabs"></div>
+      <div class="panel-body" id="left-body"></div>
+    </aside>
+    <div class="splitter" data-target="left-panel"></div>
+
+    <section class="center" id="center">
+      <div class="viewtabs" id="viewtabs"></div>
+      <div class="views" id="views">
+        <div class="view" id="view-plan">
+          <div class="view-toolbar" id="plan-toolbar"></div>
+          <canvas id="plan-canvas" tabindex="0"></canvas>
+          <div class="tool-hint" id="tool-hint"></div>
+          <div class="level-switch" id="level-switch"></div>
+        </div>
+        <div class="view" id="view-3d">
+          <div class="view-toolbar" id="toolbar-3d"></div>
+          <div id="three-host"></div>
+          <div class="viewcube" id="viewcube"></div>
+        </div>
+        <div class="view doc" id="view-schema"></div>
+        <div class="view doc" id="view-riser"></div>
+        <div class="view doc" id="view-section"></div>
+        <div class="view doc" id="view-reports"></div>
+        <div class="view doc" id="view-schedules"></div>
+        <div class="view doc" id="view-sheets"></div>
+        <div class="view doc" id="view-dashboard"></div>
+        <div class="view doc" id="view-issues"></div>
+        <div class="view doc" id="view-install"></div>
+        <div class="view doc" id="view-library"></div>
+        <div class="view doc" id="view-settings"></div>
+        <div class="view doc" id="view-help"></div>
+      </div>
+    </section>
+
+    <div class="splitter" data-target="right-panel"></div>
+    <aside class="panel right" id="right-panel">
+      <div class="panel-tabs" id="right-tabs"></div>
+      <div class="panel-body" id="right-body"></div>
+    </aside>
+  </main>
+
+  <footer class="statusbar">
+    <div class="cmdline">
+      <span class="prompt">›</span>
+      <input id="cmd-input" autocomplete="off" spellcheck="false" />
+      <div id="cmd-history" class="cmd-history"></div>
+    </div>
+    <div class="status-toggles" id="status-toggles"></div>
+    <div class="status-info" id="status-info"></div>
+    <div class="status-validation" id="status-validation"></div>
+  </footer>
+
+  <div id="modal-root"></div>
+  <div id="toast-root"></div>
+  <input type="file" id="file-input" hidden />
+
+  <noscript>ZODPRO Heating BIM ishlashi uchun JavaScript kerak.</noscript>
+  <script type="module" src="src/ui/app.js"></script>
+</body>
+</html>

@@ -49,6 +49,7 @@ export function autoPlaceRadiators(project, { levelId = null } = {}) {
           prefKind: 'panel',
           prefType: 22,
           mountHeight: 0.1,
+          length: 1,
           wallId: wall.id,
         }),
       );
@@ -75,7 +76,7 @@ export function autoPlaceRadiators(project, { levelId = null } = {}) {
         }
       }
       if (best) placeOn(best.wall, best.center, null);
-      else add.push(newElement('radiator', { levelId: room.levelId, roomId: room.id, x: c.x, y: c.y, angle: 0, selection: 'auto', prefKind: 'panel', prefType: 22, mountHeight: 0.1 }));
+      else add.push(newElement('radiator', { levelId: room.levelId, roomId: room.id, x: c.x, y: c.y, angle: 0, selection: 'auto', prefKind: 'panel', prefType: 22, mountHeight: 0.1, length: 1 }));
     }
   }
   return { add, update: [], remove: [] };
@@ -252,11 +253,11 @@ export function syncRadiatorGeometry(project, res) {
   for (const rad of elementsOf(project, 'radiator')) {
     const prod = res.radiators[rad.id]?.product;
     if (!prod) continue;
-    if (rad.length !== undefined && Math.abs(rad.length - prod.length) < 1e-6) continue;
-    const before = connectorsOf(project, rad, () => prod);
-    const after = connectorsOf(project, { ...rad, length: prod.length }, () => prod);
+    if (rad.length !== undefined && rad.length !== null && Math.abs(rad.length - prod.length) < 1e-6) continue;
+    // connectors are always derived from the stored length (default 1 m before the first selection)
+    const before = connectorsOf(project, { ...rad, length: rad.length ?? 1 }, null);
+    const after = connectorsOf(project, { ...rad, length: prod.length }, null);
     update.push({ id: rad.id, patch: { length: prod.length } });
-    if (rad.length === undefined) continue;
     for (let k = 0; k < before.length; k++) {
       const o = before[k].pos;
       const n = after[k].pos;
