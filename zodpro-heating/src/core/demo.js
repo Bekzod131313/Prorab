@@ -166,7 +166,7 @@ export function createSampleProject() {
   const g = [
     room('lvl_0', '1', 'Гостиная', 'living', [{ x: 0, y: 0 }, { x: 5.8, y: 0 }, { x: 5.8, y: 7.16 }, { x: 0, y: 7.16 }], u()),
     room('lvl_0', '2', 'Санузел', 'bathroom', rect(0, 7.16, 3.2, 13.16), { ...u(), tIn: 22 }),
-    room('lvl_0', '3', 'Коридор', 'corridor', rect(3.2, 7.16, 5.8, 13.16), u()),
+    room('lvl_0', '3', 'Коридор', 'corridor', rect(3.2, 7.16, 5.8, 13.16), { heating: 'ufh', ufh: { collectorId: null, transit: true, pipe: { material: 'PEX', dn: '16' } } }),
     room('lvl_0', '4', 'Спальня', 'bedroom', rect(0, 13.16, 5.8, 18.76), u()),
     room('lvl_0', '5', 'Холл', 'living', rect(5.8, 2.2, 11.6, 13.16), u()),
     room('lvl_0', '6', 'Кухня-столовая', 'kitchen', rect(5.8, 13.16, 11.6, 18.76), u()),

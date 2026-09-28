@@ -90,13 +90,86 @@ export class View3D {
     this.ready = true;
     this.loading = false;
     this.rebuild(true);
+    let last = performance.now();
     const loop = () => {
       requestAnimationFrame(loop);
+      const now = performance.now();
+      const dt = Math.min(0.25, (now - last) / 1000);
+      last = now;
       if (!this.visible) return;
+      this.walkStep(dt);
       this.controls.update();
       renderer.render(this.scene, this.camera);
     };
     loop();
+  }
+
+  /** Keyboard navigation (WASD / arrows move, Q/E down/up, Shift faster). Returns true if handled. */
+  onKey(e) {
+    const MOVE = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+    this.keys ??= new Set();
+    this.fast = e.shiftKey;
+    if (e.ctrlKey || e.metaKey || e.altKey) return false;
+    if (e.type === 'keydown' && e.code === 'KeyF') {
+      this.toggleWalk();
+      this.buildToolbar();
+      return true;
+    }
+    if (!MOVE.includes(e.code)) return false;
+    if (e.type === 'keydown') this.keys.add(e.code);
+    else this.keys.delete(e.code);
+    return true;
+  }
+
+  walkStep(dt) {
+    if (!this.keys?.size || !this.camera) return;
+    const k = (c) => (this.keys.has(c) ? 1 : 0);
+    const fwd = k('KeyW') + k('ArrowUp') - k('KeyS') - k('ArrowDown');
+    const side = k('KeyD') + k('ArrowRight') - k('KeyA') - k('ArrowLeft');
+    const up = k('KeyE') - k('KeyQ');
+    const dir = new THREE.Vector3().subVectors(this.controls.target, this.camera.position);
+    dir.z = 0;
+    if (dir.lengthSq() < 1e-9) dir.set(0, 1, 0);
+    dir.normalize();
+    const right = new THREE.Vector3(dir.y, -dir.x, 0);
+    const speed = (this.walk ? 1.6 : 6) * (this.fast ? 3 : 1);
+    const d = new THREE.Vector3().addScaledVector(dir, fwd).addScaledVector(right, side);
+    if (d.lengthSq() > 0) d.normalize().multiplyScalar(speed * dt);
+    d.z = up * speed * 0.6 * dt;
+    this.camera.position.add(d);
+    this.controls.target.add(d);
+  }
+
+  /** First-person walk at eye level (1.6 m above the active level); mouse drag looks around. */
+  toggleWalk() {
+    this.walk = !this.walk;
+    const lv = levelById(this.store.project, this.store.activeLevelId);
+    if (this.walk) {
+      this._orbit = { pos: this.camera.position.clone(), target: this.controls.target.clone() };
+      // start in the selected room (or the largest one) of the active level; 3D y = −plan y
+      const rooms = elementsOf(this.store.project, 'room', this.store.activeLevelId);
+      const sel = rooms.find((r) => this.store.selection?.has?.(r.id));
+      const area = (r) => Math.abs(r.points.reduce((a, q, i) => a + q.x * r.points[(i + 1) % r.points.length].y - r.points[(i + 1) % r.points.length].x * q.y, 0));
+      const room = sel ?? [...rooms].sort((a, b) => area(b) - area(a))[0];
+      const c = room ? { x: room.points.reduce((a, q) => a + q.x, 0) / room.points.length, y: room.points.reduce((a, q) => a + q.y, 0) / room.points.length } : this.levelCentre(this.store.activeLevelId);
+      const z = (lv?.elevation ?? 0) + 1.6;
+      this.camera.position.set(c.x, -c.y, z);
+      this.controls.target.set(c.x, -c.y + 0.6, z);
+      this.controls.minDistance = 0.1;
+      this.controls.enablePan = false;
+      this.camera.fov = 70;
+      this.app.setHint('Yurish: W/A/S/D — yurish, Q/E — past/yuqori, Shift — tez, sichqoncha — atrofga qarash, F — chiqish');
+    } else {
+      if (this._orbit) {
+        this.camera.position.copy(this._orbit.pos);
+        this.controls.target.copy(this._orbit.target);
+      }
+      this.controls.minDistance = 0;
+      this.controls.enablePan = true;
+      this.camera.fov = 40;
+      this.app.setHint('');
+    }
+    this.camera.updateProjectionMatrix();
   }
 
   skyTexture() {
@@ -177,7 +250,11 @@ export class View3D {
       this.measure = this.measure ? null : { pts: [] };
       this.app.setHint(this.measure ? "3D o'lchash: ikkita nuqtani bosing" : '');
     }, () => !!this.measure);
-    btn('Moslash', 'Butun modelni ko‘rsatish', () => this.fitCamera());
+    btn('Yurish (F)', 'Ichkarida yurish: W/A/S/D, Q/E, Shift — tez; sichqoncha bilan atrofga qarash', () => this.toggleWalk(), () => !!this.walk);
+    btn('Moslash', 'Butun modelni ko‘rsatish', () => {
+      if (this.walk) this.toggleWalk();
+      this.fitCamera();
+    });
     const lab = document.createElement('label');
     lab.innerHTML = 'Kesim <input type="range" min="0" max="100" value="100" id="clip3d">';
     lab.querySelector('input').oninput = (e) => {
@@ -627,9 +704,11 @@ export class View3D {
         m.castShadow = false;
         this.add(m, r.id);
       };
-      const coilMat = this.systemColors ? M.pexRed : M.pexRed;
       for (const loop of u.layout) {
-        tube(loop.coil, coilMat);
+        // bifilar loop: supply half red, return half blue (real PE-RT pipe is red → same colour without system colours)
+        const sp = loop.split ?? Math.ceil(loop.coil.length / 2);
+        tube(loop.coil.slice(0, sp), M.pexRed);
+        tube(loop.coil.slice(Math.max(0, sp - 1)), this.systemColors ? M.pexBlue : M.pexRed);
         tube(loop.supplyLead, this.pipeMaterial('supply', 'PEX'));
         tube(loop.returnLead, this.pipeMaterial('return', 'PEX'), z + 0.001);
       }

@@ -481,6 +481,10 @@ class App {
         return this.store.select(Object.values(this.store.project.elements).filter((x) => x.levelId === this.store.activeLevelId).map((x) => x.id));
       }
       if (typing) return;
+      if (this.view === '3d' && this.v3d.onKey(e)) {
+        e.preventDefault();
+        return;
+      }
       if (this.view === 'plan' && this.plan.onKey(e)) {
         e.preventDefault();
         return;
@@ -491,7 +495,9 @@ class App {
         inp.focus();
       }
     });
+    window.addEventListener('blur', () => this.v3d.keys?.clear());
     document.addEventListener('keyup', (e) => {
+      if (this.view === '3d') this.v3d.onKey(e);
       if (e.key === ' ') this.plan.spaceDown = false;
     });
   }
@@ -502,6 +508,7 @@ class App {
     document.querySelectorAll('.view').forEach((el) => el.classList.toggle('active', el.id === `view-${v}`));
     document.querySelectorAll('#viewtabs [data-v]').forEach((b) => b.classList.toggle('active', b.dataset.v === v));
     this.v3d.show(v === '3d');
+    this.v3d.keys?.clear();
     if (v === 'plan') setTimeout(() => this.plan.resize(), 0);
     this.renderView();
   }

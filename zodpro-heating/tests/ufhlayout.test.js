@@ -1,7 +1,7 @@
 // Underfloor-heating layout geometry tests.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { layoutRoomUfh, spiralLoop, serpentineLoop, roundCorners, pathLength } from '../src/engines/ufhlayout.js';
+import { layoutRoomUfh, spiralLoop, serpentineLoop, doubleSerpentineLoop, roundCorners, pathLength } from '../src/engines/ufhlayout.js';
 import { createDemoProject } from '../src/core/demo.js';
 import { runCalculation } from '../src/engines/calc.js';
 
@@ -18,21 +18,31 @@ function crossings(pts) {
   return n;
 }
 
-test('bifilar spiral: no self-crossings, both ends at the entry corner, length ≈ area / spacing', () => {
-  const { coil } = spiralLoop(0, 0, 3, 2, 0.15);
+test('bifilar spiral: no self-crossings, both ends side by side at the entry corner, even spacing', () => {
+  const { coil, sup, ret } = spiralLoop(0, 0, 3, 2, 0.15);
   assert.equal(crossings(coil), 0);
-  assert.ok(Math.hypot(coil[0].x, coil[0].y) < 1e-9);
-  const end = coil[coil.length - 1];
-  assert.ok(Math.hypot(end.x - 0.15, end.y - 0.15) < 1e-9, 'return ends next to the supply start');
+  assert.ok(Math.hypot(sup[0].x - 0, sup[0].y - 0.075) < 1e-9, 'supply starts on the edge');
+  const end = ret[ret.length - 1];
+  assert.ok(Math.hypot(end.x - 0.15, end.y - 0.075) < 1e-9, 'return ends s away from the supply start');
   const L = pathLength(coil);
-  assert.ok(L > (6 / 0.15) * 0.85 && L < (6 / 0.15) * 1.25, `length ${L}`);
+  assert.ok(L > (6 / 0.15) * 0.8 && L < (6 / 0.15) * 1.15, `length ${L}`);
+  // every coil point stays inside the rectangle
+  for (const p of coil) assert.ok(p.x >= -1e-9 && p.x <= 3 + 1e-9 && p.y >= -1e-9 && p.y <= 2 + 1e-9);
 });
 
-test('serpentine: runs at spacing and return lead back to the entry side', () => {
-  const { coil } = serpentineLoop(0, 0, 2, 1, 0.2, 0.2);
-  const runs = coil.filter((p, i) => i > 0 && Math.abs(p.y - coil[i - 1].y) < 1e-9 && Math.abs(p.x - coil[i - 1].x) > 1.9).length;
-  assert.equal(runs, 6);
-  assert.ok(coil[coil.length - 1].y < 0, 'return lead ends at the entry edge');
+test('double serpentine: closed U-turn, supply/return pair s apart, no crossings', () => {
+  const { coil, sup, ret } = doubleSerpentineLoop(0, 0, 2, 3, 0.2);
+  assert.equal(crossings(coil), 0);
+  assert.ok(Math.abs(ret[ret.length - 1].x - sup[0].x - 0.2) < 1e-9);
+  assert.deepEqual(sup[sup.length - 1], ret[0], 'supply and return meet at the U-turn');
+});
+
+test('serpentine: even number of runs, return back along the entry edge', () => {
+  const { coil, sup, ret } = serpentineLoop(0, 0, 2, 3, 0.2);
+  assert.equal(crossings(coil), 0);
+  const runs = sup.length / 2;
+  assert.equal(runs % 2, 0);
+  assert.ok(Math.abs(ret[ret.length - 1].y) < 1e-9, 'return ends at the entry edge');
 });
 
 test('corner rounding keeps the path continuous and never lengthens it', () => {
@@ -43,20 +53,42 @@ test('corner rounding keeps the path continuous and never lengthens it', () => {
   assert.deepEqual(r[r.length - 1], sharp[2]);
 });
 
-test('room layout: loops split into strips, leads end at manifold ports', () => {
+test('room layout: strips touch the manifold side, leads end at ports and never cross', () => {
   const polygon = [{ x: 0, y: 0 }, { x: 6, y: 0 }, { x: 6, y: 4 }, { x: 0, y: 4 }];
   const ports = [0, 1, 2].map((i) => ({ supply: { x: 7 + i * 0.05, y: 1 }, return: { x: 7 + i * 0.05, y: 1.2 } }));
-  const lay = layoutRoomUfh({ polygon, loops: 3, spacing: 0.15, pattern: 'spiral', inset: 0.25, ports, toward: { x: 7, y: 1 } });
-  assert.equal(lay.loops.length, 3);
-  for (const [k, l] of lay.loops.entries()) {
-    assert.deepEqual(l.supplyLead[0], ports[k].supply);
-    assert.deepEqual(l.returnLead[l.returnLead.length - 1], ports[k].return);
-    assert.equal(crossings(l.coil), 0);
-    for (const p of l.coil) assert.ok(p.x >= 0.25 - 1e-9 && p.x <= 5.75 + 1e-9 && p.y >= 0.25 - 1e-9 && p.y <= 3.75 + 1e-9);
+  for (const pattern of ['spiral', 'double_serpentine', 'serpentine']) {
+    const lay = layoutRoomUfh({ polygon, loops: 3, spacing: 0.15, pattern, inset: 0.25, ports, toward: { x: 7, y: 1 } });
+    assert.equal(lay.side, 'right');
+    assert.equal(lay.loops.length, 3);
+    const paths = [];
+    for (const [k, l] of lay.loops.entries()) {
+      assert.deepEqual(l.supplyLead[0], ports[k].supply);
+      assert.deepEqual(l.returnLead[l.returnLead.length - 1], ports[k].return);
+      assert.deepEqual(l.supplyLead[l.supplyLead.length - 1], l.coil[0]);
+      assert.deepEqual(l.returnLead[0], l.coil[l.coil.length - 1]);
+      assert.equal(crossings(l.coil), 0, pattern);
+      for (const p of l.coil) assert.ok(p.x >= 0.25 - 1e-9 && p.x <= 5.75 + 1e-9 && p.y >= 0.25 - 1e-9 && p.y <= 3.75 + 1e-9);
+      // leads inside the room (the manifold rows themselves overlap in plan)
+      paths.push(l.coil, l.supplyLead.filter((p) => p.x < 5.9), l.returnLead.filter((p) => p.x < 5.9));
+    }
+    let n = 0;
+    for (let i = 0; i < paths.length; i++) for (let j = i + 1; j < paths.length; j++) n += crossBetween(paths[i], paths[j]);
+    assert.equal(n, 0, `${pattern}: leads/coils cross`);
   }
-  // strip closest to the manifold comes first
-  assert.ok(lay.loops[0].strip.x1 >= lay.loops[2].strip.x1);
 });
+
+function crossBetween(a, b) {
+  let n = 0;
+  for (let i = 1; i < a.length; i++) for (let j = 1; j < b.length; j++) n += segX(a[i - 1], a[i], b[j - 1], b[j]);
+  return n;
+}
+function segX(a, b, c, d) {
+  const den = (b.x - a.x) * (d.y - c.y) - (b.y - a.y) * (d.x - c.x);
+  if (Math.abs(den) < 1e-12) return 0;
+  const t = ((c.x - a.x) * (d.y - c.y) - (c.y - a.y) * (d.x - c.x)) / den;
+  const u = ((c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x)) / den;
+  return t > 1e-6 && t < 1 - 1e-6 && u > 1e-6 && u < 1 - 1e-6 ? 1 : 0;
+}
 
 test('calculation uses the real loop geometry', () => {
   const p = createDemoProject();

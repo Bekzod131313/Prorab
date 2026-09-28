@@ -103,7 +103,7 @@ export function runCalculation(project, opts = {}) {
       .sort((a, b) => a.y - b.y || a.x - b.x)
       .forEach((c, i) => ufhColNo.set(c.id, i + 1));
   }
-  const ufhRooms = rooms.filter((r) => ['ufh', 'mixed'].includes(r.heating) && isHeated(r)).sort((a, b) => String(a.number ?? '').localeCompare(String(b.number ?? '')));
+  const ufhRooms = rooms.filter((r) => ['ufh', 'mixed'].includes(r.heating) && isHeated(r) && !r.ufh?.transit).sort((a, b) => String(a.number ?? '').localeCompare(String(b.number ?? '')));
   for (const r of ufhRooms) {
     const hl = res.rooms[r.id];
     const Q = hl.required;
@@ -234,10 +234,36 @@ export function runCalculation(project, opts = {}) {
       rr.designQ = required > 0 && totalOut > 0 ? (required * rr.output) / totalOut : rr.output;
     }
   }
+  // transit rooms (corridors the manifold leads run through): heated by the leads passing over them
+  res.ufhTransit = {};
+  for (const r of rooms.filter((x) => x.ufh?.transit && isHeated(x))) {
+    let length = 0;
+    let Q = 0;
+    for (const d of Object.values(res.ufh)) {
+      if (d.roomId === r.id || project.elements[d.roomId]?.levelId !== r.levelId) continue;
+      const qm = d.totalLength > 0 ? d.Qout / d.totalLength : 0;
+      for (const l of d.layout ?? [])
+        for (const lead of [l.supplyLead, l.returnLead])
+          for (let i = 1; i < (lead?.length ?? 0); i++) {
+            const a = lead[i - 1];
+            const b = lead[i];
+            const L = Math.hypot(b.x - a.x, b.y - a.y);
+            const n = Math.max(1, Math.ceil(L / 0.1));
+            for (let k = 0; k < n; k++) {
+              const t = (k + 0.5) / n;
+              if (pointInPolygon({ x: a.x + t * (b.x - a.x), y: a.y + t * (b.y - a.y) }, r.points)) {
+                length += L / n;
+                Q += (qm * L) / n;
+              }
+            }
+          }
+    }
+    res.ufhTransit[r.id] = { length, Q };
+  }
   for (const r of rooms) {
     const hl = res.rooms[r.id];
     const radiatorOutput = (byRoom.get(r.id) ?? []).reduce((a, x) => a + res.radiators[x.id].output, 0);
-    const ufhOutput = res.ufh[r.id]?.Qout ?? 0;
+    const ufhOutput = (res.ufh[r.id]?.Qout ?? 0) + (res.ufhTransit[r.id]?.Q ?? 0);
     hl.emitters = { radiatorOutput, ufhOutput, coverage: hl.required > 0 ? (radiatorOutput + ufhOutput) / hl.required : null };
   }
   const productLookup = (el) => (el.cat === 'radiator' ? res.radiators[el.id]?.product : null);

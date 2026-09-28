@@ -1,18 +1,24 @@
 // Underfloor-heating loop geometry (the real pipe path, used by the plan, 3D, lengths and Δp).
 //
-//  • Spiral ("ulitka", bifilar counter-flow): the supply spirals inwards with a 2·s gap, reverses at
-//    the centre and the return spirals outwards between the supply runs → supply and return runs
-//    alternate every s, which gives an even floor temperature. No crossings.
-//  • Double serpentine ("двойная змейка"): supply/return as a parallel pair along a meander.
-//  • Serpentine ("zmeyka"): parallel runs at spacing s with U-turns; the return lead runs back
-//    along the edge zone to the entry corner.
-//  • Several loops per room: the room is split into equal strips along its longer side.
-//  • Leads: orthogonal route from the loop start/end to the manifold outlet (supply / return port).
-//  • Corners are rounded with the pipe's minimum bending radius (≥ 5·OD, capped at s/2).
+// Every bifilar pattern is built from a CENTRELINE with pitch 2·s that is offset by ±s/2:
+// the two offsets are the supply and the return pipe, so the pipe spacing is exactly s everywhere,
+// supply and return alternate, the two ends sit side by side at the entry corner and a round
+// U-turn (radius s/2) closes the loop at the far end. Offset curves of a simple path never cross.
+//
+//  • Spiral ("ulitka", bifilar counter-flow): rectangular spiral centreline.
+//  • Double serpentine ("двойная змейка"): meander centreline, columns running away from the manifold.
+//  • Serpentine ("zmeyka"): single meander at pitch s, return pipe back along the entry edge.
+//
+// Room organisation (like the reference drawings):
+//  • the room side nearest the manifold is the entry side; a lead band runs along it (inside the
+//    edge zone) and every loop strip touches it, so no lead ever crosses a coil;
+//  • loops are ordered along that side and connected to the manifold outlets in the same order
+//    (nested, crossing-free); leads run on parallel tracks at `leadPitch` and turn down to the ports;
+//  • corners are rounded with the pipe's minimum bending radius (≥ 5·OD, capped at s/2).
 
 import { polygonArea } from '../core/util.js';
 
-export const UFH_LAYOUT_VERSION = 'ufh-layout/1.1';
+export const UFH_LAYOUT_VERSION = 'ufh-layout/2.0';
 
 const r3 = (v) => Math.round(v * 1000) / 1000;
 
@@ -22,42 +28,66 @@ export function pathLength(pts) {
   return L;
 }
 
-/** Rectangular spiral with gap `gap`, starting at (x0,y0) going +x, clockwise (screen coords). */
-function spiral(x0, y0, x1, y1, gap) {
-  const pts = [{ x: x0, y: y0 }];
-  let l = x0;
-  let t = y0;
-  let r = x1;
-  let b = y1;
-  const min = gap * 0.6;
-  for (let guard = 0; guard < 500; guard++) {
-    if (r - l < min) break;
-    pts.push({ x: r, y: t });
-    if (b - t < min) break;
-    pts.push({ x: r, y: b });
-    pts.push({ x: l, y: b });
-    t += gap;
-    if (b - t < min) break;
-    pts.push({ x: l, y: t });
-    l += gap;
-    r -= gap;
-    b -= gap;
+/** Drop repeated points and collinear middle points. */
+export function cleanPath(pts, eps = 1e-6) {
+  const out = [];
+  for (const p of pts) {
+    const q = out[out.length - 1];
+    if (q && Math.hypot(p.x - q.x, p.y - q.y) < eps) continue;
+    if (out.length >= 2) {
+      const a = out[out.length - 2];
+      const cross = (q.x - a.x) * (p.y - q.y) - (q.y - a.y) * (p.x - q.x);
+      const dot = (q.x - a.x) * (p.x - q.x) + (q.y - a.y) * (p.y - q.y);
+      if (Math.abs(cross) < eps && dot > 0) {
+        out[out.length - 1] = p;
+        continue;
+      }
+    }
+    out.push(p);
+  }
+  return out;
+}
+
+/**
+ * Rectangular spiral centreline starting at (l,b), first run along +y (away from the entry edge),
+ * clockwise in a y-up frame, successive rings `gap` apart. Stops when a run would be < min.
+ */
+export function spiralCenterline(l, b, r, t, gap, min = gap * 0.65) {
+  const pts = [{ x: l, y: b }];
+  let L = l;
+  let R = r;
+  let T = t;
+  let B = b;
+  for (let g = 0; g < 500; g++) {
+    const cur = pts[pts.length - 1];
+    if (T - cur.y < min) break;
+    pts.push({ x: L, y: T });
+    if (R - L < min) break;
+    pts.push({ x: R, y: T });
+    if (T - B < min) break;
+    pts.push({ x: R, y: B });
+    if (R - (L + gap) < min) break;
+    pts.push({ x: L + gap, y: B });
+    L += gap;
+    R -= gap;
+    T -= gap;
+    B += gap;
   }
   return pts;
 }
 
-/** Bifilar counter-flow spiral inside the rectangle; start & end both near (x0,y0). */
-export function spiralLoop(x0, y0, x1, y1, s) {
-  const sup = spiral(x0, y0, x1, y1, 2 * s);
-  const ret = spiral(x0 + s, y0 + s, x1 - s, y1 - s, 2 * s).reverse();
-  // centre reversal: supply end → return start
-  const a = sup[sup.length - 1];
-  const b = ret[0];
-  const mid = Math.abs(a.x - b.x) > Math.abs(a.y - b.y) ? [{ x: b.x, y: a.y }] : [{ x: a.x, y: b.y }];
-  return { coil: [...sup, ...mid, ...ret], split: sup.length + mid.length - 1 };
+/** Meander centreline: columns along y at x = l, l+pitch, … ≤ r, starting at (l,b) going +y. */
+export function meanderCenterline(l, b, r, t, pitch) {
+  const pts = [];
+  let up = true;
+  for (let x = l; x <= r + 1e-9; x += pitch) {
+    pts.push({ x, y: up ? b : t }, { x, y: up ? t : b });
+    up = !up;
+  }
+  return pts;
 }
 
-/** Offset an open polyline sideways by d (positive = left of travel direction, screen coords). */
+/** Offset an open polyline sideways by d (positive = right of travel in a y-up frame). */
 export function offsetPolyline(pts, d) {
   const segs = [];
   for (let i = 1; i < pts.length; i++) {
@@ -84,41 +114,64 @@ export function offsetPolyline(pts, d) {
 }
 
 /**
- * Double serpentine ("двойная змейка", bifilar meander): supply and return run as a parallel pair
- * s apart along a meander with 2·s pitch, turning at the far end — both ends at the entry corner,
- * supply/return alternate every s like the spiral, and there are no crossings (offset curves).
+ * Supply/return pair from a centreline: offsets ±s/2 joined by a semicircular U-turn at the end.
+ * Supply = the offset whose start has the smaller x. Returns { sup: start→tip, ret: tip→end }.
  */
+export function bifilarFromCenterline(center, s, arcSeg = 6) {
+  const a = offsetPolyline(center, s / 2);
+  const c = offsetPolyline(center, -s / 2);
+  const [sup, ret] = a[0].x <= c[0].x ? [a, c] : [c, a];
+  const e1 = sup[sup.length - 1];
+  const e2 = ret[ret.length - 1];
+  const C = { x: (e1.x + e2.x) / 2, y: (e1.y + e2.y) / 2 };
+  const p = center[center.length - 2];
+  const q = center[center.length - 1];
+  const L = Math.hypot(q.x - p.x, q.y - p.y) || 1;
+  const dir = { x: (q.x - p.x) / L, y: (q.y - p.y) / L };
+  const v1 = { x: e1.x - C.x, y: e1.y - C.y };
+  const arc = [];
+  for (let k = 1; k < arcSeg; k++) {
+    const th = (k / arcSeg) * Math.PI;
+    arc.push({ x: C.x + v1.x * Math.cos(th) + dir.x * (s / 2) * Math.sin(th), y: C.y + v1.y * Math.cos(th) + dir.y * (s / 2) * Math.sin(th) });
+  }
+  const h = Math.floor(arc.length / 2);
+  return { sup: [...sup, ...arc.slice(0, h + 1)], ret: [...arc.slice(h), ...[...ret].reverse()] };
+}
+
+/** Bifilar counter-flow spiral inside the rectangle; both ends at the (x0,y0) corner, s apart. */
+export function spiralLoop(x0, y0, x1, y1, s) {
+  const c = spiralCenterline(x0 + s / 2, y0 + s / 2, x1 - s / 2, y1 - s / 2, 2 * s, 1.3 * s);
+  if (c.length < 2) return { coil: [], split: 0, sup: [], ret: [] };
+  const { sup, ret } = bifilarFromCenterline(c, s);
+  return { coil: [...sup, ...ret.slice(1)], split: sup.length, sup, ret };
+}
+
+/** Double serpentine: supply/return pair along a meander of 2·s pitch, U-turn at the far column. */
 export function doubleSerpentineLoop(x0, y0, x1, y1, s) {
-  const c = [];
-  let dir = 1;
-  const xa = x0 + s / 2;
-  const xb = x1 - s / 2;
-  for (let y = y0 + s / 2; y <= y1 - s / 2 + 1e-9; y += 2 * s) {
-    c.push({ x: dir > 0 ? xa : xb, y }, { x: dir > 0 ? xb : xa, y });
-    dir = -dir;
-  }
-  if (c.length < 2) return { coil: [], split: 0 };
-  const sup = offsetPolyline(c, s / 2);
-  const ret = offsetPolyline(c, -s / 2).reverse();
-  return { coil: [...sup, ...ret], split: sup.length };
+  // columns at exactly 2·s; the leftover width is split evenly to both sides
+  const m = Math.floor((x1 - x0 - s) / (2 * s) + 1e-9) + 1;
+  const pad = Math.max(0, (x1 - x0 - s - (m - 1) * 2 * s) / 2);
+  const c = meanderCenterline(x0 + pad + s / 2, y0 + s / 2, x1 - pad - s / 2 + 1e-6, y1 - s / 2, 2 * s);
+  if (c.length < 2 || y1 - y0 < 2 * s) return { coil: [], split: 0, sup: [], ret: [] };
+  const { sup, ret } = bifilarFromCenterline(c, s);
+  return { coil: [...sup, ...ret.slice(1)], split: sup.length, sup, ret };
 }
 
-/** Serpentine inside the rectangle; runs parallel to x. Returns coil ending back at the start edge. */
-export function serpentineLoop(x0, y0, x1, y1, s, edge) {
-  const pts = [];
-  let dir = 1;
-  let y = y0;
-  for (; y <= y1 + 1e-9; y += s) {
-    pts.push({ x: dir > 0 ? x0 : x1, y }, { x: dir > 0 ? x1 : x0, y });
-    dir = -dir;
-  }
-  const last = pts[pts.length - 1];
-  // return lead back along the edge zone to the entry side
-  const back = last.x === x0 ? [{ x: x0 - edge / 2, y: last.y }, { x: x0 - edge / 2, y: y0 - edge / 2 }] : [{ x: x1 + edge / 2, y: last.y }, { x: x1 + edge / 2, y: y0 - edge / 2 }, { x: x0 - edge / 2, y: y0 - edge / 2 }];
-  return { coil: [...pts, ...back], split: Math.ceil(pts.length / 2) };
+/**
+ * Single serpentine: columns at pitch s (even count so it ends at the entry edge), the return pipe
+ * runs back along the entry edge (y = y0) and ends at x0 + 1.5·s, next to the supply start (x0 + s/2, y0 + s).
+ */
+export function serpentineLoop(x0, y0, x1, y1, s) {
+  let m = Math.floor((x1 - x0 - s) / s + 1e-9) + 1;
+  if (m % 2) m -= 1;
+  if (m < 2 || y1 - y0 < 3 * s) return { coil: [], split: 0, sup: [], ret: [] };
+  const sup = meanderCenterline(x0 + s / 2, y0 + s, x0 + s / 2 + (m - 1) * s, y1 - s / 2, s);
+  const last = sup[sup.length - 1];
+  const ret = [last, { x: last.x, y: y0 }, { x: x0 + 1.5 * s, y: y0 }];
+  return { coil: [...sup, ...ret.slice(1)], split: sup.length, sup, ret };
 }
 
-/** Round the corners of an orthogonal polyline with radius r (arc approximated by `n` segments). */
+/** Round the corners of a polyline with radius r (quadratic Bézier, `n` segments per corner). */
 export function roundCorners(pts, r, n = 4) {
   if (pts.length < 3 || r <= 0) return pts;
   const out = [pts[0]];
@@ -129,116 +182,153 @@ export function roundCorners(pts, r, n = 4) {
     const la = Math.hypot(p.x - a.x, p.y - a.y);
     const lc = Math.hypot(c.x - p.x, c.y - p.y);
     const rr = Math.min(r, la / 2, lc / 2);
-    if (rr < 1e-4) {
+    const ua = { x: (p.x - a.x) / (la || 1), y: (p.y - a.y) / (la || 1) };
+    const uc = { x: (c.x - p.x) / (lc || 1), y: (c.y - p.y) / (lc || 1) };
+    // skip nearly straight joints (arc points) and degenerate ones
+    if (rr < 1e-4 || ua.x * uc.x + ua.y * uc.y > 0.95) {
       out.push(p);
       continue;
     }
-    const ua = { x: (p.x - a.x) / la, y: (p.y - a.y) / la };
-    const uc = { x: (c.x - p.x) / lc, y: (c.y - p.y) / lc };
     const s0 = { x: p.x - ua.x * rr, y: p.y - ua.y * rr };
     const s1 = { x: p.x + uc.x * rr, y: p.y + uc.y * rr };
     for (let k = 0; k <= n; k++) {
       const t = k / n;
-      // quadratic Bézier through the corner (tangent-continuous)
-      const x = (1 - t) * (1 - t) * s0.x + 2 * (1 - t) * t * p.x + t * t * s1.x;
-      const y = (1 - t) * (1 - t) * s0.y + 2 * (1 - t) * t * p.y + t * t * s1.y;
-      out.push({ x, y });
+      out.push({ x: (1 - t) * (1 - t) * s0.x + 2 * (1 - t) * t * p.x + t * t * s1.x, y: (1 - t) * (1 - t) * s0.y + 2 * (1 - t) * t * p.y + t * t * s1.y });
     }
   }
   out.push(pts[pts.length - 1]);
   return out;
 }
 
-function orthoLead(a, b, horizontalFirst) {
-  const c = horizontalFirst ? { x: b.x, y: a.y } : { x: a.x, y: b.y };
-  return [a, c, b].filter((p, i, arr) => i === 0 || Math.hypot(p.x - arr[i - 1].x, p.y - arr[i - 1].y) > 1e-4);
+function segDist(p, a, b) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy || 1)));
+  return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy);
 }
 
 /**
  * Layout all loops of one room.
- * @param {object} o { polygon, loops, spacing, pattern: 'spiral'|'serpentine', inset, bendRadius,
- *                     ports: [{supply:{x,y}, return:{x,y}}] (one per loop, optional), toward:{x,y} }
- * @returns {{ loops: [{coil, supplyLead, returnLead, path, coilLength, leadLength, length, corners}], approx }}
+ * @param {object} o { polygon, loops, spacing, pattern: 'auto'|'spiral'|'double_serpentine'|'serpentine',
+ *                     inset, bendRadius, leadPitch, ports: [{supply:{x,y}, return:{x,y}}], toward:{x,y} }
+ * @returns {{ loops: [{strip, coil, split, pattern, supplyLead, returnLead, coilLength, leadLength, length, corners}], approx, side }}
+ *          loops[k] is connected to ports[k].
  */
 export function layoutRoomUfh(o) {
-  const { polygon, spacing: s, pattern = 'spiral', inset = 0.25, bendRadius = 0.08 } = o;
+  const { polygon, spacing: s, pattern = 'auto', inset = 0.25, bendRadius = 0.08, leadPitch = 0.05 } = o;
   const xs = polygon.map((p) => p.x);
   const ys = polygon.map((p) => p.y);
-  const bx0 = Math.min(...xs) + inset;
-  const bx1 = Math.max(...xs) - inset;
-  const by0 = Math.min(...ys) + inset;
-  const by1 = Math.max(...ys) - inset;
+  const X0 = Math.min(...xs) + inset;
+  const X1 = Math.max(...xs) - inset;
+  const Y0 = Math.min(...ys) + inset;
+  const Y1 = Math.max(...ys) - inset;
   const bboxArea = (Math.max(...xs) - Math.min(...xs)) * (Math.max(...ys) - Math.min(...ys));
   const approx = Math.abs(Math.abs(polygonArea(polygon)) - bboxArea) > 0.05 * bboxArea;
-  if (bx1 - bx0 < 2 * s || by1 - by0 < 2 * s) return { loops: [], approx, tooSmall: true };
+  if (X1 - X0 < 2 * s || Y1 - Y0 < 2 * s) return { loops: [], approx, tooSmall: true };
   const n = Math.max(1, o.loops | 0);
-  const toward = o.toward ?? { x: bx0, y: by0 };
-  // split along the longer side into n strips; order strips from the collector side outward
-  const horizontalStrips = bx1 - bx0 >= by1 - by0; // strips side by side along x
-  const strips = [];
+  const toward = o.toward ?? { x: X0, y: Y0 };
+  // entry side = bbox side nearest the manifold; frame (u along the side, v into the room)
+  const sides = {
+    bottom: segDist(toward, { x: X0, y: Y0 }, { x: X1, y: Y0 }),
+    top: segDist(toward, { x: X0, y: Y1 }, { x: X1, y: Y1 }),
+    left: segDist(toward, { x: X0, y: Y0 }, { x: X0, y: Y1 }),
+    right: segDist(toward, { x: X1, y: Y0 }, { x: X1, y: Y1 }),
+  };
+  const side = Object.entries(sides).sort((a, b) => a[1] - b[1])[0][0];
+  const horiz = side === 'bottom' || side === 'top';
+  const U = horiz ? X1 - X0 : Y1 - Y0;
+  const D = horiz ? Y1 - Y0 : X1 - X0;
+  const toPlan = ({ x: u, y: v }) =>
+    side === 'bottom' ? { x: X0 + u, y: Y0 + v } : side === 'top' ? { x: X0 + u, y: Y1 - v } : side === 'left' ? { x: X0 + v, y: Y0 + u } : { x: X1 - v, y: Y0 + u };
+  const toFrame = (p) =>
+    side === 'bottom' ? { x: p.x - X0, y: p.y - Y0 } : side === 'top' ? { x: p.x - X0, y: Y1 - p.y } : side === 'left' ? { x: p.y - Y0, y: p.x - X0 } : { x: p.y - Y0, y: X1 - p.x };
+  const ports = o.ports?.length ? o.ports.slice(0, n) : null;
+  // lead band along the entry side: one track per lead pipe
+  let band = ports ? leadPitch * (2 * n + 1) : 0;
+  if (D - band < 2.5 * s) band = Math.max(0, D - 2.5 * s);
+  const uc = ports ? ports.reduce((a, p) => a + toFrame(p.supply).x, 0) / ports.length : Math.max(0, Math.min(U, toFrame(toward).x));
+  const minBend = Math.min(bendRadius, s / 2);
+  const w = U / n;
+  const loops = [];
   for (let k = 0; k < n; k++) {
-    if (horizontalStrips) {
-      const w = (bx1 - bx0) / n;
-      strips.push({ x0: bx0 + k * w + (k ? s / 2 : 0), x1: bx0 + (k + 1) * w - (k < n - 1 ? s / 2 : 0), y0: by0, y1: by1 });
-    } else {
-      const h = (by1 - by0) / n;
-      strips.push({ x0: bx0, x1: bx1, y0: by0 + k * h + (k ? s / 2 : 0), y1: by0 + (k + 1) * h - (k < n - 1 ? s / 2 : 0) });
+    const u0 = k * w + (k ? s / 2 : 0);
+    const u1 = (k + 1) * w - (k < n - 1 ? s / 2 : 0);
+    const W = u1 - u0;
+    const H = D - band;
+    const mirror = Math.abs(u1 - uc) < Math.abs(u0 - uc);
+    const pat = pattern === 'auto' || !pattern ? (Math.max(W, H) / Math.min(W, H) > 1.8 || Math.min(W, H) < 1.2 ? 'double_serpentine' : 'spiral') : pattern;
+    const gen = pat === 'serpentine' ? serpentineLoop(0, 0, W, H, s) : pat === 'double_serpentine' ? doubleSerpentineLoop(0, 0, W, H, s) : spiralLoop(0, 0, W, H, s);
+    if (!gen.sup.length) continue;
+    const toF = (p) => ({ x: mirror ? u1 - p.x : u0 + p.x, y: band + p.y });
+    const supF = gen.sup.map(toF);
+    const retF = gen.ret.map(toF);
+    loops.push({ k, u0, u1, pat, supF, retF, entryU: supF[0].x });
+  }
+  // connect loops to ports in the same order along the entry side (nested → no crossings)
+  const portOrder = ports ? ports.map((p, i) => ({ i, u: toFrame(p.supply).x })).sort((a, b) => a.u - b.u) : [];
+  loops.sort((a, b) => a.entryU - b.entryU);
+  loops.forEach((l, j) => (l.port = ports ? portOrder[j]?.i ?? null : null));
+  // lead pipes: descent point on the entry edge, turn point at the port
+  const pipes = [];
+  for (const l of loops) {
+    if (l.port == null) continue;
+    const P = ports[l.port];
+    const a = { kind: 'supply', l, at: l.supF[0], port: P.supply };
+    const b = { kind: 'return', l, at: l.retF[l.retF.length - 1], port: P.return };
+    for (const pp of [a, b]) {
+      pp.pf = toFrame(pp.port);
+      pipes.push(pp);
     }
   }
-  const cx = (r) => (r.x0 + r.x1) / 2;
-  const cy = (r) => (r.y0 + r.y1) / 2;
-  strips.sort((a, b) => Math.hypot(cx(a) - toward.x, cy(a) - toward.y) - Math.hypot(cx(b) - toward.x, cy(b) - toward.y));
-  const minBend = Math.min(bendRadius, s / 2);
+  // turn slots near the ports (the ports' u, spread ≥ gap apart), assigned in the same order as the
+  // descents along the entry side → pipes left of their slot run right and vice versa; in each group
+  // the pipe nearest the slots takes the track closest to the coils → nested, crossing-free runs
+  const gap = leadPitch / 2;
+  pipes.sort((a, b) => a.at.x - b.at.x);
+  const slots = pipes.map((p) => p.pf.x).sort((a, b) => a - b);
+  for (let i = 1; i < slots.length; i++) slots[i] = Math.max(slots[i], slots[i - 1] + gap);
+  pipes.forEach((p, i) => (p.ut = slots[i]));
+  const rightGroup = pipes.filter((p) => p.at.x >= p.ut);
+  const leftGroup = pipes.filter((p) => p.at.x < p.ut).reverse();
+  for (const g of [rightGroup, leftGroup]) g.forEach((p, i) => (p.v = Math.max(leadPitch / 2, band - leadPitch * (i + 1))));
+  for (const p of pipes) {
+    const path = cleanPath([p.at, { x: p.at.x, y: p.v }, { x: p.ut, y: p.v }, { x: p.ut, y: p.pf.y }, p.pf].map(toPlan));
+    p.path = roundCorners(path, Math.min(0.03, leadPitch / 2), 3).map((q) => ({ x: r3(q.x), y: r3(q.y) }));
+    p.path[0] = toPlan(p.at);
+    p.path[p.path.length - 1] = { ...p.port };
+  }
   const out = [];
-  strips.forEach((r) => {
-    const k = out.length;
-    // pick the strip corner nearest to the manifold as entry; generate in a normalised frame
-    const fx = Math.abs(r.x1 - toward.x) < Math.abs(r.x0 - toward.x);
-    const fy = Math.abs(r.y1 - toward.y) < Math.abs(r.y0 - toward.y);
-    const W = r.x1 - r.x0;
-    const H = r.y1 - r.y0;
-    // pattern per strip: 'auto' → spiral ("ulitka") for compact areas, double serpentine for long / narrow ones
-    const pat = pattern === 'auto' || !pattern ? (Math.max(W, H) / Math.min(W, H) > 1.8 || Math.min(W, H) < 1.2 ? 'double_serpentine' : 'spiral') : pattern;
-    // meanders run along the longer side
-    const along = W >= H;
-    const gen =
-      pat === 'serpentine'
-        ? serpentineLoop(0, 0, along ? W : H, along ? H : W, s, inset)
-        : pat === 'double_serpentine'
-          ? doubleSerpentineLoop(0, 0, along ? W : H, along ? H : W, s)
-          : spiralLoop(0, 0, W, H, s);
-    const turn = pat !== 'spiral' && !along ? (p) => ({ x: p.y, y: p.x }) : (p) => p;
-    const map = (p0) => {
-      const p = turn(p0);
-      return { x: r3(fx ? r.x1 - p.x : r.x0 + p.x), y: r3(fy ? r.y1 - p.y : r.y0 + p.y) };
-    };
-    if (!gen.coil.length) return;
-    // supply part and return part are rounded separately so the split survives rounding
-    const supSharp = gen.coil.slice(0, gen.split).map(map);
-    const retSharp = gen.coil.slice(gen.split).map(map);
-    const coilSharp = [...supSharp, ...retSharp];
-    const supR = roundCorners(supSharp, minBend);
-    const coil = [...supR, ...roundCorners(retSharp, minBend)];
-    const split = supR.length;
-    const start = coil[0];
-    const end = coil[coil.length - 1];
-    const port = o.ports?.[k];
-    const supplyLead = port ? orthoLead(port.supply, start, false) : [];
-    const returnLead = port ? orthoLead(end, port.return, true) : [];
+  for (const l of loops) {
+    const supSharp = cleanPath(l.supF.map(toPlan));
+    const retSharp = cleanPath(l.retF.map(toPlan));
+    const supR = roundCorners(supSharp, minBend).map((q) => ({ x: r3(q.x), y: r3(q.y) }));
+    const retR = roundCorners(retSharp, minBend).map((q) => ({ x: r3(q.x), y: r3(q.y) }));
+    const coil = [...supR, ...retR.slice(1)];
+    const sp = pipes.find((p) => p.l === l && p.kind === 'supply');
+    const rp = pipes.find((p) => p.l === l && p.kind === 'return');
+    const supplyLead = sp ? [...sp.path].reverse() : [];
+    const returnLead = rp ? rp.path : [];
+    if (supplyLead.length) supplyLead[supplyLead.length - 1] = coil[0];
+    if (returnLead.length) returnLead[0] = coil[coil.length - 1];
     const coilLength = pathLength(coil);
-    const leadLength = (supplyLead.length ? pathLength(supplyLead) : 0) + (returnLead.length ? pathLength(returnLead) : 0);
+    const leadLength = pathLength(supplyLead) + pathLength(returnLead);
+    const a = toPlan({ x: l.u0, y: band });
+    const b = toPlan({ x: l.u1, y: D });
     out.push({
-      strip: r,
+      port: l.port,
+      strip: { x0: Math.min(a.x, b.x), x1: Math.max(a.x, b.x), y0: Math.min(a.y, b.y), y1: Math.max(a.y, b.y) },
       coil,
-      split,
-      pattern: pat,
+      split: supR.length,
+      pattern: l.pat,
       supplyLead,
       returnLead,
       coilLength,
       leadLength,
       length: coilLength + leadLength,
-      corners: coilSharp.length - 2,
+      corners: supSharp.length + retSharp.length - 3,
     });
-  });
-  return { loops: out, approx, version: UFH_LAYOUT_VERSION };
+  }
+  // loops[k] ↔ ports[k]; without ports keep the order along the side
+  if (ports) out.sort((a, b) => a.port - b.port);
+  return { loops: out, approx, side, band, version: UFH_LAYOUT_VERSION };
 }
