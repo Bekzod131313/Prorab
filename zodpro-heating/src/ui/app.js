@@ -3,7 +3,7 @@
 import { Store, ERROR_LOG, logError } from '../core/store.js';
 import { createEmptyProject, elementsOf, sortedLevels, newElement, levelById } from '../core/model.js';
 import { createDemoProject, createSampleProject } from '../core/demo.js';
-import { autoPlaceRadiators, autoRoute, autoPlaceCollector } from '../core/autodesign.js';
+import { autoPlaceRadiators, autoRoute, autoPlaceCollector, autoUfh } from '../core/autodesign.js';
 import { serializeProject, parseProject, exportDXF, exportIFC, exportSVG, parseDXF, dxfSegmentsToWalls, download, toExcelXml } from '../core/io.js';
 import { t, setLang, getLang, LANG_NAMES, msg } from '../core/i18n.js';
 import { interpret } from '../core/assistant.js';
@@ -145,6 +145,7 @@ class App {
     tool('riser', t('t_riser'), 'riser', 'RS');
     tool('collector', t('t_collector'), 'collector', 'COL');
     tool('ufh_collector', t('t_ufh_collector'), 'ufh', 'UFH');
+    tool('ufh_room', t('t_ufh_room'), 'ufh', 'TP');
     tool('boiler', t('t_boiler'), 'boiler', 'B');
     tool('pump', t('t_pump'), 'pump', 'PU');
     tool('thermostat', t('t_thermostat'), 'thermostat', 'TH');
@@ -177,6 +178,7 @@ class App {
     cmd('redo', t('redo'), 'revision', () => this.store.redo(), 'REDO');
     cmd('level', t('t_level'), 'level', () => this.addLevel(), 'LV');
     cmd('auto_rad', t('t_auto_rad'), 'auto_rad', () => this.autoRadiators(), 'AUTORAD');
+    cmd('auto_ufh', t('t_auto_ufh'), 'ufh', () => this.autoUfh(), 'AUTOTP');
     cmd('auto_col', t('t_auto_col'), 'collector', () => this.autoCollector(), 'AUTOCOL');
     cmd('auto_route', t('t_auto_route'), 'auto_route', () => this.autoRoute(), 'AUTOROUTE');
     cmd('calc', t('t_calc'), 'calc', () => {
@@ -239,10 +241,10 @@ class App {
 
   ribbonLayout() {
     return {
-      project: [['select'], ['wall', 'door', 'window', 'room', 'level'], ['radiator', 'pipe_s', 'pipe_r', 'collector', 'boiler', 'pump', 'riser'], ['text', 'dim'], ['auto_rad', 'auto_route', 'calc'], ['view_3d', 'view_reports', 'view_schedules', 'view_sheets', 'exp_dxf']],
+      project: [['select'], ['wall', 'door', 'window', 'room', 'level'], ['radiator', 'pipe_s', 'pipe_r', 'collector', 'boiler', 'pump', 'riser'], ['text', 'dim'], ['ufh_room', 'auto_rad', 'auto_ufh', 'auto_route', 'calc'], ['view_3d', 'view_reports', 'view_schedules', 'view_sheets', 'exp_dxf']],
       edit: [['select', 'undo', 'redo'], ['move', 'copy', 'rotate', 'mirror', 'array', 'offset'], ['trim', 'extend', 'split', 'fillet', 'delete'], ['line', 'polyline', 'circle', 'arc', 'rect', 'hatch', 'leader', 'text', 'dim', 'measure']],
       view: [['view_plan', 'view_3d', 'view_schema', 'view_riser', 'view_section', 'section'], ['auto_grid', 'view_dashboard', 'view_install', 'view_issues', 'tags', 'zoom_fit']],
-      systems: [['radiator', 'pipe_s', 'pipe_r', 'riser'], ['collector', 'ufh_collector', 'boiler', 'pump', 'thermostat', 'obstacle'], ['auto_rad', 'auto_col', 'auto_route']],
+      systems: [['radiator', 'pipe_s', 'pipe_r', 'riser'], ['collector', 'ufh_collector', 'ufh_room', 'boiler', 'pump', 'thermostat', 'obstacle'], ['auto_rad', 'auto_ufh', 'auto_col', 'auto_route']],
       calc: [['calc', 'validate', 'balance'], ['view_reports', 'view_dashboard', 'view_schema'], ['ai']],
       docs: [['view_sheets', 'view_schedules', 'exp_pdf'], ['view_schema', 'view_riser', 'view_section', 'section'], ['revision', 'tags']],
       export: [['new', 'open', 'save', 'save_as', 'demo', 'demo_small'], ['imp_dxf', 'imp_img', 'imp_ifc', 'calibrate'], ['exp_dxf', 'exp_ifc', 'exp_xls', 'exp_csv', 'exp_svg', 'exp_png', 'exp_pdf'], ['quote', 'sap', 'telegram']],
@@ -737,17 +739,31 @@ class App {
     this.toast(`${cs.add.length} ta radiator joylashtirildi va tanlandi`);
   }
 
+  /** Underfloor heating for the selected rooms (or every heated room of the level) + manifolds + trunk piping. */
+  autoUfh(roomIds = null) {
+    const sel = [...this.store.selection].filter((id) => this.store.project.elements[id]?.cat === 'room');
+    const ids = roomIds ?? (sel.length ? sel : null);
+    const cs = autoUfh(this.store.project, this.store.activeLevelId, { roomIds: ids });
+    for (const w of cs.warnings) this.toast(`Kollektor joylab bo‘lmadi: ${w.params.room}`, 'error');
+    if (!cs.update.length) return this.toast('Issiq pol qilinadigan xona topilmadi');
+    this.store.apply(cs, 'auto:ufh');
+    // connect new manifolds to the boiler
+    if (cs.add.length) this.autoRoute(true);
+    this.toast(`${cs.update.length} ta xonada issiq pol${cs.add.length ? `, ${cs.add.length} ta yangi kollektor` : ''}`);
+  }
+
   autoCollector() {
     const cs = autoPlaceCollector(this.store.project, this.store.activeLevelId);
     if (!cs.add.length) return this.toast('Qavatda kollektor bor yoki xona yo‘q');
     this.store.apply(cs, 'auto:collector');
   }
 
-  autoRoute() {
+  autoRoute(quiet = false) {
+    this.store.flush?.();
     const res = this.store.results;
     const cs = autoRoute(this.store.project, (el) => res?.radiators?.[el.id]?.product);
     for (const w of cs.warnings) this.toast(msg(w.code), 'error');
-    if (!cs.add.length && !cs.update.length) return this.toast('Ulanadigan element yo‘q');
+    if (!cs.add.length && !cs.update.length) return quiet || this.toast('Ulanadigan element yo‘q');
     this.store.apply(cs, 'auto:route');
     this.toast(`${cs.add.length} ta quvur/stoyak yaratildi`);
   }

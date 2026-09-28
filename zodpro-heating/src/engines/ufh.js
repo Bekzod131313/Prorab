@@ -129,10 +129,15 @@ export function refineWithLayout(d, layoutFn, { ts, tr, maxLoop = 100, maxLoopKp
   let lay = layoutFn(loops);
   if (!lay.loops.length) return { ...d, layout: [], layoutApprox: lay.approx, warnings: [...d.warnings, { code: 'ufh_room_too_small' }] };
   const longest = (l) => Math.max(...l.loops.map((x) => x.length));
+  if (lay.loops.length > loops) {
+    loops = lay.loops.length;
+    lay = layoutFn(loops);
+  }
   while (longest(lay) > maxLoop && loops < 20) {
     loops++;
     lay = layoutFn(loops);
   }
+  loops = lay.loops.length;
   const mat = PIPE_MATERIALS[d.pipe.material];
   const size = mat?.sizes.find((z) => z.dn === String(d.pipe.dn)) ?? { id: 0.012 };
   const tm = (ts + tr) / 2;

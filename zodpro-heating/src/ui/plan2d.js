@@ -21,6 +21,7 @@ export const TOOL_HINTS = {
   riser: 'Stoyak: nuqtani bosing (ta’minot + qaytish, yuqori qavatgacha)',
   collector: 'Kollektor: joyni bosing · R — 90° burish',
   ufh_collector: 'Pol isitish kollektori: joyni bosing · R — burish',
+  ufh_room: 'Issiq pol: xonani bosing — konturlar va kollektor avtomatik (qayta bosish — o‘chirish)',
   boiler: 'Qozon: joyni bosing · R — burish',
   pump: 'Nasos: joyni bosing · R — burish',
   thermostat: 'Termostat: xona ichiga bosing',
@@ -728,6 +729,18 @@ export class PlanView {
       case 'ufh_collector':
         this.addEl('collector', { x: p.x, y: p.y, angle: this.opts.angle, outlets: T === 'ufh_collector' ? 4 : 6, kind: T === 'ufh_collector' ? 'ufh' : 'radiator', mixing: T === 'ufh_collector' }, T);
         break;
+      case 'ufh_room': {
+        const room = elementsOf(proj, 'room', lv).find((r) => pointInPolygon(p, r.points));
+        if (!room) {
+          this.app.toast('Xona ichiga bosing', 'error');
+          break;
+        }
+        if (room.heating === 'ufh' || room.heating === 'mixed') {
+          this.store.apply({ update: [{ id: room.id, patch: { heating: 'radiator', ufh: null } }] }, 'ufh:off');
+          this.app.toast(`${room.name}: issiq pol olib tashlandi`);
+        } else this.app.autoUfh([room.id]);
+        break;
+      }
       case 'boiler':
         this.addEl('boiler', { x: p.x, y: p.y, angle: this.opts.angle }, 'boiler');
         break;

@@ -3,7 +3,7 @@
 // that the application applies as ONE undoable transaction.
 
 import { newElement, elementsOf, openingPos, connectorsOf, isHeated, levelById, sortedLevels, localToPlan, wallDir } from './model.js';
-import { pointInPolygon, polygonCentroid, round } from './util.js';
+import { pointInPolygon, polygonCentroid, polygonArea, round } from './util.js';
 
 function inwardNormalForWall(wall, room, at = null) {
   const d = wallDir(wall);
@@ -134,7 +134,8 @@ export function autoRoute(project, productLookup, { material = null, trunkMateri
   const s = project.settings;
   const mat = material ?? s.pipeMaterial;
   // trunk (boiler ↔ manifolds, risers) may use another material, e.g. PPR trunks + PEX home-runs
-  const trunk = trunkMaterial ?? s.trunkMaterial ?? mat;
+  // PEX tops out at small diameters → main lines default to PPR
+  const trunk = trunkMaterial ?? s.trunkMaterial ?? (mat === 'PEX' ? 'PPR' : mat);
   const used = connectedConnectorIds(project);
   const collectors = elementsOf(project, 'collector').filter((c) => c.kind !== 'ufh');
   const patches = new Map();
@@ -294,4 +295,172 @@ export function applyChangeSet(project, cs) {
   for (const u of cs.update ?? []) if (project.elements[u.id]) Object.assign(project.elements[u.id], u.patch);
   for (const id of cs.remove ?? []) delete project.elements[id];
   return project;
+}
+
+// ---------------------------------------------------------------- underfloor heating
+
+const UFH_MAX_OUTLETS = 12;
+const NO_UFH_TYPES = ['boiler', 'stair', 'technical'];
+
+/** Estimated number of UFH loops of a room (≈ one loop per 12 m² at 150 mm spacing, ≤ 90 m). */
+export function estimateUfhLoops(room) {
+  return Math.max(1, Math.ceil(Math.abs(polygonArea(room.points)) / 12));
+}
+
+/**
+ * Manifold placement inside `room` on the room edge nearest `target` (0.3 m off the wall axis),
+ * body centred on the target's projection, the return row towards the room.
+ */
+export function ufhCollectorPlacement(room, target, outlets) {
+  const pts = room.points;
+  const len = 0.05 * outlets + 0.23;
+  let best = null;
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i];
+    const b = pts[(i + 1) % pts.length];
+    const L = Math.hypot(b.x - a.x, b.y - a.y);
+    if (L < len + 0.5) continue;
+    const dir = { x: (b.x - a.x) / L, y: (b.y - a.y) / L };
+    const t = Math.max(len / 2 + 0.25, Math.min(L - len / 2 - 0.25, (target.x - a.x) * dir.x + (target.y - a.y) * dir.y));
+    const q = { x: a.x + dir.x * t, y: a.y + dir.y * t };
+    const d = Math.hypot(q.x - target.x, q.y - target.y);
+    if (!best || d < best.d) best = { q, dir, d };
+  }
+  if (!best) return null;
+  let dir = best.dir;
+  let left = { x: -dir.y, y: dir.x };
+  if (!pointInPolygon({ x: best.q.x + left.x * 0.5, y: best.q.y + left.y * 0.5 }, pts)) {
+    dir = { x: -dir.x, y: -dir.y };
+    left = { x: -dir.y, y: dir.x };
+  }
+  const off = 0.3;
+  return {
+    x: round(best.q.x - dir.x * (len / 2 - 0.15) + left.x * off, 3),
+    y: round(best.q.y - dir.y * (len / 2 - 0.15) + left.y * off, 3),
+    angle: round((Math.atan2(dir.y, dir.x) * 180) / Math.PI, 2),
+  };
+}
+
+/** Common wall of two room outlines: total collinear overlap and the weighted midpoint. */
+export function sharedEdge(a, b, tol = 0.05) {
+  let len = 0;
+  let mx = 0;
+  let my = 0;
+  for (let i = 0; i < a.length; i++) {
+    const p = a[i];
+    const q = a[(i + 1) % a.length];
+    const L = Math.hypot(q.x - p.x, q.y - p.y);
+    if (L < 1e-6) continue;
+    const d = { x: (q.x - p.x) / L, y: (q.y - p.y) / L };
+    for (let j = 0; j < b.length; j++) {
+      const r = b[j];
+      const s = b[(j + 1) % b.length];
+      // both ends of b's edge on a's line?
+      const off = (z) => Math.abs((z.x - p.x) * d.y - (z.y - p.y) * d.x);
+      if (off(r) > tol || off(s) > tol) continue;
+      const t0 = Math.max(0, Math.min((r.x - p.x) * d.x + (r.y - p.y) * d.y, (s.x - p.x) * d.x + (s.y - p.y) * d.y));
+      const t1 = Math.min(L, Math.max((r.x - p.x) * d.x + (r.y - p.y) * d.y, (s.x - p.x) * d.x + (s.y - p.y) * d.y));
+      if (t1 - t0 <= 1e-3) continue;
+      const w = t1 - t0;
+      len += w;
+      mx += (p.x + d.x * (t0 + t1) / 2) * w;
+      my += (p.y + d.y * (t0 + t1) / 2) * w;
+    }
+  }
+  return len > 0 ? { len, mid: { x: mx / len, y: my / len } } : { len: 0, mid: null };
+}
+
+/**
+ * Automatic underfloor heating for a level (or the given rooms): rooms become UFH rooms and are
+ * grouped to manifolds of ≤ 12 outlets. Existing UFH manifolds are filled first; new ones go into
+ * the room that shares walls with the most UFH loops (preferably a corridor / hall / unheated room,
+ * so leads cross one wall straight into the manifold's room), on the wall facing those rooms.
+ */
+export function autoUfh(project, levelId, { roomIds = null } = {}) {
+  const all = elementsOf(project, 'room', levelId);
+  const rooms = (roomIds ? all.filter((r) => roomIds.includes(r.id)) : all.filter((r) => isHeated(r) && !NO_UFH_TYPES.includes(r.roomType))).filter((r) => !r.ufh?.transit);
+  const add = [];
+  const update = [];
+  const warnings = [];
+  if (!rooms.length) return { add, update, remove: [], warnings };
+  const need = new Map(rooms.map((r) => [r.id, estimateUfhLoops(r)]));
+  const d2 = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+  const assign = new Map();
+  // 1) existing manifolds: rooms containing or adjacent to the manifold's room, while outlets last
+  const cols = elementsOf(project, 'collector', levelId).filter((c) => c.kind === 'ufh');
+  const used = new Map(cols.map((c) => [c.id, 0]));
+  for (const r of all) if (r.ufh?.collectorId && used.has(r.ufh.collectorId) && !need.has(r.id)) used.set(r.ufh.collectorId, used.get(r.ufh.collectorId) + estimateUfhLoops(r));
+  for (const r of [...rooms].sort((a, b) => need.get(b.id) - need.get(a.id))) {
+    const ok = cols.filter((c) => {
+      if (used.get(c.id) + need.get(r.id) > UFH_MAX_OUTLETS) return false;
+      const host = all.find((h) => pointInPolygon(c, h.points));
+      return host && (host.id === r.id || sharedEdge(r.points, host.points).len >= 0.8);
+    });
+    const c = ok.sort((a, b) => d2(a, polygonCentroid(r.points)) - d2(b, polygonCentroid(r.points)))[0];
+    if (c) {
+      assign.set(r.id, c.id);
+      used.set(c.id, used.get(c.id) + need.get(r.id));
+    }
+  }
+  // 2) new manifolds, greedily in the host room that serves the most remaining loops
+  const shared = new Map();
+  const sh = (a, b) => {
+    const k = a.id < b.id ? `${a.id}|${b.id}` : `${b.id}|${a.id}`;
+    if (!shared.has(k)) shared.set(k, sharedEdge(a.points, b.points));
+    return shared.get(k);
+  };
+  let remaining = rooms.filter((r) => !assign.has(r.id));
+  for (let guard = 0; remaining.length && guard < 50; guard++) {
+    let best = null;
+    for (const h of all) {
+      const pick = [];
+      let loops = 0;
+      if (remaining.includes(h)) {
+        pick.push(h);
+        loops += need.get(h.id);
+      }
+      const passive = !need.has(h.id) && !(h.heating === 'ufh' || h.heating === 'mixed');
+      let adj = remaining.filter((r) => r !== h && sh(r, h).len >= 0.8).sort((a, b) => sh(b, h).len - sh(a, h).len);
+      if (!passive) {
+        // a heated host: only neighbours behind ONE of its walls, so their leads never cross its floor loops
+        const xs = h.points.map((p) => p.x);
+        const ys = h.points.map((p) => p.y);
+        const bb = { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
+        const sideOf = (m) => [['l', Math.abs(m.x - bb.x0)], ['r', Math.abs(m.x - bb.x1)], ['b', Math.abs(m.y - bb.y0)], ['t', Math.abs(m.y - bb.y1)]].sort((a, b) => a[1] - b[1])[0][0];
+        const bySide = {};
+        for (const r of adj) (bySide[sideOf(sh(r, h).mid)] ??= []).push(r);
+        const sum = (list) => list.reduce((a, r) => a + need.get(r.id), 0);
+        adj = Object.values(bySide).sort((a, b) => sum(b) - sum(a))[0] ?? [];
+      }
+      for (const r of adj) if (loops + need.get(r.id) <= UFH_MAX_OUTLETS) {
+        pick.push(r);
+        loops += need.get(r.id);
+      }
+      if (!pick.length) continue;
+      const score = loops + (passive ? 3 : 0) + pick.length * 0.01;
+      if (!best || score > best.score) best = { h, pick, loops, score };
+    }
+    if (!best) break;
+    const others = best.pick.filter((r) => r !== best.h);
+    let target;
+    if (others.length) {
+      const w = others.reduce((a, r) => a + need.get(r.id), 0);
+      target = { x: others.reduce((a, r) => a + sh(r, best.h).mid.x * need.get(r.id), 0) / w, y: others.reduce((a, r) => a + sh(r, best.h).mid.y * need.get(r.id), 0) / w };
+    } else target = polygonCentroid(best.h.points);
+    const pl = ufhCollectorPlacement(best.h, target, Math.max(2, best.loops));
+    if (!pl) {
+      warnings.push({ code: 'ufh_no_place', params: { room: best.h.name } });
+      remaining = remaining.filter((r) => !best.pick.includes(r));
+      continue;
+    }
+    const col = newElement('collector', { levelId, ...pl, outlets: Math.min(UFH_MAX_OUTLETS, Math.max(2, best.loops)), kind: 'ufh', mixing: true });
+    add.push(col);
+    for (const r of best.pick) assign.set(r.id, col.id);
+    remaining = remaining.filter((r) => !best.pick.includes(r));
+  }
+  for (const r of rooms) {
+    if (!assign.has(r.id)) continue;
+    update.push({ id: r.id, patch: { heating: r.heating === 'mixed' ? 'mixed' : 'ufh', ufh: { spacing: null, pipe: { material: 'PEX', dn: '16' }, pattern: 'auto', ...(r.ufh ?? {}), collectorId: assign.get(r.id) } } });
+  }
+  return { add, update, remove: [], warnings };
 }

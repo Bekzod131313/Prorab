@@ -107,3 +107,36 @@ test('calculation uses the real loop geometry', () => {
   const ports = ufh.filter((u) => u.collectorId === col).map((u) => [u.firstPort, u.loops]).sort((a, b) => a[0] - b[0]);
   for (let i = 1; i < ports.length; i++) assert.equal(ports[i][0], ports[i - 1][0] + ports[i - 1][1]);
 });
+
+import { autoUfh, applyChangeSet } from '../src/core/autodesign.js';
+import { createSampleProject } from '../src/core/demo.js';
+import { layoutRoomUfh as lay2 } from '../src/engines/ufhlayout.js';
+
+test('L-shaped room: coils stay inside the outline and leads never cross a coil', () => {
+  const polygon = [{ x: 0, y: 0 }, { x: 6, y: 0 }, { x: 6, y: 3 }, { x: 3, y: 3 }, { x: 3, y: 7 }, { x: 0, y: 7 }];
+  const ports = Array.from({ length: 6 }, (_, k) => ({ supply: { x: 6.3, y: 1.5 + k * 0.05 }, return: { x: 6.5, y: 1.5 + k * 0.05 } }));
+  const lay = lay2({ polygon, loops: 3, spacing: 0.2, inset: 0.3, ports, toward: ports[0].supply });
+  assert.ok(lay.loops.length >= 3);
+  const inside = (p) => (p.x >= 0 && p.x <= 6 && p.y >= 0 && p.y <= 3) || (p.x >= 0 && p.x <= 3 && p.y >= 0 && p.y <= 7);
+  for (const l of lay.loops) for (const p of l.coil) assert.ok(inside(p), `coil point ${p.x},${p.y} outside`);
+  const paths = lay.loops.flatMap((l) => [l.coil, l.supplyLead.filter((p) => p.x < 5.9), l.returnLead.filter((p) => p.x < 5.9)]);
+  let n = 0;
+  for (let i = 0; i < paths.length; i++) for (let j = i + 1; j < paths.length; j++) n += crossBetween(paths[i], paths[j]);
+  assert.equal(n, 0);
+});
+
+test('auto UFH: whole level grouped to ≤ 12-outlet manifolds, every room connected', () => {
+  const p = createSampleProject();
+  for (const e of Object.values(p.elements)) if (e.cat === 'radiator' && e.levelId === 'lvl_1') delete p.elements[e.id];
+  const cs = autoUfh(p, 'lvl_1');
+  assert.ok(cs.add.length >= 1);
+  applyChangeSet(p, cs);
+  const r = runCalculation(p, { noCache: true });
+  const rooms = Object.values(p.elements).filter((e) => e.cat === 'room' && e.levelId === 'lvl_1' && e.heating === 'ufh');
+  assert.ok(rooms.length >= 6);
+  for (const rm of rooms) {
+    assert.ok(r.ufh[rm.id]?.layout.length > 0, rm.name);
+    assert.ok(r.ufh[rm.id].layout.every((l) => l.supplyLead.length && l.returnLead.length), `${rm.name} leads`);
+  }
+  for (const c of cs.add) assert.ok((r.ufhPorts?.[c.id] ?? 0) <= 12, `manifold outlets ${r.ufhPorts?.[c.id]}`);
+});

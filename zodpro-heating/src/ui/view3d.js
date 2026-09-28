@@ -4,6 +4,7 @@
 // isolate level, x-ray architecture, flow arrows, selection and measurement.
 import { elementsOf, sortedLevels, levelById, openingPos, wallDir, localToPlan, collectorPortLocal, COLLECTOR_PITCH, COLLECTOR_RETURN_Y } from '../core/model.js';
 import { PIPE_MATERIALS } from '../data/products.js';
+import { pointInPolygon } from '../core/util.js';
 
 let THREE = null;
 let OrbitControls = null;
@@ -143,18 +144,24 @@ export class View3D {
   /** First-person walk at eye level (1.6 m above the active level); mouse drag looks around. */
   toggleWalk() {
     this.walk = !this.walk;
-    const lv = levelById(this.store.project, this.store.activeLevelId);
     if (this.walk) {
       this._orbit = { pos: this.camera.position.clone(), target: this.controls.target.clone() };
-      // start in the selected room (or the largest one) of the active level; 3D y = −plan y
-      const rooms = elementsOf(this.store.project, 'room', this.store.activeLevelId);
-      const sel = rooms.find((r) => this.store.selection?.has?.(r.id));
+      const { level: lv, at } = this.walkTarget();
+      if (lv && lv.id !== this.store.activeLevelId) this.store.setLevel(lv.id);
+      // start where the view is aimed (inside a room of that level), else in the selected / largest room
+      const rooms = elementsOf(this.store.project, 'room', lv?.id);
       const area = (r) => Math.abs(r.points.reduce((a, q, i) => a + q.x * r.points[(i + 1) % r.points.length].y - r.points[(i + 1) % r.points.length].x * q.y, 0));
-      const room = sel ?? [...rooms].sort((a, b) => area(b) - area(a))[0];
-      const c = room ? { x: room.points.reduce((a, q) => a + q.x, 0) / room.points.length, y: room.points.reduce((a, q) => a + q.y, 0) / room.points.length } : this.levelCentre(this.store.activeLevelId);
+      const hitRoom = at && rooms.find((r) => pointInPolygon(at, r.points));
+      const room = hitRoom ?? rooms.find((r) => this.store.selection?.has?.(r.id)) ?? [...rooms].sort((x, y) => area(y) - area(x))[0];
+      const c = hitRoom ? at : room ? { x: room.points.reduce((a, q) => a + q.x, 0) / room.points.length, y: room.points.reduce((a, q) => a + q.y, 0) / room.points.length } : this.levelCentre(lv?.id);
       const z = (lv?.elevation ?? 0) + 1.6;
+      // keep the horizontal heading of the orbit view
+      const h = new THREE.Vector3().subVectors(this._orbit.target, this._orbit.pos);
+      h.z = 0;
+      if (h.lengthSq() < 1e-6) h.set(0, 1, 0);
+      h.normalize().multiplyScalar(0.6);
       this.camera.position.set(c.x, -c.y, z);
-      this.controls.target.set(c.x, -c.y + 0.6, z);
+      this.controls.target.set(c.x + h.x, -c.y + h.y, z);
       this.controls.minDistance = 0.1;
       this.controls.enablePan = false;
       this.camera.fov = 70;
@@ -170,6 +177,18 @@ export class View3D {
       this.app.setHint('');
     }
     this.camera.updateProjectionMatrix();
+  }
+
+  /** Level (and plan point) the view is aimed at: ray from the screen centre, ignoring what the section removed. */
+  walkTarget() {
+    const levels = sortedLevels(this.store.project);
+    const cut = this.cutZ();
+    this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
+    const hit = this.raycaster.intersectObjects(this.group.children, true).find((h) => h.point.z <= cut + 0.01 && h.object.visible);
+    const levelAt = (z) => [...levels].reverse().find((l) => z >= l.elevation - 0.35) ?? levels[0];
+    if (hit) return { level: levelAt(hit.point.z), at: { x: hit.point.x, y: -hit.point.y } };
+    const t = this.controls.target;
+    return { level: Number.isFinite(cut) ? levelAt(Math.min(cut, t.z)) : levelById(this.store.project, this.store.activeLevelId) ?? levelAt(t.z), at: null };
   }
 
   skyTexture() {
