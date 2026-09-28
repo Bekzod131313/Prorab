@@ -196,6 +196,7 @@ export function autoRoute(project, productLookup, { material = null, trunkMateri
       supplyStart = pout;
     }
     const riserFor = new Map();
+    const claimed = new Set();
     for (const col of elementsOf(project, 'collector')) {
       const cc = connectorsOf(project, col, null);
       const cs = cc.find((c) => c.name === 'in_supply');
@@ -208,6 +209,23 @@ export function autoRoute(project, productLookup, { material = null, trunkMateri
         // risers beside the boiler, shared by all collectors on upper/lower levels
         const lv = levelById(project, col.levelId);
         if (!lv || !bLevel) continue;
+        // an existing supply/return riser pair already reaching this level → just connect to it
+        const reach = (r) => r.levelTo === lv.id || r.levelFrom === lv.id;
+        // prefer riser ends on this level that nothing is connected to yet
+        const endFree = (r) => !claimed.has(r.id) && ![...elementsOf(project, 'pipe', lv.id), ...add.filter((e) => e.cat === 'pipe' && e.levelId === lv.id)].some((pp) => [pp.points[0], pp.points[pp.points.length - 1]].some((q) => Math.hypot(q.x - r.x, q.y - r.y) < 0.03));
+        const pickR = (sys) => {
+          const list = elementsOf(project, 'riser').filter((r) => r.system === sys && reach(r));
+          return list.find(endFree) ?? list[0];
+        };
+        const exS = pickR('supply');
+        const exR = pickR('return');
+        if (exS) claimed.add(exS.id);
+        if (exR) claimed.add(exR.id);
+        if (exS && exR) {
+          if (!used.has(cs.id)) add.push(newElement('pipe', { levelId: lv.id, system: 'supply', material: trunk, autoSize: true, elevation: s.pipeElevation + 0.1, points: orthoRoute({ x: exS.x, y: exS.y }, cs.pos, null) }));
+          if (!used.has(cr.id)) add.push(newElement('pipe', { levelId: lv.id, system: 'return', material: trunk, autoSize: true, elevation: s.pipeElevation + 0.15, points: orthoRoute({ x: exR.x, y: exR.y }, cr.pos, null) }));
+          continue;
+        }
         const rs = localToPlan(boiler, -0.45, 0.25 + 0.15 * riserFor.size);
         const rr = localToPlan(boiler, 0.45, 0.25 + 0.15 * riserFor.size);
         const sp = { x: round(rs.x, 3), y: round(rs.y, 3) };
@@ -228,15 +246,18 @@ export function autoRoute(project, productLookup, { material = null, trunkMateri
   return { add, update, remove: [], warnings };
 }
 
-/** Place a collector in the corridor (or the largest heated room) of a level if none exists. */
+/** Place a collector on a wall of the corridor (or the most central room) of a level if none exists, facing the room. */
 export function autoPlaceCollector(project, levelId, kind = 'radiator') {
   const existing = elementsOf(project, 'collector', levelId).filter((c) => (c.kind ?? 'radiator') === kind);
   if (existing.length) return { add: [], update: [], remove: [] };
   const rooms = elementsOf(project, 'room', levelId);
-  const host = rooms.find((r) => r.roomType === 'corridor') ?? rooms.sort((a, b) => b.points.length - a.points.length)[0];
-  if (!host) return { add: [], update: [], remove: [] };
-  const c = polygonCentroid(host.points);
-  return { add: [newElement('collector', { levelId, x: round(c.x - 0.3, 3), y: round(c.y + (kind === 'ufh' ? 0.6 : 0), 3), angle: 0, outlets: 4, kind })], update: [], remove: [] };
+  if (!rooms.length) return { add: [], update: [], remove: [] };
+  const all = rooms.map((r) => polygonCentroid(r.points));
+  const gc = { x: all.reduce((a, q) => a + q.x, 0) / all.length, y: all.reduce((a, q) => a + q.y, 0) / all.length };
+  const d = (r) => Math.hypot(polygonCentroid(r.points).x - gc.x, polygonCentroid(r.points).y - gc.y);
+  const host = rooms.filter((r) => ['corridor', 'hall'].includes(r.roomType)).sort((a, b) => d(a) - d(b))[0] ?? [...rooms].sort((a, b) => d(a) - d(b))[0];
+  const pl = ufhCollectorPlacement(host, gc, 6) ?? { ...polygonCentroid(host.points), angle: 0 };
+  return { add: [newElement('collector', { levelId, x: round(pl.x, 3), y: round(pl.y, 3), angle: pl.angle, outlets: 4, kind, mixing: kind === 'ufh' })], update: [], remove: [] };
 }
 
 export function levelsAbove(project, levelId) {

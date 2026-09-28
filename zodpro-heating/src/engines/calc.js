@@ -231,17 +231,30 @@ export function runCalculation(project, opts = {}) {
           maxHeight = Math.max(0.3, win.sill - (rad.mountHeight ?? 0.1) - 0.05);
           preferLength = win.width * 0.75;
         }
-        sel = selectRadiator(Math.max(req, 1), {
-          ts,
-          tr,
-          ti,
-          kind,
-          type: rad.prefType ?? (kind === 'panel' ? 22 : null),
-          maxHeight: rad.prefHeight ? null : maxHeight,
-          height: rad.prefHeight ?? null,
-          preferLength,
-          catalog,
-        });
+        if (win && kind === 'panel' && !rad.prefHeight) {
+          // under a window (designer practice): 500 mm high if it fits under the sill (else the tallest
+          // that does), length 50…100 % of the window (aim 75 %); if the preferred type is far too
+          // strong at that length, a lighter type (21 / 11) is taken instead of a stub radiator
+          const heights = [...new Set(catalog.filter((c) => c.kind === 'panel').map((c) => c.height))].filter((h) => h <= maxHeight + 1e-6).sort((a, b) => b - a);
+          const H = heights.includes(0.5) ? 0.5 : heights[0];
+          const base = { ts, tr, ti, kind, height: H, minLength: Math.max(0.4, win.width * 0.5), maxLength: win.width + 0.2, preferLength, catalog };
+          const typed = selectRadiator(Math.max(req, 1), { ...base, type: rad.prefType ?? 22 });
+          const any = selectRadiator(Math.max(req, 1), base);
+          sel = !typed.product || (any.product && typed.excessPct > 40 && any.excessPct < typed.excessPct - 15) ? any : typed;
+          if (!sel.product) sel = selectRadiator(Math.max(req, 1), { ...base, maxLength: null, minLength: null });
+        }
+        if (!sel?.product)
+          sel = selectRadiator(Math.max(req, 1), {
+            ts,
+            tr,
+            ti,
+            kind,
+            type: rad.prefType ?? (kind === 'panel' ? 22 : null),
+            maxHeight: rad.prefHeight ? null : maxHeight,
+            height: rad.prefHeight ?? null,
+            preferLength,
+            catalog,
+          });
         if (!sel.product) {
           // relax constraints: any type
           sel = selectRadiator(Math.max(req, 1), { ts, tr, ti, kind: rad.prefKind ?? 'panel', maxHeight, catalog });

@@ -7,7 +7,7 @@ import { PIPE_MATERIALS } from '../data/products.js';
 import { pointInPolygon } from '../core/util.js';
 
 let THREE = null;
-let OrbitControls = null;
+let NavControls = null;
 let RoomEnvironment = null;
 let M3 = null; // models3d module
 
@@ -39,7 +39,7 @@ export class View3D {
     this.loading = true;
     try {
       THREE = await import('three');
-      ({ OrbitControls } = await import('three/addons/controls/OrbitControls.js'));
+      ({ NavControls } = await import('./navcontrols.js'));
       ({ RoomEnvironment } = await import('three/addons/environments/RoomEnvironment.js'));
       M3 = await import('./models3d.js');
     } catch (err) {
@@ -65,9 +65,8 @@ export class View3D {
     this.camera = new THREE.PerspectiveCamera(40, r.width / Math.max(1, r.height), 0.05, 2000);
     this.camera.up.set(0, 0, 1);
     this.camera.position.set(-8, 18, 16);
-    this.controls = new OrbitControls(this.camera, renderer.domElement);
-    this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.12;
+    // Enscape-style navigation: left drag look, right drag orbit, middle / Shift+left pan, wheel to cursor, WASD
+    this.controls = new NavControls(this.camera, renderer.domElement, (cx, cy) => this.scenePointAt(cx, cy));
     this.scene.add(new THREE.HemisphereLight(0xeaf2ff, 0x8a8577, 0.55));
     const sun = new THREE.DirectionalLight(0xfff4e2, 2.0);
     sun.position.set(-12, -18, 26);
@@ -162,8 +161,7 @@ export class View3D {
       h.normalize().multiplyScalar(0.6);
       this.camera.position.set(c.x, -c.y, z);
       this.controls.target.set(c.x + h.x, -c.y + h.y, z);
-      this.controls.minDistance = 0.1;
-      this.controls.enablePan = false;
+      this.controls.walk = true;
       this.camera.fov = 70;
       this.app.setHint('Yurish: W/A/S/D — yurish, Q/E — past/yuqori, Shift — tez, sichqoncha — atrofga qarash, F — chiqish');
     } else {
@@ -171,12 +169,21 @@ export class View3D {
         this.camera.position.copy(this._orbit.pos);
         this.controls.target.copy(this._orbit.target);
       }
-      this.controls.minDistance = 0;
-      this.controls.enablePan = true;
+      this.controls.walk = false;
       this.camera.fov = 40;
       this.app.setHint('');
     }
     this.camera.updateProjectionMatrix();
+  }
+
+  /** First visible scene point under the cursor (ignoring what the section removed), or null. */
+  scenePointAt(cx, cy) {
+    const r = this.renderer.domElement.getBoundingClientRect();
+    const v = new THREE.Vector2(((cx - r.left) / r.width) * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
+    this.raycaster.setFromCamera(v, this.camera);
+    const cut = this.cutZ();
+    const hit = this.raycaster.intersectObjects(this.group.children, true).find((h) => h.point.z <= cut + 0.01 && h.object.visible);
+    return hit ? hit.point.clone() : null;
   }
 
   /** Level (and plan point) the view is aimed at: ray from the screen centre, ignoring what the section removed. */
@@ -209,6 +216,7 @@ export class View3D {
 
   show(v) {
     this.visible = v;
+    if (v && !this.walk) this.app.setHint('3D: chap tugma — atrofga qarash · o‘ng tugma — aylantirish · g‘ildirak — yaqinlashish · o‘rta/Shift — surish · W/A/S/D — yurish, Q/E — past/yuqori, Shift — tez · F — ko‘z balandligida yurish');
     if (v) {
       if (!this.ready) this.init();
       else {

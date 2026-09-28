@@ -735,13 +735,24 @@ class App {
   autoRadiators() {
     const cs = autoPlaceRadiators(this.store.project, { levelId: this.store.activeLevelId });
     if (!cs.add.length) return this.toast('Barcha isitiladigan xonalarda radiator bor');
-    for (const r of cs.add) {
+    for (const r of cs.add.filter((e) => e.cat === 'radiator')) {
       r.prefKind = this.radiatorPref.kind;
       if (r.prefKind === 'panel') r.prefType = this.radiatorPref.type;
       else delete r.prefType;
     }
+    // no radiator manifold on this level yet → put one on a corridor wall so the radiators can be connected
+    const lv = this.store.activeLevelId;
+    if (!Object.values(this.store.project.elements).some((e) => e.cat === 'collector' && e.kind !== 'ufh' && e.levelId === lv)) {
+      const cc = autoPlaceCollector(this.store.project, lv, 'radiator');
+      cs.add.push(...cc.add);
+    }
     this.store.apply(cs, 'auto:radiators');
-    this.toast(`${cs.add.length} ta radiator joylashtirildi va tanlandi`);
+    // size them (length follows the selection) and connect them right away when there is a source
+    this.store.recalc?.(true);
+    const p = this.store.project;
+    const hasSource = Object.values(p.elements).some((e) => e.cat === 'boiler' || (e.cat === 'collector' && e.kind !== 'ufh'));
+    if (hasSource) this.autoRoute(true);
+    this.toast(`${cs.add.length} ta radiator joylashtirildi va tanlandi${hasSource ? ', quvurlar ulandi' : ' — qozon/kollektor qo‘ying va "Avto quvur"ni bosing'}`);
   }
 
   /** Underfloor heating for the selected rooms (or every heated room of the level) + manifolds + trunk piping. */
