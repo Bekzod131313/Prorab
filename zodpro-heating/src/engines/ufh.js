@@ -111,7 +111,7 @@ export function designUfh(args) {
       vM3sPerLoop: flow.vM3s,
       velocity: s.v,
       dpLoop: s.dp,
-      pattern: args.pattern ?? 'spiral',
+      pattern: args.pattern ?? 'auto',
       pipe,
       warnings,
     };

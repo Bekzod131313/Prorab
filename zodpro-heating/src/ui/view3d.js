@@ -30,7 +30,7 @@ export class View3D {
     this.buildToolbar();
     store.on('results', () => this.visible && this.rebuild());
     store.on('selection', () => this.visible && this.highlight());
-    store.on('level', () => this.visible && this.applyClip());
+    store.on('level', () => this.visible && this.cutaway && this.rebuild());
   }
 
   async init() {
@@ -151,7 +151,7 @@ export class View3D {
     };
     btn('Kesik ko‘rinish', 'Faol qavat ustidan 2.2 m balandlikda kesish', () => {
       this.cutaway = !this.cutaway;
-      this.applyClip();
+      this.rebuild();
     }, () => this.cutaway);
     btn(this.isolate ? 'Faqat joriy qavat' : 'Barcha qavatlar', 'Faol qavatni ajratish', () => {
       this.isolate = this.isolate ? null : this.store.activeLevelId;
@@ -183,7 +183,8 @@ export class View3D {
     lab.querySelector('input').oninput = (e) => {
       const v = Number(e.target.value);
       this.clipH = v >= 100 ? null : v;
-      this.applyClip();
+      clearTimeout(this._clipT);
+      this._clipT = setTimeout(() => this.rebuild(), 80);
     };
     tb.appendChild(lab);
     btn('PNG', 'Rasmni saqlash', () => this.app.exportPNG3d());
@@ -195,13 +196,21 @@ export class View3D {
     return (top?.elevation ?? 0) + (top?.height ?? 3) + 1;
   }
 
-  applyClip() {
-    if (!this.ready) return;
-    let z = this.clipH === null ? 1e6 : (this.clipH / 100) * this.maxZ();
+  /** Absolute height of the horizontal section plane (Infinity when no section is active). */
+  cutZ() {
+    let z = this.clipH === null ? Infinity : (this.clipH / 100) * this.maxZ();
     if (this.cutaway && this.clipH === null) {
       const lv = levelById(this.store.project, this.store.activeLevelId);
       if (lv) z = lv.elevation + 2.2;
     }
+    return z;
+  }
+
+  applyClip() {
+    if (!this.ready) return;
+    // walls are already cut geometrically; the clip plane sits a hair above their caps so it never
+    // slices the cap faces (no z-fighting) and only trims equipment / pipes above the section
+    const z = Math.min(1e6, this.cutZ() + 0.005);
     this.clipPlane.constant = z;
     this.renderer.clippingPlanes = z < 1e5 ? [this.clipPlane] : [];
   }
@@ -360,6 +369,7 @@ export class View3D {
     const fp = this.footprint(l.id);
     if (!fp) return;
     const ft = l.floorThickness ?? 0.3;
+    if (l.elevation - ft >= this.cutZ()) return;
     // floor slab of this level (its underside is the ceiling of the level below)
     const slab = this.extrudePoly(fp, l.elevation - ft, l.elevation - 0.001, [this.M.ceiling, this.M.slab]);
     this.add(slab);
@@ -380,6 +390,7 @@ export class View3D {
     const fp = this.footprint(l.id);
     if (!fp) return;
     const z0 = l.elevation + l.height;
+    if (z0 >= this.cutZ()) return;
     this.add(this.extrudePoly(fp, z0, z0 + (l.floorThickness ?? 0.3), [this.M.roof, this.M.slab]));
   }
 
@@ -397,6 +408,7 @@ export class View3D {
   }
 
   buildFloorFinish(r, l, res) {
+    if (l.elevation >= this.cutZ()) return;
     const u = res?.ufh?.[r.id];
     const matKey = u ? 'screed' : ROOM_FLOOR[r.roomType] ?? 'parquet';
     const shape = new THREE.Shape(r.points.map((q) => new THREE.Vector2(q.x, -q.y)));
@@ -422,11 +434,34 @@ export class View3D {
     const faceOut = w.exterior ? M.wallFacade : M.wallInterior;
     const mats = [M.wallCore, M.wallCore, plusIsOut ? faceOut : M.wallInterior, plusIsOut ? M.wallInterior : faceOut, M.wallCore, M.wallCore];
     const ops = [...elementsOf(p, 'window', l.id), ...elementsOf(p, 'door', l.id)].filter((o) => o.wallId === w.id).sort((a, b) => a.offset - b.offset);
-    let s0 = 0;
-    const piece = (a0, a1, zb, zt) => {
+    // corner joins: extend the wall by half the joining wall's thickness where it meets another wall's end,
+    // so L/T corners are closed solid (no notch at the outer corner)
+    const joinExt = (pt) => {
+      let ext = 0;
+      for (const o of elementsOf(p, 'wall', l.id)) {
+        if (o.id === w.id) continue;
+        const od = wallDir(o);
+        if (Math.abs(od.x * d.x + od.y * d.y) > 0.99) continue; // collinear
+        for (const q of [o.a, o.b]) if (Math.hypot(q.x - pt.x, q.y - pt.y) < 0.02) ext = Math.max(ext, (o.thickness ?? 0.2) / 2);
+      }
+      return ext;
+    };
+    const extA = joinExt(w.a);
+    const extB = joinExt(w.b);
+    let s0 = -extA;
+    // section: walls are cut geometrically at the plane and closed with a solid dark cap (poché),
+    // so a cut wall reads as solid material — never a hollow shell
+    const maxH = this.cutZ() - z0;
+    if (maxH <= 0.001) return;
+    const capMats = [...mats];
+    capMats[4] = M.cut;
+    const piece = (a0, a1, zb, zt0) => {
+      if (zb >= maxH - 1e-4) return;
+      const cut = zt0 > maxH;
+      const zt = Math.min(zt0, maxH);
       if (a1 - a0 < 1e-3 || zt - zb < 1e-3) return;
       const geo = M3.metricBoxUV(new THREE.BoxGeometry(a1 - a0, t, zt - zb), a1 - a0, t, zt - zb);
-      const m = new THREE.Mesh(geo, mats);
+      const m = new THREE.Mesh(geo, cut ? capMats : mats);
       const c = { x: w.a.x + d.x * ((a0 + a1) / 2), y: w.a.y + d.y * ((a0 + a1) / 2) };
       m.position.set(c.x, -c.y, z0 + (zb + zt) / 2);
       m.rotation.z = -ang;
@@ -446,7 +481,7 @@ export class View3D {
       this.add(model, o.id);
       s0 = o1;
     }
-    piece(s0, d.L, 0, H);
+    piece(s0, d.L + extB, 0, H);
   }
 
   buildEquipment(l, res) {

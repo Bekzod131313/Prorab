@@ -85,7 +85,93 @@ function buildSectional() {
   return out;
 }
 
-export const RADIATORS = [...buildPanelRadiators(), ...buildSectional()];
+// In-floor trench convectors (внутрипольные конвекторы). Natural convection: 300 × 120 mm,
+// output at 75/65/20 ≈ 580 W per metre of active length (reference points of the sample project:
+// 1200 → 491 W, 1600 → 714 W, 2400 → 1160 W, 3600 → 1830 W). Fan convectors (H = 84 mm, 3-speed):
+// 850 → 742 W, 1150 → 1285 W, 1650 → 2226 W at speed 3.
+function buildConvectors() {
+  const out = [];
+  const natural = { 1000: 380, 1200: 491, 1400: 600, 1600: 714, 1800: 830, 2000: 945, 2400: 1160, 2800: 1400, 3200: 1620, 3600: 1830 };
+  for (const [L, q] of Object.entries(natural)) {
+    const m = Number(L) / 1000;
+    out.push({
+      id: `CONV-N-300-120-${L}`,
+      family: 'radiator',
+      kind: 'convector',
+      brand: 'ZODPRO',
+      model: `Konvektor ventilyatorsiz 300×120×${L}`,
+      article: `ZP-KV-300120-${L}`,
+      sapArticle: `SAP-70${L}`,
+      type: 'KV',
+      fan: false,
+      width: 0.3,
+      height: 0.12,
+      length: m,
+      depth: 0.3,
+      q75: q,
+      n: 1.4,
+      waterL: +(0.35 * m).toFixed(2),
+      weightKg: +(7 * m).toFixed(1),
+      connection: 'side',
+      priceUsd: Math.round(95 + 110 * m),
+      zeta: 3,
+    });
+  }
+  const fan = { 850: [742, 19], 1150: [1285, 20], 1650: [2226, 21], 2050: [2800, 22], 2450: [3350, 23] };
+  for (const [L, [q, db]] of Object.entries(fan)) {
+    const m = Number(L) / 1000;
+    out.push({
+      id: `CONV-F-84-${L}`,
+      family: 'radiator',
+      kind: 'convector',
+      brand: 'ZODPRO',
+      model: `Konvektor ventilyatorli H=84 L=${L} (3-tezlik, ${db} dB)`,
+      article: `ZP-KVF-84-${L}`,
+      sapArticle: `SAP-71${L}`,
+      type: 'KVF',
+      fan: true,
+      noiseDb: db,
+      width: 0.23,
+      height: 0.084,
+      length: m,
+      depth: 0.23,
+      q75: q,
+      n: 1.1,
+      waterL: +(0.3 * m).toFixed(2),
+      weightKg: +(8 * m).toFixed(1),
+      connection: 'side',
+      priceUsd: Math.round(260 + 190 * m),
+      zeta: 3,
+      powerW: 12,
+    });
+  }
+  return out;
+}
+
+// Towel dryers (полотенцесушители / сушилка) — ladder type.
+function buildTowel() {
+  return [[500, 600, 290], [500, 800, 380], [500, 1000, 470], [600, 1200, 600]].map(([w, h, q]) => ({
+    id: `TOWEL-${w}-${h}`,
+    family: 'radiator',
+    kind: 'towel',
+    brand: 'ZODPRO',
+    model: `Sushilka (polotensesushitel) ${w}×${h}`,
+    article: `ZP-TW-${w}${h}`,
+    type: 'TW',
+    height: h / 1000,
+    length: w / 1000,
+    depth: 0.1,
+    q75: q,
+    n: 1.25,
+    waterL: +(h / 1000 * 2.5).toFixed(2),
+    weightKg: +(h / 1000 * 7).toFixed(1),
+    connection: 'bottom',
+    priceUsd: Math.round(60 + h / 10),
+    zeta: 2,
+  }));
+}
+
+export const RADIATORS = [...buildPanelRadiators(), ...buildSectional(), ...buildConvectors(), ...buildTowel()];
 
 // ---------------- Pipes ----------------
 // roughness k in metres; sizes: nominal label, outer diameter, inner diameter (m), price USD/m.

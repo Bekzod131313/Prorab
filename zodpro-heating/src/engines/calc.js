@@ -95,6 +95,14 @@ export function runCalculation(project, opts = {}) {
   // ---------- 2. UFH (base load; radiators cover the remainder in 'mixed' rooms) ----------
   const ufhByCollector = new Map();
   const portCursor = new Map();
+  const levelNo = new Map([...project.levels].sort((a, b) => a.elevation - b.elevation).map((l, i) => [l.id, i + 1]));
+  const ufhColNo = new Map();
+  for (const l of project.levels) {
+    elementsOf(project, 'collector', l.id)
+      .filter((c) => c.kind === 'ufh')
+      .sort((a, b) => a.y - b.y || a.x - b.x)
+      .forEach((c, i) => ufhColNo.set(c.id, i + 1));
+  }
   const ufhRooms = rooms.filter((r) => ['ufh', 'mixed'].includes(r.heating) && isHeated(r)).sort((a, b) => String(a.number ?? '').localeCompare(String(b.number ?? '')));
   for (const r of ufhRooms) {
     const hl = res.rooms[r.id];
@@ -115,7 +123,7 @@ export function runCalculation(project, opts = {}) {
       maxSurface,
       maxLoopKpa: s.ufhMaxLoopKpa,
       pipe: r.ufh?.pipe ?? { material: 'PEX', dn: '16' },
-      pattern: r.ufh?.pattern ?? 'spiral',
+      pattern: r.ufh?.pattern ?? 'auto',
     });
     // real loop geometry: edge zone 0.1 m from the inner wall face
     const wallHalf = Math.max(0.1, ...elementsOf(project, 'wall', r.levelId).map((w) => (w.thickness ?? 0.2) / 2));
@@ -135,7 +143,11 @@ export function runCalculation(project, opts = {}) {
     if (col) {
       d.firstPort = first + 1;
       portCursor.set(col.id, first + d.loops);
-    }
+      // loop IDs like the drawings: <floor>.<manifold>.<outlet>  e.g. 1.2.3
+      const lvNo = levelNo.get(r.levelId) ?? 1;
+      const colNo = ufhColNo.get(col.id) ?? 1;
+      d.loopIds = d.layout.map((_, i) => `${lvNo}.${colNo}.${first + 1 + i}`);
+    } else d.loopIds = d.layout.map((_, i) => `${levelNo.get(r.levelId) ?? 1}.0.${i + 1}`);
     d.roomId = r.id;
     d.collectorId = col?.id ?? null;
     d.perimeter = r.points.reduce((a, p, i) => a + Math.hypot(r.points[(i + 1) % r.points.length].x - p.x, r.points[(i + 1) % r.points.length].y - p.y), 0);
@@ -180,7 +192,9 @@ export function runCalculation(project, opts = {}) {
         let maxHeight = null;
         let preferLength = null;
         const win = rad.windowId ? project.elements[rad.windowId] : null;
-        if (win) {
+        const kind = rad.prefKind ?? 'panel';
+        if (win && kind === 'convector') preferLength = win.width + 0.1; // in-floor convector spans the window
+        else if (win && kind !== 'towel') {
           maxHeight = Math.max(0.3, win.sill - (rad.mountHeight ?? 0.1) - 0.05);
           preferLength = win.width * 0.75;
         }
@@ -188,8 +202,8 @@ export function runCalculation(project, opts = {}) {
           ts,
           tr,
           ti,
-          kind: rad.prefKind ?? 'panel',
-          type: rad.prefType ?? (rad.prefKind === 'sectional' ? null : 22),
+          kind,
+          type: rad.prefType ?? (kind === 'panel' ? 22 : null),
           maxHeight: rad.prefHeight ? null : maxHeight,
           height: rad.prefHeight ?? null,
           preferLength,
