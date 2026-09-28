@@ -181,6 +181,17 @@ export function localToPlan(el, lx, ly) {
   return { x: el.x + lx * c - ly * s, y: el.y + lx * s + ly * c };
 }
 
+// ---------- manifolds ----------
+// Real 1" manifolds have a 50 mm outlet pitch; supply bar is drawn at local y = 0 and the return
+// bar at local y = 0.2 (in reality they are stacked vertically: supply above return).
+export const COLLECTOR_PITCH = 0.05;
+export const COLLECTOR_RETURN_Y = 0.2;
+export const collectorPortLocal = (i) => 0.05 + i * COLLECTOR_PITCH; // i = 0-based outlet index
+export const collectorBodyX = (n) => ({ x0: -0.15, x1: collectorPortLocal(Math.max(1, n) - 1) + 0.08 });
+export function collectorPort(el, i, system) {
+  return localToPlan(el, collectorPortLocal(i), system === 'return' ? COLLECTOR_RETURN_Y : 0);
+}
+
 // ---------- connectors ----------
 // Connector: { id, elementId, name, system: supply|return, pos:{x,y}, levelId, z, dir, dn, kind }
 export function connectorsOf(project, el, productLookup) {
@@ -205,8 +216,8 @@ export function connectorsOf(project, el, productLookup) {
       push('in_return', 'return', -0.1, 0.2, { kind: 'collector_in', dn: '25' });
       if (el.kind !== 'ufh') {
         for (let i = 0; i < n; i++) {
-          push(`s${i + 1}`, 'supply', 0.05 + i * 0.1, 0, { kind: 'collector_port', port: i + 1, dn: '16' });
-          push(`r${i + 1}`, 'return', 0.05 + i * 0.1, 0.2, { kind: 'collector_port', port: i + 1, dn: '16' });
+          push(`s${i + 1}`, 'supply', collectorPortLocal(i), 0, { kind: 'collector_port', port: i + 1, dn: '16' });
+          push(`r${i + 1}`, 'return', collectorPortLocal(i), COLLECTOR_RETURN_Y, { kind: 'collector_port', port: i + 1, dn: '16' });
         }
       }
       break;

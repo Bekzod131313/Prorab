@@ -18,9 +18,9 @@ and what it depends on. Nothing here is "nice to have" — it is scheduled work.
 | DHW-01 | DHW network (sizing, circulation) | 5 | Heating first | System type on pipes/connectors, boiler DHW load | HYD-LOOP |
 | FIT-02 | Reducers / heat exchangers as explicit placed fittings | 4 | — | Tee/elbow ζ, BOM | — |
 | BR-01 | Boiler-room objects (hydraulic separator, mixing group, safety group) with clearance envelopes | 5 | — | Mixing on UFH collector, safety group in BOM, clearance rule R18 | FAM-01 |
-| UFH-02 | Exact UFH loop geometry (turning radius, per-loop CAD path, lead routing) | 5 | Needs polygon offsetting | UFH engine (loops, length, Δp) + schematic patterns | ROOM-02 |
+| UFH-02 | UFH layout for non-rectangular rooms (polygon offsetting), leads routed along the edge zone around obstacles | 5 | Needs polygon offsetting | Rectangular-room layout engine (`ufhlayout.js`) with spiral/serpentine, bending radius, ports | ROOM-02 |
 | EMIT-01 | Wall / ceiling heating emitters | 10 | Future system | Consumer abstraction in network & UFH engine | UFH-02 |
-| V3D-02 | Realistic mode (PBR, shadows, AO) | 2 | Performance on low-end devices | three.js scene | — |
+| V3D-02 | Ambient occlusion (SSAO), glTF manufacturer models | 2 | Performance on low-end devices | PBR scene with shadows/environment, procedural product models | LIB-3D |
 | DOC-03 | Tag style editor | 6 | — | Collision-aware labels | CAD-03 |
 | DOC-04 | Legends & logo upload on sheets | 6 | — | Sheet system | — |
 | DOC-05 | Full user manual / API docs site | 6 | — | In-app help, docs/ | — |

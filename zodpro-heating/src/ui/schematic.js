@@ -192,7 +192,7 @@ export function axonometrySVG(project, res, colors = {}) {
     const l = levelById(project, e.levelId);
     if (!l) continue;
     const z = l.elevation + (e.cat === 'boiler' ? 1.0 : e.cat === 'radiator' ? 0.3 : 0.45);
-    const L = e.cat === 'radiator' ? e.length ?? 1 : e.cat === 'collector' ? 0.2 + (e.outlets ?? 4) * 0.1 : 0.45;
+    const L = e.cat === 'radiator' ? e.length ?? 1 : e.cat === 'collector' ? 0.25 + (e.outlets ?? 4) * 0.05 : 0.45;
     const a = localToPlan(e, -L / 2, 0);
     const b = localToPlan(e, L / 2, 0);
     eq.push({ a: proj(a.x, a.y, z), b: proj(b.x, b.y, z), h: e.cat === 'radiator' ? 0.5 : 0.7, e });

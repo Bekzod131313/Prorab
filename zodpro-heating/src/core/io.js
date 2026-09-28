@@ -2,7 +2,7 @@
 // DXF (R12 ASCII), SVG, IFC4 (STEP, semantic entities + property sets), product CSV importer,
 // DXF importer (walls / underlay lines).
 
-import { SCHEMA_VERSION, defaultSettings, elementsOf, sortedLevels, openingPos, localToPlan, levelById, wallDir, newElement } from './model.js';
+import { SCHEMA_VERSION, defaultSettings, elementsOf, sortedLevels, openingPos, localToPlan, levelById, wallDir, newElement, collectorBodyX } from './model.js';
 import { guid, round } from './util.js';
 
 // ======================= native file =======================
@@ -224,12 +224,33 @@ export function exportDXF(project, results, levelId) {
   for (const e of Object.values(project.elements)) {
     if (e.levelId !== lv) continue;
     if (!['radiator', 'boiler', 'collector', 'pump'].includes(e.cat)) continue;
-    const L = e.cat === 'radiator' ? e.length ?? 1 : e.cat === 'collector' ? 0.1 + (e.outlets ?? 4) * 0.1 : 0.45;
-    const D = e.cat === 'radiator' ? 0.1 : 0.3;
-    const pts = [localToPlan(e, -L / 2, -D / 2), localToPlan(e, L / 2, -D / 2), localToPlan(e, L / 2, D / 2), localToPlan(e, -L / 2, D / 2)];
+    let X0;
+    let X1;
+    let Y0;
+    let Y1;
+    if (e.cat === 'collector') {
+      ({ x0: X0, x1: X1 } = collectorBodyX(Math.max(e.outlets ?? 4, results?.ufhPorts?.[e.id] ?? 0)));
+      Y0 = -0.03;
+      Y1 = 0.23;
+    } else {
+      const L = e.cat === 'radiator' ? e.length ?? 1 : 0.45;
+      const D = e.cat === 'radiator' ? 0.1 : 0.3;
+      X0 = -L / 2;
+      X1 = L / 2;
+      Y0 = -D / 2;
+      Y1 = D / 2;
+    }
+    const pts = [localToPlan(e, X0, Y0), localToPlan(e, X1, Y0), localToPlan(e, X1, Y1), localToPlan(e, X0, Y1)];
     poly('M-HEAT-EQPT', pts, true);
     const out = results?.radiators?.[e.id];
     text('M-ANNO', localToPlan(e, 0, -0.3), 0.12, `${e.mark ?? ''}${out ? ` ${Math.round(out.output)}W` : ''}`);
+  }
+  for (const r of elementsOf(project, 'room', lv)) {
+    for (const l of results?.ufh?.[r.id]?.layout ?? []) {
+      poly('M-UFH', l.coil);
+      if (l.supplyLead?.length) poly('M-HEAT-SUPPLY', l.supplyLead);
+      if (l.returnLead?.length) poly('M-HEAT-RETURN', l.returnLead);
+    }
   }
   for (const r of elementsOf(project, 'riser')) {
     if (r.levelFrom !== lv && r.levelTo !== lv) continue;
@@ -349,6 +370,12 @@ export function exportSVG(project, results, levelId, colors) {
   }
   for (const w of elementsOf(project, 'wall', lv)) {
     parts.push(`<line x1="${tx(w.a.x)}" y1="${ty(w.a.y)}" x2="${tx(w.b.x)}" y2="${ty(w.b.y)}" stroke="#333" stroke-width="${(w.thickness * S).toFixed(1)}" stroke-linecap="square"/>`);
+  }
+  for (const r of elementsOf(project, 'room', lv)) {
+    for (const l of results?.ufh?.[r.id]?.layout ?? []) {
+      parts.push(`<polyline points="${l.coil.map((q) => `${tx(q.x)},${ty(q.y)}`).join(' ')}" fill="none" stroke="#e08a1f" stroke-width="1"/>`);
+      for (const [lead, c] of [[l.supplyLead, colors?.supply ?? '#e0312b'], [l.returnLead, colors?.return ?? '#1f5fd6']]) if (lead?.length) parts.push(`<polyline points="${lead.map((q) => `${tx(q.x)},${ty(q.y)}`).join(' ')}" fill="none" stroke="${c}" stroke-width="1"/>`);
+    }
   }
   for (const p of elementsOf(project, 'pipe', lv)) {
     parts.push(`<polyline points="${p.points.map((q) => `${tx(q.x)},${ty(q.y)}`).join(' ')}" fill="none" stroke="${p.system === 'return' ? colors?.return ?? '#1f5fd6' : colors?.supply ?? '#e0312b'}" stroke-width="2"/>`);

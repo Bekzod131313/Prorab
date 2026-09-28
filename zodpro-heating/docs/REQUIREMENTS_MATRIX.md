@@ -40,7 +40,7 @@ Status: `DONE` (implemented + tested or verified in the browser) · `PARTIAL` (w
 | R-029 | Boiler (load, DHW, reserve, DB) | CORE | `equipment.selectBoiler` | 5 | DONE | |
 | R-030 | Boiler room components & maintenance validation | REQUIRED | `bom.js`, `validation.js` R18 | 5 | PARTIAL | Hydraulic separator / mixing groups as placeable objects → BR-01 |
 | R-031 | Expansion tank (EN 12828) with breakdown | CORE | `equipment.sizeExpansion` | 5 | DONE | |
-| R-032 | Underfloor heating (zones, spacing, loops, length, flow, Δp, surface temp, patterns) | CORE | `engines/ufh.js`, plan drawing | 5 | PARTIAL | Pattern drawing is schematic (spiral/serpentine); exact CAD loop geometry with turning radius → UFH-02 |
+| R-032 | Underfloor heating (zones, spacing, loops, length, flow, Δp, surface temp, patterns) | CORE | `engines/ufh.js`, `engines/ufhlayout.js` | 5 | DONE | Real loop geometry: bifilar spiral / serpentine, strips per loop, bending radius, leads to manifold ports; lengths and Δp from the geometry. Non-rectangular rooms use the bounding rectangle (warning) → UFH-02 |
 | R-033 | Collectors 2…12/custom, outlet data | CORE | `model.js`, reports | 5 | DONE | |
 | R-034 | Mixing unit | REQUIRED | `calc.js` (primary ΔT), BOM | 5 | PARTIAL | Modelled as a property of the UFH collector; detailed 3-way valve hydraulics → BR-01 |
 | R-035 | Wall / ceiling heating (future-proof core) | FUTURE | emitter abstraction (`consumers` in network) | 10 | BACKLOG | EMIT-01 — the consumer interface already accepts non-radiator emitters (UFH uses it). |

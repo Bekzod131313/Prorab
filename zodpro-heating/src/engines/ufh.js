@@ -117,3 +117,53 @@ export function designUfh(args) {
     };
   }
 }
+
+/**
+ * Replace the estimated loop lengths with the real layout geometry (coil + leads) and recompute
+ * flow / Δp per loop. Adds loops while any loop exceeds the maximum length.
+ * @param d result of designUfh
+ * @param layoutFn (loops) => layoutRoomUfh(...) result
+ */
+export function refineWithLayout(d, layoutFn, { ts, tr, maxLoop = 100, maxLoopKpa = 20, downwardShare = 0.1 }) {
+  let loops = d.loops;
+  let lay = layoutFn(loops);
+  if (!lay.loops.length) return { ...d, layout: [], layoutApprox: lay.approx, warnings: [...d.warnings, { code: 'ufh_room_too_small' }] };
+  const longest = (l) => Math.max(...l.loops.map((x) => x.length));
+  while (longest(lay) > maxLoop && loops < 20) {
+    loops++;
+    lay = layoutFn(loops);
+  }
+  const mat = PIPE_MATERIALS[d.pipe.material];
+  const size = mat?.sizes.find((z) => z.dn === String(d.pipe.dn)) ?? { id: 0.012 };
+  const tm = (ts + tr) / 2;
+  let dpMax = 0;
+  let totalLength = 0;
+  const details = lay.loops.map((l) => {
+    // heat split by coil length (each loop covers the floor it is laid in)
+    const coilTotal = lay.loops.reduce((a, x) => a + x.coilLength, 0) || 1;
+    const Q = d.Qout * (1 + downwardShare) * (l.coilLength / coilTotal);
+    const f = flowFromHeat(Math.max(Q, 1), ts - tr, tm);
+    const seg = pipeSegment({ vM3s: f.vM3s, dInner: size.id, k: mat?.k ?? 7e-6, length: l.length, zeta: l.corners * 0.3, tm });
+    dpMax = Math.max(dpMax, seg.dp);
+    totalLength += l.length;
+    return { ...l, Q, flowLh: f.vLh, velocity: seg.v, dp: seg.dp };
+  });
+  const warnings = d.warnings.filter((w) => w.code !== 'ufh_loop_long' && w.code !== 'ufh_loops_increased');
+  if (loops !== d.loops) warnings.push({ code: 'ufh_loops_increased', params: { from: d.loops, to: loops } });
+  const maxL = Math.max(...details.map((x) => x.length));
+  if (maxL > maxLoop) warnings.push({ code: 'ufh_loop_long', params: { L: maxL.toFixed(0), max: maxLoop } });
+  if (dpMax / 1000 > maxLoopKpa) warnings.push({ code: 'ufh_dp_high', params: { dp: (dpMax / 1000).toFixed(1), max: maxLoopKpa } });
+  if (lay.approx) warnings.push({ code: 'ufh_layout_approx' });
+  return {
+    ...d,
+    loops,
+    loopLength: maxL,
+    totalLength,
+    flowPerLoopLh: Math.max(...details.map((x) => x.flowLh)),
+    velocity: Math.max(...details.map((x) => x.velocity)),
+    dpLoop: dpMax,
+    layout: details,
+    geometric: true,
+    warnings,
+  };
+}

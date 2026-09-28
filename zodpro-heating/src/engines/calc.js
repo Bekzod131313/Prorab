@@ -9,14 +9,15 @@
 
 import { roomHeatLoss, HEATLOSS_VERSION } from './heatloss.js';
 import { selectRadiator, outputAt, radiatorById, RADIATOR_VERSION } from './radiator.js';
-import { designUfh, UFH_VERSION } from './ufh.js';
+import { designUfh, refineWithLayout, UFH_VERSION } from './ufh.js';
+import { layoutRoomUfh, UFH_LAYOUT_VERSION } from './ufhlayout.js';
 import { buildNetwork, NETWORK_VERSION } from './network.js';
 import { flowFromHeat, pipeSegment, kvDrop, kvRequired, paToM, HYDRAULICS_VERSION } from './hydraulics.js';
 import { sizePipe, selectPump, selectBoiler, sizeExpansion, EQUIPMENT_VERSION } from './equipment.js';
 import { buildBom, costEstimate, BOM_VERSION } from './bom.js';
 import { validate, clashDetection, VALIDATION_VERSION } from './validation.js';
 import { RADIATORS, PIPE_MATERIALS, VALVES, BOILERS, PUMPS, COLLECTORS } from '../data/products.js';
-import { elementsOf, roomTemp, isHeated, integrityCheck } from '../core/model.js';
+import { elementsOf, roomTemp, isHeated, integrityCheck, collectorPort } from '../core/model.js';
 import { pointInPolygon } from '../core/util.js';
 import { water } from './water.js';
 
@@ -62,7 +63,7 @@ export function runCalculation(project, opts = {}) {
   const catalog = catalogOf(project);
   const res = {
     version: CALC_VERSION,
-    engines: { HEATLOSS_VERSION, RADIATOR_VERSION, UFH_VERSION, NETWORK_VERSION, HYDRAULICS_VERSION, EQUIPMENT_VERSION, BOM_VERSION, VALIDATION_VERSION },
+    engines: { UFH_LAYOUT_VERSION, HEATLOSS_VERSION, RADIATOR_VERSION, UFH_VERSION, NETWORK_VERSION, HYDRAULICS_VERSION, EQUIPMENT_VERSION, BOM_VERSION, VALIDATION_VERSION },
     standard: s.standard,
     timestamp: new Date().toISOString(),
     rooms: {},
@@ -93,28 +94,51 @@ export function runCalculation(project, opts = {}) {
   const { ts, tr } = s.regime;
   // ---------- 2. UFH (base load; radiators cover the remainder in 'mixed' rooms) ----------
   const ufhByCollector = new Map();
-  for (const r of rooms) {
-    if (!['ufh', 'mixed'].includes(r.heating) || !isHeated(r)) continue;
+  const portCursor = new Map();
+  const ufhRooms = rooms.filter((r) => ['ufh', 'mixed'].includes(r.heating) && isHeated(r)).sort((a, b) => String(a.number ?? '').localeCompare(String(b.number ?? '')));
+  for (const r of ufhRooms) {
     const hl = res.rooms[r.id];
     const Q = hl.required;
     const bath = r.roomType === 'bathroom' || r.roomType === 'wc';
-    const d = designUfh({
+    const col = r.ufh?.collectorId ? project.elements[r.ufh.collectorId] : null;
+    const cen = r.points.reduce((a, p) => ({ x: a.x + p.x / r.points.length, y: a.y + p.y / r.points.length }), { x: 0, y: 0 });
+    const maxSurface = bath ? s.ufhMaxSurface.bathroom : s.ufhMaxSurface.occupied;
+    let d = designUfh({
       Q,
       area: hl.inputs.area,
       ti: roomTemp(r),
       ts: s.ufhRegime.ts,
       tr: s.ufhRegime.tr,
       spacing: r.ufh?.spacing ?? null,
-      leadLength: r.ufh?.leadLength ?? 4,
+      leadLength: col ? (Math.abs(col.x - cen.x) + Math.abs(col.y - cen.y)) / 2 : 4,
       maxLoop: s.ufhMaxLoopM,
-      maxSurface: bath ? s.ufhMaxSurface.bathroom : s.ufhMaxSurface.occupied,
+      maxSurface,
       maxLoopKpa: s.ufhMaxLoopKpa,
       pipe: r.ufh?.pipe ?? { material: 'PEX', dn: '16' },
       pattern: r.ufh?.pattern ?? 'spiral',
     });
+    // real loop geometry: edge zone 0.1 m from the inner wall face
+    const wallHalf = Math.max(0.1, ...elementsOf(project, 'wall', r.levelId).map((w) => (w.thickness ?? 0.2) / 2));
+    const first = col ? portCursor.get(col.id) ?? 0 : 0;
+    const layoutFn = (n) =>
+      layoutRoomUfh({
+        polygon: r.points,
+        loops: n,
+        spacing: d.spacing,
+        pattern: d.pattern,
+        inset: wallHalf + 0.1,
+        bendRadius: 5 * (Number(d.pipe.dn) || 16) / 1000,
+        toward: col ? { x: col.x, y: col.y } : cen,
+        ports: col ? Array.from({ length: n }, (_, i) => ({ supply: collectorPort(col, first + i, 'supply'), return: collectorPort(col, first + i, 'return') })) : null,
+      });
+    d = refineWithLayout(d, layoutFn, { ts: s.ufhRegime.ts, tr: s.ufhRegime.tr, maxLoop: s.ufhMaxLoopM, maxLoopKpa: s.ufhMaxLoopKpa });
+    if (col) {
+      d.firstPort = first + 1;
+      portCursor.set(col.id, first + d.loops);
+    }
     d.roomId = r.id;
-    d.collectorId = r.ufh?.collectorId ?? null;
-    d.perimeter = hl.inputs.area > 0 ? r.points.reduce((a, p, i) => a + Math.hypot(r.points[(i + 1) % r.points.length].x - p.x, r.points[(i + 1) % r.points.length].y - p.y), 0) : 0;
+    d.collectorId = col?.id ?? null;
+    d.perimeter = r.points.reduce((a, p, i) => a + Math.hypot(r.points[(i + 1) % r.points.length].x - p.x, r.points[(i + 1) % r.points.length].y - p.y), 0);
     d.area = hl.inputs.area;
     res.ufh[r.id] = d;
     if (d.collectorId) {
@@ -122,6 +146,7 @@ export function runCalculation(project, opts = {}) {
       ufhByCollector.get(d.collectorId).push(d);
     }
   }
+  res.ufhPorts = Object.fromEntries(portCursor);
 
   // ---------- 3. radiators ----------
   const rads = elementsOf(project, 'radiator');

@@ -1,5 +1,5 @@
 // 2D CAD / BIM plan editor (canvas). Tools create semantic BIM elements, not lines.
-import { newElement, elementsOf, openingPos, localToPlan, connectorsOf, wallDir, levelById, sortedLevels, roomTemp, isHeated } from '../core/model.js';
+import { newElement, elementsOf, openingPos, localToPlan, connectorsOf, wallDir, levelById, sortedLevels, roomTemp, isHeated, collectorBodyX, collectorPortLocal, COLLECTOR_RETURN_Y } from '../core/model.js';
 import { pointInPolygon, projectOnSegment, polygonCentroid, dist, round, polygonArea } from '../core/util.js';
 import { t, msg } from '../core/i18n.js';
 import { transformElement, translateFn, rotateFn, mirrorFn, mirrorAngle, duplicate, extendToBoundary, splitAt, filletWalls, offsetElement, detectRoom, teeSplits } from './geometry-ops.js';
@@ -317,8 +317,9 @@ export class PlanView {
       if (e.cat === 'pump' && dist(p, e) < 0.14) return e.id;
       if (e.cat === 'thermostat' && dist(p, e) < 0.12) return e.id;
       if (e.cat === 'collector') {
-        const L = 0.25 + (e.outlets ?? 4) * 0.1;
-        const c = localToPlan(e, L / 2 - 0.15, 0);
+        const bx = collectorBodyX(Math.max(e.outlets ?? 4, this.ufhPorts?.[e.id] ?? 0));
+        const L = bx.x1 - bx.x0;
+        const c = localToPlan(e, (bx.x0 + bx.x1) / 2, 0);
         if (inRect({ ...e, x: c.x, y: c.y }, L, -0.05, 0.25)) return e.id;
       }
       if (e.cat === 'text' && dist(p, e) < 0.4) return e.id;
@@ -995,6 +996,7 @@ export class PlanView {
     ctx.fillStyle = col.canvas;
     ctx.fillRect(0, 0, this.w, this.h);
     this.labels = [];
+    this.ufhPorts = res?.ufhPorts ?? {};
     if (this.toggles.underlay) this.drawUnderlay(ctx, proj.settings.underlays?.[lv]);
     if (this.toggles.grid) this.drawGrid(ctx);
     const els = Object.values(proj.elements);
@@ -1170,46 +1172,46 @@ export class PlanView {
   }
 
   drawUfh(ctx, r, u) {
-    ctx.save();
-    this.poly(ctx, r.points);
-    ctx.clip();
-    const xs = r.points.map((p) => p.x);
-    const ys = r.points.map((p) => p.y);
-    const inset = 0.2;
-    const x0 = Math.min(...xs) + inset;
-    const x1 = Math.max(...xs) - inset;
-    const y0 = Math.min(...ys) + inset;
-    const y1 = Math.max(...ys) - inset;
-    const sp = u.spacing;
-    ctx.lineWidth = Math.max(1, 0.016 * this.scale);
-    if (u.pattern === 'serpentine') {
-      ctx.strokeStyle = this.col.ufh;
-      ctx.beginPath();
-      let dir = 1;
-      for (let y = y0; y <= y1; y += sp) {
-        const a = this.w2s({ x: dir > 0 ? x0 : x1, y });
-        const b = this.w2s({ x: dir > 0 ? x1 : x0, y });
-        if (y === y0) ctx.moveTo(a.x, a.y);
-        else ctx.lineTo(a.x, a.y);
-        ctx.lineTo(b.x, b.y);
-        dir = -dir;
+    const loops = u.layout ?? [];
+    const lw = Math.max(1, 0.016 * this.scale);
+    const warm = [224, 60, 40];
+    const cool = [31, 95, 214];
+    const mix = (t) => `rgb(${warm.map((c, i) => Math.round(c + (cool[i] - c) * t)).join(',')})`;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    loops.forEach((l, k) => {
+      // coil: colour runs from supply (warm) to return (cool) along the real pipe path
+      const pts = l.coil.map((p) => this.w2s(p));
+      const total = l.coilLength || 1;
+      let acc = 0;
+      ctx.lineWidth = lw;
+      for (let i = 1; i < pts.length; i++) {
+        const seg = Math.hypot(l.coil[i].x - l.coil[i - 1].x, l.coil[i].y - l.coil[i - 1].y);
+        ctx.strokeStyle = mix((acc + seg / 2) / total);
+        acc += seg;
+        ctx.beginPath();
+        ctx.moveTo(pts[i - 1].x, pts[i - 1].y);
+        ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.stroke();
       }
-      ctx.stroke();
-    } else {
-      // counter-flow spiral: concentric rectangles alternating supply (warm) / return (cool)
-      let k = 0;
-      for (let d = 0; x0 + d < x1 - d && y0 + d < y1 - d; d += sp) {
-        ctx.strokeStyle = k % 2 ? 'rgba(31,95,214,0.65)' : this.col.ufh;
-        const a = this.w2s({ x: x0 + d, y: y0 + d });
-        const b = this.w2s({ x: x1 - d, y: y1 - d });
-        ctx.strokeRect(a.x, a.y, b.x - a.x, b.y - a.y);
-        k++;
+      // leads to / from the manifold
+      for (const [lead, col, dash] of [[l.supplyLead, this.col.supply, []], [l.returnLead, this.col.ret, [6, 3]]]) {
+        if (!lead?.length) continue;
+        ctx.setLineDash(dash);
+        ctx.strokeStyle = col;
+        ctx.lineWidth = lw;
+        this.poly(ctx, lead, false);
+        ctx.stroke();
+        ctx.setLineDash([]);
       }
-    }
-    ctx.restore();
+      if (this.toggles.tags && this.scale > 18) {
+        const p0 = this.w2s(l.coil[0]);
+        this.label(ctx, `K${(u.firstPort ?? 1) + k} · ${l.length.toFixed(1)} m · ${Math.round(l.flowLh ?? 0)} l/h`, p0.x + 6, p0.y + 12, { size: 9.5, color: this.col.ufh, bg: this.col.panel, align: 'left' });
+      }
+    });
     if (this.toggles.tags && this.scale > 20) {
       const c = this.w2s(polygonCentroid(r.points));
-      this.label(ctx, `TP: ${u.loops}×${u.loopLength.toFixed(0)} m, ${Math.round(u.spacing * 1000)} mm, ${u.tSurf.toFixed(1)}°C`, c.x, c.y + 24, { size: 10, color: this.col.ufh, bg: this.col.panel });
+      this.label(ctx, `TP: ${u.loops} kontur · qadam ${Math.round(u.spacing * 1000)} mm · ${u.pattern === 'serpentine' ? 'zmeyka' : 'spiral'} · ${u.tSurf.toFixed(1)}°C`, c.x, c.y + 24, { size: 10, color: this.col.ufh, bg: this.col.panel });
     }
   }
 
@@ -1440,13 +1442,26 @@ export class PlanView {
   }
 
   drawCollector(ctx, e, hl) {
-    const n = e.outlets ?? 4;
+    const n = Math.max(e.outlets ?? 4, this.ufhPorts?.[e.id] ?? 0);
     const ufh = e.kind === 'ufh';
-    const x1 = 0.05 + (n - 1) * 0.1 + 0.08;
-    this.equipRect(ctx, e, -0.15, x1, -0.04, 0.04, ufh ? '#fbe3c4' : '#fde2e0', hl ? this.col.accent : this.col.supply, hl ? 2.5 : 1.2);
-    this.equipRect(ctx, e, -0.15, x1, 0.16, 0.24, ufh ? '#dbe7fb' : '#dde7fb', hl ? this.col.accent : this.col.ret, hl ? 2.5 : 1.2);
+    const { x0, x1 } = collectorBodyX(n);
+    this.equipRect(ctx, e, x0, x1, -0.03, 0.03, ufh ? '#fbe3c4' : '#fde2e0', hl ? this.col.accent : this.col.supply, hl ? 2.5 : 1.2);
+    this.equipRect(ctx, e, x0, x1, COLLECTOR_RETURN_Y - 0.03, COLLECTOR_RETURN_Y + 0.03, ufh ? '#dbe7fb' : '#dde7fb', hl ? this.col.accent : this.col.ret, hl ? 2.5 : 1.2);
+    // outlet stubs every 50 mm
+    ctx.lineWidth = 1;
+    for (let i = 0; i < n; i++) {
+      for (const [y0, y1, c] of [[-0.03, -0.07, this.col.supply], [COLLECTOR_RETURN_Y + 0.03, COLLECTOR_RETURN_Y + 0.07, this.col.ret]]) {
+        const a = this.w2s(localToPlan(e, collectorPortLocal(i), y0));
+        const b = this.w2s(localToPlan(e, collectorPortLocal(i), y1));
+        ctx.strokeStyle = c;
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+      }
+    }
     if (this.toggles.tags && this.scale > 18) {
-      const t0 = this.w2s(localToPlan(e, x1 / 2, -0.2));
+      const t0 = this.w2s(localToPlan(e, (x0 + x1) / 2, -0.2));
       this.label(ctx, `${e.mark} ${ufh ? 'TP ' : ''}kollektor ×${n}`, t0.x, t0.y, { size: 10, bold: true, bg: this.col.panel });
     }
   }
