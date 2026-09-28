@@ -2,6 +2,7 @@
 import { newElement, elementsOf, openingPos, localToPlan, connectorsOf, wallDir, levelById, sortedLevels, roomTemp, isHeated, collectorBodyX, collectorPortLocal, COLLECTOR_RETURN_Y } from '../core/model.js';
 import { pointInPolygon, projectOnSegment, polygonCentroid, dist, round, polygonArea } from '../core/util.js';
 import { t, msg } from '../core/i18n.js';
+import { ufhLoopTags, positions, systemCodes, levelBBox } from './annotate.js';
 import { transformElement, translateFn, rotateFn, mirrorFn, mirrorAngle, duplicate, extendToBoundary, splitAt, filletWalls, offsetElement, detectRoom, teeSplits } from './geometry-ops.js';
 
 const r3 = (v) => round(v, 3);
@@ -312,7 +313,7 @@ export class PlanView {
       if (e.cat === 'riser' && dist(p, e) < 0.08 + tol) return e.id;
     }
     for (const e of els) {
-      if (e.cat === 'radiator' && inRect(e, e.length ?? 1, -0.06, 0.06)) return e.id;
+      if (e.cat === 'radiator' && inRect(e, e.length ?? 1, -0.06, (this.store.results?.radiators?.[e.id]?.product?.kind === 'convector' ? this.store.results.radiators[e.id].product.depth : 0.06))) return e.id;
       if (e.cat === 'boiler' && inRect(e, 0.45, -0.12, 0.25)) return e.id;
       if (e.cat === 'pump' && dist(p, e) < 0.14) return e.id;
       if (e.cat === 'thermostat' && dist(p, e) < 0.12) return e.id;
@@ -1006,6 +1007,7 @@ export class PlanView {
     // rooms
     if (on('room')) for (const r of els) if (r.cat === 'room' && r.levelId === lv) this.drawRoom(ctx, r, res, sel.has(r.id), this.hover === r.id);
     if (on('ufh') && this.toggles.ufh) for (const r of els) if (r.cat === 'room' && r.levelId === lv && res?.ufh?.[r.id]) this.drawUfh(ctx, r, res.ufh[r.id]);
+    if (on('ufh') && this.toggles.ufh && this.toggles.tags && this.scale > 12) this.drawUfhTags(ctx, res);
     for (const h of els) if (h.cat === 'dline' && h.hatch && h.levelId === lv && on('dline')) this.drawHatch(ctx, h, sel.has(h.id));
     // walls & openings
     if (on('wall')) for (const w of els) if (w.cat === 'wall' && w.levelId === lv) this.drawWall(ctx, w, sel.has(w.id), this.hover === w.id);
@@ -1065,6 +1067,7 @@ export class PlanView {
       ctx.strokeRect(a.x, a.y, b.x - a.x, b.y - a.y);
       ctx.setLineDash([]);
     }
+    if (!this.hidden.has('grid')) this.drawGrids(ctx);
     this.drawNorth(ctx);
     this.drawScaleBar(ctx);
   }
@@ -1164,7 +1167,24 @@ export class PlanView {
     if (!this.toggles.tags) return;
     const c = this.w2s(polygonCentroid(r.points));
     if (this.scale < 12) return;
-    this.label(ctx, `${r.number ?? ''} ${r.name}`, c.x, c.y - 8, { bold: true, size: 12 });
+    // room number in a circle (drawing convention), name below
+    if (r.number) {
+      const rad = 11;
+      ctx.beginPath();
+      ctx.arc(c.x, c.y - 22, rad, 0, Math.PI * 2);
+      ctx.fillStyle = this.col.panel;
+      ctx.fill();
+      ctx.strokeStyle = this.col.text;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillStyle = this.col.text;
+      ctx.font = '600 10px system-ui';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(r.number), c.x, c.y - 22);
+      this.labels.push({ x: c.x - rad, y: c.y - 22 - rad, w: 2 * rad, h: 2 * rad });
+    }
+    this.label(ctx, r.name, c.x, c.y - 4, { bold: true, size: 12 });
     if (hl) {
       const cv = cov ? ` · ${Math.round(cov * 100)}%` : '';
       this.label(ctx, `${hl.inputs.area.toFixed(1)} m² · ${roomTemp(r)}°C · ${Math.round(hl.required)} W${cv}`, c.x, c.y + 8, { size: 10.5, color: this.col.muted });
@@ -1174,44 +1194,67 @@ export class PlanView {
   drawUfh(ctx, r, u) {
     const loops = u.layout ?? [];
     const lw = Math.max(1, 0.016 * this.scale);
-    const warm = [224, 60, 40];
-    const cool = [31, 95, 214];
-    const mix = (t) => `rgb(${warm.map((c, i) => Math.round(c + (cool[i] - c) * t)).join(',')})`;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    loops.forEach((l, k) => {
-      // coil: colour runs from supply (warm) to return (cool) along the real pipe path
-      const pts = l.coil.map((p) => this.w2s(p));
-      const total = l.coilLength || 1;
-      let acc = 0;
+    loops.forEach((l) => {
+      // supply half (T1, red) and return half (T2, blue) — in a bifilar loop they alternate every s
+      const split = l.split ?? Math.ceil(l.coil.length / 2);
       ctx.lineWidth = lw;
-      for (let i = 1; i < pts.length; i++) {
-        const seg = Math.hypot(l.coil[i].x - l.coil[i - 1].x, l.coil[i].y - l.coil[i - 1].y);
-        ctx.strokeStyle = mix((acc + seg / 2) / total);
-        acc += seg;
-        ctx.beginPath();
-        ctx.moveTo(pts[i - 1].x, pts[i - 1].y);
-        ctx.lineTo(pts[i].x, pts[i].y);
-        ctx.stroke();
-      }
-      // leads to / from the manifold
-      for (const [lead, col, dash] of [[l.supplyLead, this.col.supply, []], [l.returnLead, this.col.ret, [6, 3]]]) {
+      ctx.strokeStyle = this.col.supply;
+      this.poly(ctx, l.coil.slice(0, split), false);
+      ctx.stroke();
+      ctx.strokeStyle = this.col.ret;
+      this.poly(ctx, l.coil.slice(Math.max(0, split - 1)), false);
+      ctx.stroke();
+      for (const [lead, col] of [[l.supplyLead, this.col.supply], [l.returnLead, this.col.ret]]) {
         if (!lead?.length) continue;
-        ctx.setLineDash(dash);
         ctx.strokeStyle = col;
         ctx.lineWidth = lw;
         this.poly(ctx, lead, false);
         ctx.stroke();
-        ctx.setLineDash([]);
-      }
-      if (this.toggles.tags && this.scale > 18) {
-        const p0 = this.w2s(l.coil[0]);
-        this.label(ctx, `K${(u.firstPort ?? 1) + k} · ${l.length.toFixed(1)} m · ${Math.round(l.flowLh ?? 0)} l/h`, p0.x + 6, p0.y + 12, { size: 9.5, color: this.col.ufh, bg: this.col.panel, align: 'left' });
       }
     });
-    if (this.toggles.tags && this.scale > 20) {
-      const c = this.w2s(polygonCentroid(r.points));
-      this.label(ctx, `TP: ${u.loops} kontur · qadam ${Math.round(u.spacing * 1000)} mm · ${u.pattern === 'serpentine' ? 'zmeyka' : 'spiral'} · ${u.tSurf.toFixed(1)}°C`, c.x, c.y + 24, { size: 10, color: this.col.ufh, bg: this.col.panel });
+  }
+
+  /** Loop tags around the building like the drawings: "1.2.3 | Ø16 | L=53 м" with leaders. */
+  drawUfhTags(ctx, res) {
+    const tags = ufhLoopTags(this.store.project, res, this.store.activeLevelId);
+    ctx.lineWidth = 1;
+    for (const t of tags) {
+      const a = this.w2s(t.anchor);
+      const e = this.w2s(t.leaderEnd);
+      ctx.strokeStyle = this.col.muted;
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(e.x, e.y);
+      ctx.stroke();
+      ctx.fillStyle = this.col.text;
+      ctx.beginPath();
+      ctx.arc(a.x, a.y, 2, 0, Math.PI * 2);
+      ctx.fill();
+      const p = this.w2s({ x: t.box.x, y: t.box.y });
+      const w = t.box.w * this.scale;
+      const h = t.box.h * this.scale;
+      ctx.fillStyle = this.col.panel;
+      ctx.fillRect(p.x, p.y, w, h);
+      ctx.strokeStyle = this.col.text;
+      ctx.strokeRect(p.x, p.y, w, h);
+      const c1 = w * 0.42;
+      ctx.beginPath();
+      ctx.moveTo(p.x + c1, p.y);
+      ctx.lineTo(p.x + c1, p.y + h);
+      ctx.moveTo(p.x + c1, p.y + h / 2);
+      ctx.lineTo(p.x + w, p.y + h / 2);
+      ctx.stroke();
+      if (h < 9) continue;
+      ctx.fillStyle = this.col.text;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = `600 ${Math.max(7, h * 0.5)}px system-ui`;
+      ctx.fillText(t.text[0], p.x + c1 / 2, p.y + h / 2);
+      ctx.font = `${Math.max(6, h * 0.36)}px system-ui`;
+      ctx.fillText(t.text[1], p.x + c1 + (w - c1) / 2, p.y + h / 4);
+      ctx.fillText(t.text[2], p.x + c1 + (w - c1) / 2, p.y + (3 * h) / 4);
     }
   }
 
@@ -1422,7 +1465,43 @@ export class PlanView {
   drawRadiator(ctx, e, res, hl) {
     const L = e.length ?? res?.radiators?.[e.id]?.product?.length ?? 1;
     const rr = res?.radiators?.[e.id];
-    this.equipRect(ctx, e, -L / 2, L / 2, -0.05, 0.05, this.col.panel, hl ? this.col.accent : this.col.text, hl ? 2.5 : 1.4);
+    const kind = rr?.product?.kind ?? e.prefKind ?? 'panel';
+    const stroke = hl ? this.col.accent : this.col.text;
+    if (kind === 'convector') {
+      // in-floor trench convector: frame + green linear grille (like the drawings)
+      const D = rr?.product?.depth ?? 0.3;
+      const y0 = -0.05;
+      const y1 = y0 + D;
+      this.equipRect(ctx, e, -L / 2, L / 2, y0, y1, '#e6f4e6', stroke, hl ? 2.5 : 1.2);
+      ctx.beginPath();
+      const n = Math.max(6, Math.round(L / 0.04));
+      for (let i = 1; i < n; i++) {
+        const a = this.w2s(localToPlan(e, -L / 2 + (i * L) / n, y0 + 0.03));
+        const b = this.w2s(localToPlan(e, -L / 2 + (i * L) / n, y1 - 0.03));
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+      }
+      ctx.strokeStyle = '#2e9a3e';
+      ctx.lineWidth = Math.max(0.6, 0.01 * this.scale);
+      ctx.stroke();
+      if (this.toggles.tags && this.scale > 16 && rr?.product) this.equipmentTag(ctx, e, rr, D);
+      return;
+    }
+    if (kind === 'towel') {
+      this.equipRect(ctx, e, -L / 2, L / 2, -0.03, 0.03, this.col.panel, stroke, hl ? 2.5 : 1.2);
+      for (const x of [-L / 2 + 0.03, L / 2 - 0.03]) {
+        const c = this.w2s(localToPlan(e, x, 0));
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, Math.max(2, 0.02 * this.scale), 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      if (this.toggles.tags && this.scale > 16) {
+        const t0 = this.w2s(localToPlan(e, 0, 0.35));
+        this.label(ctx, `Sushilka${rr ? ` ${Math.round(rr.output)} W` : ''}`, t0.x, t0.y, { size: 10, bg: this.col.panel });
+      }
+      return;
+    }
+    this.equipRect(ctx, e, -L / 2, L / 2, -0.05, 0.05, this.col.panel, stroke, hl ? 2.5 : 1.4);
     // fins
     ctx.beginPath();
     const n = Math.max(3, Math.round(L / 0.1));
@@ -1439,6 +1518,60 @@ export class PlanView {
       const txt = rr?.product ? `${e.mark} · ${rr.product.model.replace('Panel ', '')} · ${Math.round(rr.output)} W` : `${e.mark} · —`;
       this.label(ctx, txt, t0.x, t0.y, { size: 10, bg: this.col.panel, color: rr?.product ? this.col.text : this.col.err });
     }
+  }
+
+  /** Two-row table tag like the drawings: | Konvektor ventilyatorsiz | / | 300 | 120 | 1600 | 714 W */
+  equipmentTag(ctx, e, rr, D) {
+    const p = rr.product;
+    const head = p.fan ? 'Konvektor ventilyatorli' : 'Konvektor ventilyatorsiz';
+    const cells = p.fan ? [`H${Math.round(p.height * 1000)}`, `${Math.round(p.length * 1000)}`, `${p.noiseDb ?? ''}dB`] : [`${Math.round(p.width * 1000)}`, `${Math.round(p.height * 1000)}`, `${Math.round(p.length * 1000)}`];
+    const c = this.w2s(localToPlan(e, 0, D + 0.25));
+    const size = 9.5;
+    ctx.font = `${size}px system-ui`;
+    const cw = Math.max(26, ...cells.map((t) => ctx.measureText(t).width + 8));
+    const w = Math.max(ctx.measureText(head).width + 10, cw * 3);
+    const h = size + 5;
+    const out = `${Math.round(rr.output)} W`;
+    ctx.font = `600 ${size}px system-ui`;
+    const ow = ctx.measureText(out).width + 8;
+    let x = c.x - (w + ow) / 2;
+    let y = c.y - h;
+    // simple collision avoidance with other labels
+    for (let k = 0; k < 6; k++) {
+      const r = { x, y, w: w + ow, h: 2 * h };
+      if (!this.labels.some((q) => r.x < q.x + q.w && r.x + r.w > q.x && r.y < q.y + q.h && r.y + r.h > q.y)) break;
+      y += 2 * h + 2;
+    }
+    this.labels.push({ x, y, w: w + ow, h: 2 * h });
+    ctx.fillStyle = this.col.panel;
+    ctx.fillRect(x, y, w, 2 * h);
+    ctx.strokeStyle = this.col.text;
+    ctx.lineWidth = 0.8;
+    ctx.strokeRect(x, y, w, 2 * h);
+    ctx.beginPath();
+    ctx.moveTo(x, y + h);
+    ctx.lineTo(x + w, y + h);
+    for (let i = 1; i < 3; i++) {
+      ctx.moveTo(x + (w * i) / 3, y + h);
+      ctx.lineTo(x + (w * i) / 3, y + 2 * h);
+    }
+    ctx.stroke();
+    ctx.fillStyle = this.col.text;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `${size}px system-ui`;
+    ctx.fillText(head, x + w / 2, y + h / 2);
+    cells.forEach((t, i) => ctx.fillText(t, x + (w * (i + 0.5)) / 3, y + 1.5 * h));
+    ctx.font = `600 ${size}px system-ui`;
+    ctx.textAlign = 'left';
+    ctx.fillText(out, x + w + 4, y + h);
+    // leader to the convector
+    const a = this.w2s(localToPlan(e, 0, D - 0.05));
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(x + w / 2, y + 2 * h);
+    ctx.strokeStyle = this.col.muted;
+    ctx.stroke();
   }
 
   drawCollector(ctx, e, hl) {
@@ -1750,6 +1883,90 @@ export class PlanView {
     else if (e.cat === 'thermostat') this.drawThermostat(ctx, e, true);
     else if (e.cat === 'text') this.drawText(ctx, e, true);
     this.toggles.tags = saveTags;
+  }
+
+  /** Structural grid axes (dash-dot) with bubbles and dimension chains between axes, like the drawings. */
+  drawGrids(ctx) {
+    const grids = elementsOf(this.store.project, 'gridline');
+    if (!grids.length) return;
+    const bb = levelBBox(this.store.project, this.store.activeLevelId) ?? { x0: 0, x1: 10, y0: 0, y1: 10 };
+    const ext = 1.6;
+    const R = 0.3 * this.scale > 9 ? 0.3 : 9 / this.scale;
+    ctx.save();
+    ctx.strokeStyle = this.col.muted;
+    ctx.fillStyle = this.col.text;
+    ctx.lineWidth = 0.8;
+    const xs = grids.filter((g) => g.axis === 'x').sort((a, b) => a.pos - b.pos);
+    const ys = grids.filter((g) => g.axis === 'y').sort((a, b) => a.pos - b.pos);
+    const bubble = (p, name) => {
+      const c = this.w2s(p);
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, R * this.scale, 0, Math.PI * 2);
+      ctx.fillStyle = this.col.panel;
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = this.col.text;
+      ctx.font = `600 ${Math.max(8, R * this.scale)}px system-ui`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(name, c.x, c.y + 0.5);
+    };
+    for (const g of xs) {
+      const a = this.w2s({ x: g.pos, y: bb.y0 - ext });
+      const b = this.w2s({ x: g.pos, y: bb.y1 + ext });
+      ctx.setLineDash([12, 4, 2, 4]);
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+      bubble({ x: g.pos, y: bb.y1 + ext + R }, g.name);
+    }
+    for (const g of ys) {
+      const a = this.w2s({ x: bb.x0 - ext, y: g.pos });
+      const b = this.w2s({ x: bb.x1 + ext, y: g.pos });
+      ctx.setLineDash([12, 4, 2, 4]);
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+      bubble({ x: bb.x0 - ext - R, y: g.pos }, g.name);
+    }
+    ctx.setLineDash([]);
+    // dimension chains (mm)
+    const chain = (list, horiz) => {
+      if (list.length < 2) return;
+      const off = horiz ? bb.y1 + 0.9 : bb.x0 - 0.9;
+      const off2 = horiz ? bb.y1 + 1.3 : bb.x0 - 1.3;
+      const seg = (p0, p1, o) => {
+        const A = this.w2s(horiz ? { x: p0, y: o } : { x: o, y: p0 });
+        const B = this.w2s(horiz ? { x: p1, y: o } : { x: o, y: p1 });
+        ctx.beginPath();
+        ctx.moveTo(A.x, A.y);
+        ctx.lineTo(B.x, B.y);
+        for (const P of [A, B]) {
+          ctx.moveTo(P.x - 3, P.y + 3);
+          ctx.lineTo(P.x + 3, P.y - 3);
+        }
+        ctx.stroke();
+        const txt = String(Math.round(Math.abs(p1 - p0) * 1000));
+        ctx.save();
+        ctx.translate((A.x + B.x) / 2, (A.y + B.y) / 2);
+        if (!horiz) ctx.rotate(-Math.PI / 2);
+        ctx.font = '10px system-ui';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillStyle = this.col.text;
+        ctx.fillText(txt, 0, -2);
+        ctx.restore();
+      };
+      for (let i = 1; i < list.length; i++) seg(list[i - 1].pos, list[i].pos, off);
+      seg(list[0].pos, list[list.length - 1].pos, off2);
+    };
+    ctx.strokeStyle = this.col.text;
+    chain(xs, true);
+    chain(ys, false);
+    ctx.restore();
   }
 
   drawNorth(ctx) {

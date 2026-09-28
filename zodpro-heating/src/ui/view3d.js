@@ -492,6 +492,18 @@ export class View3D {
     for (const e of elementsOf(p, 'radiator', l.id)) {
       const prod = res?.radiators?.[e.id]?.product ?? { length: e.length ?? 1, height: 0.5, depth: 0.1, type: 22, kind: 'panel' };
       const pr = { ...prod, length: e.length ?? prod.length };
+      if (pr.kind === 'convector') {
+        const cv = M3.trenchConvector(M, pr, { flip: e.flip, pipeZ: s.pipeElevation - 0.012, pipeMatS: this.pipeMaterial('supply', s.pipeMaterial), pipeMatR: this.pipeMaterial('return', s.pipeMaterial) });
+        this.add(M3.place(cv, e, z0 + 0.0135), e.id);
+        continue;
+      }
+      if (pr.kind === 'towel') {
+        const tw = M3.towelDryer(M, pr);
+        this.add(M3.place(tw, e, z0 + 0.6), e.id);
+        const conn = M3.radiatorConnections(M, { ...pr, height: 0.3 }, { flip: e.flip, mount: 0.45, zPipe: s.pipeElevation, pipeMatS: this.pipeMaterial('supply', s.pipeMaterial), pipeMatR: this.pipeMaterial('return', s.pipeMaterial) });
+        this.add(M3.place(conn, e, z0), e.id);
+        continue;
+      }
       const body = pr.kind === 'sectional' ? M3.sectionalRadiator(M, pr, { flip: e.flip }) : M3.panelRadiator(M, pr, { flip: e.flip });
       this.add(M3.place(body, e, z0 + (e.mountHeight ?? 0.1)), e.id);
       const conn = M3.radiatorConnections(M, pr, { flip: e.flip, mount: e.mountHeight ?? 0.1, zPipe: s.pipeElevation, pipeMatS: this.pipeMaterial('supply', s.pipeMaterial), pipeMatR: this.pipeMaterial('return', s.pipeMaterial) });

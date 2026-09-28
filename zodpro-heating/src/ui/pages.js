@@ -70,7 +70,17 @@ export function renderSheets(el, app) {
     <button class="btn small primary" id="print">PDF / Chop etish (A3)</button>
     <button class="btn small" id="newrev">+ Reviziya</button>
     <span class="muted">${sheets.map((s) => s.no).join(' · ')}</span></div>
-    ${sheets.map((s) => sheetHTML(store.project, s, sheets.length)).join('')}`;
+    ${sheets.map((s, i) => sheetHTML(store.project, s, sheets.length, i + 1)).join('')}`;
+  // 3D-rendered details (manifold connection node) are filled in asynchronously
+  el.querySelectorAll('.mnode').forEach(async (box) => {
+    try {
+      const { renderManifoldNode, calloutSVG } = await import('./detail3d.js');
+      const node = await renderManifoldNode({ n: Number(box.dataset.n), kind: box.dataset.kind, mixing: box.dataset.mixing === '1' });
+      box.innerHTML = `<img src="${node.url}" alt="" style="width:100%;height:100%;object-fit:contain">${calloutSVG(node)}`;
+    } catch (err) {
+      box.innerHTML = `<span class="muted">3D render: ${err.message}</span>`;
+    }
+  });
   el.querySelector('#inc-cost').onchange = (e) => {
     app.includeCost = e.target.checked;
     renderSheets(el, app);

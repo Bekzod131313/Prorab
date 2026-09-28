@@ -137,6 +137,7 @@ export function makeMaterials(textures, systemColors) {
     redPlastic: std({ color: 0xd62a20, roughness: 0.4 }),
     bluePlastic: std({ color: 0x1f5fd6, roughness: 0.4 }),
     yellow: std({ color: 0xf2c200, roughness: 0.4 }),
+    orange: std({ color: 0xf07a1a, roughness: 0.4 }),
     tankRed: std({ color: 0xc4201b, metalness: 0.25, roughness: 0.35 }),
     lcd: std({ color: 0x0d2230, emissive: 0x3aa3ff, emissiveIntensity: 0.35, roughness: 0.2 }),
     flowMeter: phys({ color: 0xd8f0ff, roughness: 0.05, transmission: 0, transparent: true, opacity: 0.45 }),
@@ -459,6 +460,72 @@ export function radiatorConnections(M, prod, { flip = false, mount = 0.1, zPipe 
   return g;
 }
 
+// ---------------------------------------------------------------- in-floor convector
+/**
+ * Trench (in-floor) convector: steel tray sunk into the floor, copper/aluminium heat exchanger,
+ * tangential fan (fan models), anodised linear grille flush with the floor, connections at one end.
+ * Frame: z = 0 is the finished floor, the tray goes down; plan local y from −0.05 into the room.
+ */
+export function trenchConvector(M, prod, { pipeZ = 0.05, pipeMatS, pipeMatR, flip = false } = {}) {
+  const g = new THREE.Group();
+  const L = prod.length;
+  const D = prod.depth ?? prod.width ?? 0.3;
+  const H = prod.height ?? 0.12;
+  const yc = -(D / 2 - 0.05);
+  const t = 0.0015;
+  // tray (open top): bottom + 4 sides
+  g.add(box(L, D, t, M.castIron, 0, yc, -H));
+  for (const s of [-1, 1]) g.add(box(L, t, H, M.castIron, 0, yc + (s * D) / 2, -H / 2));
+  for (const s of [-1, 1]) g.add(box(t, D, H, M.castIron, (s * L) / 2, yc, -H / 2));
+  // frame on top
+  for (const s of [-1, 1]) g.add(box(L + 0.01, 0.012, 0.006, M.nickel, 0, yc + (s * (D + 0.004)) / 2, -0.003));
+  // heat exchanger: 2 copper tubes with aluminium fins
+  const hxY = prod.fan ? yc - D * 0.12 : yc;
+  const hxZ = -H * 0.45;
+  for (const dz of [-0.012, 0.012]) g.add(cylBetween(V(-L / 2 + 0.06, hxY, hxZ + dz), V(L / 2 - 0.06, hxY, hxZ + dz), 0.006, M.copper, 10));
+  const fins = [];
+  for (let x = -L / 2 + 0.07; x < L / 2 - 0.07; x += 0.006) {
+    const f = new THREE.BoxGeometry(0.0006, D * 0.42, H * 0.55);
+    f.translate(x, hxY, hxZ);
+    fins.push(f);
+  }
+  if (fins.length) g.add(mesh(merge(fins), M.nickel, false));
+  if (prod.fan) {
+    const fan = cylBetween(V(-L / 2 + 0.08, yc + D * 0.25, -H * 0.5), V(L / 2 - 0.12, yc + D * 0.25, -H * 0.5), Math.min(0.03, H * 0.35), M.black, 18);
+    g.add(fan);
+    g.add(box(0.06, 0.06, H * 0.6, M.black, L / 2 - 0.06, yc + D * 0.25, -H * 0.5));
+  }
+  // linear grille (anodised aluminium bars across the width)
+  const bars = [];
+  for (let x = -L / 2 + 0.01; x <= L / 2 - 0.01; x += 0.018) {
+    const b = new THREE.BoxGeometry(0.005, D - 0.012, 0.012);
+    b.translate(x, yc, -0.006);
+    bars.push(b);
+  }
+  g.add(mesh(merge(bars), M.nickel));
+  for (const s of [-1, 1]) g.add(box(L - 0.02, 0.006, 0.012, M.nickel, 0, yc + (s * (D - 0.012)) / 2, -0.006));
+  // connections (angle valve + lockshield) at the connector end, drops from the floor pipe level
+  const sgn = flip ? -1 : 1;
+  for (const [x, mat, z] of [[-sgn * (L / 2 + 0.05), pipeMatS, hxZ + 0.012], [sgn * (L / 2 + 0.05), pipeMatR, hxZ - 0.012]]) {
+    const inner = x < 0 ? -L / 2 + 0.06 : L / 2 - 0.06;
+    g.add(cylBetween(V(x, -0.05, pipeZ), V(x, -0.05, z), 0.008, mat));
+    g.add(cylBetween(V(x, -0.05, z), V(x, hxY, z), 0.008, mat));
+    g.add(cylBetween(V(x, hxY, z), V(inner, hxY, z), 0.008, M.chrome));
+  }
+  return g;
+}
+
+// ---------------------------------------------------------------- towel dryer
+export function towelDryer(M, prod) {
+  const g = new THREE.Group();
+  const W = prod.length;
+  const H = prod.height;
+  for (const s of [-1, 1]) g.add(cylBetween(V((s * W) / 2, 0, 0), V((s * W) / 2, 0, H), 0.014, M.chrome, 16));
+  for (let z = 0.06; z < H - 0.02; z += 0.075) g.add(cylBetween(V(-W / 2, 0, z), V(W / 2, 0, z), 0.0095, M.chrome, 12));
+  for (const s of [-1, 1]) for (const z of [0.15, H - 0.1]) g.add(cylBetween(V((s * W) / 2, 0, z), V((s * W) / 2, 0.05, z), 0.006, M.chrome, 8));
+  return g;
+}
+
 // ---------------------------------------------------------------- manifold
 /**
  * Heating manifold (radiator or UFH) in a wall cabinet: stacked supply (top) / return (bottom) bars,
@@ -508,6 +575,20 @@ export function manifold(M, { n, kind, mixing, pitch, returnY, portLocal, pipeZ,
     const bv = ballValve(M, 0.025, sys === 'supply' ? M.redPlastic : M.bluePlastic, 'x');
     bv.position.set(x0 - 0.05, yBar, z);
     g.add(bv);
+    if (sys === 'supply') {
+      // balancing valve DN 1" with blue measuring cap between the ball valve and the bar
+      const body = cylAlong('x', 0.019, 0.05, M.brass, 18);
+      body.position.set(x0 - 0.005, yBar, z);
+      g.add(body);
+      const bonnet = mesh(new THREE.CylinderGeometry(0.012, 0.014, 0.05, 16), M.brass);
+      bonnet.rotation.x = -Math.PI / 4;
+      bonnet.position.set(x0 - 0.005, yBar + 0.02, z + 0.025);
+      g.add(bonnet);
+      const cap = mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.02, 16), M.bluePlastic);
+      cap.rotation.x = -Math.PI / 4;
+      cap.position.set(x0 - 0.005, yBar + 0.038, z + 0.043);
+      g.add(cap);
+    }
     const conY = sys === 'supply' ? 0 : -returnY;
     g.add(cylBetween(V(x0 - 0.1, yBar, z), V(x0 - 0.02, yBar, z), 0.013, mat));
     g.add(cylBetween(V(-0.1, yBar, z), V(-0.1, conY, z), 0.013, mat));
@@ -523,6 +604,10 @@ export function manifold(M, { n, kind, mixing, pitch, returnY, portLocal, pipeZ,
       nut.rotation.x = Math.PI / 2;
       nut.position.set(x, yBar, z - rBar - 0.045);
       g.add(nut);
+      // protective insulation sleeve on the outgoing pipe (red supply / blue return)
+      const sl = cylAlong('z', 0.0125, 0.075, sys === 'supply' ? M.redPlastic : M.bluePlastic, 18);
+      sl.position.set(x, yBar, z - rBar - 0.095 - (sys === 'supply' && !ufh ? 0.04 : 0));
+      g.add(sl);
       if (sys === 'supply') {
         if (ufh) {
           // flow meter (rotameter) on top of the supply bar
@@ -532,7 +617,7 @@ export function manifold(M, { n, kind, mixing, pitch, returnY, portLocal, pipeZ,
           const ind = cylAlong('z', 0.004, 0.012, M.redPlastic);
           ind.position.set(x, yBar, z + rBar + 0.035);
           g.add(ind);
-          const cp = cylAlong('z', 0.012, 0.01, M.redPlastic);
+          const cp = cylAlong('z', 0.012, 0.01, M.orange ?? M.redPlastic);
           cp.position.set(x, yBar, z + rBar + 0.08);
           g.add(cp);
         } else {

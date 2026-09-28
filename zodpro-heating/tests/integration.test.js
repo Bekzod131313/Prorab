@@ -115,3 +115,19 @@ test('performance: 1000 rooms heat loss under budget', () => {
 function close(a, b, tol) {
   assert.ok(Math.abs(a - b) <= tol, `expected ${b} ± ${tol}, got ${a}`);
 }
+
+import { createSampleProject } from '../src/core/demo.js';
+
+test('sample project (2-storey, UFH ground floor, convectors upstairs) designs without errors', () => {
+  const p = createSampleProject();
+  const r = runCalculation(p, { noCache: true });
+  assert.equal(r.validation.counts.critical, 0, JSON.stringify(r.validation.findings));
+  assert.equal(r.validation.counts.error, 0, JSON.stringify(r.validation.findings));
+  const conv = Object.values(r.radiators).filter((x) => x.product?.kind === 'convector');
+  assert.ok(conv.length >= 12, 'in-floor convectors on the first floor');
+  assert.ok(Object.values(r.radiators).some((x) => x.product?.kind === 'towel'), 'towel dryer');
+  const loops = Object.values(r.ufh).flatMap((u) => u.loopIds);
+  assert.equal(new Set(loops).size, loops.length, 'unique loop IDs');
+  assert.ok(loops.every((id) => /^1\.\d\.\d+$/.test(id)));
+  assert.ok(r.circuits.every((c) => c.connected));
+});

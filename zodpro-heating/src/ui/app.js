@@ -2,7 +2,7 @@
 // command line, shortcuts, files, autosave/recovery and integrations to the Store.
 import { Store, ERROR_LOG, logError } from '../core/store.js';
 import { createEmptyProject, elementsOf, sortedLevels, newElement, levelById } from '../core/model.js';
-import { createDemoProject } from '../core/demo.js';
+import { createDemoProject, createSampleProject } from '../core/demo.js';
 import { autoPlaceRadiators, autoRoute, autoPlaceCollector } from '../core/autodesign.js';
 import { serializeProject, parseProject, exportDXF, exportIFC, exportSVG, parseDXF, dxfSegmentsToWalls, download, toExcelXml } from '../core/io.js';
 import { t, setLang, getLang, LANG_NAMES, msg } from '../core/i18n.js';
@@ -15,6 +15,7 @@ import { reportsHTML, dashboardHTML, scheduleDefs, esc, f0 } from './reports.js'
 import { schematicSVG, riserSVG, axonometrySVG, sectionSVG } from './schematic.js';
 import { renderSchedules, renderSheets, renderLibrary, renderSettings, renderInstall, renderIssues, renderHelp } from './pages.js';
 import { icon } from './icons.js';
+import { autoGrid } from './annotate.js';
 import { pointInPolygon, round } from '../core/util.js';
 
 const $ = (s) => document.querySelector(s);
@@ -62,7 +63,12 @@ class App {
   }
 
   initialProject() {
-    return createDemoProject();
+    const p = createSampleProject();
+    // structural grid axes from the walls (1…n, А…) as on the sample drawings
+    const g = autoGrid(p);
+    for (const a of g.x) { const e = newElement('gridline', { axis: 'x', pos: a.pos, name: a.name, levelId: null }); p.elements[e.id] = e; }
+    for (const a of g.y) { const e = newElement('gridline', { axis: 'y', pos: a.pos, name: a.name, levelId: null }); p.elements[e.id] = e; }
+    return p;
   }
 
   /** Crash recovery: offered after start-up in an in-page dialog. */
@@ -191,8 +197,11 @@ class App {
     cmd('save', t('t_save'), 'save', () => this.saveFile(), 'SAVE', 'view');
     cmd('save_as', t('t_save_as'), 'save', () => this.saveFile(true), 'SAVEAS', 'view');
     cmd('demo', t('t_demo'), 'demo', async () => {
-      if (!this.store.dirty || (await this.confirmBox(t('confirm_new')))) this.store.setProject(createDemoProject());
+      if (!this.store.dirty || (await this.confirmBox(t('confirm_new')))) this.store.setProject(this.initialProject());
     }, 'DEMO', 'view');
+    cmd('demo_small', 'Kichik uy namunasi', 'demo', async () => {
+      if (!this.store.dirty || (await this.confirmBox(t('confirm_new')))) this.store.setProject(createDemoProject());
+    }, 'DEMO2', 'view');
     cmd('imp_dxf', t('t_imp_dxf'), 'import', () => this.importDXF(), 'IMPDXF');
     cmd('imp_img', t('t_imp_img'), 'underlay', () => this.importUnderlay(), 'UNDERLAY');
     cmd('imp_ifc', 'IFC import', 'import', () => this.importIFC(), 'IMPIFC');
@@ -222,6 +231,7 @@ class App {
     cmd('errors', 'Xatolar jurnali', 'issue', () => this.errorLog(), 'ERRLOG', 'view');
     cmd('zoom_fit', 'Moslash', 'plan', () => this.plan.fit(), 'Z', 'view');
     cmd('copy_level', 'Qavatni nusxalash', 'level', () => this.copyLevel(), 'COPYLV');
+    cmd('auto_grid', 'Avto o‘qlar', 'dim', () => this.autoGridAxes(), 'GRID');
     for (const [v, label, ic] of [['plan', t('v_plan'), 'plan'], ['3d', t('v_3d'), 'cube'], ['schema', t('v_schema'), 'schema'], ['riser', t('v_riser'), 'riser'], ['section', 'Kesim/Aksonometriya', 'section'], ['reports', t('v_reports'), 'calc'], ['schedules', t('v_schedules'), 'schedule'], ['sheets', t('v_sheets'), 'sheet'], ['dashboard', t('v_dashboard'), 'dashboard'], ['issues', t('v_issues'), 'issue'], ['install', t('v_install'), 'install'], ['library', t('v_library'), 'library'], ['settings', t('tab_settings'), 'settings'], ['help', t('tab_help'), 'help']]) {
       cmd(`view_${v}`, label, ic, () => this.showView(v), '', 'view');
     }
@@ -231,11 +241,11 @@ class App {
     return {
       project: [['select'], ['wall', 'door', 'window', 'room', 'level'], ['radiator', 'pipe_s', 'pipe_r', 'collector', 'boiler', 'pump', 'riser'], ['text', 'dim'], ['auto_rad', 'auto_route', 'calc'], ['view_3d', 'view_reports', 'view_schedules', 'view_sheets', 'exp_dxf']],
       edit: [['select', 'undo', 'redo'], ['move', 'copy', 'rotate', 'mirror', 'array', 'offset'], ['trim', 'extend', 'split', 'fillet', 'delete'], ['line', 'polyline', 'circle', 'arc', 'rect', 'hatch', 'leader', 'text', 'dim', 'measure']],
-      view: [['view_plan', 'view_3d', 'view_schema', 'view_riser', 'view_section', 'section'], ['view_dashboard', 'view_install', 'view_issues', 'tags', 'zoom_fit']],
+      view: [['view_plan', 'view_3d', 'view_schema', 'view_riser', 'view_section', 'section'], ['auto_grid', 'view_dashboard', 'view_install', 'view_issues', 'tags', 'zoom_fit']],
       systems: [['radiator', 'pipe_s', 'pipe_r', 'riser'], ['collector', 'ufh_collector', 'boiler', 'pump', 'thermostat', 'obstacle'], ['auto_rad', 'auto_col', 'auto_route']],
       calc: [['calc', 'validate', 'balance'], ['view_reports', 'view_dashboard', 'view_schema'], ['ai']],
       docs: [['view_sheets', 'view_schedules', 'exp_pdf'], ['view_schema', 'view_riser', 'view_section', 'section'], ['revision', 'tags']],
-      export: [['new', 'open', 'save', 'save_as', 'demo'], ['imp_dxf', 'imp_img', 'imp_ifc', 'calibrate'], ['exp_dxf', 'exp_ifc', 'exp_xls', 'exp_csv', 'exp_svg', 'exp_png', 'exp_pdf'], ['quote', 'sap', 'telegram']],
+      export: [['new', 'open', 'save', 'save_as', 'demo', 'demo_small'], ['imp_dxf', 'imp_img', 'imp_ifc', 'calibrate'], ['exp_dxf', 'exp_ifc', 'exp_xls', 'exp_csv', 'exp_svg', 'exp_png', 'exp_pdf'], ['quote', 'sap', 'telegram']],
       settings: [['view_settings', 'view_library'], ['plugins', 'errors']],
       help: [['view_help', 'palette', 'ai']],
     };
@@ -323,7 +333,7 @@ class App {
 
   renderPlanToolbar() {
     const pv = this.plan;
-    const layers = [['room', 'Xonalar'], ['wall', 'Devorlar'], ['window', 'Derazalar'], ['door', 'Eshiklar'], ['radiator', 'Radiatorlar'], ['supply', "Ta'minot"], ['return', 'Qaytish'], ['riser', 'Stoyaklar'], ['ufh', 'Pol isitish'], ['collector', 'Kollektor'], ['boiler', 'Qozon'], ['obstacle', "To'siqlar"], ['dline', 'Chizmachilik'], ['text', 'Matn'], ['dim', "O'lcham"]];
+    const layers = [['room', 'Xonalar'], ['wall', 'Devorlar'], ['window', 'Derazalar'], ['door', 'Eshiklar'], ['radiator', 'Radiatorlar'], ['supply', "Ta'minot"], ['return', 'Qaytish'], ['riser', 'Stoyaklar'], ['ufh', 'Pol isitish'], ['collector', 'Kollektor'], ['boiler', 'Qozon'], ['obstacle', "To'siqlar"], ['dline', 'Chizmachilik'], ['text', 'Matn'], ['dim', "O'lcham"], ['grid', 'O‘qlar']];
     const tb = $('#plan-toolbar');
     tb.innerHTML = `<details style="position:relative"><summary style="list-style:none;padding:5px 9px;cursor:pointer">Qatlamlar ▾</summary><div style="position:absolute;top:30px;left:0;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 10px;box-shadow:var(--shadow);z-index:5;white-space:nowrap">${layers.map(([k, l]) => `<label style="display:block"><input type="checkbox" data-layer="${k}" ${pv.hidden.has(k) ? '' : 'checked'}> ${l}</label>`).join('')}</div></details>
       <button data-cm="system" class="${pv.colorMode === 'system' ? 'active' : ''}">Tizim ranglari</button>
@@ -697,6 +707,15 @@ class App {
     this.store.apply({ levels: [...p.levels, nl], add }, 'level:copy');
     this.store.setLevel(nl.id);
     this.toast(`${nl.name}: ${add.length} ta arxitektura elementi nusxalandi`);
+  }
+
+  autoGridAxes() {
+    const g = autoGrid(this.store.project);
+    const old = elementsOf(this.store.project, 'gridline').map((e) => e.id);
+    const add = [...g.x.map((a) => newElement('gridline', { axis: 'x', pos: a.pos, name: a.name, levelId: null })), ...g.y.map((a) => newElement('gridline', { axis: 'y', pos: a.pos, name: a.name, levelId: null }))];
+    if (!add.length) return this.toast('Devorlar yo‘q — o‘qlarni yaratib bo‘lmadi', 'error');
+    this.store.apply({ add, remove: old }, 'grid:auto');
+    this.toast(`O‘qlar: ${g.x.map((a) => a.name).join(', ')} · ${g.y.map((a) => a.name).join(', ')}`);
   }
 
   autoRadiators() {

@@ -12,6 +12,21 @@ function addItem(map, key, item) {
   else map.set(key, { ...item });
 }
 
+/** Parts of one manifold connection node (as on the "Узел подключения коллектора" sheet). */
+export function manifoldNodeParts(outlets) {
+  return [
+    ['ppr-red-40-32', 'Переход ППР 40×32', 'dona', 2, 0.9],
+    ['bv-angle-25', 'Кран шаровой угловой с полусгоном DN25 × 1"', 'dona', 2, 11],
+    ['adapter-32-1', 'Адаптер полипропиленовый с нар. резьбой 32×1"', 'dona', 2, 2.4],
+    ['elbow-32', 'Отвод ППР 32×32', 'dona', 4, 0.5],
+    ['nipple-1', 'Ниппель 1"', 'dona', 1, 1.6],
+    ['sleeve-red-16', 'Защитная втулка на теплоизоляцию dn16, красная', 'dona', outlets, 0.35],
+    ['sleeve-blue-16', 'Защитная втулка на теплоизоляцию dn16, синяя', 'dona', outlets, 0.35],
+    ['actuator', 'Электропривод для коллектора', 'dona', outlets, 17],
+    ['balancing-1', 'Балансировочный клапан DN 1"', 'dona', 1, 34],
+  ];
+}
+
 export function buildBom(project, res, net) {
   const s = project.settings;
   const waste = s.wasteFactor ?? 0.07;
@@ -79,7 +94,9 @@ export function buildBom(project, res, net) {
     const need = c.kind === 'ufh' ? Math.max(2, loops) : c.outlets ?? 4;
     const prod = COLLECTORS.find((p) => p.outlets >= need) ?? COLLECTORS[COLLECTORS.length - 1];
     addItem(items, `col|${prod.id}|${c.kind}`, { group: 'collectors', name: `${prod.model}${c.kind === 'ufh' ? ' (pol isitish, rotametrli)' : ''}`, article: prod.article, sapArticle: prod.sapArticle, unit: 'dona', qty: 1, unitUsd: prod.usd + (c.kind === 'ufh' ? prod.ufhUsdExtra : 0), waste: 0 });
-    addItem(items, 'ball', { group: 'valves', name: VALVES.ball.model + ' 1"', article: VALVES.ball.article, unit: 'dona', qty: 2, unitUsd: VALVES.ball.usd, waste: 0 });
+    // manifold connection node (узел подключения коллектора) — same parts list as the detail sheet
+    const used = c.kind === 'ufh' ? Math.max(loops, 1) : Math.max(1, res.circuits.filter((x) => x.connected && x.path.includes(c.id)).length);
+    for (const [key, name, unit, qty, usd] of manifoldNodeParts(used)) addItem(items, `node|${key}`, { group: 'fittings', name, article: `ZP-NODE-${key}`, unit, qty, unitUsd: usd, waste: 0 });
     if (c.kind === 'ufh' && c.mixing !== false) {
       addItem(items, 'mixing', { group: 'equipment', name: 'Aralashtirish uzeli (3-yo‘lli klapan + nasos + termometr)', article: 'ZP-MIX-01', unit: 'kompl', qty: 1, unitUsd: 240, waste: 0 });
     }
@@ -93,7 +110,6 @@ export function buildBom(project, res, net) {
     addItem(items, 'ufh_clip', { group: 'ufh', name: 'Pol isitish qisqichi (garpun)', article: 'ZP-UFH-CLIP', unit: 'dona', qty: Math.ceil(u.totalLength * 3), unitUsd: FITTING_PRICES.ufh_pipe_clip, waste: 0.05 });
     addItem(items, 'ufh_ins', { group: 'ufh', name: 'Issiqlik izolyatsiya plitasi (pol isitish)', article: 'ZP-UFH-INS', unit: 'm²', qty: u.area, unitUsd: FITTING_PRICES.ufh_insulation_m2, waste: 0.05 });
     addItem(items, 'ufh_edge', { group: 'ufh', name: 'Demfer lenta', article: 'ZP-UFH-EDGE', unit: 'm', qty: u.perimeter, unitUsd: FITTING_PRICES.ufh_edge_strip_m, waste: 0.1 });
-    addItem(items, 'actuator', { group: 'controls', name: 'Elektrotermik aktuator', article: 'ZP-ACT', unit: 'dona', qty: u.loops, unitUsd: FITTING_PRICES.actuator, waste: 0 });
   }
 
   // thermostats

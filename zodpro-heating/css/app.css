@@ -195,8 +195,26 @@ table.tbl tr.clickable:hover td { background: var(--accent-soft); cursor: pointe
 /* sheets */
 .sheet { width: 1188px; max-width: 100%; aspect-ratio: 420 / 297; background: #fff; color: #111; border: 1px solid #999; margin: 0 auto 18px; position: relative; box-shadow: var(--shadow); overflow: hidden; }
 .sheet .frame { position: absolute; inset: 14px 14px 14px 56px; border: 2px solid #111; }
-.sheet .content { position: absolute; inset: 22px 22px 140px 64px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.sheet .content { position: absolute; inset: 22px 22px 22px 64px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
 .sheet .content > * { max-width: 100%; max-height: 100%; }
+.sheet .dwg { position: relative; width: 100%; height: 100%; }
+.sheet .dwg > svg { position: absolute; inset: 0 0 22% 0; width: 100%; height: 78%; }
+.sheet .dwg:has(> .dwg-spec) > svg { right: 33%; width: 67%; }
+.sheet .dwg-spec { position: absolute; right: 0; top: 8%; width: 32%; max-height: 69%; overflow: hidden; background: #fff; font-size: 8px; }
+.sheet .dwg-spec table.tbl { font-size: 7.5px !important; width: 100%; }
+.sheet .dwg-spec table.tbl td, .sheet .dwg-spec table.tbl th { padding: 1px 3px; }
+.sheet .node-dwg .mnode { position: absolute; left: 0; top: 0; width: 66%; height: 78%; }
+.sheet .gost { position: absolute; right: 14px; bottom: 14px; display: flex; border-top: 2px solid #111; border-left: 2px solid #111; background: #fff; font-size: 8.5px; }
+.sheet .gost table { border-collapse: collapse; }
+.sheet .gost td, .sheet .gost th { border: 1px solid #111; padding: 1px 4px; height: 13px; font-weight: 400; white-space: nowrap; }
+.sheet .gost-left td, .sheet .gost-left th { min-width: 34px; }
+.sheet .gost-right { width: 330px; }
+.sheet .gost-project { font-size: 10px; height: 26px !important; text-align: center; white-space: normal !important; }
+.sheet .gost-sheet-title { font-size: 10px; text-align: center; white-space: normal !important; width: 60%; }
+.sheet .gost-logo { font-weight: 800; font-size: 14px; color: #1e6ef2; text-align: center; letter-spacing: 1px; }
+.sheet .gost-num { font-size: 8px; }
+.sheet .gost-code { position: absolute; right: 2px; top: -16px; font-size: 10px; }
+.sheet .gost .rev { font-size: 7.5px; color: #555; }
 .sheet .titleblock { position: absolute; right: 14px; bottom: 14px; width: 520px; height: 120px; border-left: 2px solid #111; border-top: 2px solid #111; display: grid; grid-template-columns: 90px 1fr 110px; grid-template-rows: repeat(4, 1fr); font-size: 10px; }
 .sheet .titleblock > div { border-right: 1px solid #111; border-bottom: 1px solid #111; padding: 2px 5px; overflow: hidden; }
 .sheet .titleblock .logo-cell { grid-row: span 4; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; color: #1e6ef2; }

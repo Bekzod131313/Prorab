@@ -128,11 +128,13 @@ function connectedConnectorIds(project) {
  * Collectors are connected to the boiler (same level) or through supply/return risers (other levels).
  * @param productLookup (radiatorElement) → product (for exact connector positions)
  */
-export function autoRoute(project, productLookup, { material = null } = {}) {
+export function autoRoute(project, productLookup, { material = null, trunkMaterial = null } = {}) {
   const add = [];
   const update = [];
   const s = project.settings;
   const mat = material ?? s.pipeMaterial;
+  // trunk (boiler ↔ manifolds, risers) may use another material, e.g. PPR trunks + PEX home-runs
+  const trunk = trunkMaterial ?? s.trunkMaterial ?? mat;
   const used = connectedConnectorIds(project);
   const collectors = elementsOf(project, 'collector').filter((c) => c.kind !== 'ufh');
   const patches = new Map();
@@ -189,7 +191,7 @@ export function autoRoute(project, productLookup, { material = null } = {}) {
       const pc = connectorsOf(project, pump, null);
       const pin = pc.find((c) => c.name === 'in');
       const pout = pc.find((c) => c.name === 'out');
-      if (!used.has(pin.id)) add.push(newElement('pipe', { levelId: boiler.levelId, system: 'supply', material: mat, autoSize: true, elevation: s.pipeElevation, points: orthoRoute(bs.pos, pin.pos, null) }));
+      if (!used.has(pin.id)) add.push(newElement('pipe', { levelId: boiler.levelId, system: 'supply', material: trunk, autoSize: true, elevation: s.pipeElevation, points: orthoRoute(bs.pos, pin.pos, null) }));
       supplyStart = pout;
     }
     const riserFor = new Map();
@@ -199,8 +201,8 @@ export function autoRoute(project, productLookup, { material = null } = {}) {
       const cr = cc.find((c) => c.name === 'in_return');
       if (used.has(cs.id) && used.has(cr.id)) continue;
       if (col.levelId === boiler.levelId) {
-        add.push(newElement('pipe', { levelId: col.levelId, system: 'supply', material: mat, autoSize: true, elevation: s.pipeElevation + 0.1, points: orthoRoute(supplyStart.pos, cs.pos, null) }));
-        add.push(newElement('pipe', { levelId: col.levelId, system: 'return', material: mat, autoSize: true, elevation: s.pipeElevation + 0.15, points: orthoRoute(br.pos, cr.pos, null) }));
+        add.push(newElement('pipe', { levelId: col.levelId, system: 'supply', material: trunk, autoSize: true, elevation: s.pipeElevation + 0.1, points: orthoRoute(supplyStart.pos, cs.pos, null) }));
+        add.push(newElement('pipe', { levelId: col.levelId, system: 'return', material: trunk, autoSize: true, elevation: s.pipeElevation + 0.15, points: orthoRoute(br.pos, cr.pos, null) }));
       } else {
         // risers beside the boiler, shared by all collectors on upper/lower levels
         const lv = levelById(project, col.levelId);
@@ -210,12 +212,12 @@ export function autoRoute(project, productLookup, { material = null } = {}) {
         const sp = { x: round(rs.x, 3), y: round(rs.y, 3) };
         const rp = { x: round(rr.x, 3), y: round(rr.y, 3) };
         riserFor.set(col.id, true);
-        add.push(newElement('riser', { system: 'supply', x: sp.x, y: sp.y, levelFrom: bLevel.id, levelTo: lv.id, levelId: bLevel.id, material: mat, autoSize: true }));
-        add.push(newElement('riser', { system: 'return', x: rp.x, y: rp.y, levelFrom: bLevel.id, levelTo: lv.id, levelId: bLevel.id, material: mat, autoSize: true }));
-        add.push(newElement('pipe', { levelId: bLevel.id, system: 'supply', material: mat, autoSize: true, elevation: s.pipeElevation + 0.1, points: orthoRoute(supplyStart.pos, sp, null) }));
-        add.push(newElement('pipe', { levelId: bLevel.id, system: 'return', material: mat, autoSize: true, elevation: s.pipeElevation + 0.15, points: orthoRoute(br.pos, rp, null) }));
-        add.push(newElement('pipe', { levelId: lv.id, system: 'supply', material: mat, autoSize: true, elevation: s.pipeElevation + 0.1, points: orthoRoute(sp, cs.pos, null) }));
-        add.push(newElement('pipe', { levelId: lv.id, system: 'return', material: mat, autoSize: true, elevation: s.pipeElevation + 0.15, points: orthoRoute(rp, cr.pos, null) }));
+        add.push(newElement('riser', { system: 'supply', x: sp.x, y: sp.y, levelFrom: bLevel.id, levelTo: lv.id, levelId: bLevel.id, material: trunk, autoSize: true }));
+        add.push(newElement('riser', { system: 'return', x: rp.x, y: rp.y, levelFrom: bLevel.id, levelTo: lv.id, levelId: bLevel.id, material: trunk, autoSize: true }));
+        add.push(newElement('pipe', { levelId: bLevel.id, system: 'supply', material: trunk, autoSize: true, elevation: s.pipeElevation + 0.1, points: orthoRoute(supplyStart.pos, sp, null) }));
+        add.push(newElement('pipe', { levelId: bLevel.id, system: 'return', material: trunk, autoSize: true, elevation: s.pipeElevation + 0.15, points: orthoRoute(br.pos, rp, null) }));
+        add.push(newElement('pipe', { levelId: lv.id, system: 'supply', material: trunk, autoSize: true, elevation: s.pipeElevation + 0.1, points: orthoRoute(sp, cs.pos, null) }));
+        add.push(newElement('pipe', { levelId: lv.id, system: 'return', material: trunk, autoSize: true, elevation: s.pipeElevation + 0.15, points: orthoRoute(rp, cr.pos, null) }));
       }
     }
   } else {

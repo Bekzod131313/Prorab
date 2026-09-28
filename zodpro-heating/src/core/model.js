@@ -11,6 +11,7 @@ export const SCHEMA_VERSION = 3;
 export const FILE_EXT = '.zph';
 
 export const CATEGORIES = [
+  'gridline',
   'wall',
   'window',
   'door',

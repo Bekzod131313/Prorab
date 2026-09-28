@@ -130,3 +130,15 @@ Status: `DONE` (implemented + tested or verified in the browser) · `PARTIAL` (w
 - [x] Import/export covered (with DWG/RVT gaps recorded)
 - [x] Future integration preserved (ERP, plugin, API contracts, emitter abstraction)
 - [x] No requirement silently dropped
+
+## Sample-project parity (ISSO reference sheets)
+
+| Reference sheet | Implemented in | Status |
+|---|---|---|
+| 1-этаж зона теплого пола (loop tags `1.2.3 · Ø16 · L=53 м`, T1/T2 legend) | `ui/annotate.js` `ufhLoopTags`, `ui/drawingsvg.js` `planSVG(...,'ufh')` | done |
+| 2-этаж трасса отопления (in-floor convectors `300·120·L … Вт`, towel dryer «Сушилка», risers T5/T6) | `data/products.js` convectors/towel, `planSVG(...,'radiator')` | done |
+| Схема теплого пола (isometric, Ø labels) | `ufhAxoSVG` | done |
+| Узел подключения коллектора (3D + numbered parts spec) | `ui/detail3d.js`, `engines/bom.js` `manifoldNodeParts` | done |
+| Grid axes 1…n / А…, dimension chains, positions, GOST title block | `autoGrid`, `positions`, `ui/sheets.js` | done |
+| 3D cut with solid wall sections (poché) | `ui/view3d.js` `buildWall` | done |
+| DHW storage tank / boiler-room piping | — | backlog DHW-01, BR-01 |

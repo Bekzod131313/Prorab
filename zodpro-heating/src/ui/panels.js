@@ -199,6 +199,8 @@ function fieldsFor(el, p, res) {
       return [{ k: 'text', l: 'Matn', type: 'text' }, { k: 'size', l: 'Balandlik', type: 'number', u: 'm' }];
     case 'dim':
       return [{ k: 'offset', l: 'Offset', type: 'number', u: 'm' }];
+    case 'gridline':
+      return [{ k: 'name', l: 'O‘q nomi', type: 'text' }, { k: 'pos', l: 'Holati', type: 'number', u: 'm' }];
     case 'section':
       return [{ k: 'name', l: t('name'), type: 'text' }, { k: 'depth', l: 'Chuqurlik', type: 'number', u: 'm' }];
     default:
