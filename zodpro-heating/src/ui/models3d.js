@@ -114,7 +114,31 @@ export function makeTextures() {
     }
   });
   grass.repeat.set(1 / 4, 1 / 4);
-  return { parquet, tiles, facade, interior, screed, wood, grass };
+  // UFH system board: metallised foil with the printed 50/100 mm laying grid (texture covers 1 m)
+  const foil = canvasTex(1024, 1024, (g, w, h) => {
+    g.fillStyle = '#c9ced4';
+    g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 1400; i++) {
+      g.fillStyle = `rgba(${rnd() < 0.5 ? '255,255,255' : '120,128,138'},${0.04 + rnd() * 0.05})`;
+      g.fillRect(rnd() * w, rnd() * h, 2 + rnd() * 30, 1 + rnd() * 2);
+    }
+    for (let k = 0; k <= 20; k++) {
+      const p = (k / 20) * w;
+      const major = k % 2 === 0;
+      g.strokeStyle = major ? 'rgba(30,80,160,0.55)' : 'rgba(30,80,160,0.28)';
+      g.lineWidth = major ? 2.2 : 1.1;
+      g.beginPath();
+      g.moveTo(p, 0);
+      g.lineTo(p, h);
+      g.moveTo(0, p);
+      g.lineTo(w, p);
+      g.stroke();
+    }
+    g.fillStyle = 'rgba(30,80,160,0.45)';
+    g.font = 'bold 22px Arial';
+    for (let y = 0; y < 2; y++) for (let x = 0; x < 2; x++) g.fillText('50 · 100 · 150 mm', 60 + x * 512, 45 + y * 512);
+  });
+  return { parquet, tiles, facade, interior, screed, wood, grass, foil };
 }
 
 // ---------------------------------------------------------------- materials
@@ -164,8 +188,9 @@ export function makeMaterials(textures, systemColors) {
     ret: std({ color: systemColors.ret, roughness: 0.35, metalness: 0.05 }),
     ppr: std({ color: 0xf0f0ec, roughness: 0.4 }),
     pprFitting: std({ color: 0xe4e4df, roughness: 0.45 }),
-    pexRed: std({ color: 0xc8332a, roughness: 0.5 }),
-    pexBlue: std({ color: 0x2c63c9, roughness: 0.5 }),
+    pexRed: phys({ color: 0xd2382c, roughness: 0.38, clearcoat: 0.6, clearcoatRoughness: 0.2, envMapIntensity: 0.7 }),
+    pexBlue: phys({ color: 0x2a62d0, roughness: 0.38, clearcoat: 0.6, clearcoatRoughness: 0.2, envMapIntensity: 0.7 }),
+    ufhFoil: std({ map: textures.foil, color: 0xffffff, metalness: 0.35, roughness: 0.55 }),
     copper: std({ color: 0xc27a4a, metalness: 1, roughness: 0.3 }),
     cabinet: std({ color: 0xe9ebee, metalness: 0.3, roughness: 0.5, side: THREE.DoubleSide }),
     obstacle: std({ color: 0xa08050, roughness: 0.8, transparent: true, opacity: 0.7 }),
@@ -526,139 +551,321 @@ export function towelDryer(M, prod) {
   return g;
 }
 
-// ---------------------------------------------------------------- manifold
-/**
- * Heating manifold (radiator or UFH) in a wall cabinet: stacked supply (top) / return (bottom) bars,
- * per-outlet ball valves (radiator) or flow meters + thermostatic inserts with actuators (UFH),
- * main ball valves, air vents & drain cocks, brackets, drops to the floor connectors.
- */
-export function manifold(M, { n, kind, mixing, pitch, returnY, portLocal, pipeZ, pipeMatS, pipeMatR }) {
-  const g = new THREE.Group();
-  const ufh = kind === 'ufh';
-  const x0 = -0.15;
-  const x1 = portLocal(n - 1) + 0.08;
-  const yBar = -returnY / 2; // bars in the middle of the two connector rows (model frame)
-  const zS = 0.72;
-  const zR = 0.5;
-  const rBar = 0.017;
-  // cabinet
-  const cab = new THREE.Group();
-  const cw = x1 - x0 + 0.18;
-  const cx = (x0 + x1) / 2 - 0.03;
-  cab.add(box(cw, 0.01, 0.62, M.cabinet, cx, yBar - 0.06, 0.62));
-  for (const s of [-1, 1]) cab.add(box(0.01, 0.12, 0.62, M.cabinet, cx + (s * cw) / 2, yBar, 0.62));
-  cab.add(box(cw, 0.12, 0.01, M.cabinet, cx, yBar, 0.93));
-  cab.add(box(cw, 0.12, 0.01, M.cabinet, cx, yBar, 0.31));
-  g.add(cab);
-  for (const [z, mat, sys] of [[zS, pipeMatS, 'supply'], [zR, pipeMatR, 'return']]) {
-    const bar = cylAlong('x', rBar, x1 - x0, M.nickel, 20);
-    bar.position.set((x0 + x1) / 2, yBar, z);
-    g.add(bar);
-    // hex ends
-    for (const xe of [x0, x1]) {
-      const h = hexNut(rBar * 1.25, 0.02, M.nickel);
-      h.rotation.z = Math.PI / 2;
-      h.position.set(xe, yBar, z);
-      g.add(h);
+// Geometry of the manifold in its model frame (x along the bars, y towards the wall, z up, floor z = 0).
+// Supply bar on top and 60 mm further from the wall than the return bar, so the supply outlets pass
+// in front of it; outlets point down; the plan connector rows (supply y = 0, return y = −returnY)
+// are on the floor in front of the manifold.
+export const MANIFOLD = { yS: 0.07, yR: 0.13, zS: 0.72, zR: 0.52, rBar: 0.0165, wallY: 0.2, xIn: -0.1, jog: 0.025 };
+
+/** Swept tube through every point of a 3D polyline (parallel-transport frames, no corner cutting). */
+export function tubeAlong(points, r, radial = 12) {
+  const P = points.filter((p, i) => i === 0 || p.distanceTo(points[i - 1]) > 1e-6);
+  if (P.length < 2) return null;
+  const n = P.length;
+  const T = P.map((p, i) => {
+    const a = P[Math.max(0, i - 1)];
+    const b = P[Math.min(n - 1, i + 1)];
+    return b.clone().sub(a).normalize();
+  });
+  // initial normal ⟂ first tangent
+  let N = Math.abs(T[0].z) < 0.9 ? V(0, 0, 1) : V(1, 0, 0);
+  N = N.sub(T[0].clone().multiplyScalar(N.dot(T[0]))).normalize();
+  const pos = [];
+  const nor = [];
+  const uv = [];
+  let len = 0;
+  for (let i = 0; i < n; i++) {
+    if (i > 0) {
+      // parallel transport: rotate N by the rotation T[i-1] → T[i]
+      const axis = T[i - 1].clone().cross(T[i]);
+      const sin = axis.length();
+      if (sin > 1e-9) N.applyAxisAngle(axis.normalize(), Math.atan2(sin, T[i - 1].dot(T[i])));
+      len += P[i].distanceTo(P[i - 1]);
     }
-    // end fitting: air vent (top) + drain cock (bottom)
-    const av = cylAlong('z', 0.008, 0.04, M.brass);
-    av.position.set(x1 + 0.02, yBar, z + 0.02);
-    g.add(av);
-    const dr = cylAlong('z', 0.007, 0.035, M.brass);
-    dr.position.set(x1 + 0.02, yBar, z - 0.03);
-    g.add(dr);
-    const cap = cylAlong('x', rBar * 0.9, 0.03, M.nickel);
-    cap.position.set(x1 + 0.015, yBar, z);
-    g.add(cap);
-    // main inlet ball valve + drop to floor connector (plan local (−0.1, 0 | returnY))
-    const bv = ballValve(M, 0.025, sys === 'supply' ? M.redPlastic : M.bluePlastic, 'x');
-    bv.position.set(x0 - 0.05, yBar, z);
-    g.add(bv);
-    if (sys === 'supply') {
-      // balancing valve DN 1" with blue measuring cap between the ball valve and the bar
-      const body = cylAlong('x', 0.019, 0.05, M.brass, 18);
-      body.position.set(x0 - 0.005, yBar, z);
-      g.add(body);
-      const bonnet = mesh(new THREE.CylinderGeometry(0.012, 0.014, 0.05, 16), M.brass);
-      bonnet.rotation.x = -Math.PI / 4;
-      bonnet.position.set(x0 - 0.005, yBar + 0.02, z + 0.025);
-      g.add(bonnet);
-      const cap = mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.02, 16), M.bluePlastic);
-      cap.rotation.x = -Math.PI / 4;
-      cap.position.set(x0 - 0.005, yBar + 0.038, z + 0.043);
-      g.add(cap);
-    }
-    const conY = sys === 'supply' ? 0 : -returnY;
-    g.add(cylBetween(V(x0 - 0.1, yBar, z), V(x0 - 0.02, yBar, z), 0.013, mat));
-    g.add(cylBetween(V(-0.1, yBar, z), V(-0.1, conY, z), 0.013, mat));
-    g.add(cylBetween(V(-0.1, conY, z), V(-0.1, conY, pipeZ + (sys === 'supply' ? 0.1 : 0.15)), 0.013, mat));
-    // outlets
-    for (let i = 0; i < n; i++) {
-      const x = portLocal(i);
-      // eurocone outlet pointing down
-      const out = cylAlong('z', 0.009, 0.04, M.nickel);
-      out.position.set(x, yBar, z - rBar - 0.02);
-      g.add(out);
-      const nut = hexNut(0.012, 0.012, M.brass);
-      nut.rotation.x = Math.PI / 2;
-      nut.position.set(x, yBar, z - rBar - 0.045);
-      g.add(nut);
-      // protective insulation sleeve on the outgoing pipe (red supply / blue return)
-      const sl = cylAlong('z', 0.0125, 0.075, sys === 'supply' ? M.redPlastic : M.bluePlastic, 18);
-      sl.position.set(x, yBar, z - rBar - 0.095 - (sys === 'supply' && !ufh ? 0.04 : 0));
-      g.add(sl);
-      if (sys === 'supply') {
-        if (ufh) {
-          // flow meter (rotameter) on top of the supply bar
-          const fm = cylAlong('z', 0.011, 0.07, M.flowMeter);
-          fm.position.set(x, yBar, z + rBar + 0.04);
-          g.add(fm);
-          const ind = cylAlong('z', 0.004, 0.012, M.redPlastic);
-          ind.position.set(x, yBar, z + rBar + 0.035);
-          g.add(ind);
-          const cp = cylAlong('z', 0.012, 0.01, M.orange ?? M.redPlastic);
-          cp.position.set(x, yBar, z + rBar + 0.08);
-          g.add(cp);
-        } else {
-          const vb = ballValve(M, 0.012, M.redPlastic, 'z');
-          vb.position.set(x, yBar, z - rBar - 0.07);
-          g.add(vb);
-        }
-      } else {
-        // thermostatic insert + (UFH) electro-thermal actuator on top of the return bar
-        const ins = cylAlong('z', 0.009, 0.03, M.nickel);
-        ins.position.set(x, yBar, z + rBar + 0.01);
-        g.add(ins);
-        const act = cylAlong('z', ufh ? 0.017 : 0.012, ufh ? 0.05 : 0.02, ufh ? M.whitePlastic : M.bluePlastic, 20);
-        act.position.set(x, yBar, z + rBar + (ufh ? 0.05 : 0.035));
-        g.add(act);
-      }
-      // drop to floor, then jog to the plan connector row
-      const conY = sys === 'supply' ? 0 : -returnY;
-      const pz = pipeZ + (sys === 'supply' ? 0 : 0.05);
-      const zOut = z - rBar - 0.06 - (sys === 'supply' && !ufh ? 0.04 : 0);
-      g.add(cylBetween(V(x, yBar, zOut), V(x, yBar, pz + 0.04), 0.008, mat));
-      g.add(cylBetween(V(x, yBar, pz + 0.04), V(x, conY, pz), 0.008, mat));
+    // keep the ring perpendicular to the bisecting tangent; scale at bends so the wall keeps its radius
+    const B = T[i].clone().cross(N).normalize();
+    for (let j = 0; j <= radial; j++) {
+      const t = (j / radial) * Math.PI * 2;
+      const d = N.clone().multiplyScalar(Math.cos(t)).add(B.clone().multiplyScalar(Math.sin(t)));
+      pos.push(P[i].x + d.x * r, P[i].y + d.y * r, P[i].z + d.z * r);
+      nor.push(d.x, d.y, d.z);
+      uv.push(len, j / radial);
     }
   }
-  // brackets
-  for (const x of [x0 + 0.03, x1 - 0.02]) g.add(box(0.02, 0.06, 0.34, M.steel, x, yBar - 0.03, (zS + zR) / 2));
+  const idx = [];
+  for (let i = 0; i < n - 1; i++)
+    for (let j = 0; j < radial; j++) {
+      const a = i * (radial + 1) + j;
+      const b = a + radial + 1;
+      idx.push(a, a + 1, b, b, a + 1, b + 1); // counter-clockwise seen from outside
+    }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx);
+  return g;
+}
+
+/** Fillet a 3D orthogonal-ish polyline with circular arcs of radius R (for bent PEX pipe). */
+export function bend3(points, R, perQuarter = 8) {
+  if (points.length < 3) return points;
+  const out = [points[0]];
+  for (let i = 1; i < points.length - 1; i++) {
+    const a = points[i - 1];
+    const p = points[i];
+    const c = points[i + 1];
+    const u1 = p.clone().sub(a);
+    const u2 = c.clone().sub(p);
+    const la = u1.length();
+    const lc = u2.length();
+    if (la < 1e-9 || lc < 1e-9) continue;
+    u1.divideScalar(la);
+    u2.divideScalar(lc);
+    const th = Math.acos(Math.max(-1, Math.min(1, u1.dot(u2))));
+    if (th < 1e-3) {
+      out.push(p);
+      continue;
+    }
+    const rr = Math.min(R, Math.min(la, lc) / 2 / Math.tan(th / 2));
+    const t = rr * Math.tan(th / 2);
+    const s0 = p.clone().addScaledVector(u1, -t);
+    const s1 = p.clone().addScaledVector(u2, t);
+    const k = Math.max(2, Math.ceil((th / (Math.PI / 2)) * perQuarter));
+    // quadratic Bézier with the corner as control point ≈ circular arc for these angles
+    for (let j = 0; j <= k; j++) {
+      const q = j / k;
+      out.push(s0.clone().multiplyScalar((1 - q) * (1 - q)).addScaledVector(p, 2 * (1 - q) * q).addScaledVector(s1, q * q));
+    }
+  }
+  out.push(points[points.length - 1]);
+  return out;
+}
+
+function pexPipe(pts, od, mat, R = 0.06) {
+  const g = tubeAlong(bend3(pts, R), od / 2, 14);
+  return g ? mesh(g, mat) : new THREE.Group();
+}
+
+/** Points of the manifold the drawings refer to (model frame), for callouts on detail sheets. */
+export function manifoldAnchors(n, portLocal) {
+  const { yS, yR, zS, zR, rBar, xIn } = MANIFOLD;
+  const x1 = portLocal(n - 1) + 0.06;
+  return {
+    ballValveS: V(xIn, yS, zS - 0.1),
+    ballValveR: V(xIn, yR, zR - 0.1),
+    adapter: V(xIn, yR, 0.2),
+    elbow: V(xIn, yS, zS),
+    balancing: V(xIn, yS, zS - 0.2),
+    nipple: V(xIn + 0.02, yS, zS),
+    manifold: V((portLocal(0) + x1) / 2, yS, zS + rBar),
+    sleeveRed: V(portLocal(n - 1), yS, 0.2),
+    actuator: V(portLocal(n - 1), yR, zR + rBar + 0.05),
+    sleeveBlue: V(portLocal(Math.max(0, n - 2)) + MANIFOLD.jog, yR, 0.15),
+  };
+}
+
+// ---------------------------------------------------------------- manifold
+/**
+ * Distribution manifold as installed: wall brackets, supply bar (flow meters on top) above and in
+ * front of the return bar (thermostatic inserts + electro-thermal actuators), eurocone outlets
+ * pointing down with PEX pipes bent into the floor, ball valves on the inlets, air vents and drain
+ * cocks on the end group, optional mixing unit (3-way valve + circulator), open cabinet.
+ */
+export function manifold(M, { n, kind, mixing, pitch, returnY, portLocal, pipeZ, pipeMatS, pipeMatR, floorZ = null, cabinet = true }) {
+  const g = new THREE.Group();
+  const ufh = kind === 'ufh';
+  const { yS, yR, zS, zR, rBar, wallY, xIn, jog } = MANIFOLD;
+  const x0 = xIn + 0.03;
+  const x1 = portLocal(n - 1) + 0.06;
+  const zF = floorZ ?? pipeZ; // pipes leave the manifold at this height (UFH: on the insulation)
+  const od = 0.016;
+  // ---- cabinet (open front)
+  const cab = new THREE.Group();
+  const cx0 = (mixing && ufh ? -0.46 : xIn - 0.08);
+  const cx1 = x1 + 0.08;
+  const cw = cx1 - cx0;
+  const cxm = (cx0 + cx1) / 2;
+  cab.add(box(cw, 0.008, 0.66, M.cabinet, cxm, wallY - 0.004, 0.63));
+  for (const xe of [cx0, cx1]) cab.add(box(0.008, 0.13, 0.66, M.cabinet, xe, wallY - 0.065, 0.63));
+  cab.add(box(cw, 0.13, 0.008, M.cabinet, cxm, wallY - 0.065, 0.96));
+  // DIN rail + a strip of terminals for the actuators (UFH)
+  if (ufh) {
+    cab.add(box(Math.min(0.3, cw - 0.1), 0.01, 0.035, M.steel, cxm, wallY - 0.012, 0.9));
+    cab.add(box(Math.min(0.22, cw - 0.12), 0.05, 0.06, M.whitePlastic, cxm, wallY - 0.04, 0.9, 0.004));
+  }
+  if (cabinet) g.add(cab);
+  // ---- brackets: galvanised plate on the wall, two arms, rubber-lined clamps
+  for (const xb of [x0 + 0.035, x1 - 0.035]) {
+    g.add(box(0.03, 0.004, zS - zR + 0.16, M.steel, xb, wallY - 0.01, (zS + zR) / 2));
+    g.add(box(0.02, wallY - 0.01 - yS, 0.004, M.steel, xb, (wallY - 0.01 + yS) / 2, zS - rBar - 0.004));
+    g.add(box(0.02, wallY - 0.01 - yR, 0.004, M.steel, xb, (wallY - 0.01 + yR) / 2, zR - rBar - 0.004));
+    for (const [yy, zz] of [[yS, zS], [yR, zR]]) {
+      const clamp = mesh(new THREE.TorusGeometry(rBar + 0.003, 0.004, 8, 24), M.steel);
+      clamp.rotation.y = Math.PI / 2;
+      clamp.position.set(xb, yy, zz);
+      g.add(clamp);
+    }
+  }
+  for (const [z, y, mat, sys] of [[zS, yS, pipeMatS, 'supply'], [zR, yR, pipeMatR, 'return']]) {
+    const sup = sys === 'supply';
+    // ---- bar (1" nickel-plated brass) with hex end pieces
+    const bar = cylAlong('x', rBar, x1 - x0, M.nickel, 24);
+    bar.position.set((x0 + x1) / 2, y, z);
+    g.add(bar);
+    for (const xe of [x0, x1]) {
+      const h = hexNut(rBar * 1.3, 0.022, M.nickel);
+      h.rotation.z = Math.PI / 2;
+      h.position.set(xe, y, z);
+      g.add(h);
+    }
+    // ---- end group: automatic air vent on top, drain cock with cap below
+    const eg = cylAlong('x', rBar * 0.95, 0.035, M.brass, 20);
+    eg.position.set(x1 + 0.028, y, z);
+    g.add(eg);
+    const vent = cylAlong('z', 0.012, 0.035, M.brass, 18);
+    vent.position.set(x1 + 0.03, y, z + rBar + 0.017);
+    g.add(vent);
+    const ventCap = cylAlong('z', 0.013, 0.014, M.black, 18);
+    ventCap.position.set(x1 + 0.03, y, z + rBar + 0.042);
+    g.add(ventCap);
+    const drain = cylAlong('z', 0.008, 0.03, M.brass, 14);
+    drain.position.set(x1 + 0.03, y, z - rBar - 0.015);
+    g.add(drain);
+    const dcap = cylAlong('z', 0.009, 0.012, sup ? M.redPlastic : M.bluePlastic, 14);
+    dcap.position.set(x1 + 0.03, y, z - rBar - 0.036);
+    g.add(dcap);
+    // ---- thermometer on the inlet end
+    const th = mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.012, 28), M.chrome);
+    th.position.set(x0 + 0.012, y - rBar - 0.02, z + 0.03);
+    g.add(th);
+    const face = mesh(new THREE.CircleGeometry(0.019, 28), M.whitePlastic);
+    face.rotation.x = Math.PI / 2;
+    face.position.set(x0 + 0.012, y - rBar - 0.0265, z + 0.03);
+    g.add(face);
+    // ---- inlet: elbow at the bar end, ball valve (butterfly handle) going down, pipe to the plan connector
+    const elbow = mesh(new THREE.SphereGeometry(rBar * 1.15, 18, 14), M.brass);
+    elbow.position.set(xIn, y, z);
+    g.add(elbow);
+    g.add(cylBetween(V(xIn, y, z), V(x0, y, z), rBar * 0.9, M.brass, 18));
+    const mixedInlet = ufh && mixing && sup;
+    const bv = ballValve(M, 0.026, sup ? M.redPlastic : M.bluePlastic, 'z');
+    bv.position.set(xIn, y, mixedInlet ? 0.36 : z - 0.1);
+    g.add(bv);
+    if (sup) {
+      // balancing valve with measuring nipples below the ball valve
+      const body = cylAlong('z', 0.02, 0.055, M.brass, 18);
+      const zb = mixedInlet ? 0.24 : z - 0.2;
+      body.position.set(xIn, y, zb);
+      g.add(body);
+      const bon = mesh(new THREE.CylinderGeometry(0.012, 0.014, 0.05, 16), M.brass);
+      bon.rotation.x = Math.PI / 2;
+      bon.position.set(xIn, y - 0.035, zb);
+      g.add(bon);
+      const cap = mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.02, 16), M.bluePlastic);
+      cap.rotation.x = Math.PI / 2;
+      cap.position.set(xIn, y - 0.065, zb);
+      g.add(cap);
+    }
+    const conY = sup ? 0 : -returnY;
+    if (!mixedInlet) {
+      // inlet pipe down to the floor and forward to the plan connector (return jogs sideways past the supply)
+      const dx = sup ? 0 : -jog;
+      const pts = [V(xIn, y, z - 0.13), V(xIn, y, 0.3), V(xIn + dx, y, 0.25), V(xIn + dx, y, pipeZ), V(xIn + dx, conY, pipeZ), V(xIn, conY - 0.001, pipeZ)];
+      g.add(pexPipe(pts, 0.026, mat, 0.08));
+    }
+    // ---- outlets
+    for (let i = 0; i < n; i++) {
+      const x = portLocal(i);
+      // valve insert on top: flow meter (supply) / thermostatic insert + actuator (return)
+      const base = hexNut(0.013, 0.012, M.brass);
+      base.rotation.x = Math.PI / 2;
+      base.position.set(x, y, z + rBar + 0.006);
+      g.add(base);
+      if (sup && ufh) {
+        const glassT = cylAlong('z', 0.0105, 0.062, M.flowMeter, 20);
+        glassT.position.set(x, y, z + rBar + 0.043);
+        g.add(glassT);
+        const scale = box(0.004, 0.001, 0.05, M.whitePlastic, x, y - 0.0107, z + rBar + 0.043);
+        g.add(scale);
+        const float = cylAlong('z', 0.0055, 0.01, M.redPlastic, 12);
+        float.position.set(x, y, z + rBar + 0.035);
+        g.add(float);
+        const cap = cylAlong('z', 0.0125, 0.016, M.redPlastic, 20);
+        cap.position.set(x, y, z + rBar + 0.082);
+        g.add(cap);
+      } else if (sup) {
+        const vb = ballValve(M, 0.012, M.redPlastic, 'z');
+        vb.position.set(x, y, z + rBar + 0.03);
+        g.add(vb);
+      } else {
+        const stem = cylAlong('z', 0.006, 0.018, M.nickel, 12);
+        stem.position.set(x, y, z + rBar + 0.02);
+        g.add(stem);
+        if (ufh) {
+          // electro-thermal actuator (white body, LED window)
+          const act = cylAlong('z', 0.017, 0.048, M.whitePlastic, 24);
+          act.position.set(x, y, z + rBar + 0.052);
+          g.add(act);
+          const dome = mesh(new THREE.SphereGeometry(0.017, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), M.whitePlastic);
+          dome.rotation.x = Math.PI / 2;
+          dome.position.set(x, y, z + rBar + 0.076);
+          g.add(dome);
+          const led = box(0.006, 0.002, 0.006, M.lcd, x, y - 0.0172, z + rBar + 0.06);
+          g.add(led);
+        } else {
+          const cap = cylAlong('z', 0.014, 0.022, M.bluePlastic, 20);
+          cap.position.set(x, y, z + rBar + 0.04);
+          g.add(cap);
+        }
+      }
+      // eurocone outlet (brass) + compression union nut (nickel) pointing down
+      const cone = cylAlong('z', 0.0095, 0.022, M.brass, 16);
+      cone.position.set(x, y, z - rBar - 0.011);
+      g.add(cone);
+      const nut = hexNut(0.0135, 0.018, M.nickel);
+      nut.rotation.x = Math.PI / 2;
+      nut.position.set(x, y, z - rBar - 0.03);
+      g.add(nut);
+      // PEX pipe: straight down, (return: sideways past the supply pipe), bent into the floor, forward to the plan connector
+      const zTop = z - rBar - 0.04;
+      const dx = sup ? 0 : jog;
+      const pts = sup
+        ? [V(x, y, zTop), V(x, y, zF), V(x, conY, zF)]
+        : [V(x, y, zTop), V(x, y, 0.34), V(x + dx, y, 0.29), V(x + dx, y, zF), V(x + dx, conY + 0.06, zF), V(x, conY, zF)];
+      g.add(pexPipe(pts, od, mat, 0.07));
+      // protective sleeve on the vertical part above the floor (red supply / blue return)
+      const sl = cylAlong('z', 0.0115, 0.16, sup ? M.redPlastic : M.bluePlastic, 18);
+      sl.position.set(x + dx, y, zF + 0.16);
+      g.add(sl);
+    }
+  }
   if (ufh && mixing) {
-    // mixing unit: circulator + 3-way thermostatic valve on the supply inlet
-    const pump = circulator(M, 0.13);
-    pump.position.set(x0 - 0.2, yBar, zS);
-    g.add(pump);
-    const mv = mesh(new THREE.SphereGeometry(0.025, 16, 12), M.brass);
-    mv.position.set(x0 - 0.33, yBar, zS);
-    g.add(mv);
-    const head = cylAlong('y', 0.022, 0.06, M.whitePlastic, 24);
-    head.position.set(x0 - 0.33, yBar - 0.05, zS);
+    // mixing unit: supply comes up at xIn, runs left under the bars to the 3-way thermostatic valve,
+    // up and back through the circulator into the supply bar; bypass from the valve to the return bar
+    const xV = -0.4;
+    const zL = zS - 0.13;
+    g.add(pexPipe([V(xIn, 0, pipeZ), V(xIn, yS, pipeZ), V(xIn, yS, zL - 0.12)], 0.026, pipeMatS, 0.08));
+    g.add(cylBetween(V(xIn, yS, zL - 0.12), V(xIn, yS, zL), 0.013, M.brass));
+    g.add(cylBetween(V(xIn, yS, zL), V(xV, yS, zL), 0.013, M.brass));
+    g.add(cylBetween(V(xV, yS, zL), V(xV, yS, zS), 0.013, M.brass));
+    const valve = mesh(new THREE.SphereGeometry(0.028, 18, 14), M.brass);
+    valve.position.set(xV, yS, zS);
+    g.add(valve);
+    const head = cylAlong('y', 0.024, 0.07, M.whitePlastic, 28);
+    head.position.set(xV, yS - 0.06, zS);
     g.add(head);
-    g.add(cylBetween(V(x0 - 0.33, yBar, zS), V(x0 - 0.33, yBar, zR), 0.01, M.nickel));
-    const th = mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.01, 24), M.whitePlastic);
-    th.rotation.x = Math.PI / 2;
-    th.position.set(x0 - 0.1, yBar - 0.02, zS + 0.06);
+    const pump = circulator(M, 0.18);
+    pump.position.set((xV + xIn) / 2 - 0.02, yS, zS);
+    g.add(pump);
+    g.add(cylBetween(V(xV, yS, zS), V(xIn - 0.12, yS, zS), 0.013, M.brass));
+    g.add(cylBetween(V(xIn + 0.08 - 0.18, yS, zS), V(xIn, yS, zS), 0.013, M.brass));
+    // bypass to the return bar
+    g.add(cylBetween(V(xV, yS, zS - 0.03), V(xV, yR, zR), 0.011, M.brass));
+    g.add(cylBetween(V(xV, yR, zR), V(xIn, yR, zR), 0.011, M.brass));
+    // immersion thermometer on the mixed supply
+    const th = mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.012, 28), M.chrome);
+    th.position.set(xIn - 0.05, yS - 0.03, zS + 0.045);
     g.add(th);
   }
   void pitch;

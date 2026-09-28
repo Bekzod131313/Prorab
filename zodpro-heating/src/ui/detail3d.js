@@ -26,17 +26,17 @@ export async function renderManifoldNode({ n, kind, mixing = false, width = 900,
   sun.position.set(-2, 3, 4);
   scene.add(sun);
   const M = M3.makeMaterials(M3.makeTextures(), { supply: '#e0312b', ret: '#1f5fd6' });
-  // hide the cabinet for the detail (like the sample drawing)
-  M.cabinet.visible = false;
-  const g = M3.manifold(M, { n, kind, mixing, pitch: COLLECTOR_PITCH, returnY: COLLECTOR_RETURN_Y, portLocal: collectorPortLocal, pipeZ: 0.05, pipeMatS: M.supply, pipeMatR: M.ret });
+  const g = M3.manifold(M, { n, kind, mixing, pitch: COLLECTOR_PITCH, returnY: COLLECTOR_RETURN_Y, portLocal: collectorPortLocal, pipeZ: 0.02, floorZ: 0.02, cabinet: false, pipeMatS: kind === 'ufh' ? M.pexRed : M.supply, pipeMatR: kind === 'ufh' ? M.pexBlue : M.ret });
   scene.add(g);
-  // floor loops: white PE-RT pipes curling away from the outlets
-  const white = new THREE.MeshStandardMaterial({ color: 0xf4f4f4, roughness: 0.4, transparent: true, opacity: 0.75 });
+  // floor loops: PE-RT pipes leaving the connector rows into the floor
   for (let i = 0; i < n; i++) {
     const x = collectorPortLocal(i);
-    for (const [z, y] of [[0.72, 0], [0.5, 0.2]]) {
-      const curve = new THREE.CubicBezierCurve3(new THREE.Vector3(x, -0.1, z - 0.2), new THREE.Vector3(x, -0.1, 0.05), new THREE.Vector3(x, y - 0.1, 0.02), new THREE.Vector3(x - 0.15, -0.9 - y, 0.02));
-      scene.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 24, 0.008, 8, false), white));
+    // supply shifts half a pitch sideways so it passes the return connector, then both run into the room
+    const sup = [new THREE.Vector3(x, 0, 0.02), new THREE.Vector3(x, -0.06, 0.02), new THREE.Vector3(x - 0.025, -0.11, 0.02), new THREE.Vector3(x - 0.025, -0.9, 0.02)];
+    const ret = [new THREE.Vector3(x, -COLLECTOR_RETURN_Y, 0.02), new THREE.Vector3(x, -0.9, 0.02)];
+    for (const [pts, mat] of [[sup, M.pexRed], [ret, M.pexBlue]]) {
+      const geo = M3.tubeAlong(M3.bend3(pts, 0.04), 0.008, 12);
+      if (geo) scene.add(new THREE.Mesh(geo, mat));
     }
   }
   const box = new THREE.Box3().setFromObject(g);
@@ -45,30 +45,28 @@ export async function renderManifoldNode({ n, kind, mixing = false, width = 900,
   const aspect = width / height;
   const cam = new THREE.OrthographicCamera((-size * aspect) / 1.6, (size * aspect) / 1.6, size / 1.6, -size / 1.6, 0.01, 100);
   cam.up.set(0, 0, 1);
-  cam.position.set(c.x - size * 0.9, c.y + size * 1.4, c.z + size * 0.7);
+  cam.position.set(c.x - size * 0.9, c.y - size * 1.4, c.z + size * 0.7); // from the room side (−y)
   cam.lookAt(c);
   cam.updateMatrixWorld();
   renderer.render(scene, cam);
   const url = renderer.domElement.toDataURL('image/png');
-  // callout anchors (model frame) → image coordinates
-  const x0 = -0.15;
-  const x1 = collectorPortLocal(n - 1) + 0.08;
-  const yBar = -COLLECTOR_RETURN_Y / 2;
-  const P = (x, y, z, pos) => {
-    const v = new THREE.Vector3(x, y, z).project(cam);
-    return { pos, x: ((v.x + 1) / 2) * width, y: ((1 - v.y) / 2) * height };
+  // callout anchors (model frame, positions from the model itself) → image coordinates
+  const P = (v, pos) => {
+    const q = v.clone().project(cam);
+    return { pos, x: ((q.x + 1) / 2) * width, y: ((1 - q.y) / 2) * height };
   };
+  const A = M3.manifoldAnchors(n, collectorPortLocal);
   const anchors = [
-    P(x0 - 0.05, yBar, 0.72, 2), // ball valve with union (supply)
-    P(x0 - 0.05, yBar, 0.5, 2),
-    P(-0.1, 0, 0.35, 3), // adapter 32×1"
-    P(-0.1, 0, 0.15, 4), // elbow 32×32
-    P(x0 - 0.005, yBar, 0.72, 9), // balancing valve
-    P(x0 + 0.005, yBar, 0.72, 5), // nipple
-    P((x0 + x1) / 2, yBar, 0.72, 10), // manifold
-    P(collectorPortLocal(n - 1), yBar, 0.72 - 0.017 - 0.1, 6), // red sleeves
-    P(collectorPortLocal(n - 1), yBar, 0.5 + 0.06, 8), // actuators
-    P(collectorPortLocal(Math.max(0, n - 2)), yBar, 0.5 - 0.017 - 0.1, 7), // blue sleeves
+    P(A.ballValveS, 2),
+    P(A.ballValveR, 2),
+    P(A.adapter, 3),
+    P(A.elbow, 4),
+    P(A.balancing, 9),
+    P(A.nipple, 5),
+    P(A.manifold, 10),
+    P(A.sleeveRed, 6),
+    P(A.actuator, 8),
+    P(A.sleeveBlue, 7),
   ];
   renderer.dispose();
   const out = { url, width, height, anchors };

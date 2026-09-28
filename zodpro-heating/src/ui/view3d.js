@@ -506,7 +506,8 @@ export class View3D {
   buildFloorFinish(r, l, res) {
     if (l.elevation >= this.cutZ()) return;
     const u = res?.ufh?.[r.id];
-    const matKey = u ? 'screed' : ROOM_FLOOR[r.roomType] ?? 'parquet';
+    // UFH rooms show the system board (foil with the laying grid) the pipes are clipped to
+    const matKey = u ? 'ufhFoil' : ROOM_FLOOR[r.roomType] ?? 'parquet';
     const shape = new THREE.Shape(r.points.map((q) => new THREE.Vector2(q.x, -q.y)));
     const g = new THREE.ExtrudeGeometry(shape, { depth: 0.012, bevelEnabled: false });
     const m = new THREE.Mesh(g, [this.M[matKey], this.M.slab]);
@@ -617,7 +618,7 @@ export class View3D {
     }
     for (const e of elementsOf(p, 'collector', l.id)) {
       const n = Math.max(e.outlets ?? 4, res?.ufhPorts?.[e.id] ?? 0);
-      const m = M3.manifold(M, { n, kind: e.kind, mixing: e.mixing !== false, pitch: COLLECTOR_PITCH, returnY: COLLECTOR_RETURN_Y, portLocal: collectorPortLocal, pipeZ: s.pipeElevation, pipeMatS: this.pipeMaterial('supply', e.kind === 'ufh' ? 'PEX' : s.pipeMaterial), pipeMatR: this.pipeMaterial('return', e.kind === 'ufh' ? 'PEX' : s.pipeMaterial) });
+      const m = M3.manifold(M, { n, kind: e.kind, mixing: e.mixing !== false, pitch: COLLECTOR_PITCH, returnY: COLLECTOR_RETURN_Y, portLocal: collectorPortLocal, pipeZ: s.pipeElevation, pipeMatS: this.pipeMaterial('supply', e.kind === 'ufh' ? 'PEX' : s.pipeMaterial), pipeMatR: this.pipeMaterial('return', e.kind === 'ufh' ? 'PEX' : s.pipeMaterial), floorZ: e.kind === 'ufh' ? 0.02 : null });
       this.add(M3.place(m, e, z0), e.id);
     }
     for (const e of elementsOf(p, 'pump', l.id)) {
@@ -709,18 +710,14 @@ export class View3D {
       if (!u?.layout) continue;
       const od = (Number(u.pipe?.dn) || 16) / 1000;
       const z = l.elevation + 0.012 + od / 2;
+      // real PE-RT/PEX pipe: swept through every point of the (already filleted) path, glossy oxygen-barrier skin
       const tube = (pts2, mat, zz = z) => {
         if (!pts2?.length || pts2.length < 2) return;
-        const path = new THREE.CurvePath();
-        for (let i = 1; i < pts2.length; i++) {
-          const a = new THREE.Vector3(pts2[i - 1].x, -pts2[i - 1].y, zz);
-          const b = new THREE.Vector3(pts2[i].x, -pts2[i].y, zz);
-          if (a.distanceTo(b) > 1e-5) path.add(new THREE.LineCurve3(a, b));
-        }
-        if (!path.curves.length) return;
-        const g = new THREE.TubeGeometry(path, Math.min(4000, path.curves.length * 2), od / 2, 8, false);
+        const g = M3.tubeAlong(pts2.map((q) => new THREE.Vector3(q.x, -q.y, zz)), od / 2, 12);
+        if (!g) return;
         const m = new THREE.Mesh(g, mat);
         m.castShadow = false;
+        m.receiveShadow = true;
         this.add(m, r.id);
       };
       for (const loop of u.layout) {

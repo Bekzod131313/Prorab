@@ -40,7 +40,8 @@ test('double serpentine: closed U-turn, supply/return pair s apart, no crossings
 test('serpentine: even number of runs, return back along the entry edge', () => {
   const { coil, sup, ret } = serpentineLoop(0, 0, 2, 3, 0.2);
   assert.equal(crossings(coil), 0);
-  const runs = sup.length / 2;
+  const runs = sup.slice(1).filter((q, i) => Math.hypot(q.x - sup[i].x, q.y - sup[i].y) > 1).length;
+  assert.ok(runs >= 2);
   assert.equal(runs % 2, 0);
   assert.ok(Math.abs(ret[ret.length - 1].y) < 1e-9, 'return ends at the entry edge');
 });

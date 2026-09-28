@@ -117,7 +117,7 @@ export function offsetPolyline(pts, d) {
  * Supply/return pair from a centreline: offsets ±s/2 joined by a semicircular U-turn at the end.
  * Supply = the offset whose start has the smaller x. Returns { sup: start→tip, ret: tip→end }.
  */
-export function bifilarFromCenterline(center, s, arcSeg = 6) {
+export function bifilarFromCenterline(center, s, arcSeg = 12) {
   const a = offsetPolyline(center, s / 2);
   const c = offsetPolyline(center, -s / 2);
   const [sup, ret] = a[0].x <= c[0].x ? [a, c] : [c, a];
@@ -140,8 +140,9 @@ export function bifilarFromCenterline(center, s, arcSeg = 6) {
 
 /** Bifilar counter-flow spiral inside the rectangle; both ends at the (x0,y0) corner, s apart. */
 export function spiralLoop(x0, y0, x1, y1, s) {
-  const c = spiralCenterline(x0 + s / 2, y0 + s / 2, x1 - s / 2, y1 - s / 2, 2 * s, 1.3 * s);
-  if (c.length < 2) return { coil: [], split: 0, sup: [], ret: [] };
+  const c0 = spiralCenterline(x0 + s / 2, y0 + s / 2, x1 - s / 2, y1 - s / 2, 2 * s, 1.3 * s);
+  if (c0.length < 2) return { coil: [], split: 0, sup: [], ret: [] };
+  const c = filletPolyline(c0, s);
   const { sup, ret } = bifilarFromCenterline(c, s);
   return { coil: [...sup, ...ret.slice(1)], split: sup.length, sup, ret };
 }
@@ -151,8 +152,9 @@ export function doubleSerpentineLoop(x0, y0, x1, y1, s) {
   // columns at exactly 2·s; the leftover width is split evenly to both sides
   const m = Math.floor((x1 - x0 - s) / (2 * s) + 1e-9) + 1;
   const pad = Math.max(0, (x1 - x0 - s - (m - 1) * 2 * s) / 2);
-  const c = meanderCenterline(x0 + pad + s / 2, y0 + s / 2, x1 - pad - s / 2 + 1e-6, y1 - s / 2, 2 * s);
-  if (c.length < 2 || y1 - y0 < 2 * s) return { coil: [], split: 0, sup: [], ret: [] };
+  const c0 = meanderCenterline(x0 + pad + s / 2, y0 + s / 2, x1 - pad - s / 2 + 1e-6, y1 - s / 2, 2 * s);
+  if (c0.length < 2 || y1 - y0 < 2 * s) return { coil: [], split: 0, sup: [], ret: [] };
+  const c = filletPolyline(c0, s);
   const { sup, ret } = bifilarFromCenterline(c, s);
   return { coil: [...sup, ...ret.slice(1)], split: sup.length, sup, ret };
 }
@@ -165,9 +167,10 @@ export function serpentineLoop(x0, y0, x1, y1, s) {
   let m = Math.floor((x1 - x0 - s) / s + 1e-9) + 1;
   if (m % 2) m -= 1;
   if (m < 2 || y1 - y0 < 3 * s) return { coil: [], split: 0, sup: [], ret: [] };
-  const sup = meanderCenterline(x0 + s / 2, y0 + s, x0 + s / 2 + (m - 1) * s, y1 - s / 2, s);
-  const last = sup[sup.length - 1];
-  const ret = [last, { x: last.x, y: y0 }, { x: x0 + 1.5 * s, y: y0 }];
+  const supS = meanderCenterline(x0 + s / 2, y0 + s, x0 + s / 2 + (m - 1) * s, y1 - s / 2, s);
+  const last = supS[supS.length - 1];
+  const sup = filletPolyline(supS, s / 2);
+  const ret = filletPolyline([last, { x: last.x, y: y0 }, { x: x0 + 1.5 * s, y: y0 }], s / 2);
   return { coil: [...sup, ...ret.slice(1)], split: sup.length, sup, ret };
 }
 
@@ -198,6 +201,63 @@ export function roundCorners(pts, r, n = 4) {
   }
   out.push(pts[pts.length - 1]);
   return out;
+}
+
+/**
+ * Fillet every corner of a polyline with a true circular arc of radius r (clamped so two arcs never
+ * overlap on one segment). `perQuarter` points per 90°. Straight joints are kept as they are.
+ */
+/** Total absolute turning angle of a polyline (rad). */
+export function turning(pts) {
+  let t = 0;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const a = Math.atan2(pts[i].y - pts[i - 1].y, pts[i].x - pts[i - 1].x);
+    const b = Math.atan2(pts[i + 1].y - pts[i].y, pts[i + 1].x - pts[i].x);
+    let d = Math.abs(b - a);
+    if (d > Math.PI) d = 2 * Math.PI - d;
+    t += d;
+  }
+  return t;
+}
+
+export function filletPolyline(pts, r, perQuarter = 8) {
+  if (pts.length < 3 || r <= 0) return pts;
+  const out = [pts[0]];
+  const len = (a, b) => Math.hypot(b.x - a.x, b.y - a.y);
+  for (let i = 1; i < pts.length - 1; i++) {
+    const a = pts[i - 1];
+    const p = pts[i];
+    const c = pts[i + 1];
+    const la = len(a, p);
+    const lc = len(p, c);
+    if (la < 1e-9 || lc < 1e-9) continue;
+    const u1 = { x: (p.x - a.x) / la, y: (p.y - a.y) / la };
+    const u2 = { x: (c.x - p.x) / lc, y: (c.y - p.y) / lc };
+    const cross = u1.x * u2.y - u1.y * u2.x;
+    const dot = Math.max(-1, Math.min(1, u1.x * u2.x + u1.y * u2.y));
+    const th = Math.acos(dot); // turning angle
+    if (th < 1e-3) {
+      out.push(p);
+      continue;
+    }
+    // tangent length t = R·tan(θ/2) must fit in half of each neighbouring segment
+    const tMax = Math.min(la / 2, lc / 2);
+    const R = Math.min(r, tMax / Math.tan(th / 2));
+    const t = R * Math.tan(th / 2);
+    const s0 = { x: p.x - u1.x * t, y: p.y - u1.y * t };
+    const sgn = cross > 0 ? 1 : -1;
+    const nrm = { x: -u1.y * sgn, y: u1.x * sgn };
+    const C = { x: s0.x + nrm.x * R, y: s0.y + nrm.y * R };
+    const a0 = Math.atan2(s0.y - C.y, s0.x - C.x);
+    const k = Math.max(2, Math.ceil((th / (Math.PI / 2)) * perQuarter));
+    for (let j = 0; j <= k; j++) {
+      const ang = a0 + sgn * th * (j / k);
+      out.push({ x: C.x + R * Math.cos(ang), y: C.y + R * Math.sin(ang) });
+    }
+  }
+  out.push(pts[pts.length - 1]);
+  // arcs of neighbouring corners can meet → drop the zero-length pieces (they would break offsets)
+  return cleanPath(out, 1e-7);
 }
 
 export function segDist(p, a, b) {
@@ -262,7 +322,7 @@ export function roomSlabs(polygon, frame) {
  * leads of every loop reach the manifold without crossing any coil — also in L/T/U-shaped rooms.
  */
 export function layoutRoomUfh(o) {
-  const { polygon, spacing: s, pattern = 'auto', inset = 0.25, bendRadius = 0.08, leadPitch = 0.05 } = o;
+  const { polygon, spacing: s, pattern = 'auto', inset = 0.25, leadPitch = 0.05 } = o;
   const xs = polygon.map((p) => p.x);
   const ys = polygon.map((p) => p.y);
   const bb = { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
@@ -307,7 +367,6 @@ export function layoutRoomUfh(o) {
   const vBase = inset + band; // coil starts here
   const portsF = ports ? ports.map((p) => toFrame(p.supply)) : [];
   const uc = ports ? portsF.reduce((a, p) => a + p.x, 0) / portsF.length : Math.max(0, Math.min(U, toFrame(toward).x));
-  const minBend = Math.min(bendRadius, s / 2);
   const loops = [];
   slabs.forEach((sl, si) => {
     const prev = slabs[si - 1];
@@ -365,7 +424,7 @@ export function layoutRoomUfh(o) {
   for (const g of [rightGroup, leftGroup]) g.forEach((p, i) => (p.v = Math.max(inset / 2, vBase - leadPitch * (i + 1))));
   for (const p of pipes) {
     const path = cleanPath([p.at, { x: p.at.x, y: p.v }, { x: p.ut, y: p.v }, { x: p.ut, y: p.pf.y }, p.pf].map(toPlan));
-    p.path = roundCorners(path, Math.min(0.03, leadPitch / 2), 3).map((q) => ({ x: r3(q.x), y: r3(q.y) }));
+    p.path = filletPolyline(path, 0.08, 6).map((q) => ({ x: r3(q.x), y: r3(q.y) }));
     p.path[0] = toPlan(p.at);
     p.path[p.path.length - 1] = { ...p.port };
   }
@@ -373,8 +432,8 @@ export function layoutRoomUfh(o) {
   for (const l of loops) {
     const supSharp = cleanPath(l.supF.map(toPlan));
     const retSharp = cleanPath(l.retF.map(toPlan));
-    const supR = roundCorners(supSharp, minBend).map((q) => ({ x: r3(q.x), y: r3(q.y) }));
-    const retR = roundCorners(retSharp, minBend).map((q) => ({ x: r3(q.x), y: r3(q.y) }));
+    const supR = supSharp.map((q) => ({ x: r3(q.x), y: r3(q.y) }));
+    const retR = retSharp.map((q) => ({ x: r3(q.x), y: r3(q.y) }));
     const coil = [...supR, ...retR.slice(1)];
     const sp = pipes.find((p) => p.l === l && p.kind === 'supply');
     const rp = pipes.find((p) => p.l === l && p.kind === 'return');
@@ -397,7 +456,8 @@ export function layoutRoomUfh(o) {
       coilLength,
       leadLength,
       length: coilLength + leadLength,
-      corners: supSharp.length + retSharp.length - 3,
+      // equivalent 90° bends (for ζ): total turning angle / 90°
+      corners: Math.round((turning(coil) / (Math.PI / 2)) * 10) / 10,
     });
   }
   // loops[k] ↔ ports[k]; without ports keep the order along the side

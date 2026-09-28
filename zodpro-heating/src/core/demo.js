@@ -175,9 +175,9 @@ export function createSampleProject() {
     room('lvl_0', '9', 'Спальня', 'bedroom', rect(11.6, 13.16, 17.6, 18.76), u()),
   ];
   // UFH manifolds (with mixing units) — left block, centre, right block
-  const c1 = E(newElement('collector', { levelId: 'lvl_0', x: 3.7, y: 12.7, angle: 0, outlets: 12, kind: 'ufh', mixing: true }));
-  const c2 = E(newElement('collector', { levelId: 'lvl_0', x: 8.0, y: 12.7, angle: 0, outlets: 12, kind: 'ufh', mixing: true }));
-  const c3 = E(newElement('collector', { levelId: 'lvl_0', x: 12.1, y: 12.7, angle: 0, outlets: 12, kind: 'ufh', mixing: true }));
+  const c1 = E(newElement('collector', { levelId: 'lvl_0', x: 4.0, y: 12.86, angle: 180, outlets: 12, kind: 'ufh', mixing: true }));
+  const c2 = E(newElement('collector', { levelId: 'lvl_0', x: 8.3, y: 12.86, angle: 180, outlets: 12, kind: 'ufh', mixing: true }));
+  const c3 = E(newElement('collector', { levelId: 'lvl_0', x: 12.4, y: 12.86, angle: 180, outlets: 12, kind: 'ufh', mixing: true }));
   const assign = { 1: c1, 2: c1, 3: c1, 4: c1, 5: c2, 6: c2, 7: c3, 9: c3 };
   for (const r of g) if (assign[r.number]) r.ufh.collectorId = assign[r.number].id;
   E(newElement('boiler', { levelId: 'lvl_0', x: 17.14, y: 9.0, angle: -90 }));
