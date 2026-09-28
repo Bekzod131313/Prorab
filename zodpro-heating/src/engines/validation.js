@@ -83,7 +83,10 @@ export function clashDetection(project, res) {
       }
     }
   }
-  // pipe × pipe (different system, same elevation band)
+  // pipe × pipe (different system, same elevation band); within 0.6 m of a manifold the pipes rise
+  // to their outlets (they cross there in plan only), so that zone is not a clash
+  const manifolds = elementsOf(project, 'collector');
+  const atManifold = (hit, levelId) => manifolds.some((c) => c.levelId === levelId && Math.hypot(hit.x - c.x, hit.y - c.y) < 0.6 + 0.05 * (c.outlets ?? 4));
   for (let i = 0; i < pipes.length; i++) {
     for (let j = i + 1; j < pipes.length; j++) {
       const p = pipes[i];
@@ -95,7 +98,7 @@ export function clashDetection(project, res) {
       for (let a = 1; a < p.points.length; a++) {
         for (let b = 1; b < q.points.length; b++) {
           const hit = segIntersect(p.points[a - 1], p.points[a], q.points[b - 1], q.points[b]);
-          if (hit && hit.t > 0.01 && hit.t < 0.99 && hit.u > 0.01 && hit.u < 0.99) push(p.id, q.id, hit, 'warning', 'pipe×pipe');
+          if (hit && hit.t > 0.01 && hit.t < 0.99 && hit.u > 0.01 && hit.u < 0.99 && !atManifold(hit, p.levelId)) push(p.id, q.id, hit, 'warning', 'pipe×pipe');
         }
       }
     }

@@ -207,8 +207,14 @@ export function connectorsOf(project, el, productLookup) {
       // stay consistent); syncRadiatorGeometry() updates it and drags pipes when selection changes
       const L = el.length ?? 1;
       const flip = el.flip ? -1 : 1;
-      push('supply', 'supply', -flip * (L / 2 + 0.05), 0.05, { kind: 'consumer_in', dn: '15' });
-      push('return', 'return', flip * (L / 2 + 0.05), 0.05, { kind: 'consumer_out', dn: '15' });
+      if (el.connection === 'vk') {
+        // bottom connection (VK / H-block): both pipes at one end, 50 mm apart, straight down to the floor
+        push('supply', 'supply', -flip * (L / 2 - 0.035), 0.012, { kind: 'consumer_in', dn: '15' });
+        push('return', 'return', -flip * (L / 2 - 0.085), 0.012, { kind: 'consumer_out', dn: '15' });
+      } else {
+        push('supply', 'supply', -flip * (L / 2 + 0.05), 0.05, { kind: 'consumer_in', dn: '15' });
+        push('return', 'return', flip * (L / 2 + 0.05), 0.05, { kind: 'consumer_out', dn: '15' });
+      }
       break;
     }
     case 'collector': {

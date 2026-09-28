@@ -128,7 +128,7 @@ test('parametric follow-up: radiator length change drags attached pipes', () => 
   // pretend the stored length is stale → sync must move attached pipe endpoints
   rad.length = 0.5;
   const staleConn = connectorsOf(p, rad, null).map((c) => c.pos);
-  for (const pipe of elementsOf(p, 'pipe')) {
+  for (const pipe of elementsOf(p, 'pipe', rad.levelId)) {
     for (const idx of [0, pipe.points.length - 1]) {
       for (let k = 0; k < 2; k++) {
         if (Math.hypot(pipe.points[idx].x - before[k].x, pipe.points[idx].y - before[k].y) < 1e-6) pipe.points[idx] = { ...staleConn[k] };

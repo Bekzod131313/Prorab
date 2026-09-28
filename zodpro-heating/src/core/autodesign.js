@@ -4,6 +4,7 @@
 
 import { newElement, elementsOf, openingPos, connectorsOf, isHeated, levelById, sortedLevels, localToPlan, wallDir } from './model.js';
 import { pointInPolygon, polygonCentroid, polygonArea, round } from './util.js';
+import { wallRouter, bundleRoutes } from './wallroute.js';
 
 function inwardNormalForWall(wall, room, at = null) {
   const d = wallDir(wall);
@@ -25,9 +26,12 @@ export function autoPlaceRadiators(project, { levelId = null } = {}) {
   const add = [];
   const rooms = elementsOf(project, 'room').filter((r) => (!levelId || r.levelId === levelId) && isHeated(r) && ['radiator', 'mixed'].includes(r.heating ?? 'radiator'));
   const existing = elementsOf(project, 'radiator');
+  // a window gets one radiator only (a window on a wall between two room outlines must not get two)
+  const takenWin = new Set(existing.map((x) => x.windowId).filter(Boolean));
   for (const room of rooms) {
     if (existing.some((x) => x.roomId === room.id)) continue;
     const wins = elementsOf(project, 'window', room.levelId).filter((w) => {
+      if (takenWin.has(w.id)) return false;
       const p = openingPos(project, w);
       if (!p) return false;
       const n = inwardNormalForWall(p.wall, room, p);
@@ -51,12 +55,15 @@ export function autoPlaceRadiators(project, { levelId = null } = {}) {
           mountHeight: 0.1,
           length: 1,
           wallId: wall.id,
+          // bottom connection: both pipes at one end, run along the wall as a pair
+          connection: 'vk',
         }),
       );
     };
     if (wins.length) {
       for (const w of wins) {
         const p = openingPos(project, w);
+        takenWin.add(w.id);
         placeOn(p.wall, p, w.id);
       }
     } else {
@@ -76,7 +83,7 @@ export function autoPlaceRadiators(project, { levelId = null } = {}) {
         }
       }
       if (best) placeOn(best.wall, best.center, null);
-      else add.push(newElement('radiator', { levelId: room.levelId, roomId: room.id, x: c.x, y: c.y, angle: 0, selection: 'auto', prefKind: 'panel', prefType: 22, mountHeight: 0.1, length: 1 }));
+      else add.push(newElement('radiator', { levelId: room.levelId, roomId: room.id, x: c.x, y: c.y, angle: 0, selection: 'auto', prefKind: 'panel', prefType: 22, mountHeight: 0.1, length: 1, connection: 'vk' }));
     }
   }
   return { add, update: [], remove: [] };
@@ -148,10 +155,21 @@ export function autoRoute(project, productLookup, { material = null, trunkMateri
     colPortsUsed.set(c.id, n);
   }
 
+  // pipes run along the walls (wall router per level); orthogonal fallback when no path exists
+  const routers = new Map();
+  const wallPath = (levelId, A, B, lane) => {
+    if (!routers.has(levelId)) routers.set(levelId, wallRouter(project, levelId));
+    const r = routers.get(levelId).route(A, B, lane);
+    return r && r.length >= 2 ? r : null;
+  };
+  const pathLen = (pts) => pts.reduce((a, q, i) => (i ? a + Math.hypot(q.x - pts[i - 1].x, q.y - pts[i - 1].y) : 0), 0);
+  // 1) which radiators need pipes, to which collector port
+  const jobs = [];
   for (const rad of elementsOf(project, 'radiator')) {
-    const conns = connectorsOf(project, rad, productLookup);
-    const sc = conns.find((c) => c.name === 'supply');
-    const rc = conns.find((c) => c.name === 'return');
+    let el = rad;
+    let conns = connectorsOf(project, el, productLookup);
+    let sc = conns.find((c) => c.name === 'supply');
+    let rc = conns.find((c) => c.name === 'return');
     if (used.has(sc.id) && used.has(rc.id)) continue;
     const cands = collectors.filter((c) => c.levelId === rad.levelId);
     if (!cands.length) {
@@ -160,23 +178,51 @@ export function autoRoute(project, productLookup, { material = null, trunkMateri
     }
     cands.sort((a, b) => Math.hypot(a.x - rad.x, a.y - rad.y) - Math.hypot(b.x - rad.x, b.y - rad.y));
     const col = cands[0];
-    const port = colPortsUsed.get(col.id) + 1;
-    colPortsUsed.set(col.id, port);
-    const outlets = Math.max(col.outlets ?? 4, port);
-    const cur = patches.get(col.id) ?? {};
-    if (outlets > (col.outlets ?? 4)) patches.set(col.id, { ...cur, outlets: Math.min(12, outlets) });
-    if (port > 12) {
-      warnings.push({ code: 'route_collector_full', elementId: col.id });
-      continue;
+    // bottom-connected radiators: put the connection end on the side the pipes come from
+    if (el.connection === 'vk' && !used.has(sc.id) && !used.has(rc.id)) {
+      const alt = { ...el, flip: !el.flip };
+      const altSc = connectorsOf(project, alt, productLookup).find((c) => c.name === 'supply');
+      const d0 = wallPath(rad.levelId, sc.pos, { x: col.x, y: col.y }, 0.16);
+      const d1 = wallPath(rad.levelId, altSc.pos, { x: col.x, y: col.y }, 0.16);
+      if (d0 && d1 && pathLen(d1) + 0.05 < pathLen(d0)) {
+        el = alt;
+        patches.set(rad.id, { ...(patches.get(rad.id) ?? {}), flip: alt.flip });
+        conns = connectorsOf(project, el, productLookup);
+        sc = conns.find((c) => c.name === 'supply');
+        rc = conns.find((c) => c.name === 'return');
+      }
     }
-    const colView = { ...col, outlets: Math.max(outlets, col.outlets ?? 4) };
-    const cc = connectorsOf(project, colView, null);
-    const ps = cc.find((c) => c.name === `s${port}`);
-    const pr = cc.find((c) => c.name === `r${port}`);
-    const a = ((rad.angle ?? 0) * Math.PI) / 180;
-    const inward = { x: -Math.sin(a), y: Math.cos(a) };
-    if (!used.has(sc.id)) add.push(newElement('pipe', { levelId: rad.levelId, system: 'supply', material: mat, autoSize: true, elevation: s.pipeElevation, points: orthoRoute(sc.pos, ps.pos, inward, 0.15) }));
-    if (!used.has(rc.id)) add.push(newElement('pipe', { levelId: rad.levelId, system: 'return', material: mat, autoSize: true, elevation: s.pipeElevation + 0.05, points: orthoRoute(rc.pos, pr.pos, inward, 0.25) }));
+    const est = wallPath(rad.levelId, sc.pos, { x: col.x, y: col.y }, 0.16);
+    jobs.push({ rad: el, col, sc, rc, len: est ? pathLen(est) : Math.hypot(col.x - rad.x, col.y - rad.y) });
+  }
+  // 2) per collector: nearest radiators get the ports first and the lanes next to the wall, so a
+  //    pair leaving the bundle towards its radiator never crosses the pairs that run on
+  const byCol = new Map();
+  for (const j of jobs) {
+    if (!byCol.has(j.col.id)) byCol.set(j.col.id, []);
+    byCol.get(j.col.id).push(j);
+  }
+  for (const [colId, list] of byCol) {
+    const col = project.elements[colId];
+    const first = colPortsUsed.get(col.id);
+    const n = list.length;
+    if (first + n > 12) warnings.push({ code: 'route_collector_full', elementId: col.id });
+    const outlets = Math.min(12, Math.max(col.outlets ?? 4, first + n));
+    if (outlets > (col.outlets ?? 4)) patches.set(col.id, { ...(patches.get(col.id) ?? {}), outlets });
+    colPortsUsed.set(col.id, first + n);
+    const cc = connectorsOf(project, { ...col, outlets: Math.max(outlets, first + n) }, null);
+    const portPos = (k) => ({ s: cc.find((c) => c.name === `s${first + k + 1}`)?.pos, r: cc.find((c) => c.name === `r${first + k + 1}`)?.pos });
+    // all pairs of this manifold as one bundle along the walls (planar order → no crossings)
+    const routed = bundleRoutes(project, col.levelId, col, list.map((j) => ({ key: j.rad.id, s: j.sc.pos, r: j.rc.pos })), portPos);
+    list.forEach((j, k) => {
+      const rt = routed.get(j.rad.id);
+      const pp = portPos(rt?.port ?? k);
+      if (!pp.s || !pp.r) return;
+      const a = ((j.rad.angle ?? 0) * Math.PI) / 180;
+      const inward = { x: -Math.sin(a), y: Math.cos(a) };
+      if (!used.has(j.sc.id)) add.push(newElement('pipe', { levelId: j.rad.levelId, system: 'supply', material: mat, autoSize: true, elevation: s.pipeElevation, points: rt?.supply ?? orthoRoute(j.sc.pos, pp.s, inward, 0.15) }));
+      if (!used.has(j.rc.id)) add.push(newElement('pipe', { levelId: j.rad.levelId, system: 'return', material: mat, autoSize: true, elevation: s.pipeElevation + 0.02, points: rt?.return ?? orthoRoute(j.rc.pos, pp.r, inward, 0.25) }));
+    });
   }
 
   // collectors (radiator + ufh) → boiler
@@ -203,8 +249,8 @@ export function autoRoute(project, productLookup, { material = null, trunkMateri
       const cr = cc.find((c) => c.name === 'in_return');
       if (used.has(cs.id) && used.has(cr.id)) continue;
       if (col.levelId === boiler.levelId) {
-        add.push(newElement('pipe', { levelId: col.levelId, system: 'supply', material: trunk, autoSize: true, elevation: s.pipeElevation + 0.1, points: orthoRoute(supplyStart.pos, cs.pos, null) }));
-        add.push(newElement('pipe', { levelId: col.levelId, system: 'return', material: trunk, autoSize: true, elevation: s.pipeElevation + 0.15, points: orthoRoute(br.pos, cr.pos, null) }));
+        add.push(newElement('pipe', { levelId: col.levelId, system: 'supply', material: trunk, autoSize: true, elevation: s.pipeElevation + 0.1, points: wallPath(col.levelId, supplyStart.pos, cs.pos, 0.03) ?? orthoRoute(supplyStart.pos, cs.pos, null) }));
+        add.push(newElement('pipe', { levelId: col.levelId, system: 'return', material: trunk, autoSize: true, elevation: s.pipeElevation + 0.15, points: wallPath(col.levelId, br.pos, cr.pos, 0.09) ?? orthoRoute(br.pos, cr.pos, null) }));
       } else {
         // risers beside the boiler, shared by all collectors on upper/lower levels
         const lv = levelById(project, col.levelId);
@@ -222,8 +268,8 @@ export function autoRoute(project, productLookup, { material = null, trunkMateri
         if (exS) claimed.add(exS.id);
         if (exR) claimed.add(exR.id);
         if (exS && exR) {
-          if (!used.has(cs.id)) add.push(newElement('pipe', { levelId: lv.id, system: 'supply', material: trunk, autoSize: true, elevation: s.pipeElevation + 0.1, points: orthoRoute({ x: exS.x, y: exS.y }, cs.pos, null) }));
-          if (!used.has(cr.id)) add.push(newElement('pipe', { levelId: lv.id, system: 'return', material: trunk, autoSize: true, elevation: s.pipeElevation + 0.15, points: orthoRoute({ x: exR.x, y: exR.y }, cr.pos, null) }));
+          if (!used.has(cs.id)) add.push(newElement('pipe', { levelId: lv.id, system: 'supply', material: trunk, autoSize: true, elevation: s.pipeElevation + 0.1, points: wallPath(lv.id, { x: exS.x, y: exS.y }, cs.pos, 0.03) ?? orthoRoute({ x: exS.x, y: exS.y }, cs.pos, null) }));
+          if (!used.has(cr.id)) add.push(newElement('pipe', { levelId: lv.id, system: 'return', material: trunk, autoSize: true, elevation: s.pipeElevation + 0.15, points: wallPath(lv.id, { x: exR.x, y: exR.y }, cr.pos, 0.09) ?? orthoRoute({ x: exR.x, y: exR.y }, cr.pos, null) }));
           continue;
         }
         const rs = localToPlan(boiler, -0.45, 0.25 + 0.15 * riserFor.size);
@@ -235,8 +281,8 @@ export function autoRoute(project, productLookup, { material = null, trunkMateri
         add.push(newElement('riser', { system: 'return', x: rp.x, y: rp.y, levelFrom: bLevel.id, levelTo: lv.id, levelId: bLevel.id, material: trunk, autoSize: true }));
         add.push(newElement('pipe', { levelId: bLevel.id, system: 'supply', material: trunk, autoSize: true, elevation: s.pipeElevation + 0.1, points: orthoRoute(supplyStart.pos, sp, null) }));
         add.push(newElement('pipe', { levelId: bLevel.id, system: 'return', material: trunk, autoSize: true, elevation: s.pipeElevation + 0.15, points: orthoRoute(br.pos, rp, null) }));
-        add.push(newElement('pipe', { levelId: lv.id, system: 'supply', material: trunk, autoSize: true, elevation: s.pipeElevation + 0.1, points: orthoRoute(sp, cs.pos, null) }));
-        add.push(newElement('pipe', { levelId: lv.id, system: 'return', material: trunk, autoSize: true, elevation: s.pipeElevation + 0.15, points: orthoRoute(rp, cr.pos, null) }));
+        add.push(newElement('pipe', { levelId: lv.id, system: 'supply', material: trunk, autoSize: true, elevation: s.pipeElevation + 0.1, points: wallPath(lv.id, sp, cs.pos, 0.03) ?? orthoRoute(sp, cs.pos, null) }));
+        add.push(newElement('pipe', { levelId: lv.id, system: 'return', material: trunk, autoSize: true, elevation: s.pipeElevation + 0.15, points: wallPath(lv.id, rp, cr.pos, 0.09) ?? orthoRoute(rp, cr.pos, null) }));
       }
     }
   } else {

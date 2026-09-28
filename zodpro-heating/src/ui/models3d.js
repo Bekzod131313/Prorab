@@ -277,40 +277,57 @@ export function ballValve(M, dn = 0.02, handleMat = M.redPlastic, axis = 'z') {
   return g;
 }
 
-/** Thermostatic radiator valve (angle body + thermostatic head). */
-function trv(M, headAxis = 'z') {
+/** Thermostatic head (liquid sensor): ribbed white knob on a chrome ring, axis along +Y of the group. */
+function thermoHead(M) {
   const g = new THREE.Group();
-  const body = mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.05, 16), M.chrome);
-  g.add(body);
-  const nut = hexNut(0.015, 0.014, M.chrome);
-  nut.position.y = -0.03;
-  g.add(nut);
-  // head
-  const head = new THREE.Group();
-  const base = mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.02, 20), M.chrome);
-  head.add(base);
-  const knob = mesh(new THREE.CylinderGeometry(0.024, 0.026, 0.07, 28), M.whitePlastic);
-  knob.position.y = 0.045;
-  head.add(knob);
-  for (let i = 0; i < 12; i++) {
-    const rib = box(0.004, 0.06, 0.004, M.enamelShade, Math.cos((i / 12) * Math.PI * 2) * 0.026, 0.045, Math.sin((i / 12) * Math.PI * 2) * 0.026);
-    head.add(rib);
+  const ring = mesh(new THREE.CylinderGeometry(0.0155, 0.0155, 0.012, 24), M.chrome);
+  ring.position.y = 0.006;
+  g.add(ring);
+  const prof = [[0, 0], [0.022, 0], [0.025, 0.006], [0.026, 0.05], [0.024, 0.066], [0.016, 0.072], [0, 0.073]].map(([r, y]) => new THREE.Vector2(r, y));
+  const knob = mesh(new THREE.LatheGeometry(prof, 32), M.whitePlastic);
+  knob.position.y = 0.012;
+  g.add(knob);
+  const ribs = [];
+  for (let i = 0; i < 14; i++) {
+    const a = (i / 14) * Math.PI * 2;
+    const r = new THREE.BoxGeometry(0.004, 0.038, 0.004);
+    r.translate(Math.cos(a) * 0.0262, 0.041, Math.sin(a) * 0.0262);
+    ribs.push(r);
   }
-  if (headAxis === 'z') head.rotation.set(0, 0, 0);
-  head.position.set(0, 0.03, 0);
-  g.add(head);
+  g.add(mesh(merge(ribs), M.whitePlastic));
+  // setting dot
+  const dot = mesh(new THREE.SphereGeometry(0.003, 8, 6), M.redPlastic ?? M.black);
+  dot.position.set(0, 0.075, 0.012);
+  g.add(dot);
   return g;
 }
 
-function lockshield(M) {
+/** Angle radiator valve: vertical body from the floor pipe, horizontal tail + union nut into the radiator (towards −X of the group). */
+function angleValve(M, withHead) {
   const g = new THREE.Group();
-  g.add(mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.045, 16), M.chrome));
-  const cap = mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.018, 16), M.chrome);
-  cap.position.y = 0.03;
-  g.add(cap);
-  const nut = hexNut(0.015, 0.014, M.chrome);
-  nut.position.y = -0.03;
-  g.add(nut);
+  g.add(cylBetween(V(0, 0, -0.035), V(0, 0, 0.012), 0.0115, M.chrome, 20)); // body
+  const nutB = hexNut(0.0135, 0.014, M.chrome);
+  nutB.rotation.x = Math.PI / 2;
+  nutB.position.set(0, 0, -0.04);
+  g.add(nutB); // compression nut on the pipe
+  g.add(cylBetween(V(0, 0, 0), V(-0.045, 0, 0), 0.0095, M.chrome, 18)); // tail
+  const union = hexNut(0.015, 0.016, M.chrome);
+  union.rotation.z = Math.PI / 2;
+  union.position.set(-0.05, 0, 0);
+  g.add(union);
+  if (withHead) {
+    const h = thermoHead(M);
+    h.position.set(0, 0, 0.012); // head upright on top of the body
+    h.rotation.x = Math.PI / 2;
+    g.add(h);
+  } else {
+    const cap = cylBetween(V(0, 0, 0.012), V(0, 0, 0.03), 0.011, M.chrome, 18);
+    g.add(cap);
+    const cap2 = hexNut(0.0085, 0.008, M.chrome);
+    cap2.rotation.x = Math.PI / 2;
+    cap2.position.set(0, 0, 0.034);
+    g.add(cap2);
+  }
   return g;
 }
 
@@ -318,29 +335,37 @@ function lockshield(M) {
 const PANELS = { 11: 1, 21: 2, 22: 2, 33: 3 };
 const CONV = { 11: 1, 21: 1, 22: 2, 33: 3 };
 
-function panelGeometry(L, H, t = 0.009, pitch = 0.033, amp = 0.0065) {
-  // profile in (x = length, y = depth), extruded along height
-  // profile: flat back at y = 0, channelled front face towards −y; extruded along +z (height)
-  const s = new THREE.Shape();
-  s.moveTo(0, 0);
-  s.lineTo(L, 0);
-  const n = Math.max(2, Math.round(L / pitch));
-  const steps = n * 8;
-  for (let i = steps; i >= 0; i--) {
-    const x = (L * i) / steps;
-    const y = -(t + amp * Math.pow(0.5 - 0.5 * Math.cos((2 * Math.PI * x) / (L / n)), 0.6));
-    s.lineTo(x, y);
+/** Front panel of a steel panel radiator: flat sheet with vertical water channels (pitch 33 mm, rounded ends). */
+function profiledPanel(L, H, ribbed = true) {
+  const parts = [new THREE.BoxGeometry(L, 0.004, H)];
+  parts[0].translate(0, 0, H / 2);
+  if (ribbed) {
+    const pitch = 1 / 30;
+    const n = Math.max(2, Math.round(L / pitch));
+    const step = L / n;
+    for (let i = 0; i < n; i++) {
+      const r = new THREE.CapsuleGeometry(0.0095, H - 0.06, 3, 10);
+      r.rotateX(Math.PI / 2); // along Z
+      r.scale(1, 0.42, 1);
+      r.translate(-L / 2 + (i + 0.5) * step, -0.001, H / 2);
+      parts.push(r);
+    }
+    // welded top & bottom seams (flat collar)
+    for (const z of [0.012, H - 0.012]) {
+      const c = new THREE.BoxGeometry(L, 0.007, 0.018);
+      c.translate(0, -0.0015, z);
+      parts.push(c);
+    }
   }
-  s.lineTo(0, 0);
-  const g = new THREE.ExtrudeGeometry(s, { depth: H, bevelEnabled: false, steps: 1 });
-  g.translate(-L / 2, 0, 0);
-  return g;
+  return merge(parts);
 }
 
 /**
- * Panel radiator: panels with vertical water channels, convector fins, top grille, side covers,
- * air vent, blind plug, TRV (supply end, top) and lockshield (return end, bottom), wall brackets.
- * @returns {Group} origin at the radiator centre on the floor-plan position, z = 0 at mount height.
+ * Steel panel radiator (types 11 / 21 / 22 / 33) as manufactured: profiled front panel with vertical
+ * water channels, flat rear panels, convector fins between the panels, top grille (dark slots between
+ * white slats) and side covers on types 21+, air vent + blind plug, wall brackets.
+ * Model frame: origin at the radiator centre on the plan position, z = 0 at the bottom edge,
+ * room side −Y (front face at −D/2), wall side +Y.
  */
 export function panelRadiator(M, prod, { flip = false } = {}) {
   const g = new THREE.Group();
@@ -349,50 +374,58 @@ export function panelRadiator(M, prod, { flip = false } = {}) {
   const D = prod.depth ?? 0.1;
   const type = Number(prod.type) || 22;
   const np = PANELS[type] ?? 2;
-  const pg = panelGeometry(L, H - 0.012);
-  const pt = 0.0155; // panel thickness incl. channels
+  const front = profiledPanel(L, H, true);
+  const rear = profiledPanel(L, H, false);
   for (let i = 0; i < np; i++) {
-    const p = mesh(pg, M.enamel);
-    // panel back plane: front panel's face flush with −D/2, last panel's back at +D/2
-    const yb = np === 1 ? pt / 2 : -D / 2 + pt + (i * (D - pt)) / (np - 1);
-    p.position.set(0, yb, 0.006);
+    const y = np === 1 ? -D / 2 + 0.012 : -D / 2 + 0.012 + (i * (D - 0.024)) / (np - 1);
+    const p = mesh(i === 0 ? front : rear, M.enamel);
+    p.position.y = y;
+    if (i > 0) p.scale.y = -1; // rear panels: channels towards the wall
     g.add(p);
-    // top & bottom header bands
-    for (const zz of [0.02, H - 0.02]) g.add(box(L, pt + 0.002, 0.036, M.enamel, 0, yb - pt / 2, zz, 0.004));
   }
-  // convector fins (between/behind panels): corrugated sheet as many thin plates (merged)
-  const finGeos = [];
+  // convector fins: trapezoid-folded sheet welded to the panels (merged thin plates)
   const nconv = CONV[type] ?? 1;
+  const finGeos = [];
   for (let c = 0; c < nconv; c++) {
-    const yc = np === 1 ? 0.018 : -D / 2 + 0.02 + ((c + 0.5) * (D - 0.04)) / Math.max(1, nconv);
-    for (let x = -L / 2 + 0.02; x < L / 2 - 0.01; x += 0.022) {
-      const f = new THREE.BoxGeometry(0.0012, Math.min(0.028, D / (nconv + 1)), H - 0.08);
-      f.translate(x, yc, H / 2);
+    const y0 = np === 1 ? -D / 2 + 0.016 : -D / 2 + 0.014 + (c * (D - 0.028)) / Math.max(1, nconv);
+    const depth = np === 1 ? D - 0.02 : (D - 0.028) / Math.max(1, nconv) - 0.004;
+    for (let x = -L / 2 + 0.012; x < L / 2 - 0.008; x += 0.02) {
+      const f = new THREE.BoxGeometry(0.0009, depth, H - 0.07);
+      f.translate(x, y0 + depth / 2, H / 2 - 0.01);
       finGeos.push(f);
     }
   }
   if (finGeos.length) g.add(mesh(merge(finGeos), M.enamelShade, false));
   if (type >= 21) {
-    // top grille: slotted cover
+    // top grille: dark base with white slats → visible slots
+    g.add(box(L - 0.004, D - 0.024, 0.002, M.darkGrey, 0, 0, H - 0.004));
     const slats = [];
-    for (let x = -L / 2 + 0.006; x <= L / 2 - 0.006; x += 0.0085) {
-      const sl = new THREE.BoxGeometry(0.0035, D - 0.004, 0.003);
-      sl.translate(x, 0, H + 0.001);
+    for (let x = -L / 2 + 0.006; x <= L / 2 - 0.006; x += 0.009) {
+      const sl = new THREE.BoxGeometry(0.004, D - 0.02, 0.0025);
+      sl.translate(x, 0, H + 0.0005);
       slats.push(sl);
     }
     g.add(mesh(merge(slats), M.enamel));
-    g.add(box(L, 0.004, 0.012, M.enamel, 0, -D / 2 + 0.002, H - 0.004));
-    g.add(box(L, 0.004, 0.012, M.enamel, 0, D / 2 - 0.002, H - 0.004));
-    // side covers
-    for (const s of [-1, 1]) g.add(box(0.003, D, H - 0.01, M.enamel, s * (L / 2 + 0.0015), 0, H / 2, 0.001));
+    for (const yy of [-D / 2 + 0.004, D / 2 - 0.004]) g.add(box(L, 0.008, 0.014, M.enamel, 0, yy, H - 0.006, 0.002));
+    // side covers with rounded edges
+    for (const sd of [-1, 1]) g.add(box(0.004, D + 0.002, H - 0.004, M.enamel, sd * (L / 2 + 0.002), 0, H / 2, 0.0018));
+  } else {
+    // type 11: rounded top edge of the single panel
+    g.add(box(L, 0.012, 0.01, M.enamel, 0, -D / 2 + 0.012, H - 0.005, 0.004));
   }
-  // air vent (top, return end) & plug
+  // air vent (top, far end) and blind plug (top, connection end) on the side
   const sgn = flip ? -1 : 1;
-  const vent = cylAlong('x', 0.007, 0.018, M.chrome);
-  vent.position.set(sgn * (L / 2 + 0.01), -D / 2 + 0.02, H - 0.035);
+  const vent = cylAlong('x', 0.0075, 0.012, M.chrome, 16);
+  vent.position.set(sgn * (L / 2 + 0.01), -D / 2 + 0.03, H - 0.03);
   g.add(vent);
-  // brackets (behind)
-  for (const x of [-L * 0.35, L * 0.35]) g.add(box(0.03, 0.03, 0.05, M.steel, x, D / 2 + 0.015, H - 0.05));
+  const ventKey = box(0.004, 0.003, 0.012, M.chrome, sgn * (L / 2 + 0.017), -D / 2 + 0.03, H - 0.03);
+  g.add(ventKey);
+  // wall brackets: flat steel hooks behind, at 1/4 of the length from each end
+  for (const x of [-L * 0.3, L * 0.3]) {
+    g.add(box(0.03, 0.003, H * 0.9, M.steel, x, D / 2 + 0.025, H * 0.47));
+    g.add(box(0.03, 0.03, 0.004, M.steel, x, D / 2 + 0.01, H - 0.05));
+    g.add(box(0.03, 0.03, 0.004, M.steel, x, D / 2 + 0.01, 0.04));
+  }
   return g;
 }
 
@@ -446,42 +479,77 @@ export function sectionalRadiator(M, prod, { flip = false } = {}) {
 }
 
 /**
- * Radiator valve set + connection pipes down to the floor pipe run.
- * @param supplyX, returnX  model-frame x of the connector drops; zPipe floor pipe level (relative to mount z)
+ * Radiator hook-up from pipes coming out of the floor (Z = floor, pipes at zPipe under the screed):
+ *  • side (default): supply up at the supply end into an angle valve with thermostatic head at the
+ *    top side port, return at the other end into an angle lockshield at the bottom side port;
+ *  • vk (bottom connection): both pipes at the connection end, 50 mm apart, up into a chrome H-block
+ *    screwed onto the two bottom nipples; the valve insert of the radiator carries the head at the top.
+ * Positions match the plan connectors (plan local y 0.05 → model −0.05).
  */
-export function radiatorConnections(M, prod, { flip = false, mount = 0.1, zPipe = 0.05, pipeMatS, pipeMatR, sectional = false }) {
+export function radiatorConnections(M, prod, { flip = false, mount = 0.1, zPipe = 0.05, pipeMatS, pipeMatR, sectional = false, vk = false }) {
   const g = new THREE.Group();
   const L = prod.length;
   const H = prod.height;
+  const D = prod.depth ?? 0.1;
   const sgn = flip ? -1 : 1;
+  const yConn = -0.05;
+  const rosette = (x, y) => {
+    const ros = mesh(new THREE.CylinderGeometry(0.021, 0.021, 0.004, 24), M.chrome);
+    ros.rotation.x = Math.PI / 2;
+    ros.position.set(x, y, 0.002);
+    g.add(ros);
+  };
+  if (vk) {
+    const xs = -sgn * (L / 2 - 0.035);
+    const xr = -sgn * (L / 2 - 0.085);
+    const zb = mount - 0.045; // H-block below the radiator bottom
+    // H-block body + two union nuts up to the radiator nipples
+    g.add(box(0.085, 0.028, 0.03, M.chrome, (xs + xr) / 2, -0.012, zb, 0.004));
+    for (const x of [xs, xr]) {
+      g.add(cylBetween(V(x, -0.012, zb + 0.015), V(x, -0.012, mount), 0.0085, M.chrome, 16));
+      const nut = hexNut(0.014, 0.014, M.chrome);
+      nut.rotation.x = Math.PI / 2;
+      nut.position.set(x, -0.012, zb + 0.028);
+      g.add(nut);
+      // shut-off spindle on the front of the block
+      const sp = cylBetween(V(x, -0.026, zb), V(x, -0.036, zb), 0.004, M.chrome, 10);
+      g.add(sp);
+      // outlet down with compression nut, pipe to the floor
+      const nd = hexNut(0.012, 0.012, M.chrome);
+      nd.rotation.x = Math.PI / 2;
+      nd.position.set(x, -0.012, zb - 0.022);
+      g.add(nd);
+    }
+    // straight down into the floor (plan connectors are right under the block)
+    g.add(cylBetween(V(xs, -0.012, zb - 0.03), V(xs, -0.012, zPipe), 0.008, pipeMatS, 14));
+    g.add(cylBetween(V(xr, -0.012, zb - 0.03), V(xr, -0.012, zPipe), 0.008, pipeMatR, 14));
+    rosette(xs, -0.012);
+    rosette(xr, -0.012);
+    // thermostatic head on the built-in valve insert (top of the connection end, facing out)
+    const hd = thermoHead(M);
+    hd.rotation.z = sgn > 0 ? Math.PI / 2 : -Math.PI / 2;
+    hd.position.set(-sgn * (L / 2 + (sectional ? 0.005 : 0.002)), -D / 2 + 0.03, mount + H - 0.06);
+    g.add(hd);
+    return g;
+  }
   const xs = -sgn * (L / 2 + 0.05);
   const xr = sgn * (L / 2 + 0.05);
-  const yConn = -0.05; // connector at plan local y = 0.05 → model −0.05
-  const zTop = mount + H - 0.05;
-  const zBot = mount + 0.05;
-  const zp = zPipe;
-  // supply: floor → up to top side connection with TRV
-  g.add(cylBetween(V(xs, yConn, zp), V(xs, yConn, zTop - 0.05), 0.008, pipeMatS));
-  const valve = trv(M);
-  valve.rotation.x = Math.PI / 2;
-  valve.position.set(xs, yConn, zTop - 0.02);
-  g.add(valve);
-  g.add(cylBetween(V(xs, yConn, zTop), V(-sgn * (L / 2), yConn, zTop), 0.009, M.chrome));
-  // return: floor → lockshield at bottom side connection
-  g.add(cylBetween(V(xr, yConn, zp), V(xr, yConn, zBot - 0.03), 0.008, pipeMatR));
-  const ls = lockshield(M);
-  ls.rotation.x = Math.PI / 2;
-  ls.position.set(xr, yConn, zBot);
-  g.add(ls);
-  g.add(cylBetween(V(xr, yConn, zBot + 0.01), V(sgn * (L / 2), yConn, zBot + 0.01), 0.009, M.chrome));
-  // wall escutcheons (floor rosettes)
-  for (const x of [xs, xr]) {
-    const ros = mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.004, 20), M.chrome);
-    ros.rotation.x = Math.PI / 2;
-    ros.position.set(x, yConn, Math.max(0.002, zp - 0.02));
-    g.add(ros);
-  }
-  void sectional;
+  const zTop = mount + H - 0.045;
+  const zBot = mount + 0.045;
+  // supply: floor → angle valve + head at the top side port
+  g.add(pexPipe([V(xs, yConn, zPipe), V(xs, yConn, 0.03), V(xs, yConn, zTop - 0.04)], 0.016, pipeMatS, 0.04));
+  const v1 = angleValve(M, true);
+  v1.position.set(xs, yConn, zTop);
+  if (sgn > 0) v1.rotation.z = Math.PI; // tail towards the radiator
+  g.add(v1);
+  // return: floor → lockshield at the bottom side port
+  g.add(pexPipe([V(xr, yConn, zPipe), V(xr, yConn, 0.03), V(xr, yConn, zBot - 0.04)], 0.016, pipeMatR, 0.04));
+  const v2 = angleValve(M, false);
+  v2.position.set(xr, yConn, zBot);
+  if (sgn < 0) v2.rotation.z = Math.PI;
+  g.add(v2);
+  rosette(xs, yConn);
+  rosette(xr, yConn);
   return g;
 }
 

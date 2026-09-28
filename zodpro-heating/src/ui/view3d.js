@@ -611,7 +611,7 @@ export class View3D {
       }
       const body = pr.kind === 'sectional' ? M3.sectionalRadiator(M, pr, { flip: e.flip }) : M3.panelRadiator(M, pr, { flip: e.flip });
       this.add(M3.place(body, e, z0 + (e.mountHeight ?? 0.1)), e.id);
-      const conn = M3.radiatorConnections(M, pr, { flip: e.flip, mount: e.mountHeight ?? 0.1, zPipe: s.pipeElevation, pipeMatS: this.pipeMaterial('supply', s.pipeMaterial), pipeMatR: this.pipeMaterial('return', s.pipeMaterial) });
+      const conn = M3.radiatorConnections(M, pr, { vk: e.connection === 'vk', flip: e.flip, mount: e.mountHeight ?? 0.1, zPipe: s.pipeElevation, pipeMatS: this.pipeMaterial('supply', s.pipeMaterial), pipeMatR: this.pipeMaterial('return', s.pipeMaterial) });
       this.add(M3.place(conn, e, z0), e.id);
     }
     for (const e of elementsOf(p, 'boiler', l.id)) {

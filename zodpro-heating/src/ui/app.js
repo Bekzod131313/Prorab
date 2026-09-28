@@ -739,6 +739,8 @@ class App {
       r.prefKind = this.radiatorPref.kind;
       if (r.prefKind === 'panel') r.prefType = this.radiatorPref.type;
       else delete r.prefType;
+      // towel dryers hang on two bottom ports at both ends
+      if (r.prefKind === 'towel') delete r.connection;
     }
     // no radiator manifold on this level yet → put one on a corridor wall so the radiators can be connected
     const lv = this.store.activeLevelId;
