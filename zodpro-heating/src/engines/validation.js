@@ -130,7 +130,7 @@ export function validate(project, res, net) {
       const comfort = (r.roomType === 'bathroom' || r.roomType === 'wc') && r.heating === 'ufh';
       add('R03', cover < 0.85 && !comfort ? 'error' : 'warning', 'room_under_heated', { room: r.name, pct: Math.round(cover * 100) }, r.id);
     }
-    if ((r.heating === 'ufh' || r.heating === 'mixed') && !r.ufh?.collectorId && !r.ufh?.transit) add('R17', 'error', 'ufh_no_collector', { room: r.name }, r.id);
+    if ((r.heating === 'ufh' || r.heating === 'mixed') && !r.ufh?.collectorId && !r.ufh?.collectorIds?.length && !r.ufh?.transit) add('R17', 'error', 'ufh_no_collector', { room: r.name }, r.id);
   }
   for (const [id, rr] of Object.entries(res.radiators)) {
     if (!rr.product) add('R04', 'error', 'radiator_no_product', {}, id);
@@ -183,7 +183,7 @@ export function validate(project, res, net) {
   // collectors: ports in use and capacity
   for (const c of elementsOf(project, 'collector')) {
     if (c.kind === 'ufh') {
-      const loops = Object.values(res.ufh).filter((u) => u.collectorId === c.id).reduce((a, u) => a + u.loops, 0);
+      const loops = res.ufhPorts?.[c.id] ?? 0;
       if (loops > 12) add('R14', 'error', 'collector_ports', { used: loops, max: 12 }, c.id);
     }
     const flow = res.circuits.filter((x) => x.connected && x.path.some((pid) => pid === c.id || String(pid).startsWith(c.id))).reduce((a, x) => a + x.vM3h, 0);

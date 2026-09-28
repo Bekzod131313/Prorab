@@ -174,3 +174,26 @@ test('manifold > 12 loops is split into manifolds of ≤ 12 outlets side by side
   assert.equal(r.validation.findings.filter((f) => f.code === 'collector_ports').length, 0);
   for (const c of cs.add) assert.equal(c.angle, cols[0].angle);
 });
+
+test('one big room with > 12 loops is served by several manifolds (bands), each ≤ 12', () => {
+  const p = createSampleProject();
+  const hall = Object.values(p.elements).find((e) => e.cat === 'room' && e.levelId === 'lvl_0' && e.name === 'Холл');
+  const kit = Object.values(p.elements).find((e) => e.cat === 'room' && e.levelId === 'lvl_0' && e.name === 'Кухня-столовая');
+  delete p.elements[kit.id];
+  hall.points = [{ x: 5.8, y: 2.2 }, { x: 11.6, y: 2.2 }, { x: 11.6, y: 18.76 }, { x: 5.8, y: 18.76 }];
+  hall.ufh.spacing = 0.1;
+  let r = runCalculation(p, { noCache: true });
+  assert.ok(r.ufhPorts[hall.ufh.collectorId] > 12);
+  for (let pass = 0; pass < 6; pass++) {
+    const cs = splitOverloadedCollectors(p, r);
+    if (!cs.add.length && !cs.update.length) break;
+    applyChangeSet(p, cs);
+    r = runCalculation(p, { noCache: true });
+  }
+  assert.ok(hall.ufh.collectorIds.length >= 2);
+  for (const n of Object.values(r.ufhPorts)) assert.ok(n <= 12);
+  const u = r.ufh[hall.id];
+  assert.equal(u.layout.length, u.loops);
+  assert.ok(u.layout.every((l) => hall.ufh.collectorIds.includes(l.collectorId)));
+  assert.equal(new Set(u.loopIds).size, u.loopIds.length);
+});

@@ -180,12 +180,9 @@ class App {
     cmd('auto_rad', t('t_auto_rad'), 'auto_rad', () => this.autoRadiators(), 'AUTORAD');
     cmd('auto_ufh', t('t_auto_ufh'), 'ufh', () => this.autoUfh(), 'AUTOTP');
     cmd('split_col', 'Kollektorni bo‘lish (≤12)', 'collector', () => {
-      this.store.flush?.();
-      const cs = splitOverloadedCollectors(this.store.project, this.store.results);
-      if (!cs.add.length) return this.toast('Barcha kollektorlarda ≤ 12 chiqish');
-      this.store.apply(cs, 'ufh:split');
+      const added = this.splitManifolds();
+      if (!added) return this.toast('Barcha kollektorlarda ≤ 12 chiqish');
       this.autoRoute(true);
-      this.toast(`${cs.add.length} ta kollektor qo‘shildi`);
     }, 'SPLITCOL');
     cmd('auto_col', t('t_auto_col'), 'collector', () => this.autoCollector(), 'AUTOCOL');
     cmd('auto_route', t('t_auto_route'), 'auto_route', () => this.autoRoute(), 'AUTOROUTE');
@@ -756,17 +753,26 @@ class App {
     if (!cs.update.length) return this.toast('Issiq pol qilinadigan xona topilmadi');
     this.store.apply(cs, 'auto:ufh');
     // real loop counts (≤ 60 m each) may exceed 12 outlets → split those manifolds
-    this.store.flush?.();
-    const split = splitOverloadedCollectors(this.store.project, this.store.results);
-    if (split.add.length) {
-      this.store.apply(split, 'auto:ufh-split');
-      this.store.flush?.();
-      this.toast(`${split.add.length} ta kollektor qo‘shildi — har birida ≤ 12 chiqish`);
-    }
-    for (const w of split.warnings) this.toast(`${w.params.room}: ${w.params.loops} kontur bitta kollektorga sig‘maydi`, 'error');
+    const added = this.splitManifolds();
     // connect new manifolds to the boiler
-    if (cs.add.length || split.add.length) this.autoRoute(true);
+    if (cs.add.length || added) this.autoRoute(true);
     this.toast(`${cs.update.length} ta xonada issiq pol${cs.add.length ? `, ${cs.add.length} ta yangi kollektor` : ''}`);
+  }
+
+  /** Split every UFH manifold with more than 12 loops (repeats until all fit). Returns manifolds added. */
+  splitManifolds() {
+    let added = 0;
+    for (let pass = 0; pass < 6; pass++) {
+      this.store.recalc?.(true);
+      const cs = splitOverloadedCollectors(this.store.project, this.store.results);
+      for (const w of cs.warnings) this.toast(`${w.params.room}: kollektor uchun devor topilmadi`, 'error');
+      if (!cs.add.length && !cs.update.length) break;
+      this.store.apply(cs, 'ufh:split');
+      added += cs.add.length;
+    }
+    this.store.recalc?.(true);
+    if (added) this.toast(`${added} ta kollektor qo‘shildi — har birida ≤ 12 chiqish`);
+    return added;
   }
 
   autoCollector() {

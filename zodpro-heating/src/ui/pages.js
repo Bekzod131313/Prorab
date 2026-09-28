@@ -302,7 +302,7 @@ export function renderInstall(el, app) {
           <div class="prop"><label>Izoh</label><input data-ab="${x.id}" data-f="comment" value="${esc(ab.comment ?? '')}"><span></span></div>
           <div class="btn-row"><button class="btn small" data-photo="${x.id}">📷 Foto${ab.photos?.length ? ` (${ab.photos.length})` : ''}</button><button class="btn small" data-qr="${x.id}">QR</button><button class="btn small" data-iss="${x.id}">+ Muammo</button></div></div>`;
       }
-      if (u) h += `<div class="install-card"><h4>Pol isitish</h4><div class="kv"><span>Qadam</span><span>${u.spacing * 1000} mm</span><span>Konturlar</span><span>${u.loops} × ${f1(u.loopLength)} m</span><span>Quvur</span><span>${u.pipe.material} ${u.pipe.dn}×2</span><span>Rotametr</span><span>${(u.flowPerLoopLh / 60).toFixed(2)} l/min</span><span>Kollektor</span><span>${esc(p.elements[u.collectorId]?.mark ?? '—')}</span></div></div>`;
+      if (u) h += `<div class="install-card"><h4>Pol isitish</h4><div class="kv"><span>Qadam</span><span>${u.spacing * 1000} mm</span><span>Konturlar</span><span>${u.loops} × ${f1(u.loopLength)} m</span><span>Quvur</span><span>${u.pipe.material} ${u.pipe.dn}×2</span><span>Rotametr</span><span>${(u.flowPerLoopLh / 60).toFixed(2)} l/min</span><span>Kollektor</span><span>${esc((u.collectorIds?.length ? u.collectorIds : [u.collectorId]).map((id) => p.elements[id]?.mark).filter(Boolean).join(', ') || '—')}</span></div></div>`;
       h += '</div>';
     }
   }

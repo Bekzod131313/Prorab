@@ -350,9 +350,11 @@ function elementResults(e, p, res) {
     return sect(t('calc_results'), kv([['Isitish', `${f1(b.heatingKw)} kVt`], ['DHW', `${f1(b.dhwKw)} kVt`], [t('reserve'), b.reserve], [t('required'), `${f1(b.requiredKw)} kVt`], [t('product'), b.product?.model ?? '—'], ['Qarshilik', `${f2(b.dp / 1000)} kPa`], ['Ichki nasos', b.product?.builtInPump ? 'bor' : 'yo‘q']]));
   }
   if (e.cat === 'collector') {
-    const loops = Object.values(res.ufh).filter((u) => u.collectorId === e.id);
+    // UFH loops on this manifold (a room may be split over several manifolds)
+    const mine = Object.values(res.ufh).flatMap((u) => u.layout.filter((l) => (l.collectorId ?? u.collectorId) === e.id).map((l) => ({ u, l })));
     const circuits = res.circuits.filter((c) => c.connected && c.path.includes(e.id));
-    return sect(t('calc_results'), kv([['Ulangan konturlar', circuits.length + loops.reduce((a, l) => a + l.loops, 0)], ['Sarf', `${f0(circuits.reduce((a, c) => a + c.flowLh, 0))} l/h`], ['Issiqlik', `${f0(circuits.reduce((a, c) => a + c.Q, 0))} W`]]) + (loops.length ? `<table class="tbl"><tr><th>#</th><th>Xona</th><th>L</th><th>G</th><th>ΔP</th></tr>${loops.flatMap((u) => Array.from({ length: u.loops }, (_, i) => `<tr><td>${i + 1}</td><td>${esc(p.elements[u.roomId]?.name)}</td><td class="n">${f1(u.loopLength)}</td><td class="n">${f0(u.flowPerLoopLh)}</td><td class="n">${f2(u.dpLoop / 1000)}</td></tr>`)).join('')}</table>` : ''));
+    const loops = mine.length ? [{ loops: mine.length }] : [];
+    return sect(t('calc_results'), kv([['Ulangan konturlar', circuits.length + mine.length], ['Sarf', `${f0(circuits.reduce((a, c) => a + c.flowLh, 0))} l/h`], ['Issiqlik', `${f0(circuits.reduce((a, c) => a + c.Q, 0))} W`]]) + (loops.length ? `<table class="tbl"><tr><th>#</th><th>Xona</th><th>L</th><th>G</th><th>ΔP</th></tr>${mine.map(({ u, l }, i) => `<tr><td>${(l.portIndex ?? i) + 1}</td><td>${esc(p.elements[u.roomId]?.name)}</td><td class="n">${f1(l.length)}</td><td class="n">${f0(l.flowLh ?? 0)}</td><td class="n">${f2((l.dp ?? 0) / 1000)}</td></tr>`).join('')}</table>` : ''));
   }
   if (e.cat === 'wall') {
     try {

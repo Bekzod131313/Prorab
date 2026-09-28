@@ -345,7 +345,12 @@ export function roomSlabs(polygon, frame) {
 export function planGrid(a0, a1, H, k, s, uc) {
   const Wt = a1 - a0;
   let best = null;
-  for (let c = 1; c <= k; c++) {
+  // like the reference drawings: loops side by side in one row (tall spirals across the whole depth)
+  // whenever each still gets a usable width; stacked zones only for very narrow rooms
+  const oneRow = (Wt - (k - 1) * s) / k;
+  if (oneRow >= Math.max(5 * s, 0.7)) best = { colW: oneRow, rows: Array(k).fill(1), score: 0 };
+  let grid = null;
+  for (let c = 1; c <= k && !best; c++) {
     const colW = (Wt - (c - 1) * s) / c;
     const rows = Array.from({ length: c }, (_, i) => Math.floor(k / c) + (i < k % c ? 1 : 0));
     let score = 0;
@@ -357,8 +362,9 @@ export function planGrid(a0, a1, H, k, s, uc) {
       if (wBot < 4 * s || h < 4 * s) ok = false;
       score += Math.abs(Math.log((colW - (r - 1) * s) / h)) * r + (r - 1) * 0.35;
     }
-    if (ok && (!best || score < best.score)) best = { colW, rows, score };
+    if (ok && (!grid || score < grid.score)) grid = { colW, rows, score };
   }
+  best ??= grid;
   best ??= { colW: (Wt - (k - 1) * s) / k, rows: Array(k).fill(1) };
   return best.rows
     .map((r, ci) => {
@@ -566,4 +572,53 @@ export function layoutRoomUfh(o) {
   // loops[k] ↔ ports[k]; without ports keep the order along the side
   if (ports) out.sort((a, b) => (a.port ?? 1e9) - (b.port ?? 1e9));
   return { loops: out, approx, side, band, version: UFH_LAYOUT_VERSION };
+}
+
+/** Clip a polygon to an axis-aligned rectangle (Sutherland–Hodgman). */
+export function clipPolygonRect(poly, r) {
+  let out = poly;
+  const edges = [
+    [(p) => p.x >= r.x0, (a, b) => ({ x: r.x0, y: a.y + ((r.x0 - a.x) * (b.y - a.y)) / (b.x - a.x) })],
+    [(p) => p.x <= r.x1, (a, b) => ({ x: r.x1, y: a.y + ((r.x1 - a.x) * (b.y - a.y)) / (b.x - a.x) })],
+    [(p) => p.y >= r.y0, (a, b) => ({ x: a.x + ((r.y0 - a.y) * (b.x - a.x)) / (b.y - a.y), y: r.y0 })],
+    [(p) => p.y <= r.y1, (a, b) => ({ x: a.x + ((r.y1 - a.y) * (b.x - a.x)) / (b.y - a.y), y: r.y1 })],
+  ];
+  for (const [inside, cut] of edges) {
+    const src = out;
+    out = [];
+    for (let i = 0; i < src.length; i++) {
+      const a = src[i];
+      const b = src[(i + 1) % src.length];
+      if (inside(b)) {
+        if (!inside(a)) out.push(cut(a, b));
+        out.push(b);
+      } else if (inside(a)) out.push(cut(a, b));
+    }
+    if (!out.length) break;
+  }
+  return cleanPath(out.map((p) => ({ x: r3(p.x), y: r3(p.y) })), 1e-6);
+}
+
+/**
+ * A room served by several manifolds (> 12 loops) is cut into bands across its longer side, one per
+ * manifold (in the manifolds' order along that side), each laid out like a room of its own.
+ * @returns [{ polygon, col, share }] share = area fraction
+ */
+export function splitRoomBands(polygon, cols) {
+  const xs = polygon.map((p) => p.x);
+  const ys = polygon.map((p) => p.y);
+  const bb = { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
+  const alongX = bb.x1 - bb.x0 >= bb.y1 - bb.y0;
+  const k = cols.length;
+  const sorted = [...cols].sort((a, b) => (alongX ? a.x - b.x : a.y - b.y));
+  const total = Math.abs(polygonArea(polygon)) || 1;
+  const out = [];
+  for (let i = 0; i < k; i++) {
+    const t0 = i / k;
+    const t1 = (i + 1) / k;
+    const r = alongX ? { x0: bb.x0 + (bb.x1 - bb.x0) * t0, x1: bb.x0 + (bb.x1 - bb.x0) * t1, y0: bb.y0, y1: bb.y1 } : { x0: bb.x0, x1: bb.x1, y0: bb.y0 + (bb.y1 - bb.y0) * t0, y1: bb.y0 + (bb.y1 - bb.y0) * t1 };
+    const poly = clipPolygonRect(polygon, r);
+    if (poly.length >= 3) out.push({ polygon: poly, col: sorted[i], share: Math.abs(polygonArea(poly)) / total });
+  }
+  return out;
 }

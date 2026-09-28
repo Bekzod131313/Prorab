@@ -142,7 +142,7 @@ export function scheduleDefs(project, res) {
         { key: 'dp', label: 'ΔP, kPa', get: (r) => +(r.u.dpLoop / 1000).toFixed(2), n: 1 },
         { key: 'ts', label: 't pol, °C', get: (r) => +r.u.tSurf.toFixed(1), n: 1 },
         { key: 'pattern', label: 'Sxema', get: (r) => r.u.pattern },
-        { key: 'col', label: 'Kollektor', get: (r) => project.elements[r.u.collectorId]?.mark ?? '—' },
+        { key: 'col', label: 'Kollektor', get: (r) => (r.u.collectorIds?.length ? r.u.collectorIds : [r.u.collectorId]).map((id) => project.elements[id]?.mark).filter(Boolean).join(', ') || '—' },
       ],
     },
     {

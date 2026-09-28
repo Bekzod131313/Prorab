@@ -99,10 +99,9 @@ export function schematicSVG(project, res, colors = {}) {
       parts.push(`<text x="${x + 60}" y="${y - 1}" font-size="10.5" font-weight="700">${esc(el?.mark)} · ${esc(rr?.product?.model ?? '')}</text>`);
       parts.push(`<text x="${x + 60}" y="${y + 13}" font-size="9.5">${Math.round(rr?.output ?? 0)} W · ${Math.round(circ?.flowLh ?? 0)} l/h · ${circ ? (circ.dpTotal / 1000).toFixed(1) : '-'} kPa · sozlama ${esc(circ?.balance?.setting ?? '-')}</text>`);
     } else {
-      const loops = Object.values(res.ufh).filter((u) => u.collectorId === c.elementId);
       parts.push(`<rect x="${x + 4}" y="${y - 12}" width="44" height="34" fill="#fff5e6" stroke="#e08a1f"/>`);
       parts.push(`<path d="M${x + 8},${y - 6} h36 v6 h-36 v6 h36 v6 h-36" fill="none" stroke="#e08a1f"/>`);
-      parts.push(`<text x="${x + 60}" y="${y - 1}" font-size="10.5" font-weight="700">${esc(el?.mark)} pol isitish · ${loops.reduce((a, l) => a + l.loops, 0)} kontur</text>`);
+      parts.push(`<text x="${x + 60}" y="${y - 1}" font-size="10.5" font-weight="700">${esc(el?.mark)} pol isitish · ${res.ufhPorts?.[c.elementId] ?? 0} kontur</text>`);
       parts.push(`<text x="${x + 60}" y="${y + 13}" font-size="9.5">${Math.round(c.Q ?? circ?.Q ?? 0)} W · ${Math.round(circ?.flowLh ?? 0)} l/h${el?.mixing !== false ? ' · aralashtirish uzeli' : ''}</text>`);
     }
     void key;

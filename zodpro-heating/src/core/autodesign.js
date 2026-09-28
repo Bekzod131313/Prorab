@@ -468,31 +468,79 @@ export function autoUfh(project, levelId, { roomIds = null } = {}) {
 }
 
 /**
- * Manifolds have at most 12 outlets: every UFH manifold whose rooms need more loops (real count from
- * the calculation) is split — it keeps its nearest rooms up to 12 loops, the rest go to new
- * manifolds mounted next to it on the same wall (same orientation).
+ * Manifolds have at most 12 outlets. Every UFH manifold whose loops (real count from the calculation)
+ * exceed 12 is split:
+ *  • a single room with more than 12 loops is cut into bands across its long side, one manifold per
+ *    band on the long wall nearest the original manifold (the room gets `ufh.collectorIds`);
+ *  • otherwise the manifold keeps its nearest rooms up to 12 loops, the rest go to new manifolds
+ *    mounted next to it on the same wall.
+ * Run it again after recalculating until it returns no changes.
  */
 export function splitOverloadedCollectors(project, res, max = UFH_MAX_OUTLETS) {
   const add = [];
   const update = [];
   const warnings = [];
+  const touched = new Set();
+  const idsOf = (r) => (r.ufh?.collectorIds?.length ? r.ufh.collectorIds : [r.ufh?.collectorId]).filter(Boolean);
   for (const c of elementsOf(project, 'collector').filter((k) => k.kind === 'ufh')) {
-    const rooms = elementsOf(project, 'room', c.levelId).filter((r) => r.ufh?.collectorId === c.id && res.ufh?.[r.id]);
-    const loops = (r) => res.ufh[r.id].loops;
-    if (rooms.reduce((a, r) => a + loops(r), 0) <= max) continue;
+    if ((res.ufhPorts?.[c.id] ?? 0) <= max || touched.has(c.id)) continue;
+    const rooms = elementsOf(project, 'room', c.levelId).filter((r) => idsOf(r).includes(c.id) && res.ufh?.[r.id]);
+    const onC = (r) => res.ufh[r.id].parts?.find((pp) => pp.collectorId === c.id)?.loops ?? res.ufh[r.id].loops;
+    const big = rooms.find((r) => onC(r) > max);
+    if (big) {
+      // ---- one room, several manifolds (bands across its long side)
+      const total = res.ufh[big.id].loops;
+      const have = idsOf(big).map((id) => project.elements[id]).filter(Boolean);
+      const g = Math.max(Math.ceil(total / max), have.length + 1);
+      const xs = big.points.map((q) => q.x);
+      const ys = big.points.map((q) => q.y);
+      const bb = { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
+      const alongX = bb.x1 - bb.x0 >= bb.y1 - bb.y0;
+      const wall = alongX ? (Math.abs(c.y - bb.y0) < Math.abs(c.y - bb.y1) ? bb.y0 : bb.y1) : Math.abs(c.x - bb.x0) < Math.abs(c.x - bb.x1) ? bb.x0 : bb.x1;
+      const per = Math.ceil(total / g);
+      const targets = Array.from({ length: g }, (_, i) => {
+        const t = (i + 0.5) / g;
+        return alongX ? { x: bb.x0 + (bb.x1 - bb.x0) * t, y: wall } : { x: wall, y: bb.y0 + (bb.y1 - bb.y0) * t };
+      });
+      // keep the existing manifolds (moved to the nearest band), add the missing ones
+      const free = [...targets];
+      const ids = [];
+      for (const h of have) {
+        const k = free.map((tg, i) => [i, Math.hypot(tg.x - h.x, tg.y - h.y)]).sort((a, b) => a[1] - b[1])[0]?.[0];
+        if (k == null) continue;
+        const pl = ufhCollectorPlacement(big, free[k], per);
+        free.splice(k, 1);
+        if (pl) update.push({ id: h.id, patch: { ...pl, outlets: Math.min(max, Math.max(2, per)) } });
+        ids.push(h.id);
+        touched.add(h.id);
+      }
+      for (const tg of free) {
+        const pl = ufhCollectorPlacement(big, tg, per);
+        if (!pl) {
+          warnings.push({ code: 'ufh_no_place', params: { room: big.name } });
+          continue;
+        }
+        const nc = newElement('collector', { levelId: big.levelId, ...pl, outlets: Math.min(max, Math.max(2, per)), kind: 'ufh', mixing: c.mixing !== false });
+        add.push(nc);
+        ids.push(nc.id);
+      }
+      update.push({ id: big.id, patch: { ufh: { ...big.ufh, collectorId: ids[0], collectorIds: ids } } });
+      // other rooms that were on c stay; if c is still too full the next pass moves them
+      continue;
+    }
+    // ---- several rooms: nearest ones stay, the rest go to new manifolds beside c
     const dist = (r) => Math.hypot(polygonCentroid(r.points).x - c.x, polygonCentroid(r.points).y - c.y);
     const groups = [[]];
     const load = [0];
     for (const r of [...rooms].sort((a, b) => dist(a) - dist(b))) {
-      if (loops(r) > max) warnings.push({ code: 'ufh_room_over_manifold', params: { room: r.name, loops: loops(r), max } });
-      let g = load.findIndex((l) => l + loops(r) <= max);
-      if (g < 0) {
+      let gi = load.findIndex((l) => l + onC(r) <= max);
+      if (gi < 0) {
         groups.push([]);
         load.push(0);
-        g = groups.length - 1;
+        gi = groups.length - 1;
       }
-      groups[g].push(r);
-      load[g] += loops(r);
+      groups[gi].push(r);
+      load[gi] += onC(r);
     }
     update.push({ id: c.id, patch: { outlets: Math.max(2, load[0]) } });
     // new manifolds side by side along the wall: body ≈ 0.05·n + 0.25 m, 0.15 m gap
@@ -501,7 +549,10 @@ export function splitOverloadedCollectors(project, res, max = UFH_MAX_OUTLETS) {
       const pos = localToPlan(c, offset, 0);
       const nc = newElement('collector', { levelId: c.levelId, x: round(pos.x, 3), y: round(pos.y, 3), angle: c.angle ?? 0, outlets: Math.max(2, load[k]), kind: 'ufh', mixing: c.mixing !== false });
       add.push(nc);
-      for (const r of groups[k]) update.push({ id: r.id, patch: { ufh: { ...r.ufh, collectorId: nc.id } } });
+      for (const r of groups[k]) {
+        const ids = idsOf(r).map((id) => (id === c.id ? nc.id : id));
+        update.push({ id: r.id, patch: { ufh: { ...r.ufh, collectorId: ids[0], ...(r.ufh?.collectorIds?.length ? { collectorIds: ids } : {}) } } });
+      }
       offset += 0.05 * load[k] + 0.4 + (c.mixing !== false ? 0.4 : 0);
     }
   }

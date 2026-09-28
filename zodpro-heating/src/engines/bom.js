@@ -90,7 +90,7 @@ export function buildBom(project, res, net) {
 
   // collectors
   for (const c of elementsOf(project, 'collector')) {
-    const loops = Object.values(res.ufh).filter((u) => u.collectorId === c.id).reduce((a, u) => a + u.loops, 0);
+    const loops = res.ufhPorts?.[c.id] ?? 0;
     const need = c.kind === 'ufh' ? Math.max(2, loops) : c.outlets ?? 4;
     const prod = COLLECTORS.find((p) => p.outlets >= need) ?? COLLECTORS[COLLECTORS.length - 1];
     addItem(items, `col|${prod.id}|${c.kind}`, { group: 'collectors', name: `${prod.model}${c.kind === 'ufh' ? ' (pol isitish, rotametrli)' : ''}`, article: prod.article, sapArticle: prod.sapArticle, unit: 'dona', qty: 1, unitUsd: prod.usd + (c.kind === 'ufh' ? prod.ufhUsdExtra : 0), waste: 0 });

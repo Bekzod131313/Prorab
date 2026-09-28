@@ -10,7 +10,7 @@
 import { roomHeatLoss, HEATLOSS_VERSION } from './heatloss.js';
 import { selectRadiator, outputAt, radiatorById, RADIATOR_VERSION } from './radiator.js';
 import { designUfh, refineWithLayout, UFH_VERSION } from './ufh.js';
-import { layoutRoomUfh, UFH_LAYOUT_VERSION } from './ufhlayout.js';
+import { layoutRoomUfh, splitRoomBands, UFH_LAYOUT_VERSION } from './ufhlayout.js';
 import { buildNetwork, NETWORK_VERSION } from './network.js';
 import { flowFromHeat, pipeSegment, kvDrop, kvRequired, paToM, HYDRAULICS_VERSION } from './hydraulics.js';
 import { sizePipe, selectPump, selectBoiler, sizeExpansion, EQUIPMENT_VERSION } from './equipment.js';
@@ -108,57 +108,87 @@ export function runCalculation(project, opts = {}) {
     const hl = res.rooms[r.id];
     const Q = hl.required;
     const bath = r.roomType === 'bathroom' || r.roomType === 'wc';
-    const col = r.ufh?.collectorId ? project.elements[r.ufh.collectorId] : null;
-    const cen = r.points.reduce((a, p) => ({ x: a.x + p.x / r.points.length, y: a.y + p.y / r.points.length }), { x: 0, y: 0 });
+    // one manifold, or several (a large room is cut into bands, one per manifold, ≤ 12 loops each)
+    const colIds = (r.ufh?.collectorIds?.length ? r.ufh.collectorIds : [r.ufh?.collectorId]).filter((id) => project.elements[id]);
+    const cols = colIds.map((id) => project.elements[id]);
+    const parts = cols.length > 1 ? splitRoomBands(r.points, cols) : [{ polygon: r.points, col: cols[0] ?? null, share: 1 }];
     const maxSurface = bath ? s.ufhMaxSurface.bathroom : s.ufhMaxSurface.occupied;
-    let d = designUfh({
-      Q,
-      area: hl.inputs.area,
-      ti: roomTemp(r),
-      ts: s.ufhRegime.ts,
-      tr: s.ufhRegime.tr,
-      spacing: r.ufh?.spacing ?? null,
-      // bathrooms / small rooms: comfort floor at ≥ 150 mm, no densification
-      minSpacing: bath || hl.inputs.area < 8 ? 0.15 : undefined,
-      comfortFloor: bath,
-      leadLength: col ? (Math.abs(col.x - cen.x) + Math.abs(col.y - cen.y)) / 2 : 4,
-      maxLoop: s.ufhMaxLoopM,
-      maxSurface,
-      maxLoopKpa: s.ufhMaxLoopKpa,
-      pipe: r.ufh?.pipe ?? { material: 'PEX', dn: '16' },
-      pattern: r.ufh?.pattern ?? 'auto',
-    });
     // real loop geometry: edge zone 0.1 m from the inner wall face
     const wallHalf = Math.max(0.1, ...elementsOf(project, 'wall', r.levelId).map((w) => (w.thickness ?? 0.2) / 2));
-    const first = col ? portCursor.get(col.id) ?? 0 : 0;
-    const layoutFn = (n) =>
-      layoutRoomUfh({
-        polygon: r.points,
-        loops: n,
-        spacing: d.spacing,
-        pattern: d.pattern,
-        inset: wallHalf + 0.1,
-        bendRadius: 5 * (Number(d.pipe.dn) || 16) / 1000,
-        toward: col ? { x: col.x, y: col.y } : cen,
-        ports: col ? Array.from({ length: n }, (_, i) => ({ supply: collectorPort(col, first + i, 'supply'), return: collectorPort(col, first + i, 'return') })) : null,
+    const lvNo = levelNo.get(r.levelId) ?? 1;
+    const done = parts.map(({ polygon, col, share }) => {
+      const cen = polygon.reduce((a, p) => ({ x: a.x + p.x / polygon.length, y: a.y + p.y / polygon.length }), { x: 0, y: 0 });
+      let d = designUfh({
+        Q: Q * share,
+        area: hl.inputs.area * share,
+        ti: roomTemp(r),
+        ts: s.ufhRegime.ts,
+        tr: s.ufhRegime.tr,
+        spacing: r.ufh?.spacing ?? null,
+        // bathrooms / small rooms: comfort floor at ≥ 150 mm, no densification
+        minSpacing: bath || hl.inputs.area < 8 ? 0.15 : undefined,
+        comfortFloor: bath,
+        leadLength: col ? (Math.abs(col.x - cen.x) + Math.abs(col.y - cen.y)) / 2 : 4,
+        maxLoop: s.ufhMaxLoopM,
+        maxSurface,
+        maxLoopKpa: s.ufhMaxLoopKpa,
+        pipe: r.ufh?.pipe ?? { material: 'PEX', dn: '16' },
+        pattern: r.ufh?.pattern ?? 'auto',
       });
-    d = refineWithLayout(d, layoutFn, { ts: s.ufhRegime.ts, tr: s.ufhRegime.tr, maxLoop: s.ufhMaxLoopM, maxLoopKpa: s.ufhMaxLoopKpa });
-    if (col) {
-      d.firstPort = first + 1;
-      portCursor.set(col.id, first + d.loops);
-      // loop IDs like the drawings: <floor>.<manifold>.<outlet>  e.g. 1.2.3
-      const lvNo = levelNo.get(r.levelId) ?? 1;
-      const colNo = ufhColNo.get(col.id) ?? 1;
-      d.loopIds = d.layout.map((_, i) => `${lvNo}.${colNo}.${first + 1 + i}`);
-    } else d.loopIds = d.layout.map((_, i) => `${levelNo.get(r.levelId) ?? 1}.0.${i + 1}`);
+      const first = col ? portCursor.get(col.id) ?? 0 : 0;
+      const layoutFn = (n) =>
+        layoutRoomUfh({
+          polygon,
+          loops: n,
+          spacing: d.spacing,
+          pattern: d.pattern,
+          inset: wallHalf + 0.1,
+          toward: col ? { x: col.x, y: col.y } : cen,
+          ports: col ? Array.from({ length: n }, (_, i) => ({ supply: collectorPort(col, first + i, 'supply'), return: collectorPort(col, first + i, 'return') })) : null,
+        });
+      d = refineWithLayout(d, layoutFn, { ts: s.ufhRegime.ts, tr: s.ufhRegime.tr, maxLoop: s.ufhMaxLoopM, maxLoopKpa: s.ufhMaxLoopKpa });
+      if (col) {
+        d.firstPort = first + 1;
+        portCursor.set(col.id, first + d.loops);
+        // loop IDs like the drawings: <floor>.<manifold>.<outlet>  e.g. 1.2.3
+        const colNo = ufhColNo.get(col.id) ?? 1;
+        d.loopIds = d.layout.map((l, i) => `${lvNo}.${colNo}.${first + 1 + (l.port ?? i)}`);
+        d.layout.forEach((l, i) => {
+          l.collectorId = col.id;
+          l.portIndex = first + (l.port ?? i);
+        });
+      } else d.loopIds = d.layout.map((_, i) => `${lvNo}.0.${i + 1}`);
+      d.collectorId = col?.id ?? null;
+      return d;
+    });
+    let d = done[0];
+    if (done.length > 1) {
+      const all = done.flatMap((x) => x.layout);
+      d = {
+        ...done[0],
+        loops: done.reduce((a, x) => a + x.loops, 0),
+        Qout: done.reduce((a, x) => a + x.Qout, 0),
+        totalLength: done.reduce((a, x) => a + x.totalLength, 0),
+        loopLength: Math.max(...done.map((x) => x.loopLength)),
+        dpLoop: Math.max(...done.map((x) => x.dpLoop)),
+        velocity: Math.max(...done.map((x) => x.velocity)),
+        flowPerLoopLh: Math.max(...done.map((x) => x.flowPerLoopLh)),
+        layout: all,
+        loopIds: done.flatMap((x) => x.loopIds),
+        warnings: [...new Map(done.flatMap((x) => x.warnings).map((w) => [w.code, w])).values()],
+        firstPort: null,
+      };
+    }
+    d.parts = done.map((x) => ({ collectorId: x.collectorId, loops: x.loops, Qout: x.Qout, dpLoop: x.dpLoop, firstPort: x.firstPort }));
+    d.collectorIds = colIds;
     d.roomId = r.id;
-    d.collectorId = col?.id ?? null;
     d.perimeter = r.points.reduce((a, p, i) => a + Math.hypot(r.points[(i + 1) % r.points.length].x - p.x, r.points[(i + 1) % r.points.length].y - p.y), 0);
     d.area = hl.inputs.area;
     res.ufh[r.id] = d;
-    if (d.collectorId) {
-      if (!ufhByCollector.has(d.collectorId)) ufhByCollector.set(d.collectorId, []);
-      ufhByCollector.get(d.collectorId).push(d);
+    for (const part of d.parts) {
+      if (!part.collectorId) continue;
+      if (!ufhByCollector.has(part.collectorId)) ufhByCollector.set(part.collectorId, []);
+      ufhByCollector.get(part.collectorId).push(part);
     }
   }
   res.ufhPorts = Object.fromEntries(portCursor);

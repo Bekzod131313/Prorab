@@ -723,7 +723,7 @@ export class View3D {
       const col = u.collectorId ? p.elements[u.collectorId] : null;
       const { yS, yR, zS, zR, rBar } = M3.MANIFOLD;
       // one continuous pipe: manifold outlet → down → bent into the floor in the direction the lead leaves
-      const withDrop = (lead, i, sys) => {
+      const withDrop = (lead, i, sys, col) => {
         if (!col || i == null || !lead?.length) return lead?.map((q) => new THREE.Vector3(q.x, -q.y, z));
         const o = localToPlan(col, collectorPortLocal(i), sys === 'supply' ? -yS : -yR);
         const zTop = l.elevation + (sys === 'supply' ? zS : zR) - rBar - 0.04;
@@ -748,9 +748,10 @@ export class View3D {
         const sp = loop.split ?? Math.ceil(loop.coil.length / 2);
         tube(loop.coil.slice(0, sp), M.pexRed);
         tube(loop.coil.slice(Math.max(0, sp - 1)), this.systemColors ? M.pexBlue : M.pexRed);
-        const gi = loop.port == null || !u.firstPort ? null : u.firstPort - 1 + loop.port;
-        tube3(withDrop(loop.supplyLead, gi, 'supply'), M.pexRed);
-        tube3(withDrop(loop.returnLead, gi, 'return'), this.systemColors ? M.pexBlue : M.pexRed);
+        const lc = loop.collectorId ? p.elements[loop.collectorId] : col;
+        const gi = loop.portIndex ?? (loop.port == null || !u.firstPort ? null : u.firstPort - 1 + loop.port);
+        tube3(withDrop(loop.supplyLead, gi, 'supply', lc), M.pexRed);
+        tube3(withDrop(loop.returnLead, gi, 'return', lc), this.systemColors ? M.pexBlue : M.pexRed);
       }
     }
   }
