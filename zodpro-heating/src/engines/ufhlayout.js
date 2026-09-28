@@ -117,9 +117,36 @@ export function offsetPolyline(pts, d) {
  * Supply/return pair from a centreline: offsets ±s/2 joined by a semicircular U-turn at the end.
  * Supply = the offset whose start has the smaller x. Returns { sup: start→tip, ret: tip→end }.
  */
+/** Remove tiny back-steps an offset of a tight arc can leave (segments folding back on themselves). */
+export function removeBacktracks(pts, tiny = 0.03) {
+  let out = pts;
+  for (let guard = 0; guard < 5; guard++) {
+    const res = [out[0]];
+    let changed = false;
+    for (let i = 1; i < out.length - 1; i++) {
+      const a = res[res.length - 1];
+      const b = out[i];
+      const c = out[i + 1];
+      const d1 = { x: b.x - a.x, y: b.y - a.y };
+      const d2 = { x: c.x - b.x, y: c.y - b.y };
+      const l1 = Math.hypot(d1.x, d1.y);
+      const l2 = Math.hypot(d2.x, d2.y);
+      if (d1.x * d2.x + d1.y * d2.y < 0 && Math.min(l1, l2) < tiny) {
+        changed = true;
+        continue;
+      }
+      res.push(b);
+    }
+    res.push(out[out.length - 1]);
+    out = res;
+    if (!changed) break;
+  }
+  return out;
+}
+
 export function bifilarFromCenterline(center, s, arcSeg = 12) {
-  const a = offsetPolyline(center, s / 2);
-  const c = offsetPolyline(center, -s / 2);
+  const a = removeBacktracks(offsetPolyline(center, s / 2));
+  const c = removeBacktracks(offsetPolyline(center, -s / 2));
   const [sup, ret] = a[0].x <= c[0].x ? [a, c] : [c, a];
   const e1 = sup[sup.length - 1];
   const e2 = ret[ret.length - 1];
@@ -311,6 +338,60 @@ export function roomSlabs(polygon, frame) {
 }
 
 /**
+ * Arrange k loop zones in a slab of width [a0,a1] and depth H: columns side by side, each a stack of
+ * zones as close to square as possible. Returns columns { cu0, cu1, rows, mirror } (mirror = the
+ * lead lanes are on the cu1 side, i.e. the manifold lies towards larger u).
+ */
+export function planGrid(a0, a1, H, k, s, uc) {
+  const Wt = a1 - a0;
+  let best = null;
+  for (let c = 1; c <= k; c++) {
+    const colW = (Wt - (c - 1) * s) / c;
+    const rows = Array.from({ length: c }, (_, i) => Math.floor(k / c) + (i < k % c ? 1 : 0));
+    let score = 0;
+    let ok = true;
+    for (const r of rows) {
+      if (!r) continue;
+      const wBot = colW - (r - 1) * 2 * s;
+      const h = (H - (r - 1) * s) / r;
+      if (wBot < 4 * s || h < 4 * s) ok = false;
+      score += Math.abs(Math.log((colW - (r - 1) * s) / h)) * r + (r - 1) * 0.35;
+    }
+    if (ok && (!best || score < best.score)) best = { colW, rows, score };
+  }
+  best ??= { colW: (Wt - (k - 1) * s) / k, rows: Array(k).fill(1) };
+  return best.rows
+    .map((r, ci) => {
+      const cu0 = a0 + ci * (best.colW + s);
+      const cu1 = cu0 + best.colW;
+      return { cu0, cu1, rows: r, mirror: (cu0 + cu1) / 2 < uc };
+    })
+    .filter((c) => c.rows > 0);
+}
+
+/**
+ * Zones of one column of height H: the leads of the upper zones run down a lane on the manifold side
+ * at the loop spacing, so each lower zone is 2·s narrower per zone above it (and taller, equal areas).
+ */
+export function columnZones(col, H, s) {
+  const { cu0, cu1, rows: r, mirror } = col;
+  const colW = cu1 - cu0;
+  const widths = Array.from({ length: r }, (_, i) => colW - (r - 1 - i) * 2 * s);
+  const Hn = H - (r - 1) * s;
+  const inv = widths.map((w) => 1 / Math.max(w, 1e-3));
+  const sum = inv.reduce((x, y) => x + y, 0);
+  const zones = [];
+  let v = 0;
+  widths.forEach((W, i) => {
+    const h = (Hn * inv[i]) / sum;
+    const lane = (r - 1 - i) * 2 * s;
+    zones.push({ u0: mirror ? cu0 : cu0 + lane, u1: mirror ? cu1 - lane : cu1, v0: v, W, H: h, mirror });
+    v += h + s;
+  });
+  return zones;
+}
+
+/**
  * Layout all loops of one room.
  * @param {object} o { polygon, loops, spacing, pattern: 'auto'|'spiral'|'double_serpentine'|'serpentine',
  *                     inset, bendRadius, leadPitch, ports: [{supply:{x,y}, return:{x,y}}], toward:{x,y} }
@@ -322,7 +403,9 @@ export function roomSlabs(polygon, frame) {
  * leads of every loop reach the manifold without crossing any coil — also in L/T/U-shaped rooms.
  */
 export function layoutRoomUfh(o) {
-  const { polygon, spacing: s, pattern = 'auto', inset = 0.25, leadPitch = 0.05 } = o;
+  const { polygon, spacing: s, pattern = 'auto', inset = 0.25 } = o;
+  // leads run at the loop spacing, so the lead band and lanes heat like the rest of the floor
+  let leadPitch = o.leadPitch ?? s;
   const xs = polygon.map((p) => p.x);
   const ys = polygon.map((p) => p.y);
   const bb = { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
@@ -341,7 +424,10 @@ export function layoutRoomUfh(o) {
     return { side, f, slabs, reach, dist };
   });
   const bestReach = Math.max(...cand.map((c) => c.reach));
-  const pick = cand.filter((c) => c.reach >= bestReach * 0.97).sort((a, b) => a.dist - b.dist)[0];
+  // nearest side to the manifold, with a preference for long sides: loops then sit side by side
+  // along it (like the reference drawings) instead of a long lead band down a short wall
+  const sc = (c) => c.dist - 0.25 * c.f.U;
+  const pick = cand.filter((c) => c.reach >= bestReach * 0.97).sort((a, b) => sc(a) - sc(b))[0];
   const { f, slabs, side } = pick;
   const approx = pick.reach < 0.95 * area;
   if (!slabs.length) return { loops: [], approx, tooSmall: true };
@@ -362,69 +448,86 @@ export function layoutRoomUfh(o) {
   const nPipes = 2 * Math.min(nl, ports?.length ?? 0);
   // lead band along the entry side: one track per lead pipe
   const minDepth = Math.min(...slabs.map((sl) => sl.depth));
-  let band = ports ? leadPitch * (nPipes + 1) : 0;
-  if (minDepth - 2 * inset - band < 2.5 * s) band = Math.max(0, minDepth - 2 * inset - 2.5 * s);
-  const vBase = inset + band; // coil starts here
+  // too many leads for the room depth → tighter lead pitch (never below 50 mm)
+  if (ports && leadPitch * (nPipes + 1) > 0.35 * (minDepth - 2 * inset)) leadPitch = Math.max(0.05, (0.35 * (minDepth - 2 * inset)) / (nPipes + 1));
   const portsF = ports ? ports.map((p) => toFrame(p.supply)) : [];
   const uc = ports ? portsF.reduce((a, p) => a + p.x, 0) / portsF.length : Math.max(0, Math.min(U, toFrame(toward).x));
-  const loops = [];
+  // columns of zones per slab
+  const columns = [];
   slabs.forEach((sl, si) => {
     const prev = slabs[si - 1];
     const next = slabs[si + 1];
     // a slab side next to a deeper/equal neighbour is interior (half gap); otherwise it is a wall
     const gapL = !prev ? inset : prev.depth >= sl.depth - 0.3 ? s / 2 : inset;
     const gapR = !next ? inset : next.depth >= sl.depth - 0.3 ? s / 2 : inset;
-    const a0 = sl.ua + gapL;
-    const a1 = sl.ub - gapR;
-    const k = alloc[si];
-    const w = (a1 - a0) / k;
-    for (let j = 0; j < k; j++) {
-      const u0 = a0 + j * w + (j ? s / 2 : 0);
-      const u1 = a0 + (j + 1) * w - (j < k - 1 ? s / 2 : 0);
-      const W = u1 - u0;
-      const H = sl.depth - inset - vBase;
-      if (W < 2 * s || H < 2 * s) continue;
-      const mirror = Math.abs(u1 - uc) < Math.abs(u0 - uc);
-      const pat = pattern === 'auto' || !pattern ? (Math.max(W, H) / Math.min(W, H) > 1.8 || Math.min(W, H) < 1.2 ? 'double_serpentine' : 'spiral') : pattern;
-      const gen = pat === 'serpentine' ? serpentineLoop(0, 0, W, H, s) : pat === 'double_serpentine' ? doubleSerpentineLoop(0, 0, W, H, s) : spiralLoop(0, 0, W, H, s);
-      if (!gen.sup.length) continue;
-      const toF = (p) => ({ x: mirror ? u1 - p.x : u0 + p.x, y: vBase + p.y });
-      const supF = gen.sup.map(toF);
-      const retF = gen.ret.map(toF);
-      loops.push({ u0, u1, depth: sl.depth - inset, pat, supF, retF, entryU: supF[0].x });
-    }
+    for (const c of planGrid(sl.ua + gapL, sl.ub - gapR, sl.depth - 2 * inset, alloc[si], s, uc)) columns.push({ ...c, top: sl.depth - inset });
   });
-  // connect loops to ports in the same order along the entry side (nested → no crossings)
-  const portOrder = ports ? portsF.map((p, i) => ({ i, u: p.x })).sort((a, b) => a.u - b.u) : [];
-  loops.sort((a, b) => a.entryU - b.entryU);
-  loops.forEach((l, j) => (l.port = ports ? portOrder[j]?.i ?? null : null));
-  // lead pipes: descent point on the entry edge, turn point at the port
-  const pipes = [];
-  for (const l of loops) {
-    if (l.port == null) continue;
-    const P = ports[l.port];
-    for (const pp of [
-      { kind: 'supply', l, at: l.supF[0], port: P.supply },
-      { kind: 'return', l, at: l.retF[l.retF.length - 1], port: P.return },
-    ]) {
-      pp.pf = toFrame(pp.port);
-      pipes.push(pp);
+  const pat = pattern === 'auto' || !pattern ? 'spiral' : pattern;
+  // build the loops with every column's coils starting at v = base[ci]
+  const build = (base) => {
+    const loops = [];
+    columns.forEach((col, ci) => {
+      const v0 = base[ci];
+      for (const z of columnZones(col, col.top - v0, s)) {
+        const gen = pat === 'serpentine' ? serpentineLoop(0, 0, z.W, z.H, s) : pat === 'double_serpentine' ? doubleSerpentineLoop(0, 0, z.W, z.H, s) : spiralLoop(0, 0, z.W, z.H, s);
+        if (!gen.sup.length) continue;
+        // local (0,0) = the zone corner on the lead-lane side, towards the entry side
+        const toF = (p) => ({ x: z.mirror ? z.u1 - p.x : z.u0 + p.x, y: v0 + z.v0 + p.y });
+        loops.push({ ci, u0: z.u0, u1: z.u1, v0: v0 + z.v0, depth: v0 + z.v0 + z.H, pat, supF: gen.sup.map(toF), retF: gen.ret.map(toF), entryU: gen.sup.map(toF)[0].x });
+      }
+    });
+    // connect loops to ports in the same order along the entry side (nested → no crossings)
+    const portOrder = ports ? portsF.map((p, i) => ({ i, u: p.x })).sort((a, b) => a.u - b.u) : [];
+    loops.sort((a, b) => a.entryU - b.entryU);
+    loops.forEach((l, j) => (l.port = ports ? portOrder[j]?.i ?? null : null));
+    const pipes = [];
+    for (const l of loops) {
+      if (l.port == null) continue;
+      const P = ports[l.port];
+      for (const pp of [
+        { kind: 'supply', l, at: l.supF[0], port: P.supply },
+        { kind: 'return', l, at: l.retF[l.retF.length - 1], port: P.return },
+      ]) {
+        pp.pf = toFrame(pp.port);
+        pipes.push(pp);
+      }
     }
-  }
-  // turn slots near the ports (the ports' u, spread ≥ gap apart), assigned in the same order as the
-  // descents along the entry side → pipes left of their slot run right and vice versa; in each group
-  // the pipe nearest the slots takes the track closest to the coils → nested, crossing-free runs
-  const gap = leadPitch / 2;
-  pipes.sort((a, b) => a.at.x - b.at.x);
-  const slots = pipes.map((p) => p.pf.x).sort((a, b) => a - b);
-  for (let i = 1; i < slots.length; i++) slots[i] = Math.max(slots[i], slots[i - 1] + gap);
-  pipes.forEach((p, i) => (p.ut = slots[i]));
-  const rightGroup = pipes.filter((p) => p.at.x >= p.ut);
-  const leftGroup = pipes.filter((p) => p.at.x < p.ut).reverse();
-  for (const g of [rightGroup, leftGroup]) g.forEach((p, i) => (p.v = Math.max(inset / 2, vBase - leadPitch * (i + 1))));
+    // turn slots near the ports (the ports' u, spread apart), assigned in the order of the descents
+    // → pipes left of their slot run right and vice versa; in each group the pipe running farthest
+    // lies next to the wall, the nearest one next to the coils → nested, crossing-free, and the lead
+    // band under a zone is only as wide as the leads that really pass under it (staircase)
+    pipes.sort((a, b) => a.at.x - b.at.x);
+    const slots = pipes.map((p) => p.pf.x).sort((a, b) => a - b);
+    for (let i = 1; i < slots.length; i++) slots[i] = Math.max(slots[i], slots[i - 1] + Math.min(leadPitch / 2, 0.05));
+    pipes.forEach((p, i) => (p.ut = slots[i]));
+    const rightGroup = pipes.filter((p) => p.at.x >= p.ut);
+    const leftGroup = pipes.filter((p) => p.at.x < p.ut).reverse();
+    for (const g of [rightGroup, leftGroup])
+      g.forEach((p, i) => {
+        p.level = g.length - 1 - i;
+        p.v = inset + leadPitch * (p.level + 0.5);
+      });
+    return { loops, pipes };
+  };
+  // pass 1: coils right at the edge zone → which leads pass under which column
+  let base = columns.map(() => inset);
+  let { loops, pipes } = build(base);
+  base = columns.map((col) => {
+    let lv = -1;
+    for (const p of pipes) {
+      const lo = Math.min(p.at.x, p.ut) - leadPitch;
+      const hi = Math.max(p.at.x, p.ut) + leadPitch;
+      if (hi > col.cu0 && lo < col.cu1) lv = Math.max(lv, p.level);
+    }
+    const b0 = lv < 0 ? inset : inset + leadPitch * (lv + 1) + s / 2;
+    return Math.min(b0, col.top - 3 * s);
+  });
+  // pass 2: every column sits just above the leads that run under it
+  ({ loops, pipes } = build(base));
+  const band = Math.max(0, ...base.map((b) => b - inset));
   for (const p of pipes) {
     const path = cleanPath([p.at, { x: p.at.x, y: p.v }, { x: p.ut, y: p.v }, { x: p.ut, y: p.pf.y }, p.pf].map(toPlan));
-    p.path = filletPolyline(path, 0.08, 6).map((q) => ({ x: r3(q.x), y: r3(q.y) }));
+    p.path = filletPolyline(path, Math.min(0.08, leadPitch), 6).map((q) => ({ x: r3(q.x), y: r3(q.y) }));
     p.path[0] = toPlan(p.at);
     p.path[p.path.length - 1] = { ...p.port };
   }
@@ -443,7 +546,7 @@ export function layoutRoomUfh(o) {
     if (returnLead.length) returnLead[0] = coil[coil.length - 1];
     const coilLength = pathLength(coil);
     const leadLength = pathLength(supplyLead) + pathLength(returnLead);
-    const a = toPlan({ x: l.u0, y: vBase });
+    const a = toPlan({ x: l.u0, y: l.v0 });
     const b = toPlan({ x: l.u1, y: l.depth });
     out.push({
       port: l.port,

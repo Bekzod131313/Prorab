@@ -151,7 +151,7 @@ function fieldsFor(el, p, res) {
           ? [
               { k: 'ufh.collectorId', l: 'TP kollektori', type: 'select', opts: [['', '—'], ...cols] },
               { k: 'ufh.spacing', l: 'Quvur qadami', type: 'select', opts: [['', t('auto')], ['0.1', '100 mm'], ['0.15', '150 mm'], ['0.2', '200 mm'], ['0.25', '250 mm'], ['0.3', '300 mm']], num: true },
-              { k: 'ufh.pattern', l: 'Yotqizish sxemasi', type: 'select', opts: [['spiral', 'Spiral (ulitka)'], ['serpentine', 'Ilon (zmeyka)']] },
+              { k: 'ufh.pattern', l: 'Yotqizish sxemasi', type: 'select', opts: [['auto', 'Avto (spiral)'], ['spiral', 'Spiral (ulitka)'], ['double_serpentine', 'Ikki qatorli zmeyka'], ['serpentine', 'Ilon (zmeyka)']] },
             ]
           : []),
         { k: 'floorAssembly', l: 'Pol konstruksiyasi', type: 'select', opts: [['', '— standart'], ...Object.entries(ASSEMBLIES).filter(([, a]) => a.kind === 'floor').map(([k, a]) => [k, a.name])] },
