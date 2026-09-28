@@ -672,7 +672,7 @@ export function manifoldAnchors(n, portLocal) {
  * pointing down with PEX pipes bent into the floor, ball valves on the inlets, air vents and drain
  * cocks on the end group, optional mixing unit (3-way valve + circulator), open cabinet.
  */
-export function manifold(M, { n, kind, mixing, pitch, returnY, portLocal, pipeZ, pipeMatS, pipeMatR, floorZ = null, cabinet = true }) {
+export function manifold(M, { n, kind, mixing, pitch, returnY, portLocal, pipeZ, pipeMatS, pipeMatR, floorZ = null, cabinet = true, drops = true }) {
   const g = new THREE.Group();
   const ufh = kind === 'ufh';
   const { yS, yR, zS, zR, rBar, wallY, xIn, jog } = MANIFOLD;
@@ -828,6 +828,8 @@ export function manifold(M, { n, kind, mixing, pitch, returnY, portLocal, pipeZ,
       nut.position.set(x, y, z - rBar - 0.03);
       g.add(nut);
       // PEX pipe: straight down, (return: sideways past the supply pipe), bent into the floor, forward to the plan connector
+      // (UFH in the model view: the pipe is drawn together with its lead, bending the way the lead leaves)
+      if (!drops) continue;
       const zTop = z - rBar - 0.04;
       const dx = sup ? 0 : jog;
       const pts = sup

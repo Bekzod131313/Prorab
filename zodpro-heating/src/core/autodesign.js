@@ -466,3 +466,44 @@ export function autoUfh(project, levelId, { roomIds = null } = {}) {
   }
   return { add, update, remove: [], warnings };
 }
+
+/**
+ * Manifolds have at most 12 outlets: every UFH manifold whose rooms need more loops (real count from
+ * the calculation) is split — it keeps its nearest rooms up to 12 loops, the rest go to new
+ * manifolds mounted next to it on the same wall (same orientation).
+ */
+export function splitOverloadedCollectors(project, res, max = UFH_MAX_OUTLETS) {
+  const add = [];
+  const update = [];
+  const warnings = [];
+  for (const c of elementsOf(project, 'collector').filter((k) => k.kind === 'ufh')) {
+    const rooms = elementsOf(project, 'room', c.levelId).filter((r) => r.ufh?.collectorId === c.id && res.ufh?.[r.id]);
+    const loops = (r) => res.ufh[r.id].loops;
+    if (rooms.reduce((a, r) => a + loops(r), 0) <= max) continue;
+    const dist = (r) => Math.hypot(polygonCentroid(r.points).x - c.x, polygonCentroid(r.points).y - c.y);
+    const groups = [[]];
+    const load = [0];
+    for (const r of [...rooms].sort((a, b) => dist(a) - dist(b))) {
+      if (loops(r) > max) warnings.push({ code: 'ufh_room_over_manifold', params: { room: r.name, loops: loops(r), max } });
+      let g = load.findIndex((l) => l + loops(r) <= max);
+      if (g < 0) {
+        groups.push([]);
+        load.push(0);
+        g = groups.length - 1;
+      }
+      groups[g].push(r);
+      load[g] += loops(r);
+    }
+    update.push({ id: c.id, patch: { outlets: Math.max(2, load[0]) } });
+    // new manifolds side by side along the wall: body ≈ 0.05·n + 0.25 m, 0.15 m gap
+    let offset = 0.05 * load[0] + 0.4;
+    for (let k = 1; k < groups.length; k++) {
+      const pos = localToPlan(c, offset, 0);
+      const nc = newElement('collector', { levelId: c.levelId, x: round(pos.x, 3), y: round(pos.y, 3), angle: c.angle ?? 0, outlets: Math.max(2, load[k]), kind: 'ufh', mixing: c.mixing !== false });
+      add.push(nc);
+      for (const r of groups[k]) update.push({ id: r.id, patch: { ufh: { ...r.ufh, collectorId: nc.id } } });
+      offset += 0.05 * load[k] + 0.4 + (c.mixing !== false ? 0.4 : 0);
+    }
+  }
+  return { add, update, remove: [], warnings };
+}

@@ -545,6 +545,7 @@ export class PlanView {
     }
     if ((k === 'r' || k === 'R') && ['collector', 'ufh_collector', 'boiler', 'pump', 'radiator'].includes(this.tool)) {
       this.opts.angle = (this.opts.angle + 90) % 360;
+      this.opts.angleManual = true;
       this.draw();
       return true;
     }
@@ -726,9 +727,11 @@ export class PlanView {
         break;
       }
       case 'collector':
-      case 'ufh_collector':
-        this.addEl('collector', { x: p.x, y: p.y, angle: this.opts.angle, outlets: T === 'ufh_collector' ? 4 : 6, kind: T === 'ufh_collector' ? 'ufh' : 'radiator', mixing: T === 'ufh_collector' }, T);
+      case 'ufh_collector': {
+        const at = this.collectorOnWall(p);
+        this.addEl('collector', { x: at.x, y: at.y, angle: at.angle, outlets: T === 'ufh_collector' ? 4 : 6, kind: T === 'ufh_collector' ? 'ufh' : 'radiator', mixing: T === 'ufh_collector' }, T);
         break;
+      }
       case 'ufh_room': {
         const room = elementsOf(proj, 'room', lv).find((r) => pointInPolygon(p, r.points));
         if (!room) {
@@ -926,6 +929,24 @@ export class PlanView {
         break;
     }
     this.draw();
+  }
+
+  /**
+   * Manifold placement: near a wall (≤ 1 m) the back goes against the wall face and the front
+   * (flow meters, connector rows) faces the room, unless the user rotated it with R.
+   */
+  collectorOnWall(p) {
+    const w = this.opts.angleManual ? null : this.nearestWall(p, 1.0);
+    if (!w) return { x: p.x, y: p.y, angle: this.opts.angle };
+    const d = wallDir(w);
+    const pr = projectOnSegment(p, w.a, w.b).point;
+    const n = { x: -d.y, y: d.x };
+    const side = (p.x - pr.x) * n.x + (p.y - pr.y) * n.y >= 0 ? 1 : -1;
+    const inward = { x: n.x * side, y: n.y * side };
+    // local +y (connector rows) = inward; the body's back is 0.2 m behind the origin
+    const angle = (Math.atan2(-inward.x, inward.y) * 180) / Math.PI;
+    const off = (w.thickness ?? 0.2) / 2 + 0.2;
+    return { x: r3(pr.x + inward.x * off), y: r3(pr.y + inward.y * off), angle: Math.round(angle * 100) / 100 };
   }
 
   nearestWall(p, maxD) {
@@ -1877,7 +1898,8 @@ export class PlanView {
     if (['collector', 'ufh_collector', 'boiler', 'pump', 'radiator'].includes(T)) {
       ctx.globalAlpha = 0.5;
       const cat = T === 'ufh_collector' ? 'collector' : T;
-      this.ghost(ctx, { cat, x: sp.p.x, y: sp.p.y, angle: this.opts.angle, outlets: T === 'ufh_collector' ? 4 : 6, kind: T === 'ufh_collector' ? 'ufh' : 'radiator', length: 1 });
+      const at = cat === 'collector' ? this.collectorOnWall(sp.p) : { x: sp.p.x, y: sp.p.y, angle: this.opts.angle };
+      this.ghost(ctx, { cat, x: at.x, y: at.y, angle: at.angle, outlets: T === 'ufh_collector' ? 4 : 6, kind: T === 'ufh_collector' ? 'ufh' : 'radiator', length: 1 });
       ctx.globalAlpha = 1;
     }
   }

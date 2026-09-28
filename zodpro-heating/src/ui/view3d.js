@@ -618,7 +618,7 @@ export class View3D {
     }
     for (const e of elementsOf(p, 'collector', l.id)) {
       const n = Math.max(e.outlets ?? 4, res?.ufhPorts?.[e.id] ?? 0);
-      const m = M3.manifold(M, { n, kind: e.kind, mixing: e.mixing !== false, pitch: COLLECTOR_PITCH, returnY: COLLECTOR_RETURN_Y, portLocal: collectorPortLocal, pipeZ: s.pipeElevation, pipeMatS: this.pipeMaterial('supply', e.kind === 'ufh' ? 'PEX' : s.pipeMaterial), pipeMatR: this.pipeMaterial('return', e.kind === 'ufh' ? 'PEX' : s.pipeMaterial), floorZ: e.kind === 'ufh' ? 0.02 : null });
+      const m = M3.manifold(M, { n, kind: e.kind, mixing: e.mixing !== false, pitch: COLLECTOR_PITCH, returnY: COLLECTOR_RETURN_Y, portLocal: collectorPortLocal, pipeZ: s.pipeElevation, pipeMatS: this.pipeMaterial('supply', e.kind === 'ufh' ? 'PEX' : s.pipeMaterial), pipeMatR: this.pipeMaterial('return', e.kind === 'ufh' ? 'PEX' : s.pipeMaterial), floorZ: e.kind === 'ufh' ? 0.02 : null, drops: e.kind !== 'ufh' });
       this.add(M3.place(m, e, z0), e.id);
     }
     for (const e of elementsOf(p, 'pump', l.id)) {
@@ -720,13 +720,37 @@ export class View3D {
         m.receiveShadow = true;
         this.add(m, r.id);
       };
+      const col = u.collectorId ? p.elements[u.collectorId] : null;
+      const { yS, yR, zS, zR, rBar } = M3.MANIFOLD;
+      // one continuous pipe: manifold outlet → down → bent into the floor in the direction the lead leaves
+      const withDrop = (lead, i, sys) => {
+        if (!col || i == null || !lead?.length) return lead?.map((q) => new THREE.Vector3(q.x, -q.y, z));
+        const o = localToPlan(col, collectorPortLocal(i), sys === 'supply' ? -yS : -yR);
+        const zTop = l.elevation + (sys === 'supply' ? zS : zR) - rBar - 0.04;
+        // skip the plan connector jog next to the manifold: go straight to where the lead heads
+        let path = sys === 'supply' ? lead.slice(1) : lead.slice(0, -1).reverse();
+        while (path.length > 2 && Math.hypot(path[0].x - o.x, path[0].y - o.y) < 0.45) path = path.slice(1);
+        const pts = [new THREE.Vector3(o.x, -o.y, zTop), new THREE.Vector3(o.x, -o.y, z), ...path.map((q) => new THREE.Vector3(q.x, -q.y, z))];
+        // protective sleeve on the vertical part
+        this.add(M3.cylBetween(new THREE.Vector3(o.x, -o.y, z + 0.1), new THREE.Vector3(o.x, -o.y, z + 0.28), 0.0115, sys === 'supply' ? M.redPlastic : M.bluePlastic, 14), r.id);
+        return sys === 'supply' ? pts : pts.reverse();
+      };
+      const tube3 = (pts3, mat) => {
+        if (!pts3 || pts3.length < 2) return;
+        const g = M3.tubeAlong(M3.bend3(pts3, 0.07, 6), od / 2, 12);
+        if (!g) return;
+        const m = new THREE.Mesh(g, mat);
+        m.receiveShadow = true;
+        this.add(m, r.id);
+      };
       for (const loop of u.layout) {
         // bifilar loop: supply half red, return half blue (real PE-RT pipe is red → same colour without system colours)
         const sp = loop.split ?? Math.ceil(loop.coil.length / 2);
         tube(loop.coil.slice(0, sp), M.pexRed);
         tube(loop.coil.slice(Math.max(0, sp - 1)), this.systemColors ? M.pexBlue : M.pexRed);
-        tube(loop.supplyLead, this.pipeMaterial('supply', 'PEX'));
-        tube(loop.returnLead, this.pipeMaterial('return', 'PEX'), z + 0.001);
+        const gi = loop.port == null || !u.firstPort ? null : u.firstPort - 1 + loop.port;
+        tube3(withDrop(loop.supplyLead, gi, 'supply'), M.pexRed);
+        tube3(withDrop(loop.returnLead, gi, 'return'), this.systemColors ? M.pexBlue : M.pexRed);
       }
     }
   }

@@ -3,7 +3,7 @@
 import { Store, ERROR_LOG, logError } from '../core/store.js';
 import { createEmptyProject, elementsOf, sortedLevels, newElement, levelById } from '../core/model.js';
 import { createDemoProject, createSampleProject } from '../core/demo.js';
-import { autoPlaceRadiators, autoRoute, autoPlaceCollector, autoUfh } from '../core/autodesign.js';
+import { autoPlaceRadiators, autoRoute, autoPlaceCollector, autoUfh, splitOverloadedCollectors } from '../core/autodesign.js';
 import { serializeProject, parseProject, exportDXF, exportIFC, exportSVG, parseDXF, dxfSegmentsToWalls, download, toExcelXml } from '../core/io.js';
 import { t, setLang, getLang, LANG_NAMES, msg } from '../core/i18n.js';
 import { interpret } from '../core/assistant.js';
@@ -179,6 +179,14 @@ class App {
     cmd('level', t('t_level'), 'level', () => this.addLevel(), 'LV');
     cmd('auto_rad', t('t_auto_rad'), 'auto_rad', () => this.autoRadiators(), 'AUTORAD');
     cmd('auto_ufh', t('t_auto_ufh'), 'ufh', () => this.autoUfh(), 'AUTOTP');
+    cmd('split_col', 'Kollektorni bo‘lish (≤12)', 'collector', () => {
+      this.store.flush?.();
+      const cs = splitOverloadedCollectors(this.store.project, this.store.results);
+      if (!cs.add.length) return this.toast('Barcha kollektorlarda ≤ 12 chiqish');
+      this.store.apply(cs, 'ufh:split');
+      this.autoRoute(true);
+      this.toast(`${cs.add.length} ta kollektor qo‘shildi`);
+    }, 'SPLITCOL');
     cmd('auto_col', t('t_auto_col'), 'collector', () => this.autoCollector(), 'AUTOCOL');
     cmd('auto_route', t('t_auto_route'), 'auto_route', () => this.autoRoute(), 'AUTOROUTE');
     cmd('calc', t('t_calc'), 'calc', () => {
@@ -244,7 +252,7 @@ class App {
       project: [['select'], ['wall', 'door', 'window', 'room', 'level'], ['radiator', 'pipe_s', 'pipe_r', 'collector', 'boiler', 'pump', 'riser'], ['text', 'dim'], ['ufh_room', 'auto_rad', 'auto_ufh', 'auto_route', 'calc'], ['view_3d', 'view_reports', 'view_schedules', 'view_sheets', 'exp_dxf']],
       edit: [['select', 'undo', 'redo'], ['move', 'copy', 'rotate', 'mirror', 'array', 'offset'], ['trim', 'extend', 'split', 'fillet', 'delete'], ['line', 'polyline', 'circle', 'arc', 'rect', 'hatch', 'leader', 'text', 'dim', 'measure']],
       view: [['view_plan', 'view_3d', 'view_schema', 'view_riser', 'view_section', 'section'], ['auto_grid', 'view_dashboard', 'view_install', 'view_issues', 'tags', 'zoom_fit']],
-      systems: [['radiator', 'pipe_s', 'pipe_r', 'riser'], ['collector', 'ufh_collector', 'ufh_room', 'boiler', 'pump', 'thermostat', 'obstacle'], ['auto_rad', 'auto_ufh', 'auto_col', 'auto_route']],
+      systems: [['radiator', 'pipe_s', 'pipe_r', 'riser'], ['collector', 'ufh_collector', 'ufh_room', 'boiler', 'pump', 'thermostat', 'obstacle'], ['auto_rad', 'auto_ufh', 'split_col', 'auto_col', 'auto_route']],
       calc: [['calc', 'validate', 'balance'], ['view_reports', 'view_dashboard', 'view_schema'], ['ai']],
       docs: [['view_sheets', 'view_schedules', 'exp_pdf'], ['view_schema', 'view_riser', 'view_section', 'section'], ['revision', 'tags']],
       export: [['new', 'open', 'save', 'save_as', 'demo', 'demo_small'], ['imp_dxf', 'imp_img', 'imp_ifc', 'calibrate'], ['exp_dxf', 'exp_ifc', 'exp_xls', 'exp_csv', 'exp_svg', 'exp_png', 'exp_pdf'], ['quote', 'sap', 'telegram']],
@@ -747,8 +755,17 @@ class App {
     for (const w of cs.warnings) this.toast(`Kollektor joylab bo‘lmadi: ${w.params.room}`, 'error');
     if (!cs.update.length) return this.toast('Issiq pol qilinadigan xona topilmadi');
     this.store.apply(cs, 'auto:ufh');
+    // real loop counts (≤ 60 m each) may exceed 12 outlets → split those manifolds
+    this.store.flush?.();
+    const split = splitOverloadedCollectors(this.store.project, this.store.results);
+    if (split.add.length) {
+      this.store.apply(split, 'auto:ufh-split');
+      this.store.flush?.();
+      this.toast(`${split.add.length} ta kollektor qo‘shildi — har birida ≤ 12 chiqish`);
+    }
+    for (const w of split.warnings) this.toast(`${w.params.room}: ${w.params.loops} kontur bitta kollektorga sig‘maydi`, 'error');
     // connect new manifolds to the boiler
-    if (cs.add.length) this.autoRoute(true);
+    if (cs.add.length || split.add.length) this.autoRoute(true);
     this.toast(`${cs.update.length} ta xonada issiq pol${cs.add.length ? `, ${cs.add.length} ta yangi kollektor` : ''}`);
   }
 

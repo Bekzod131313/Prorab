@@ -156,3 +156,21 @@ test('loops ≤ 60 m: fewest loops that fit (70 m → 2), small rooms keep one s
     if (w * h < 4) assert.equal(d.loops, 1, 'small room: one short loop');
   }
 });
+
+import { splitOverloadedCollectors } from '../src/core/autodesign.js';
+
+test('manifold > 12 loops is split into manifolds of ≤ 12 outlets side by side', () => {
+  const p = createSampleProject();
+  const cols = Object.values(p.elements).filter((e) => e.cat === 'collector' && e.kind === 'ufh');
+  // hang every ground-floor UFH room on the first manifold
+  for (const r of Object.values(p.elements)) if (r.cat === 'room' && r.levelId === 'lvl_0' && r.ufh && !r.ufh.transit) r.ufh.collectorId = cols[0].id;
+  let r = runCalculation(p, { noCache: true });
+  assert.ok(r.ufhPorts[cols[0].id] > 12);
+  const cs = splitOverloadedCollectors(p, r);
+  assert.ok(cs.add.length >= 1);
+  applyChangeSet(p, cs);
+  r = runCalculation(p, { noCache: true });
+  for (const [id, n] of Object.entries(r.ufhPorts)) assert.ok(n <= 12, `${id}: ${n}`);
+  assert.equal(r.validation.findings.filter((f) => f.code === 'collector_ports').length, 0);
+  for (const c of cs.add) assert.equal(c.angle, cols[0].angle);
+});
