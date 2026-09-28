@@ -224,9 +224,10 @@ export function renderSettings(el, app) {
     store.apply({ settings: patch }, `settings:${path.slice(1).join('.')}`);
     if (path[1] === 'colors') app.plan.readColors();
   }));
-  el.querySelector('#add-cur').onclick = () => {
-    const c = prompt('Valyuta kodi (masalan KZT):');
-    const r = Number(prompt('1 USD = ?'));
+  el.querySelector('#add-cur').onclick = async () => {
+    const c = await app.ask('Valyuta kodi (masalan KZT)');
+    if (!c) return;
+    const r = Number(await app.ask(`1 USD = ? ${c.toUpperCase()}`));
     if (c && r > 0) store.apply({ settings: { rates: { [c.toUpperCase()]: r } } }, 'currency');
   };
   const lvls = () => JSON.parse(JSON.stringify(p.levels));
@@ -236,11 +237,11 @@ export function renderSettings(el, app) {
     l[i.dataset.f] = i.dataset.f === 'name' ? i.value : Number(i.value);
     store.apply({ levels: ls }, 'level');
   }));
-  el.querySelectorAll('[data-del-lvl]').forEach((b) => (b.onclick = () => {
+  el.querySelectorAll('[data-del-lvl]').forEach((b) => (b.onclick = async () => {
     if (p.levels.length < 2) return app.toast('Kamida bitta qavat bo‘lishi kerak', 'error');
     const id = b.dataset.delLvl;
     const els = Object.values(p.elements).filter((e) => e.levelId === id || e.levelFrom === id || e.levelTo === id).map((e) => e.id);
-    if (els.length && !confirm(`${els.length} ta element o‘chiriladi. Davom etilsinmi?`)) return;
+    if (els.length && !(await app.confirmBox(`${els.length} ta element o‘chiriladi. Davom etilsinmi?`))) return;
     store.apply({ levels: lvls().filter((l) => l.id !== id), remove: els }, 'level:delete');
     if (store.activeLevelId === id) store.setLevel(p.levels[0].id);
   }));

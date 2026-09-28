@@ -58,25 +58,66 @@ class App {
       }
     });
     window.ZODPRO = { app: this, register: (m, a) => this.plugins.register(m, a) };
-    if (this.recoveredFrom) this.toast(`${t('recovered')}: ${this.recoveredFrom}`);
+    this.offerRecovery();
   }
 
   initialProject() {
-    const rec = Store.recoverable();
-    if (rec) {
-      const when = rec.backups?.[0]?.time?.replace('T', ' ').slice(0, 16) ?? '';
-      if (confirm(t('recovery_q', { time: when }))) {
-        try {
-          const { project } = parseProject(rec.data);
-          this.recoveredFrom = when;
-          return project;
-        } catch (err) {
-          console.warn('recovery failed', err);
-        }
-      }
-      Store.clearRecovery();
-    }
     return createDemoProject();
+  }
+
+  /** Crash recovery: offered after start-up in an in-page dialog. */
+  async offerRecovery() {
+    const rec = Store.recoverable();
+    if (!rec) return;
+    const when = rec.backups?.[0]?.time?.replace('T', ' ').slice(0, 16) ?? '';
+    if (await this.confirmBox(t('recovery_q', { time: when }))) {
+      try {
+        const { project } = parseProject(rec.data);
+        this.store.setProject(project);
+        this.toast(`${t('recovered')}: ${when}`);
+        return;
+      } catch (err) {
+        this.toast(`Tiklab bo‘lmadi: ${err.message}`, 'error');
+      }
+    }
+    Store.clearRecovery();
+  }
+
+  /** In-page replacements for prompt()/confirm() (native dialogs are blocked in embedded viewers). */
+  ask(title, def = '', hint = '') {
+    return new Promise((resolve) => {
+      let done = false;
+      const m = this.modal(title, `${hint ? `<p class="muted" style="white-space:pre-wrap">${esc(hint)}</p>` : ''}<input id="ask-input" class="search" style="width:100%" value="${esc(def)}">`, [
+        { label: 'Bekor', run: () => ((done = true), resolve(null)) },
+        { label: 'OK', primary: true, run: (b) => ((done = true), resolve(b.querySelector('#ask-input').value)) },
+      ]);
+      const inp = m.querySelector('#ask-input');
+      inp.focus();
+      inp.select();
+      inp.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+          done = true;
+          resolve(inp.value);
+          m.remove();
+        } else if (e.key === 'Escape') {
+          done = true;
+          resolve(null);
+          m.remove();
+        }
+      };
+      new MutationObserver(() => !m.isConnected && !done && ((done = true), resolve(null))).observe($('#modal-root'), { childList: true });
+    });
+  }
+
+  confirmBox(text) {
+    return new Promise((resolve) => {
+      let done = false;
+      const m = this.modal('Tasdiqlash', `<p>${esc(text)}</p>`, [
+        { label: 'Yo‘q', run: () => ((done = true), resolve(false)) },
+        { label: 'Ha', primary: true, run: () => ((done = true), resolve(true)) },
+      ]);
+      new MutationObserver(() => !m.isConnected && !done && ((done = true), resolve(false))).observe($('#modal-root'), { childList: true });
+    });
   }
 
   // ======================= commands =======================
@@ -149,8 +190,8 @@ class App {
     cmd('open', t('t_open'), 'open', () => this.openFile(), 'OPEN', 'view');
     cmd('save', t('t_save'), 'save', () => this.saveFile(), 'SAVE', 'view');
     cmd('save_as', t('t_save_as'), 'save', () => this.saveFile(true), 'SAVEAS', 'view');
-    cmd('demo', t('t_demo'), 'demo', () => {
-      if (!this.store.dirty || confirm(t('confirm_new'))) this.store.setProject(createDemoProject());
+    cmd('demo', t('t_demo'), 'demo', async () => {
+      if (!this.store.dirty || (await this.confirmBox(t('confirm_new')))) this.store.setProject(createDemoProject());
     }, 'DEMO', 'view');
     cmd('imp_dxf', t('t_imp_dxf'), 'import', () => this.importDXF(), 'IMPDXF');
     cmd('imp_img', t('t_imp_img'), 'underlay', () => this.importUnderlay(), 'UNDERLAY');
@@ -685,10 +726,10 @@ class App {
     this.toast(`${cs.add.length} ta quvur/stoyak yaratildi`);
   }
 
-  newRevision() {
+  async newRevision() {
     const p = this.store.project;
     const last = p.revisions[p.revisions.length - 1];
-    const what = prompt('Nima o‘zgardi?', '');
+    const what = await this.ask('Reviziya: nima o‘zgardi?', '');
     if (what === null) return;
     const no = String(Number(last?.no ?? -1) + 1).padStart(2, '0');
     p.revisions.push({ no, date: new Date().toISOString().slice(0, 10), by: p.meta.designer || ROLES[this.role].name, what, changes: this.store.undoStack.length });
@@ -696,8 +737,8 @@ class App {
     this.toast(`Reviziya ${no}`);
   }
 
-  newIssue(elementId) {
-    const d = prompt('Muammo tavsifi:');
+  async newIssue(elementId) {
+    const d = await this.ask('Muammo tavsifi');
     if (!d) return;
     const p = this.store.project;
     p.issues.push({ id: `ISS-${String(p.issues.length + 1).padStart(3, '0')}`, elementId, description: d, status: 'open', priority: 'medium', responsible: '', date: new Date().toISOString().slice(0, 10), resolution: '', history: [] });
@@ -710,10 +751,10 @@ class App {
     return (this.store.project.meta.number || 'zodpro').replace(/[^\w-]+/g, '_');
   }
 
-  saveFile(as = false) {
+  async saveFile(as = false) {
     let name = this.fileName ?? `${this.fileBase()}.zph`;
     if (as || !this.fileName) {
-      const n = prompt('Fayl nomi:', name);
+      const n = await this.ask('Fayl nomi', name);
       if (!n) return;
       name = n.endsWith('.zph') ? n : `${n}.zph`;
     }
@@ -755,8 +796,8 @@ class App {
     });
   }
 
-  newProject() {
-    if (this.store.dirty && !confirm(t('confirm_new'))) return;
+  async newProject() {
+    if (this.store.dirty && !(await this.confirmBox(t('confirm_new')))) return;
     this.fileName = null;
     this.store.setProject(createEmptyProject());
     this.showView('plan');
@@ -783,12 +824,13 @@ class App {
   }
 
   importDXF() {
-    this.pickFile('.dxf', (text) => {
-      const unit = Number(prompt('DXF birligi: 1 = metr, 0.001 = mm', '0.001')) || 0.001;
+    this.pickFile('.dxf', async (text) => {
+      const unit = Number(await this.ask('DXF birligi (1 = metr, 0.001 = mm)', '0.001')) || 0.001;
       const segs = parseDXF(text, unit);
       if (!segs.length) return this.toast('DXF da LINE/LWPOLYLINE topilmadi', 'error');
       const layers = [...new Set(segs.map((s) => s.layer))];
-      const layer = prompt(`Qatlamlar: ${layers.join(', ')}\nDevor sifatida olinadigan qatlam (bo‘sh — hammasi):`, layers.find((l) => /wall|devor|стен/i.test(l)) ?? '');
+      const layer = await this.ask('Devor sifatida olinadigan qatlam (bo‘sh — hammasi)', layers.find((l) => /wall|devor|стен/i.test(l)) ?? '', `Qatlamlar: ${layers.join(', ')}`);
+      if (layer === null) return;
       const walls = dxfSegmentsToWalls(segs, this.store.activeLevelId, { layerFilter: layer || null });
       this.store.apply({ add: walls }, 'import:dxf');
       this.plan.fit();

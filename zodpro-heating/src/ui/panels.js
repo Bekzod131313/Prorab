@@ -294,14 +294,14 @@ export function renderProperties(el, app, tab) {
     };
   });
   el.querySelectorAll('[data-custom]').forEach((inp) => (inp.onchange = () => store.apply({ update: [{ id: first.id, patch: { custom: { ...(first.custom ?? {}), [inp.dataset.custom]: inp.value } } }] }, 'custom')));
-  el.querySelectorAll('[data-act]').forEach((b) => (b.onclick = () => {
+  el.querySelectorAll('[data-act]').forEach((b) => (b.onclick = async () => {
     const a = b.dataset.act;
     if (a === 'delete') app.run('delete');
     if (a === 'zoom') app.focusElement(first.id);
     if (a === 'issue') app.newIssue(first.id);
     if (a === 'qr') app.showQR(first.id);
     if (a === 'addparam') {
-      const k = prompt('Parametr nomi:');
+      const k = await app.ask('Parametr nomi');
       if (k) store.apply({ update: [{ id: first.id, patch: { custom: { ...(first.custom ?? {}), [k]: '' } } }] }, 'custom');
     }
   }));

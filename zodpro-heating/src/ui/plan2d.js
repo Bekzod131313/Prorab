@@ -640,7 +640,7 @@ export class PlanView {
   }
 
   // ---------- clicks per tool ----------
-  click(p, e, sp = null) {
+  async click(p, e, sp = null) {
     const T = this.tool;
     const s = this.ts;
     const lv = this.store.activeLevelId;
@@ -739,14 +739,14 @@ export class PlanView {
         break;
       }
       case 'text': {
-        const txt = prompt('Matn:', '');
+        const txt = await this.app.ask('Matn', '');
         if (txt) this.addEl('text', { x: p.x, y: p.y, text: txt, size: 0.25 }, 'text');
         break;
       }
       case 'leader':
         if (!s.a) this.ts = { a: p };
         else {
-          const txt = prompt('Vynoska matni:', '');
+          const txt = await this.app.ask('Vynoska matni', '');
           if (txt) this.addEl('dline', { points: [s.a, p], leader: true, text: txt }, 'leader');
           this.ts = {};
         }
@@ -788,7 +788,10 @@ export class PlanView {
       case 'obstacle':
         if (!s.a) this.ts = { a: p };
         else {
-          const kind = prompt("Turi: beam / duct / cable_tray / structure", 'beam') || 'beam';
+          const a0 = s.a;
+          this.ts = {};
+          const kind = (await this.app.ask('To‘siq turi', 'beam', 'beam / duct / cable_tray / structure / plumbing')) || 'beam';
+          s.a = a0;
           this.addEl('obstacle', { a: s.a, b: p, kind, width: 0.3, zBottom: kind === 'beam' ? 2.6 : 2.4, zTop: 3.0 }, 'obstacle');
           this.ts = {};
         }
@@ -891,7 +894,7 @@ export class PlanView {
       case 'calibrate': {
         if (!s.a) this.ts = { a: p };
         else {
-          const real = Number(prompt('Haqiqiy masofa (m):', dist(s.a, p).toFixed(3)));
+          const real = Number(await this.app.ask('Haqiqiy masofa (m)', dist(s.a, p).toFixed(3)));
           const u = proj.settings.underlays?.[lv];
           if (real > 0 && u) {
             const k = real / dist(s.a, p);
