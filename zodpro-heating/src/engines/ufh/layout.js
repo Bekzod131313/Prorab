@@ -139,6 +139,9 @@ function trimEnd(pts, d) {
  * 2.2·s so the ring that continues it keeps exactly 2s from its own lead.
  */
 function leadPath(root, d, track, xe, s) {
+  // a fan corner just short of the strip side would leave a stub too short to bend round (S-bend):
+  // the lead then goes straight up the strip side instead
+  if (Math.abs(xe - d) < s + 1e-6) d = xe;
   if (Math.abs(xe - d) > 1e-6) return G.cleanPath([root, { x: d, y: track }, { x: xe, y: track }]);
   const knee = Math.max(root.y, track - 2.2 * s);
   if (Math.abs(root.x - xe) < 1e-3) return G.cleanPath([root, { x: xe, y: track }]);
@@ -154,8 +157,22 @@ function buildStrips(ctx, shares) {
   const q = shares.left.length;
   const p = shares.right.length;
   const both = q > 0 && p > 0;
-  const gL = both ? ua - s / 2 : prof.x1;
-  const gR = both ? ua + s / 2 : prof.x0;
+  // snapped: the gap between the groups is shifted (≤ s/2, inside the lead corridor) so that the
+  // two end strips — which take the remainder — are odd multiples of s as well
+  let dl = 0;
+  if (both && ctx.snap && !ctx.noShift) {
+    const dev = (w) => Math.abs(w / s - (2 * Math.round((w / s - 1) / 2) + 1));
+    const Wl = ua - s / 2 - prof.x0;
+    const Wr = prof.x1 - ua - s / 2;
+    let bestDev = Infinity;
+    for (let k = -20; k <= 20; k++) {
+      const e = (k / 40) * s;
+      const v = Math.max(dev(Wl + e), dev(Wr - e)) + Math.abs(e) / (100 * s);
+      if (v < bestDev) (bestDev = v), (dl = e);
+    }
+  }
+  const gL = both ? ua - s / 2 + dl : prof.x1;
+  const gR = both ? ua + s / 2 + dl : prof.x0;
   const strips = [];
   // left group: from the manifold outwards (L1 first)
   if (q) {
@@ -199,24 +216,38 @@ function buildStrips(ctx, shares) {
   const single = !both && !ctx.nearEnd; // one group, manifold away from the end: first lead straight in at ua
   const uL = both || single ? ua : prof.x1 - s / 2;
   const uR = both || single ? ua : prof.x0 + s / 2;
+  // manifold on the zone end, away from the entry edge (a short end wall of a long zone): the
+  // fan corners lie on the bisector of the zone corner — the outermost lead runs along the end
+  // wall into the corner and up the entry wall, the others nest inside it (no unheated wedge)
+  const side = !both && ctx.nearEnd && roots.reduce((a, r) => a + r.y, 0) / roots.length > s / 2 + 2 * s * (strips.length - 1);
   for (const t of strips) {
     const n = t.group === 'L' ? q : p;
     t.track = s / 2 + 2 * s * (n - t.j);
     if (t.group === 'L') {
-      const xe = Math.min(t.hi, prof.x1) - s / 2;
+      t.xe = Math.min(t.hi, prof.x1) - s / 2;
       // fan corner: its own staircase position, or the strip's ring side if the strip is nearer
-      const d = Math.max(uL - b0 - 2 * s * (t.j - 1), xe);
-      t.target = { x: xe, y: t.track };
-      t.lead = leadPath(t.root, d, t.track, xe, s);
+      t.d = side ? Math.max(prof.x1 - t.track, t.xe) : Math.max(uL - b0 - 2 * s * (t.j - 1), t.xe);
     } else {
-      const xe = Math.max(t.lo, prof.x0) + s / 2;
-      const d = Math.min(uR + b0 + 2 * s * (t.j - 1), xe);
-      t.target = { x: xe, y: t.track };
-      t.lead = leadPath(t.root, d, t.track, xe, s);
-      if (single && t.j === 1) {
-        t.target = { x: ua, y: s / 2 };
-        t.lead = G.cleanPath([t.root, { x: ua, y: t.root.y }, t.target]);
-      }
+      t.xe = Math.max(t.lo, prof.x0) + s / 2;
+      t.d = side ? Math.min(prof.x0 + t.track, t.xe) : Math.min(uR + b0 + 2 * s * (t.j - 1), t.xe);
+    }
+    t.target = { x: t.xe, y: t.track };
+  }
+  if (side) {
+    // rays from the manifold row to the fan corners must not cross: the ports are taken in the
+    // order of the ray directions
+    const c = { x: roots.reduce((a, r) => a + r.x, 0) / roots.length, y: roots.reduce((a, r) => a + r.y, 0) / roots.length };
+    const ang = (t) => Math.atan2(t.track - c.y, t.d - c.x);
+    // roots along the manifold row, in the rotational sense of the rays
+    const rs = [...roots].sort((a, b) => b.y - a.y || a.x - b.x);
+    const byAng = [...strips].sort((a, b) => ang(a) - ang(b));
+    (q ? byAng : byAng.reverse()).forEach((t, k) => (t.root = rs[k]));
+  }
+  for (const t of strips) {
+    t.lead = leadPath(t.root, t.d, t.track, t.xe, s);
+    if (single && t.group === 'R' && t.j === 1) {
+      t.target = { x: ua, y: s / 2 };
+      t.lead = G.cleanPath([t.root, { x: ua, y: t.root.y }, t.target]);
     }
   }
   // regions: strip slab ∩ U − all leads (own lead only up to 2s before its end)
@@ -228,7 +259,7 @@ function buildStrips(ctx, shares) {
     }
     let R = G.intersection(L, [{ outer: slab(t.lo, t.hi), holes: [] }]);
     if (excl.length) R = G.difference(R, G.bufferPolylines(excl, 1.5 * s - EPS, 'square', 'miter'));
-    if (!both && !single && t.j === 1 && t.lead.length >= 3) {
+    if (!both && !single && !side && t.j === 1 && t.lead.length >= 3) {
       // the corner between the zone end and the lead coming down it (fan zone, heated by leads)
       const knee = t.lead[t.lead.length - 2];
       const far = t.group === 'L' ? 1000 : -1000;
@@ -308,7 +339,7 @@ export function layoutZone(inp) {
     for (const q of qs) {
       const p = n - q;
       // the manifold's own outlets: q leftmost go left, p rightmost go right
-      const roots = ports.slice(0, n).map((pt) => ({ x: (pt.sl.x + pt.rl.x) / 2, y: Math.max(pt.sl.y, pt.rl.y) + 0.05 }));
+      const roots = ports.slice(0, n).map((pt, pi) => ({ pi, x: (pt.sl.x + pt.rl.x) / 2, y: Math.max(pt.sl.y, pt.rl.y) + 0.05 }));
       // the staircase starts at the zone end only when the manifold really stands at that end
       const nearEnd = AL < half || totalArea - AL < half;
       const c = { ...ctx, roots, nearEnd };
@@ -318,7 +349,7 @@ export function layoutZone(inp) {
       let bestIt = null;
       for (let it = 0; it < 6; it++) {
         strips = buildStrips(c, shares);
-        strips.forEach((t, k) => (t.port = ports[k]));
+        strips.forEach((t) => (t.port = ports[t.root.pi]));
         lens = strips.map(est);
         const mx = Math.max(...lens);
         if (!bestIt || mx < bestIt.mx) bestIt = { mx, strips, lens, shares };
@@ -337,11 +368,17 @@ export function layoutZone(inp) {
       }
       // snap strip widths to odd multiples of s (uniform spacing up to the spiral centre)
       if (n > 1) {
-        const cs = { ...c, snap: true };
-        const st = buildStrips(cs, bestIt.shares);
-        st.forEach((t, k) => (t.port = ports[k]));
-        const ls = st.map(est);
-        const mx = Math.max(...ls);
+        // with the group gap shifted (odd end strips) and without; the shifted one unless only the
+        // other keeps every loop within the limit
+        let pick = null;
+        for (const noShift of [false, true]) {
+          const st = buildStrips({ ...c, snap: true, noShift }, bestIt.shares);
+          st.forEach((t) => (t.port = ports[t.root.pi]));
+          const ls = st.map(est);
+          const m = Math.max(...ls);
+          if (!pick || (m <= maxLoop - 0.3 && pick.mx > maxLoop - 0.3) || (m > maxLoop - 0.3 && pick.mx > maxLoop - 0.3 && m < pick.mx)) pick = { st, ls, mx: m };
+        }
+        const { st, ls, mx } = pick;
 
         if (mx <= maxLoop - 0.3 || mx <= bestIt.mx) bestIt = { mx, strips: st, lens: ls, shares: bestIt.shares, snapped: true };
       }
@@ -371,6 +408,11 @@ export function layoutZone(inp) {
       continue;
     }
     const main = G.cleanPath([...t.lead, ...t.tree.path.slice(G.pathLength([t.lead[t.lead.length - 1], t.tree.path[0]]) < 1e-6 ? 1 : 0)]);
+    if (G.pathLength(t.tree.path) < 1) {
+      // nothing to heat in this strip (only the lead) — never a real loop
+      errors.push({ code: 'UFH_STRIP_EMPTY', msg: 'Kontur uchun joy qolmadi (bo‘sh strip)', at: toPlan(F, t.target) });
+      continue;
+    }
     const lp = buildLoop(main, t.tree.branches, s, rmin, { uturns: t.tree.uturns, rminKey: inp.rminCheck ?? rmin });
     for (const e of lp.errors) errors.push({ ...e, msg: `Kontur geometriyasi: ${e.code}` });
     const pt = t.port;

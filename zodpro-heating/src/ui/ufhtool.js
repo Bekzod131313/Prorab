@@ -10,7 +10,7 @@ import { runUfhEngine } from '../engines/ufh/engine.js';
 import * as G from '../engines/ufh/geom.js';
 import { UFH_PIPES, SPACINGS, WALL_CLEARANCES, STRATEGIES, OBSTACLE_KINDS, pipeType } from '../engines/ufh/pipes.js';
 import { UFH_RULES } from '../engines/ufh/validate.js';
-import { collectorCircuits, freeCircuits, zoneJob, applyEngineResult, defaultZoneParams, loopName, MAX_CIRCUITS } from '../core/ufhmodel.js';
+import { collectorCircuits, freeCircuits, zoneJob, applyEngineResult, defaultZoneParams, loopName, MAX_CIRCUITS, splitZoneForCollectors } from '../core/ufhmodel.js';
 import { newElement, elementsOf } from '../core/model.js';
 import { pointInPolygon } from '../core/util.js';
 import { esc } from './reports.js';
@@ -346,13 +346,14 @@ export class UfhTool {
       return;
     }
     this.panel.style.display = 'block';
-    const z = pv.zone;
+    const z = pv.zone ?? pv.items[0].zone;
     const col = this.store.project.elements[z.collectorId];
     if (pv.busy) {
       this.panel.innerHTML = `<header>${esc(z.name)} — hisoblanmoqda…</header><div class="ufh-prog"><div style="width:${Math.round((pv.f ?? 0) * 100)}%"></div></div><p class="muted">${esc(STEP[pv.step] ?? pv.step)}…</p><div class="btn-row"><button class="btn small" data-a="cancel">Bekor</button></div>`;
       this.panel.onclick = (e) => e.target.dataset.a === 'cancel' && this.cancel();
       return;
     }
+    if (pv.items) return this.renderMulti();
     const r = pv.result;
     const errs = r.issues.filter((i) => i.level === 'error');
     const warns = r.issues.filter((i) => i.level === 'warning');
@@ -382,6 +383,7 @@ export class UfhTool {
         <button class="btn small" data-a="params">Parametrlar</button>
         <button class="btn small" data-a="cancel">CANCEL</button>
       </div>
+      ${r.needCircuits ? `<div class="btn-row"><button class="btn small primary" data-a="split">Kollektorlarga bo‘lish (+${Math.ceil(((r.needCircuits - r.freeCircuits) * 1.08) / MAX_CIRCUITS)} kollektor)</button></div>` : ''}
       <p class="muted" style="font-size:11px;margin:4px 0 0">Xarita: <span style="color:#3aa757">■</span> isitilgan · <span style="color:#e0474c">■</span> isitilmagan · <span style="color:#999">■</span> to‘siq · <span style="color:#d8b400">■</span> clearance · ${r.ms} ms</p>`;
     this.panel.onclick = (e) => {
       const a = e.target.closest('button')?.dataset.a;
@@ -389,8 +391,111 @@ export class UfhTool {
       else if (a === 'regen') this.run(pv.zone, pv.isNew, { onlyCircuits: pv.isNew });
       else if (a === 'repair') this.run(pv.zone, pv.isNew, { onlyCircuits: pv.isNew, repair: true });
       else if (a === 'params') this.editParams();
+      else if (a === 'split') this.splitRun();
       else if (a === 'cancel') this.cancel();
     };
+  }
+
+  // ======================= one zone → several manifolds (> 12 loops) =======================
+  /** Cut the zone by manifold capacity, add the manifolds it needs and route every part. */
+  async splitRun(repair = false) {
+    const pv = this.preview;
+    const base = pv.items ? pv.items[0].zone : pv.zone;
+    const need = pv.items ? pv.need : pv.result.needCircuits;
+    const free = pv.items ? pv.free : pv.result.freeCircuits;
+    const col = this.store.project.elements[base.collectorId];
+    const clip = (pts, alongX, lo, hi) => {
+      const slab = alongX ? [{ x: lo, y: -1e4 }, { x: hi, y: -1e4 }, { x: hi, y: 1e4 }, { x: lo, y: 1e4 }] : [{ x: -1e4, y: lo }, { x: 1e4, y: lo }, { x: 1e4, y: hi }, { x: -1e4, y: hi }];
+      const r = G.intersection(G.sanitize(pts), [{ outer: slab, holes: [] }]);
+      const big = r.reduce((a, b) => (!a || G.area([b]) > G.area([a]) ? b : a), null);
+      return { area: G.area(r), ring: big?.outer ?? null };
+    };
+    const parts = splitZoneForCollectors(base, col, need, free, clip);
+    const newCols = parts.filter((q) => q.isNewCol).map((q) => q.col);
+    // a project view that already knows the new manifolds (names, outlets) — nothing is stored yet
+    const proj = { ...this.store.project, elements: { ...this.store.project.elements } };
+    for (const c of newCols) proj.elements[c.id] = c;
+    const id = ++this.jobSeq;
+    const items = parts.map((q, i) => ({
+      zone: { ...base, ...(i ? { id: newElement('ufh_zone', {}).id, guid: newElement('ufh_zone', {}).guid, name: `${base.name}-${String.fromCharCode(65 + i)}` } : { name: `${base.name}-A` }), points: q.points.map((p) => ({ x: +p.x.toFixed(4), y: +p.y.toFixed(4) })), collectorId: q.col.id, circuitIds: [] },
+      col: q.col,
+      isNew: i ? true : pv.isNew,
+      result: null,
+    }));
+    this.preview = { items, newCols, proj, busy: true, step: 'routing', f: 0, need, free };
+    this.renderPanel();
+    this.plan.draw();
+    for (let i = 0; i < items.length; i++) {
+      if (id !== this.jobSeq) return;
+      const it = items[i];
+      const job = zoneJob(proj, it.zone, this.store.results, { col: it.col, repair });
+      it.result = await this.runEngine(job, (step, f) => {
+        if (id !== this.jobSeq || !this.preview) return;
+        this.preview.step = `${it.zone.name}: ${STEP[step] ?? step}`;
+        this.preview.f = (i + f) / items.length;
+        this.renderPanel();
+      }).catch((err) => ({ ok: false, loops: [], issues: [{ level: 'error', code: 'UFH-ENGINE', msg: err.message }], coverage: null }));
+    }
+    if (id !== this.jobSeq) return;
+    this.preview.busy = false;
+    this.renderPanel();
+    this.plan.draw();
+  }
+
+  renderMulti() {
+    const pv = this.preview;
+    const ok = pv.items.every((it) => it.result?.ok);
+    const rows = pv.items
+      .map((it) => {
+        const r = it.result;
+        const errs = r.issues.filter((x) => x.level === 'error');
+        const L = r.loops.map((l) => l.length);
+        return `<tr><td>${esc(it.zone.name)}</td><td>${it.col.mark || (pv.newCols.includes(it.col) ? 'yangi' : '')}</td><td>${r.loops.length}</td><td>${L.length ? `${Math.min(...L).toFixed(0)}–${Math.max(...L).toFixed(0)} m` : '—'}</td><td>${r.coverage ? `${(r.coverage.ratio * 100).toFixed(1)} %` : '—'}</td><td>${r.ok ? '✓' : `<span class="bad">${errs.length} xato</span>`}</td></tr>`;
+      })
+      .join('');
+    const errs = pv.items.flatMap((it) => it.result.issues.filter((x) => x.level === 'error').map((e) => `${it.zone.name}: ${e.msg}`));
+    this.panel.innerHTML = `
+      <header>Zona ${pv.items.length} qismga bo‘lindi · ${pv.newCols.length} ta yangi kollektor</header>
+      <p class="muted" style="margin:0 0 6px">Kerak ≈ ${pv.need} kontur; har kollektorda ≤ ${MAX_CIRCUITS}. Yangi kollektorlar o‘z qismining devorida, chiqishlari xonaga qaragan.</p>
+      <table class="tbl compact"><tr><th>Qism</th><th>Kollektor</th><th>Kontur</th><th>Uzunlik</th><th>Qamrov</th><th></th></tr>${rows}</table>
+      ${errs.length ? `<ul class="bad" style="margin:4px 0 4px 16px">${errs.slice(0, 6).map((e) => `<li>${esc(e)}</li>`).join('')}</ul>` : '<p class="good">✓ Barcha qismlar qat’iy tekshiruvlardan o‘tdi</p>'}
+      <div class="btn-row">
+        <button class="btn small primary" data-a="apply" ${ok ? '' : 'disabled'}>APPLY</button>
+        <button class="btn small" data-a="repair">AUTO REPAIR</button>
+        <button class="btn small" data-a="cancel">CANCEL</button>
+      </div>`;
+    this.panel.onclick = (e) => {
+      const a = e.target.closest('button')?.dataset.a;
+      if (a === 'apply') this.applyMulti();
+      else if (a === 'repair') this.splitRun(true);
+      else if (a === 'cancel') this.cancel();
+    };
+  }
+
+  applyMulti() {
+    const pv = this.preview;
+    if (!pv.items.every((it) => it.result?.ok)) return this.app.toast('Xatolar bor — APPLY bloklangan', 'error');
+    const cs = { add: [...pv.newCols], update: [], remove: [] };
+    const proj = { ...pv.proj, elements: { ...pv.proj.elements } };
+    for (const it of pv.items) {
+      const part = applyEngineResult(proj, it.zone, it.result, it.isNew);
+      cs.add.push(...part.add);
+      cs.remove.push(...part.remove);
+      for (const u of part.update) {
+        if (u.id === it.zone.id) u.patch.points = it.zone.points;
+        if (u.id === it.zone.id) u.patch.name = it.zone.name;
+        const nc = cs.add.find((x) => x.id === u.id);
+        if (nc) Object.assign(nc, u.patch);
+        else cs.update.push(u);
+      }
+      // loops of this part now exist for the naming / outlet bookkeeping of the next part
+      for (const l of part.add) proj.elements[l.id] = l;
+    }
+    this.store.apply(cs, 'ufh:zone-split');
+    this.preview = null;
+    this.renderPanel();
+    this.app.setTool('select');
+    this.app.toast(`${pv.items.length} ta zona, ${pv.newCols.length} ta yangi kollektor, ${pv.items.reduce((a, it) => a + it.result.loops.length, 0)} ta kontur (bitta amal)`);
   }
 
   editParams() {

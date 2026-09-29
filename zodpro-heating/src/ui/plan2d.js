@@ -1145,7 +1145,8 @@ export class PlanView {
     for (const p of els) if (p.cat === 'pipe' && p.levelId === lv && on(p.system === 'return' ? 'return' : 'supply')) this.drawPipe(ctx, p, res, sel.has(p.id), this.hover === p.id, flowDir);
     for (const r of els) if (r.cat === 'riser' && (r.levelFrom === lv || r.levelTo === lv) && on('riser')) this.drawRiser(ctx, r, sel.has(r.id), res);
     if (on('ufh') && this.toggles.ufh) {
-      const hideZone = this.app.ufh?.preview && !this.app.ufh.preview.isNew ? this.app.ufh.preview.zone.id : null;
+      const pv0 = this.app.ufh?.preview;
+      const hideZone = pv0 && !pv0.isNew && pv0.zone ? pv0.zone.id : pv0?.items && !pv0.items[0].isNew ? pv0.items[0].zone.id : null;
       for (const l of els) if (l.cat === 'ufh_loop' && l.levelId === lv && (!hideZone || l.zoneId !== hideZone)) this.drawUfhLoop(ctx, l, sel.has(l.id) || this.hover === l.id);
     }
     this.drawUfhPreview(ctx);
@@ -1281,8 +1282,22 @@ export class PlanView {
 
   /** Engine preview: coverage map, loops, issue markers (spec §25–§26). */
   drawUfhPreview(ctx) {
-    const pv = this.app.ufh?.preview;
-    if (!pv || pv.zone.levelId !== this.store.activeLevelId) return;
+    const pv0 = this.app.ufh?.preview;
+    if (!pv0) return;
+    if (pv0.items) {
+      for (const it of pv0.items) this.drawUfhPreviewOne(ctx, { zone: it.zone, result: it.result });
+      for (const c of pv0.newCols ?? []) if (c.levelId === this.store.activeLevelId) {
+        ctx.globalAlpha = 0.7;
+        this.drawCollector(ctx, c, true);
+        ctx.globalAlpha = 1;
+      }
+      return;
+    }
+    this.drawUfhPreviewOne(ctx, pv0);
+  }
+
+  drawUfhPreviewOne(ctx, pv) {
+    if (!pv.zone || pv.zone.levelId !== this.store.activeLevelId) return;
     ctx.save();
     this.poly(ctx, pv.zone.points, true);
     ctx.setLineDash([6, 4]);

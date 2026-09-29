@@ -88,7 +88,7 @@ export function zoneObstacles(project, zone) {
 
 /** Engine job for a zone (spec §5–§10): the zone, its obstacles, pipes to avoid, free circuits. */
 export function zoneJob(project, zone, res = null, extra = {}) {
-  const col = project.elements[zone.collectorId];
+  const col = extra.col ?? project.elements[zone.collectorId];
   if (!col) throw new Error('Zona uchun kollektor tanlanmagan');
   const own = new Set(elementsOf(project, 'ufh_loop').filter((l) => l.zoneId === zone.id).map((l) => l.id));
   let ports = freeCircuits(project, col, res, own);
@@ -113,6 +113,7 @@ export function zoneJob(project, zone, res = null, extra = {}) {
     maxHole: zone.maxHole,
     dropLength: 2 * (col.connHeight ?? 0.4),
     ...extra,
+    col: undefined,
   };
 }
 
@@ -187,4 +188,85 @@ export function zoneSummary(zone) {
 export function pipeLabel(loop) {
   const p = pipeType(loop.pipeType);
   return `${loop.name} · Ø${Math.round(p.od * 1000)}x${(p.wall * 1000).toFixed(1)} · ${loop.length.toFixed(1)} m · ${Math.round((loop.spacing ?? 0.15) * 1000)} mm`;
+}
+
+/**
+ * Split a zone that needs more loops than one manifold can take (spec §16–18, §37): the zone is cut
+ * across its long axis into parts sized by manifold capacity (the part at the existing manifold
+ * gets its free outlets), and every further part gets a new 12-outlet manifold on its own outer
+ * wall, rows facing into the part. Returns [{ points, col (existing or new element), isNewCol }].
+ */
+export function splitZoneForCollectors(zone, col, needLoops, freeLoops, clip) {
+  const pts = zone.points;
+  const xs = pts.map((p) => p.x);
+  const ys = pts.map((p) => p.y);
+  const bb = { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
+  const alongX = bb.x1 - bb.x0 >= bb.y1 - bb.y0;
+  const a0 = alongX ? bb.x0 : bb.y0;
+  const a1 = alongX ? bb.x1 : bb.y1;
+  const key = (p) => (alongX ? p.x : p.y);
+  // start from the end where the existing manifold is
+  const fromLow = Math.abs(key(col) - a0) <= Math.abs(key(col) - a1);
+  const rest = Math.max(0, needLoops - freeLoops);
+  const nNew = Math.ceil((rest * 1.08) / MAX_CIRCUITS);
+  const caps = [Math.max(1, freeLoops), ...Array(nNew).fill(MAX_CIRCUITS)];
+  const total = caps.reduce((x, y) => x + y, 0);
+  const areaOf = (lo, hi) => clip(pts, alongX, lo, hi);
+  const full = areaOf(a0, a1).area;
+  // cumulative cuts by area (bisection), share ∝ capacity (a little under for margin)
+  const cuts = [];
+  let acc = 0;
+  for (let i = 0; i < caps.length - 1; i++) {
+    acc += (caps[i] / total) * full;
+    let lo = a0;
+    let hi = a1;
+    for (let k = 0; k < 40; k++) {
+      const m = (lo + hi) / 2;
+      const A = fromLow ? areaOf(a0, m).area : areaOf(m, a1).area;
+      if (A < acc) (fromLow ? (lo = m) : (hi = m));
+      else (fromLow ? (hi = m) : (lo = m));
+    }
+    cuts.push((lo + hi) / 2);
+  }
+  const bounds = fromLow ? [a0, ...cuts, a1] : [a1, ...cuts, a0];
+  const parts = [];
+  for (let i = 0; i < caps.length; i++) {
+    const lo = Math.min(bounds[i], bounds[i + 1]);
+    const hi = Math.max(bounds[i], bounds[i + 1]);
+    const piece = areaOf(lo, hi);
+    if (!piece.ring) continue;
+    if (i === 0) {
+      parts.push({ points: piece.ring, col, isNewCol: false });
+      continue;
+    }
+    // new manifold: on the part's outer end wall (last part) or its longest outer side wall
+    const ring = piece.ring;
+    const onZone = (m) => pts.some((p, k) => {
+      const q = pts[(k + 1) % pts.length];
+      const L = Math.hypot(q.x - p.x, q.y - p.y) || 1;
+      const t = Math.max(0, Math.min(1, ((m.x - p.x) * (q.x - p.x) + (m.y - p.y) * (q.y - p.y)) / (L * L)));
+      return Math.hypot(p.x + t * (q.x - p.x) - m.x, p.y + t * (q.y - p.y) - m.y) < 1e-3;
+    });
+    const edges = ring.map((p, k) => {
+      const q = ring[(k + 1) % ring.length];
+      const m = { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 };
+      return { p, q, m, L: Math.hypot(q.x - p.x, q.y - p.y), end: Math.abs(key(p) - key(q)) < 1e-6 };
+    }).filter((e) => e.L > 0.9 && onZone(e.m));
+    // on a long side of the part (strips across the short way, short leads); of two equally long
+    // sides the one on the existing manifold's side of the room
+    const dc = (e) => Math.hypot(e.m.x - col.x, e.m.y - col.y);
+    const side = edges.filter((e) => !e.end).sort((a, b) => b.L - a.L || dc(a) - dc(b));
+    const pick = side.filter((e) => e.L > side[0].L - 0.05).sort((a, b) => dc(a) - dc(b))[0] ?? edges.sort((a, b) => b.L - a.L)[0];
+    if (!pick) continue;
+    // inward normal of a CCW ring edge = left normal
+    const ccw = ring.reduce((acc2, p, k) => acc2 + p.x * ring[(k + 1) % ring.length].y - ring[(k + 1) % ring.length].x * p.y, 0) > 0;
+    const d = { x: (pick.q.x - pick.p.x) / pick.L, y: (pick.q.y - pick.p.y) / pick.L };
+    const n = ccw ? { x: -d.y, y: d.x } : { x: d.y, y: -d.x };
+    const ang = Math.atan2(-n.x, n.y); // local +y (outlet rows) = n
+    const xd = { x: Math.cos(ang), y: Math.sin(ang) };
+    const org = { x: pick.m.x - n.x * 0.3 - xd.x * 0.3, y: pick.m.y - n.y * 0.3 - xd.y * 0.3 };
+    const nc = newElement('collector', { levelId: col.levelId, x: +org.x.toFixed(3), y: +org.y.toFixed(3), angle: +((ang * 180) / Math.PI).toFixed(2), outlets: MAX_CIRCUITS, kind: 'ufh', mixing: col.mixing !== false, mark: '' });
+    parts.push({ points: ring, col: nc, isNewCol: true });
+  }
+  return parts;
 }

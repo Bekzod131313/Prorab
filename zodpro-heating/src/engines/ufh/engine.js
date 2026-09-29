@@ -4,7 +4,9 @@
 // Pure and deterministic; runs in a Web Worker (workers/ufh.worker.js) or directly (tests, fallback).
 
 import * as G from './geom.js';
-import { layoutZone } from './layout.js';
+import { layoutZone, usableArea } from './layout.js';
+
+const polygonCentroid = (pts) => pts.reduce((a, p) => ({ x: a.x + p.x / pts.length, y: a.y + p.y / pts.length }), { x: 0, y: 0 });
 import { validateLayout, UFH_RULES } from './validate.js';
 import { coverageMap } from './coverage.js';
 import { pipeType, DEFAULT_PIPE } from './pipes.js';
@@ -50,6 +52,22 @@ export function runUfhEngine(job, onProgress = () => {}) {
   const Z = G.sanitize(job.zone);
   if (!Z.length) return fail('UFH-ZONE', 'Zona poligoni noto‘g‘ri (yopiq emas / o‘zini kesadi)');
   onProgress('usable_area', 0.1);
+  // capacity first (spec §16–18): a zone that needs more loops than the manifold has free outlets
+  // is not routed into over-long loops — the user is told how many are needed (split / 2nd manifold)
+  {
+    const { U } = usableArea({ ...base, s });
+    const a = G.area(U);
+    const c = polygonCentroid(job.zone);
+    const lead = Math.hypot(c.x - base.anchor.x, c.y - base.anchor.y) * 0.6;
+    const need = Math.ceil((a / s + 2 * lead + base.dropLength) / (base.maxLoop * 0.92));
+    if (!base.loops && need > base.ports.length) {
+      const r = fail('UFH-CIRC', `Zona uchun ≈ ${need} ta kontur kerak (${(a / s).toFixed(0)} m quvur), kollektorda bo‘sh chiqish ${base.ports.length} ta — zonani ikkinchi kollektorga bo‘ling`);
+      r.needCircuits = need;
+      r.freeCircuits = base.ports.length;
+      r.usableArea = a;
+      return r;
+    }
+  }
 
   // candidate plans: the requested strategy first, then the repair alternatives (entry edge, one
   // loop more, the other strategy) — the first valid one wins, else the one with fewest errors

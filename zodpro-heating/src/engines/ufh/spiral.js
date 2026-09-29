@@ -137,7 +137,9 @@ export function spineOf(ring) {
   if (m.length > 2 && m.slice(1, -1).every((q) => segDistPt(q, m[0], m[m.length - 1]) < 0.02)) m = [m[0], m[m.length - 1]];
   const ext = (p, q) => {
     const L = Math.hypot(p.x - q.x, p.y - q.y) || 1;
-    return { x: p.x + ((p.x - q.x) / L) * d, y: p.y + ((p.y - q.y) / L) * d };
+    // the sliver ends sit (d − 4 mm) inside the region's ends: extend by exactly that much
+    const e = Math.max(0, d - 0.004);
+    return { x: p.x + ((p.x - q.x) / L) * e, y: p.y + ((p.y - q.y) / L) * e };
   };
   m[0] = ext(m[0], m[1]);
   m[m.length - 1] = ext(m[m.length - 1], m[m.length - 2]);

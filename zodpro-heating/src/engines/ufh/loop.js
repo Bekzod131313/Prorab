@@ -57,6 +57,50 @@ function taperRay(c, dir, r0, r1, len) {
 }
 
 /**
+ * S-bends too short to take two full fillets (a lead meeting a spiral jog, a jog right after the
+ * entry corner): the short middle segment is replaced by a longer diagonal that starts further back
+ * on the incoming segment and ends further on along the outgoing one, so both deflections shrink
+ * and both arcs keep the full radius r. Turns in the same sense (U-turns) are left alone.
+ */
+export function easeS(pts, r) {
+  let P = cleanPath(pts);
+  const dirOf = (a, b) => norm({ x: b.x - a.x, y: b.y - a.y });
+  const len = (a, b) => Math.hypot(b.x - a.x, b.y - a.y);
+  const turn = (u, v) => ({ cr: u.x * v.y - u.y * v.x, th: Math.acos(Math.max(-1, Math.min(1, u.x * v.x + u.y * v.y))) });
+  const need = (th) => r * Math.tan(th / 2);
+  for (let i = 1; i + 2 < P.length; i++) {
+    const [a, b, c, d] = [P[i - 1], P[i], P[i + 1], P[i + 2]];
+    const u = dirOf(a, b);
+    const m = dirOf(b, c);
+    const w = dirOf(c, d);
+    const t1 = turn(u, m);
+    const t2 = turn(m, w);
+    if (t1.th < 1e-3 || t2.th < 1e-3 || t1.cr * t2.cr >= 0) continue;
+    const L = len(b, c);
+    if (need(t1.th) + need(t2.th) <= L + 1e-6) continue;
+    const La = len(a, b) - (i - 1 === 0 ? 0 : len(a, b) / 2);
+    const Ld = len(c, d) - (i + 2 === P.length - 1 ? 0 : len(c, d) / 2);
+    for (let k = 1; k <= 40; k++) {
+      const e = 0.01 * k;
+      if (e > La - 1e-6 || e > Ld - 1e-6) break;
+      const b2 = { x: b.x - u.x * e, y: b.y - u.y * e };
+      const c2 = { x: c.x + w.x * e, y: c.y + w.y * e };
+      const m2 = dirOf(b2, c2);
+      const s1 = turn(u, m2);
+      const s2 = turn(m2, w);
+      if (s1.cr * t1.cr < 0 || s2.cr * t2.cr < 0) break;
+      const n1 = need(s1.th);
+      const n2 = need(s2.th);
+      if (n1 + n2 <= len(b2, c2) && n1 <= len(a, b) - e - (i - 1 === 0 ? 0 : 0) && n2 <= len(c, d) - e) {
+        P = [...P.slice(0, i), b2, c2, ...P.slice(i + 2)];
+        break;
+      }
+    }
+  }
+  return P;
+}
+
+/**
  * @param main      centreline from the root (lead start) through the whole path
  * @param branches  extra centreline polylines (T-branches)
  * @param s         spacing (pipe to pipe)
@@ -66,7 +110,7 @@ function taperRay(c, dir, r0, r1, len) {
 export function buildLoop(main, branches, s, rmin, o = {}) {
   const errors = [];
   const Rc = cornerRadius(s, rmin);
-  const f = fillet(main, o.filletR ?? Rc);
+  const f = fillet(easeS(main, o.filletR ?? Rc), o.filletR ?? Rc);
   const center = f.pts;
   const brs = branches.map((b) => fillet(b, o.filletR ?? Rc).pts).filter((b) => b.length >= 2 && pathLength(b) > 1e-3);
   let region = bufferPolylines([center, ...brs], s / 2);

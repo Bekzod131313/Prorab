@@ -147,3 +147,31 @@ test('determinism: the same input gives the same geometry', () => {
   const b = runCase(rect(0, 0, 5, 4), manifold(1.5));
   assert.equal(JSON.stringify(a.loops), JSON.stringify(b.loops));
 });
+
+test('capacity: a zone needing more than 12 loops is UFH-CIRC; split into manifolds every part is valid', async () => {
+  const { collectorPort } = await import('../src/core/model.js');
+  const { collectorAnchor, splitZoneForCollectors } = await import('../src/core/ufhmodel.js');
+  // the long living room from the field report: 6.4 × 23.35 m, manifold on the end wall near a corner
+  const zone = rect(0, 0, 6.4, 23.35);
+  const col = { x: 5.9, y: 23.6, angle: 180, outlets: 12 };
+  const portsOf = (c) => ({ anchor: collectorAnchor(c), ports: Array.from({ length: 12 }, (_, i) => ({ circuitId: `C${String(i + 1).padStart(2, '0')}`, index: i, supply: collectorPort(c, i, 'supply'), ret: collectorPort(c, i, 'return') })) });
+  const job = { spacing: 0.15, wallClearance: 0.2, obstacleClearance: 0.2 };
+  const r = runUfhEngine({ ...job, zone, collector: portsOf(col) });
+  assert.equal(r.ok, false);
+  assert.ok(codes(r).includes('UFH-CIRC'));
+  assert.ok(r.needCircuits > 12 && r.freeCircuits === 12);
+  const clip = (pts, alongX, lo, hi) => {
+    const slab = alongX ? rect(lo, -1e4, hi, 1e4) : rect(-1e4, lo, 1e4, hi);
+    const q = G.intersection(G.sanitize(pts), [{ outer: slab, holes: [] }]);
+    const big = q.reduce((a, b) => (!a || G.area([b]) > G.area([a]) ? b : a), null);
+    return { area: G.area(q), ring: big?.outer ?? null };
+  };
+  const parts = splitZoneForCollectors({ points: zone }, col, r.needCircuits, 12, clip);
+  assert.equal(parts.length, 2);
+  assert.ok(parts[1].isNewCol);
+  for (const p of parts) {
+    const rp = runUfhEngine({ ...job, zone: p.points, collector: portsOf(p.col) });
+    assert.ok(rp.ok, `${codes(rp).join(',')}`);
+    assert.ok(rp.loops.length <= 12 && rp.loops.every((l) => l.length <= 60));
+  }
+});

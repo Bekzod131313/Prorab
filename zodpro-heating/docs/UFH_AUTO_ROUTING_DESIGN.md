@@ -419,6 +419,21 @@ Har bir bosqich alohida commit, testlar yashil bo‘lmaguncha keyingisiga o‘ti
 | 9. Hydraulic integration | ✅ har kontur: Q (zona talabi/quvvati, isitish uzunligi ulushi), sarf, tezlik, Δp (Darcy + burilishlar ζ); kollektor iste’molchisi; BOM (quvur turi bo‘yicha m, qisqich, izolyatsiya, demfer lenta); validatsiya R25–R28 | `engines/calc.js`, `bom.js`, `validation.js` |
 | 10. Production QA | ✅ Web Worker + progress, deterministik, testlar (`tests/ufh-engine.test.js`: geom, loop, TEST 01–15, determinizm), E2E UI skripti; ⚠ fuzz-300 hali yo‘q | `workers/ufh.worker.js` |
 
+**Katta zona (> 12 kontur).** Dvigatel avval sig‘imni tekshiradi: taxminiy kontur soni
+(maydon / qadam + lead + tik, 60 m × 0.92 ga) kollektordagi bo‘sh chiqishdan ko‘p bo‘lsa, 60 m dan uzun
+konturlar chizilmaydi — `UFH-CIRC` xatosi (kerak / bo‘sh soni bilan) qaytadi. Preview panelida
+**«Kollektorlarga bo‘lish»** tugmasi: zona uzun o‘q bo‘yicha sig‘im ulushida kesiladi (birinchi qism —
+mavjud kollektor tomoni), har qo‘shimcha qism uchun yangi kollektor (12 chiqish) qismning **uzun
+tashqi devori** o‘rtasiga, chiqishlari xonaga qaragan holda qo‘yiladi. Hamma qismlar ketma-ket
+hisoblanadi, bitta APPLY (bitta undo) bilan saqlanadi.
+
+**Tuzatishlar (maydon hisoboti, 149 m² xona).** Kollektor zona uchida, kirish devoridan uzoqda
+tursa, fan burchaklari zona burchagi bissektrisasida (eng tashqi lead devor bo‘ylab burchakka, qolganlari
+ichida — isitilmagan uchburchak yo‘q), portlar nurlar yo‘nalishi tartibida beriladi (kesishish yo‘q).
+Qisqa S-burilishlar (lead + spiral jog) uzunroq diagonal bilan almashtiriladi — ikkala yoy to‘liq
+radiusda. Guruhlar orasidagi tirqish ≤ s/2 suriladi, chekka strip ham toq·s bo‘ladi (markazda bo‘sh
+chiziq qolmaydi). Bo‘sh strip (daraxt < 1 m) kontur bo‘lmaydi.
+
 Egilish radiusi siyosati: quvur jadvali 5×OD (16 mm → 80 mm) beradi; tekshiruv 15 % tolerantlik bilan
 (≥ 68 mm, prujina/yo‘naltirgich bilan egish), dvigatel esa 7.5 % bilan loyihalaydi (zaxira). Hammasi
 bitta joyda (`validate.js UFH_RULES.bendTol`) va preview panelida ko‘rsatiladi.
