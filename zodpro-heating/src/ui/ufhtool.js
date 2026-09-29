@@ -67,7 +67,7 @@ export class UfhTool {
   /** Floating menu next to the selected manifold (kept in place while panning / zooming). */
   updateMenu() {
     const col = this.selectedCollector();
-    if (!col || this.app.view !== 'plan' || col.levelId !== this.store.activeLevelId || this.plan.tool !== 'select') {
+    if (!col || this.preview || this.app.view !== 'plan' || col.levelId !== this.store.activeLevelId || this.plan.tool !== 'select') {
       this.menu.style.display = 'none';
       return;
     }
@@ -263,6 +263,7 @@ export class UfhTool {
     if (!job.collector.ports.length) return this.app.toast('Bo‘sh circuit qolmadi', 'error');
     const id = ++this.jobSeq;
     this.preview = { zone, isNew, result: null, busy: true, step: 'boundary', f: 0, job };
+    this.updateMenu();
     this.renderPanel();
     this.plan.draw();
     const done = (result) => {

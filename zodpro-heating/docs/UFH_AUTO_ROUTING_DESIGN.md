@@ -401,3 +401,24 @@ Har bir bosqich alohida commit, testlar yashil bo‘lmaguncha keyingisiga o‘ti
 | 40 | Worker + progress | 10 |
 | 41 | Undo/redo | 1, 3 |
 | 42–43 | Testlar, acceptance | har bosqich, 10 |
+
+---
+
+## 19. Amalga oshirish holati (implementation status)
+
+| Bosqich | Holat | Fayllar |
+|---|---|---|
+| 1. Collector + Shlanka olish | ✅ kollektor menyusi (4 tugma), CIRCUITS dialog/panel, qo‘lda quvur (supply → nuqtalar → return, Rmin yoy, Backspace/Esc/Enter), `ufh_loop` (manual) | `ui/ufhtool.js`, `core/ufhmodel.js`, `ui/plan2d.js`, `ui/panels.js` |
+| 2. Zone drawing | ✅ zona poligoni (bosish / birinchi nuqta / Enter, Shift+bosish = xona konturi), to‘siq (pol) poligoni 10 turdagi, grip bilan tahrir, zona `stale` → REGENERATE; ⚠ yangi vertex qo‘shish/o‘chirish hali yo‘q (mavjudlarini surish mumkin) | `ui/plan2d.js`, `core/store.js` (kaskad o‘chirish) |
+| 3. Basic Auto UFH | ✅ usable area (Clipper, round clearance), preview, APPLY (bitta undo) | `engines/ufh/layout.js`, `engine.js` |
+| 4. Adaptive routing | ✅ contour-parallel spiral (klassik burchak o‘tishi, 75° jog, spine, keyhole), serpentin, strip decomposition, slit (teshikli zona) | `engines/ufh/spiral.js`, `loop.js` |
+| 5. Obstacle avoidance | ✅ obstacle ⊕ clearance ayiriladi, mavjud quvurlar (§29) to‘siq sifatida; ⚠ murakkab to‘siqlarda ba’zan egilish/qamrov xatosi qoladi → APPLY bloklanadi, AUTO REPAIR boshqa variantlarni sinaydi | `layout.js`, `spiral.js` |
+| 6. 60 m splitting | ✅ strip ulushlari iterativ balanslash, eni toq·s ga snap, n avtomatik oshiriladi, lead + kollektor tik (2×0.4 m) hisobga | `layout.js` |
+| 7. Coverage validation | ✅ aniq qamrov (Clipper), xarita (yashil/qizil/kulrang/sariq), min qamrov % va maks. bo‘sh joy m² sozlanadi, hard validation | `coverage.js`, `validate.js` |
+| 8. Auto Repair | ✅ variantlar qidiruvi: kirish tomoni (3), +1 kontur, boshqa strategiya; eng kam og‘irlikdagi xato tanlanadi; ⚠ lokal (nuqtaviy) tuzatishlar hali yo‘q | `engine.js` |
+| 9. Hydraulic integration | ✅ har kontur: Q (zona talabi/quvvati, isitish uzunligi ulushi), sarf, tezlik, Δp (Darcy + burilishlar ζ); kollektor iste’molchisi; BOM (quvur turi bo‘yicha m, qisqich, izolyatsiya, demfer lenta); validatsiya R25–R28 | `engines/calc.js`, `bom.js`, `validation.js` |
+| 10. Production QA | ✅ Web Worker + progress, deterministik, testlar (`tests/ufh-engine.test.js`: geom, loop, TEST 01–15, determinizm), E2E UI skripti; ⚠ fuzz-300 hali yo‘q | `workers/ufh.worker.js` |
+
+Egilish radiusi siyosati: quvur jadvali 5×OD (16 mm → 80 mm) beradi; tekshiruv 15 % tolerantlik bilan
+(≥ 68 mm, prujina/yo‘naltirgich bilan egish), dvigatel esa 7.5 % bilan loyihalaydi (zaxira). Hammasi
+bitta joyda (`validate.js UFH_RULES.bendTol`) va preview panelida ko‘rsatiladi.
