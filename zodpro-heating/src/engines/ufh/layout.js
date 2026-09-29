@@ -196,7 +196,7 @@ function buildStrips(ctx, shares) {
   const b0 = both ? s : 0;
   // one group only: the staircase starts at the zone end (the strip beside the manifold is the
   // first one); its lead runs down the end of the zone and the corner above it is left to the fan
-  const single = !both && !ctx.nearEnd; // one loop, manifold mid-side: straight in at ua
+  const single = !both && !ctx.nearEnd; // one group, manifold away from the end: first lead straight in at ua
   const uL = both || single ? ua : prof.x1 - s / 2;
   const uR = both || single ? ua : prof.x0 + s / 2;
   for (const t of strips) {
@@ -213,7 +213,7 @@ function buildStrips(ctx, shares) {
       const d = Math.min(uR + b0 + 2 * s * (t.j - 1), xe);
       t.target = { x: xe, y: t.track };
       t.lead = leadPath(t.root, d, t.track, xe, s);
-      if (single) {
+      if (single && t.j === 1) {
         t.target = { x: ua, y: s / 2 };
         t.lead = G.cleanPath([t.root, { x: ua, y: t.root.y }, t.target]);
       }
@@ -309,6 +309,7 @@ export function layoutZone(inp) {
       const p = n - q;
       // the manifold's own outlets: q leftmost go left, p rightmost go right
       const roots = ports.slice(0, n).map((pt) => ({ x: (pt.sl.x + pt.rl.x) / 2, y: Math.max(pt.sl.y, pt.rl.y) + 0.05 }));
+      // the staircase starts at the zone end only when the manifold really stands at that end
       const nearEnd = AL < half || totalArea - AL < half;
       const c = { ...ctx, roots, nearEnd };
       let shares = { left: Array(q).fill(1 / Math.max(1, q)), right: Array(p).fill(1 / Math.max(1, p)) };
