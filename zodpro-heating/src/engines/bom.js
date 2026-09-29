@@ -3,6 +3,8 @@
 
 import { PIPE_MATERIALS, VALVES, COLLECTORS, FITTING_PRICES, fittingSizeFactor } from '../data/products.js';
 import { elementsOf } from '../core/model.js';
+import { polygonArea } from '../core/util.js';
+import { pipeType as ufhPipeType } from './ufh/pipes.js';
 
 export const BOM_VERSION = 'bom/1.1';
 
@@ -110,6 +112,19 @@ export function buildBom(project, res, net) {
     addItem(items, 'ufh_clip', { group: 'ufh', name: 'Pol isitish qisqichi (garpun)', article: 'ZP-UFH-CLIP', unit: 'dona', qty: Math.ceil(u.totalLength * 3), unitUsd: FITTING_PRICES.ufh_pipe_clip, waste: 0.05 });
     addItem(items, 'ufh_ins', { group: 'ufh', name: 'Issiqlik izolyatsiya plitasi (pol isitish)', article: 'ZP-UFH-INS', unit: 'm²', qty: u.area, unitUsd: FITTING_PRICES.ufh_insulation_m2, waste: 0.05 });
     addItem(items, 'ufh_edge', { group: 'ufh', name: 'Demfer lenta', article: 'ZP-UFH-EDGE', unit: 'm', qty: u.perimeter, unitUsd: FITTING_PRICES.ufh_edge_strip_m, waste: 0.1 });
+  }
+
+  // UFH engine loops (stored pipes: exact lengths per pipe type)
+  for (const l of elementsOf(project, 'ufh_loop')) {
+    const pt = ufhPipeType(l.pipeType);
+    addItem(items, `ufhpipe2|${pt.id}`, { group: 'ufh', name: `Pol isitish quvuri ${pt.label}`, article: `ZP-UFH-${pt.id}`, unit: 'm', qty: l.length, unitUsd: pt.od >= 0.02 ? 1.1 : 0.7, waste: 0.05 });
+    addItem(items, 'ufh_clip', { group: 'ufh', name: 'Pol isitish qisqichi (garpun)', article: 'ZP-UFH-CLIP', unit: 'dona', qty: Math.ceil(l.length * 3), unitUsd: FITTING_PRICES.ufh_pipe_clip, waste: 0.05 });
+  }
+  for (const z of elementsOf(project, 'ufh_zone')) {
+    const a = Math.abs(polygonArea(z.points));
+    const per = z.points.reduce((acc, p, i) => acc + Math.hypot(z.points[(i + 1) % z.points.length].x - p.x, z.points[(i + 1) % z.points.length].y - p.y), 0);
+    addItem(items, 'ufh_ins', { group: 'ufh', name: 'Issiqlik izolyatsiya plitasi (pol isitish)', article: 'ZP-UFH-INS', unit: 'm²', qty: a, unitUsd: FITTING_PRICES.ufh_insulation_m2, waste: 0.05 });
+    addItem(items, 'ufh_edge', { group: 'ufh', name: 'Demfer lenta', article: 'ZP-UFH-EDGE', unit: 'm', qty: per, unitUsd: FITTING_PRICES.ufh_edge_strip_m, waste: 0.1 });
   }
 
   // thermostats

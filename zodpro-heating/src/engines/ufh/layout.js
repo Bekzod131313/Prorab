@@ -370,7 +370,7 @@ export function layoutZone(inp) {
       continue;
     }
     const main = G.cleanPath([...t.lead, ...t.tree.path.slice(G.pathLength([t.lead[t.lead.length - 1], t.tree.path[0]]) < 1e-6 ? 1 : 0)]);
-    const lp = buildLoop(main, t.tree.branches, s, rmin, { uturns: t.tree.uturns });
+    const lp = buildLoop(main, t.tree.branches, s, rmin, { uturns: t.tree.uturns, rminKey: inp.rminCheck ?? rmin });
     for (const e of lp.errors) errors.push({ ...e, msg: `Kontur geometriyasi: ${e.code}` });
     const pt = t.port;
     const pipeL = lp.pipe;

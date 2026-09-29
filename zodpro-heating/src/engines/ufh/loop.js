@@ -70,7 +70,8 @@ export function buildLoop(main, branches, s, rmin, o = {}) {
   const center = f.pts;
   const brs = branches.map((b) => fillet(b, o.filletR ?? Rc).pts).filter((b) => b.length >= 2 && pathLength(b) > 1e-3);
   let region = bufferPolylines([center, ...brs], s / 2);
-  const rb = rmin + 0.004;
+  // keyholes only where the plain U-turn (radius s/2) would be tighter than the checked minimum
+  const rb = (o.rminKey ?? rmin) + 0.004;
   if (rb > s / 2 + 1e-6) {
     // keyhole caps: every leaf end (180° turn of the pair) widens smoothly to radius rb
     const tapers = [center, ...brs].flatMap((line) => taper(line, s / 2, rb, TAPER));
@@ -89,9 +90,9 @@ export function buildLoop(main, branches, s, rmin, o = {}) {
         }
     }
   }
-  region = closing(region, Math.min(0.45 * s, rmin));
+  // light closing only (removes numeric slivers); a large one would facet the tight inner arcs
+  region = closing(region, Math.min(0.2 * s, 0.02));
   if (region.length !== 1) errors.push({ code: 'loop_split', n: region.length });
-  if (region.length !== 1 && globalThis.__UFH_DEBUG) console.log('split', JSON.stringify({ uturns: o.uturns, areas: region.map((r) => Math.abs(ringArea(r.outer))), end: center[center.length - 1] }));
   if (region[0]?.holes?.length) errors.push({ code: 'loop_self_touch', n: region[0].holes.length });
   const shape = region.reduce((a, b) => (!a || Math.abs(ringArea(b.outer)) > Math.abs(ringArea(a.outer)) ? b : a), null);
   if (!shape) return { pipe: [], errors: [{ code: 'loop_empty' }], center };

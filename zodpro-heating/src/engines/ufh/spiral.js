@@ -133,6 +133,8 @@ export function spineOf(ring) {
   let m = averageChains(main.outer);
   if (!m || m.length < 2) return null;
   m = straighten(m);
+  // a nearly straight spine becomes exactly straight (hairpins at its ends stay symmetric)
+  if (m.length > 2 && m.slice(1, -1).every((q) => segDistPt(q, m[0], m[m.length - 1]) < 0.02)) m = [m[0], m[m.length - 1]];
   const ext = (p, q) => {
     const L = Math.hypot(p.x - q.x, p.y - q.y) || 1;
     return { x: p.x + ((p.x - q.x) / L) * d, y: p.y + ((p.y - q.y) / L) * d };
@@ -143,7 +145,7 @@ export function spineOf(ring) {
 }
 
 /** Douglas–Peucker (5 mm): a spine of a straight strip becomes one straight segment. */
-function straighten(pts, tol = 0.005) {
+function straighten(pts, tol = 0.012) {
   if (pts.length < 3) return pts;
   const keep = new Array(pts.length).fill(false);
   keep[0] = keep[pts.length - 1] = true;
@@ -269,8 +271,9 @@ export function spiralTree(region, s, E0, dir, o = {}) {
     const toEnd = q.s > L / 2 ? subPath(sp, 0, q.s).reverse() : subPath(sp, q.s, L);
     const other = q.s > L / 2 ? subPath(sp, q.s, L) : subPath(sp, 0, q.s).reverse();
     path.push(q.p, ...toEnd);
+    // a short stub would be a T-junction (two tight corners): leave it out, only a long one branches
     if (pathLength(other) > s * 0.5) {
-      if (allowBranches) branches.push(other);
+      if (allowBranches && pathLength(other) > 1.0) branches.push(other);
       else {
         stats.dropped++;
         stats.droppedArea += pathLength(other) * 2 * s;
@@ -428,7 +431,21 @@ export function spiralTree(region, s, E0, dir, o = {}) {
       const Ec = closestOnRing({ x: P.x + t.tx * jogAhead, y: P.y + t.ty * jogAhead }, child.shape.outer).p;
       path.push(Ec);
       walk(child, Ec, path);
-    } else walk(child, P, path);
+    } else {
+      // spine not faced squarely: enter it at its nearer END (no T-junction) when that is close
+      const sp = child.spine;
+      const e0 = sp[0];
+      const e1 = sp[sp.length - 1];
+      const d0 = Math.hypot(e0.x - P.x, e0.y - P.y);
+      const d1 = Math.hypot(e1.x - P.x, e1.y - P.y);
+      const e = d0 <= d1 ? e0 : e1;
+      const dd = Math.min(d0, d1) || 1;
+      const square = Math.abs(((e.x - P.x) * P.tx + (e.y - P.y) * P.ty) / dd) < 0.2; // a clean 90° hook
+      if (dd <= gap * 2.5 && square) {
+        path.push(e);
+        walk(child, e, path);
+      } else walk(child, P, path);
+    }
   };
 
   const top = kidsOf(lv0);

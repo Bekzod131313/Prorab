@@ -5,6 +5,7 @@
 import { elementsOf, sortedLevels, levelById, openingPos, wallDir, localToPlan, collectorPortLocal, COLLECTOR_PITCH, COLLECTOR_RETURN_Y } from '../core/model.js';
 import { PIPE_MATERIALS } from '../data/products.js';
 import { pointInPolygon } from '../core/util.js';
+import { pipeType as ufhPipeType } from '../engines/ufh/pipes.js';
 
 let THREE = null;
 let NavControls = null;
@@ -515,7 +516,7 @@ export class View3D {
     if (l.elevation >= this.cutZ()) return;
     const u = res?.ufh?.[r.id];
     // UFH rooms show the system board (foil with the laying grid) the pipes are clipped to
-    const matKey = u ? 'ufhFoil' : ROOM_FLOOR[r.roomType] ?? 'parquet';
+    const matKey = u || res?.ufhZoneOut?.[r.id] ? 'ufhFoil' : ROOM_FLOOR[r.roomType] ?? 'parquet';
     const shape = new THREE.Shape(r.points.map((q) => new THREE.Vector2(q.x, -q.y)));
     const g = new THREE.ExtrudeGeometry(shape, { depth: 0.012, bevelEnabled: false });
     const m = new THREE.Mesh(g, [this.M[matKey], this.M.slab]);
@@ -761,6 +762,62 @@ export class View3D {
         tube3(withDrop(loop.supplyLead, gi, 'supply', lc), M.pexRed);
         tube3(withDrop(loop.returnLead, gi, 'return', lc), this.systemColors ? M.pexBlue : M.pexRed);
       }
+    }
+    // stored loops (UFH engine zones / Shlanka olish): outlet → drop → pipe on the floor → drop → outlet
+    const { yS, yR, zS, zR, rBar } = M3.MANIFOLD;
+    for (const lp of elementsOf(p, 'ufh_loop', l.id)) {
+      const col = p.elements[lp.collectorId];
+      const pt = ufhPipeType(lp.pipeType);
+      const od = pt.od;
+      const z = l.elevation + 0.012 + od / 2;
+      const path = lp.path;
+      if (!path || path.length < 3) continue;
+      let total = 0;
+      for (let i = 1; i < path.length; i++) total += Math.hypot(path[i].x - path[i - 1].x, path[i].y - path[i - 1].y);
+      let acc = 0;
+      let mid = 1;
+      for (let i = 1; i < path.length; i++) {
+        acc += Math.hypot(path[i].x - path[i - 1].x, path[i].y - path[i - 1].y);
+        if (acc >= total / 2) {
+          mid = i;
+          break;
+        }
+      }
+      const drop = (sys) => {
+        if (!col) return [];
+        const o = localToPlan(col, collectorPortLocal(lp.portIndex ?? 0), sys === 'supply' ? -yS : -yR);
+        const zTop = l.elevation + (sys === 'supply' ? zS : zR) - rBar - 0.04;
+        this.add(M3.cylBetween(new THREE.Vector3(o.x, -o.y, z + 0.1), new THREE.Vector3(o.x, -o.y, z + 0.28), 0.0115, sys === 'supply' ? M.redPlastic : M.bluePlastic, 14), lp.id);
+        return [new THREE.Vector3(o.x, -o.y, zTop), new THREE.Vector3(o.x, -o.y, z)];
+      };
+      const flat = (pts) => pts.map((q) => new THREE.Vector3(q.x, -q.y, z));
+      // the plan hook-up to the connector is replaced by the real vertical drop
+      const trim = (pts) => {
+        let k = 1;
+        while (k < pts.length - 2 && col && Math.hypot(pts[k].x - pts[0].x, pts[k].y - pts[0].y) < 0.25) k++;
+        return pts.slice(k);
+      };
+      const sup = [...drop('supply'), ...flat(trim(path.slice(0, mid + 1)))];
+      const ret = [...drop('return'), ...flat(trim([...path.slice(mid)].reverse()))].reverse();
+      for (const [pts, mat] of [[sup, M.pexRed], [ret, this.systemColors ? M.pexBlue : M.pexRed]]) {
+        if (pts.length < 2) continue;
+        const g = M3.tubeAlong(M3.bend3(pts, 0.07, 6), od / 2, 12);
+        if (!g) continue;
+        const m = new THREE.Mesh(g, lp.status === 'invalid' ? M.redPlastic : mat);
+        m.receiveShadow = true;
+        this.add(m, lp.id);
+      }
+    }
+    // floor obstacles (bathtub, stair, furniture …) as simple bodies
+    const OB_H = { stair: 0.18, column: 2.7, bathtub: 0.55, shower: 0.08, toilet: 0.4, furniture: 0.8, kitchen: 0.9, equipment: 1.2, structure: 0.3, unheated: 0.02 };
+    for (const o of elementsOf(p, 'floor_obstacle', l.id)) {
+      const shape = new THREE.Shape(o.points.map((q) => new THREE.Vector2(q.x, -q.y)));
+      const g = new THREE.ExtrudeGeometry(shape, { depth: OB_H[o.kind] ?? 0.3, bevelEnabled: false });
+      const m = new THREE.Mesh(g, M.slab);
+      m.position.z = l.elevation + 0.012;
+      m.castShadow = true;
+      m.receiveShadow = true;
+      this.add(m, o.id);
     }
   }
 

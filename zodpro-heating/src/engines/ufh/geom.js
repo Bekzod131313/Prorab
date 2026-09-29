@@ -101,7 +101,7 @@ export function sanitize(ring) {
 }
 
 /** Remove spikes / needles and vertices closer than `dist` (Clipper CleanPolygon). */
-export function cleanRing(ring, dist = 0.0003) {
+export function cleanRing(ring, dist = 0.00002) {
   return fromPath(C.Clipper.CleanPolygon(toPath(ring), dist * SCALE));
 }
 

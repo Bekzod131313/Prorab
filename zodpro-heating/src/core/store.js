@@ -117,6 +117,11 @@ export class Store {
           touch(e.id);
           delete p.elements[e.id];
         }
+        // a UFH loop goes with its zone or its manifold
+        if (e.cat === 'ufh_loop' && (e.zoneId === id || e.collectorId === id)) {
+          touch(e.id);
+          delete p.elements[e.id];
+        }
       }
     }
     const afterRepair = Object.values(p.elements).filter((e) => (e.cat === 'radiator' && e.roomId && !p.elements[e.roomId]) || (e.cat === 'room' && e.ufh?.collectorId && !p.elements[e.ufh.collectorId]));

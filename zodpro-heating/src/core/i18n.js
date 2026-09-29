@@ -7,7 +7,7 @@ const uz = {
   search: 'Qidirish…', undo: 'Bekor qilish', redo: 'Qaytarish',
   // tools
   t_select: 'Tanlash', t_wall: 'Devor', t_door: 'Eshik', t_window: 'Deraza', t_room: 'Xona', t_room_poly: 'Xona (poligon)', t_level: 'Qavat', t_radiator: 'Radiator', t_pipe_s: "Quvur (ta'minot)", t_pipe_r: 'Quvur (qaytish)', t_riser: "Stoyak", t_collector: 'Kollektor', t_ufh_collector: 'Pol isitish kollektori', t_boiler: 'Qozon', t_pump: 'Nasos', t_thermostat: 'Termostat', t_obstacle: "To'siq (balka/kanal)", t_text: 'Matn', t_dim: "O'lcham", t_measure: "O'lchash", t_move: "Ko'chirish", t_copy: 'Nusxa', t_rotate: 'Burish', t_mirror: 'Oyna', t_delete: "O'chirish", t_array: 'Massiv', t_offset: 'Siljitish (offset)', t_trim: 'Kesish (trim)', t_extend: "Uzaytirish", t_split: "Bo'lish",
-  t_auto_rad: 'Avto radiator', t_auto_ufh: 'Avto issiq pol', t_ufh_room: 'Issiq pol', t_auto_route: 'Avto quvur', t_auto_col: 'Avto kollektor', t_calc: 'Qayta hisoblash', t_validate: 'Tekshirish', t_balance: 'Balanslash',
+  t_auto_rad: 'Avto radiator', t_ufh_auto: 'Avto тёплый пол (zona)', t_ufh_pipe: 'Shlanka olish', t_floor_obstacle: 'To‘siq (pol)', t_auto_ufh: 'Avto issiq pol', t_ufh_room: 'Issiq pol', t_auto_route: 'Avto quvur', t_auto_col: 'Avto kollektor', t_calc: 'Qayta hisoblash', t_validate: 'Tekshirish', t_balance: 'Balanslash',
   t_new: 'Yangi', t_open: 'Ochish', t_save: 'Saqlash', t_save_as: 'Boshqacha saqlash', t_demo: 'Namuna loyiha', t_template: 'Shablon', t_revision: 'Reviziya', t_backup: 'Zaxira',
   t_exp_dxf: 'DXF', t_exp_ifc: 'IFC', t_exp_xls: 'Excel', t_exp_csv: 'CSV', t_exp_svg: 'SVG', t_exp_png: 'PNG', t_exp_pdf: 'PDF (chop etish)', t_imp_dxf: 'DXF import', t_imp_img: 'Rasm/PDF podloshka', t_imp_prod: 'Mahsulot import (CSV)', t_imp_zph: '.zph ochish', t_exp_json: '.zph saqlash',
   t_palette: 'Buyruqlar palitrasi', t_theme: 'Mavzu', t_lang: 'Til', t_ai: 'Yordamchi',
@@ -34,6 +34,7 @@ const uz = {
   m_pipe_velocity_high: 'Tezlik yuqori: {v} m/s > {max} (DN{dn})', m_pipe_velocity_critical: 'Tezlik kritik: {v} m/s > {max}', m_pipe_r_high: "Solishtirma yo'qotish {R} Pa/m > {max}", m_branch_dp_high: "Kontur yo'qotishi {dp} kPa > {max} kPa", m_size_no_valid: '{material}: shartlarga mos diametr yo‘q', m_velocity_low: 'Tezlik past: {v} m/s < {min}', m_balance_unreachable: 'Balanslab bo‘lmadi: sarf og‘ishi {pct}%',
   m_pump_missing: "Nasos tanlanmadi (Q={q} m³/h, H={h} m)", m_pump_inadequate: '{model} yetarli emas (H={h} m)', m_pump_not_placed: 'Qozonda ichki nasos yo‘q — {model} nasosini joylashtiring', m_boiler_missing: 'Qozon joylashtirilmagan', m_boiler_none: 'Katalogda {kw} kVt qozon yo‘q', m_boiler_undersized: 'Qozon {kw} kVt < talab {req} kVt',
   m_collector_ports: 'Kollektor chiqishlari yetarli emas ({used} > {max})', m_collector_flow: 'Kollektor sarfi {q} > {max} m³/h', m_ufh_insufficient: 'Pol isitish yetmaydi: {q} W/m² > {cap}', m_ufh_surface_high: 'Pol yuzasi {t}°C > {max}°C', m_ufh_loop_long: 'Kontur uzun: {L} m > {max} m', m_ufh_loops_increased: "Bosim uchun konturlar {from} → {to}", m_ufh_no_collector: '{room}: pol isitish kollektoriga biriktirilmagan',
+  m_ufh_zone_invalid: '{name}: tyopliy pol zonasi yaroqsiz — {n} ta xato ({first})', m_ufh_zone_stale: '{name}: zona o‘zgardi — REGENERATE qiling', m_ufh_loop_dp: '{name}: kontur bosim yo‘qotishi {dp} kPa > {max} kPa',
   m_equipment_clearance: '{mark}: xizmat ko‘rsatish zonasi (0.6 m) band', m_clash: "To'qnashuv {id}: {kind}", m_integrity: "Ma'lumot yaxlitligi: {code}", m_exp_pressure_invalid: 'Kengaytirish baki: p0={p0} ≥ pe={pe}', m_exp_none: 'Katalogda {v} l bak yo‘q', m_missing_assembly: 'Konstruksiya topilmadi: {assembly}', m_missing_opening_type: 'Deraza/eshik turi topilmadi',
   m_route_no_collector: 'Qavatda kollektor yo‘q', m_route_no_boiler: 'Qozon yo‘q', m_route_collector_full: 'Kollektor to‘ldi (12)',
   // misc
@@ -47,7 +48,7 @@ const ru = {
   tab_project: 'Проект', tab_edit: 'Правка', tab_view: 'Вид', tab_systems: 'Системы', tab_calc: 'Расчёт', tab_docs: 'Чертежи', tab_export: 'Импорт/Экспорт', tab_settings: 'Настройки', tab_help: 'Справка',
   search: 'Поиск…', undo: 'Отменить', redo: 'Повторить',
   t_select: 'Выбор', t_wall: 'Стена', t_door: 'Дверь', t_window: 'Окно', t_room: 'Помещение', t_room_poly: 'Помещение (полигон)', t_level: 'Этаж', t_radiator: 'Радиатор', t_pipe_s: 'Труба (подача)', t_pipe_r: 'Труба (обратка)', t_riser: 'Стояк', t_collector: 'Коллектор', t_ufh_collector: 'Коллектор ТП', t_boiler: 'Котёл', t_pump: 'Насос', t_thermostat: 'Термостат', t_obstacle: 'Препятствие', t_text: 'Текст', t_dim: 'Размер', t_measure: 'Измерить', t_move: 'Переместить', t_copy: 'Копировать', t_rotate: 'Повернуть', t_mirror: 'Зеркало', t_delete: 'Удалить', t_array: 'Массив', t_offset: 'Смещение', t_trim: 'Обрезать', t_extend: 'Удлинить', t_split: 'Разделить',
-  t_auto_rad: 'Авто радиаторы', t_auto_ufh: 'Авто тёплый пол', t_ufh_room: 'Тёплый пол', t_auto_route: 'Авто трассировка', t_auto_col: 'Авто коллектор', t_calc: 'Пересчитать', t_validate: 'Проверка', t_balance: 'Балансировка',
+  t_auto_rad: 'Авто радиаторы', t_ufh_auto: 'Авто тёплый пол (зона)', t_ufh_pipe: 'Отвод шланга', t_floor_obstacle: 'Препятствие (пол)', t_auto_ufh: 'Авто тёплый пол', t_ufh_room: 'Тёплый пол', t_auto_route: 'Авто трассировка', t_auto_col: 'Авто коллектор', t_calc: 'Пересчитать', t_validate: 'Проверка', t_balance: 'Балансировка',
   t_new: 'Новый', t_open: 'Открыть', t_save: 'Сохранить', t_save_as: 'Сохранить как', t_demo: 'Пример', t_template: 'Шаблон', t_revision: 'Ревизия', t_backup: 'Резерв',
   t_imp_dxf: 'Импорт DXF', t_imp_img: 'Подложка (изобр./PDF)', t_imp_prod: 'Импорт продукции (CSV)', t_exp_pdf: 'PDF (печать)',
   t_palette: 'Палитра команд', t_theme: 'Тема', t_lang: 'Язык', t_ai: 'Ассистент',
@@ -60,6 +61,7 @@ const ru = {
   r_heatloss: 'Теплопотери', r_radiators: 'Ведомость радиаторов', r_pipes: 'Ведомость труб', r_hydraulic: 'Гидравлический расчёт', r_balancing: 'Балансировка', r_pump: 'Насос', r_boiler: 'Котёл', r_expansion: 'Расширительный бак', r_ufh: 'Тёплый пол', r_bom: 'Спецификация материалов', r_cost: 'Смета', r_validation: 'Проверка', r_equipment: 'Оборудование', r_collectors: 'Коллекторы', r_valves: 'Арматура',
   help_intro: 'ZODPRO Heating BIM — BIM/CAD платформа только для проектирования отопления.', confirm_new: 'Создать новый проект? Несохранённые изменения будут потеряны.', dashboard_title: 'Состояние проекта', all_ok: 'Все проверки пройдены',
   m_room_no_heating: '{room}: нет отопительного прибора ({q} Вт)', m_room_under_heated: '{room}: недостаточно ({pct}%)', m_pipe_velocity_high: 'Скорость {v} м/с > {max} (DN{dn})', m_boiler_missing: 'Котёл не размещён', m_pump_missing: 'Насос не подобран (Q={q}, H={h})',
+  m_ufh_zone_invalid: '{name}: зона тёплого пола недействительна — ошибок {n} ({first})', m_ufh_zone_stale: '{name}: зона изменена — выполните REGENERATE', m_ufh_loop_dp: '{name}: потери давления в петле {dp} кПа > {max} кПа',
 };
 
 const en = {
@@ -67,7 +69,7 @@ const en = {
   tab_project: 'Project', tab_edit: 'Edit', tab_view: 'View', tab_systems: 'Systems', tab_calc: 'Calculate', tab_docs: 'Drawings', tab_export: 'Import/Export', tab_settings: 'Settings', tab_help: 'Help',
   search: 'Search…', undo: 'Undo', redo: 'Redo',
   t_select: 'Select', t_wall: 'Wall', t_door: 'Door', t_window: 'Window', t_room: 'Room', t_room_poly: 'Room (polygon)', t_level: 'Level', t_radiator: 'Radiator', t_pipe_s: 'Pipe (supply)', t_pipe_r: 'Pipe (return)', t_riser: 'Riser', t_collector: 'Manifold', t_ufh_collector: 'UFH manifold', t_boiler: 'Boiler', t_pump: 'Pump', t_thermostat: 'Thermostat', t_obstacle: 'Obstacle', t_text: 'Text', t_dim: 'Dimension', t_measure: 'Measure', t_move: 'Move', t_copy: 'Copy', t_rotate: 'Rotate', t_mirror: 'Mirror', t_delete: 'Delete', t_array: 'Array', t_offset: 'Offset', t_trim: 'Trim', t_extend: 'Extend', t_split: 'Split',
-  t_auto_rad: 'Auto radiators', t_auto_ufh: 'Auto UFH', t_ufh_room: 'Underfloor heating', t_auto_route: 'Auto routing', t_auto_col: 'Auto manifold', t_calc: 'Recalculate', t_validate: 'Validate', t_balance: 'Balancing',
+  t_auto_rad: 'Auto radiators', t_ufh_auto: 'Auto UFH (zone)', t_ufh_pipe: 'Draw UFH pipe', t_floor_obstacle: 'Floor obstacle', t_auto_ufh: 'Auto UFH', t_ufh_room: 'Underfloor heating', t_auto_route: 'Auto routing', t_auto_col: 'Auto manifold', t_calc: 'Recalculate', t_validate: 'Validate', t_balance: 'Balancing',
   t_new: 'New', t_open: 'Open', t_save: 'Save', t_save_as: 'Save as', t_demo: 'Sample project', t_template: 'Template', t_revision: 'Revision', t_backup: 'Backup',
   t_imp_dxf: 'Import DXF', t_imp_img: 'Underlay (image/PDF)', t_imp_prod: 'Import products (CSV)', t_exp_pdf: 'PDF (print)',
   t_palette: 'Command palette', t_theme: 'Theme', t_lang: 'Language', t_ai: 'Assistant',
@@ -80,6 +82,7 @@ const en = {
   r_heatloss: 'Heat loss report', r_radiators: 'Radiator schedule', r_pipes: 'Pipe schedule', r_hydraulic: 'Hydraulic calculation', r_balancing: 'Balancing', r_pump: 'Pump report', r_boiler: 'Boiler report', r_expansion: 'Expansion vessel', r_ufh: 'Underfloor heating', r_bom: 'Material takeoff', r_cost: 'Cost estimate', r_validation: 'Validation', r_equipment: 'Equipment schedule', r_collectors: 'Manifold schedule', r_valves: 'Valve schedule',
   help_intro: 'ZODPRO Heating BIM — a BIM/CAD platform dedicated to heating design.', confirm_new: 'Create a new project? Unsaved changes will be lost.', dashboard_title: 'Project status', all_ok: 'All checks passed',
   m_room_no_heating: '{room}: no emitter (needs {q} W)', m_room_under_heated: '{room}: under-heated ({pct}%)', m_pipe_velocity_high: 'Velocity {v} m/s > {max} (DN{dn})', m_boiler_missing: 'No boiler placed', m_pump_missing: 'No pump found (Q={q}, H={h})',
+  m_ufh_zone_invalid: '{name}: UFH zone invalid — {n} errors ({first})', m_ufh_zone_stale: '{name}: zone changed — REGENERATE', m_ufh_loop_dp: '{name}: loop pressure loss {dp} kPa > {max} kPa',
 };
 
 export const LANGS = { uz, ru, en };

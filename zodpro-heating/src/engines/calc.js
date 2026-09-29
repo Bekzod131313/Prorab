@@ -9,7 +9,8 @@
 
 import { roomHeatLoss, HEATLOSS_VERSION } from './heatloss.js';
 import { selectRadiator, outputAt, radiatorById, RADIATOR_VERSION } from './radiator.js';
-import { designUfh, refineWithLayout, UFH_VERSION } from './ufh.js';
+import { designUfh, refineWithLayout, fluxCapacity, UFH_VERSION } from './ufh.js';
+import { pipeType as ufhPipeType, innerDiameter } from './ufh/pipes.js';
 import { layoutRoomUfh, splitRoomBands, UFH_LAYOUT_VERSION } from './ufhlayout.js';
 import { buildNetwork, NETWORK_VERSION } from './network.js';
 import { flowFromHeat, pipeSegment, kvDrop, kvRequired, paToM, HYDRAULICS_VERSION } from './hydraulics.js';
@@ -18,7 +19,7 @@ import { buildBom, costEstimate, BOM_VERSION } from './bom.js';
 import { validate, clashDetection, VALIDATION_VERSION } from './validation.js';
 import { RADIATORS, PIPE_MATERIALS, VALVES, BOILERS, PUMPS, COLLECTORS } from '../data/products.js';
 import { elementsOf, roomTemp, isHeated, integrityCheck, collectorPort } from '../core/model.js';
-import { pointInPolygon } from '../core/util.js';
+import { pointInPolygon, polygonArea, polygonCentroid } from '../core/util.js';
 import { water } from './water.js';
 
 export const CALC_VERSION = 'zodpro-calc/1.2';
@@ -103,7 +104,30 @@ export function runCalculation(project, opts = {}) {
       .sort((a, b) => a.y - b.y || a.x - b.x)
       .forEach((c, i) => ufhColNo.set(c.id, i + 1));
   }
-  const ufhRooms = rooms.filter((r) => ['ufh', 'mixed'].includes(r.heating) && isHeated(r) && !r.ufh?.transit).sort((a, b) => String(a.number ?? '').localeCompare(String(b.number ?? '')));
+  // stored loops (UFH engine / manual) own their outlets; room-based UFH takes the free ones
+  const storedLoops = elementsOf(project, 'ufh_loop');
+  const zones = elementsOf(project, 'ufh_zone');
+  const usedPorts = new Map();
+  for (const l of storedLoops) {
+    if (!usedPorts.has(l.collectorId)) usedPorts.set(l.collectorId, new Set());
+    usedPorts.get(l.collectorId).add(l.portIndex);
+  }
+  const freeList = (colId) => {
+    const used = usedPorts.get(colId) ?? new Set();
+    const out = [];
+    for (let i = 0; out.length < 40; i++) if (!used.has(i)) out.push(i);
+    return out;
+  };
+  const roomPorts = new Map();
+  // a room with an engine zone is heated by that zone (no second, room-based layout)
+  const zoneRoom = new Map();
+  for (const z of zones) {
+    const c = polygonCentroid(z.points);
+    const r = z.roomId && project.elements[z.roomId] ? project.elements[z.roomId] : rooms.find((x) => x.levelId === z.levelId && pointInPolygon(c, x.points));
+    if (r) zoneRoom.set(z.id, r.id);
+  }
+  const zonedRooms = new Set(zoneRoom.values());
+  const ufhRooms = rooms.filter((r) => ['ufh', 'mixed'].includes(r.heating) && isHeated(r) && !r.ufh?.transit && !zonedRooms.has(r.id)).sort((a, b) => String(a.number ?? '').localeCompare(String(b.number ?? '')));
   for (const r of ufhRooms) {
     const hl = res.rooms[r.id];
     const Q = hl.required;
@@ -136,6 +160,7 @@ export function runCalculation(project, opts = {}) {
         pattern: r.ufh?.pattern ?? 'auto',
       });
       const first = col ? portCursor.get(col.id) ?? 0 : 0;
+      const free = col ? freeList(col.id) : [];
       const layoutFn = (n) =>
         layoutRoomUfh({
           polygon,
@@ -144,19 +169,21 @@ export function runCalculation(project, opts = {}) {
           pattern: d.pattern,
           inset: wallHalf + 0.1,
           toward: col ? { x: col.x, y: col.y } : cen,
-          ports: col ? Array.from({ length: n }, (_, i) => ({ supply: collectorPort(col, first + i, 'supply'), return: collectorPort(col, first + i, 'return') })) : null,
+          ports: col ? Array.from({ length: n }, (_, i) => ({ supply: collectorPort(col, free[first + i], 'supply'), return: collectorPort(col, free[first + i], 'return') })) : null,
         });
       d = refineWithLayout(d, layoutFn, { ts: s.ufhRegime.ts, tr: s.ufhRegime.tr, maxLoop: s.ufhMaxLoopM, maxLoopKpa: s.ufhMaxLoopKpa });
       if (col) {
-        d.firstPort = first + 1;
         portCursor.set(col.id, first + d.loops);
         // loop IDs like the drawings: <floor>.<manifold>.<outlet>  e.g. 1.2.3
         const colNo = ufhColNo.get(col.id) ?? 1;
-        d.loopIds = d.layout.map((l, i) => `${lvNo}.${colNo}.${first + 1 + (l.port ?? i)}`);
+        d.loopIds = d.layout.map((l, i) => `${lvNo}.${colNo}.${free[first + (l.port ?? i)] + 1}`);
         d.layout.forEach((l, i) => {
           l.collectorId = col.id;
-          l.portIndex = first + (l.port ?? i);
+          l.portIndex = free[first + (l.port ?? i)];
+          if (!roomPorts.has(col.id)) roomPorts.set(col.id, []);
+          roomPorts.get(col.id).push(l.portIndex);
         });
+        d.firstPort = free[first] + 1;
       } else d.loopIds = d.layout.map((_, i) => `${lvNo}.0.${i + 1}`);
       d.collectorId = col?.id ?? null;
       return d;
@@ -191,7 +218,65 @@ export function runCalculation(project, opts = {}) {
       ufhByCollector.get(part.collectorId).push(part);
     }
   }
-  res.ufhPorts = Object.fromEntries(portCursor);
+  // ---------- 2b. stored loops (UFH engine zones + manual loops): output and loop hydraulics ----------
+  res.ufhLoops = {};
+  res.ufhZones = {};
+  const zoneOut = new Map(); // roomId → W
+  const tmU = (s.ufhRegime.ts + s.ufhRegime.tr) / 2;
+  const dTu = s.ufhRegime.ts - s.ufhRegime.tr;
+  const turns = (path) => {
+    let a = 0;
+    for (let i = 2; i < path.length; i++) {
+      const u = Math.atan2(path[i - 1].y - path[i - 2].y, path[i - 1].x - path[i - 2].x);
+      const v = Math.atan2(path[i].y - path[i - 1].y, path[i].x - path[i - 1].x);
+      let d = v - u;
+      while (d > Math.PI) d -= 2 * Math.PI;
+      while (d < -Math.PI) d += 2 * Math.PI;
+      a += Math.abs(d);
+    }
+    return a / (Math.PI / 2); // in 90° bends
+  };
+  const loopHyd = (l, Q) => {
+    const pt = ufhPipeType(l.pipeType);
+    const f = flowFromHeat(Math.max(Q, 1), dTu, tmU);
+    const seg = pipeSegment({ vM3s: f.vM3s, dInner: innerDiameter(pt), k: 7e-6, length: l.length, zeta: 0.3 * turns(l.path) + 2 * 1.5, tm: tmU });
+    return { Q, flowLh: f.vLh, velocity: seg.v, dpKpa: seg.dp / 1000, R: seg.R };
+  };
+  for (const z of zones) {
+    const roomId = zoneRoom.get(z.id) ?? null;
+    const r = roomId ? project.elements[roomId] : null;
+    const hl = roomId ? res.rooms[roomId] : null;
+    const area = Math.abs(polygonArea(z.points));
+    const ti = r ? roomTemp(r) : 20;
+    const loops = storedLoops.filter((l) => l.zoneId === z.id);
+    const heated = area * (z.report?.coverage ?? 0.9);
+    const cap = fluxCapacity(z.spacing ?? 0.15, s.ufhRegime.ts, s.ufhRegime.tr, ti) * heated;
+    const demand = hl ? hl.required * Math.min(1, area / Math.max(0.01, hl.inputs.area)) : cap;
+    const Qout = Math.max(0, Math.min(cap, demand));
+    zoneOut.set(roomId, (zoneOut.get(roomId) ?? 0) + Qout);
+    const hl2 = loops.reduce((a, l) => a + (l.heatingLength || l.length), 0) || 1;
+    for (const l of loops) res.ufhLoops[l.id] = { ...loopHyd(l, Qout * 1.1 * ((l.heatingLength || l.length) / hl2)), zoneId: z.id, roomId };
+    res.ufhZones[z.id] = { roomId, area, heated, capacity: cap, demand, Qout, loops: loops.length, coverage: z.report?.coverage ?? null, maxDpKpa: Math.max(0, ...loops.map((l) => res.ufhLoops[l.id].dpKpa)) };
+  }
+  // manual loops without a zone: output from the heated band of the pipe (length × spacing)
+  for (const l of storedLoops.filter((x) => !x.zoneId || !project.elements[x.zoneId])) {
+    const c = l.path[Math.floor(l.path.length / 2)] ?? l.path[0];
+    const r = rooms.find((x) => x.levelId === l.levelId && pointInPolygon(c, x.points));
+    const q = fluxCapacity(l.spacing ?? 0.15, s.ufhRegime.ts, s.ufhRegime.tr, r ? roomTemp(r) : 20);
+    const Q = q * (l.heatingLength || l.length) * (l.spacing ?? 0.15);
+    res.ufhLoops[l.id] = { ...loopHyd(l, Q * 1.1), zoneId: null, roomId: r?.id ?? null };
+    if (r) zoneOut.set(r.id, (zoneOut.get(r.id) ?? 0) + Q);
+  }
+  for (const l of storedLoops) {
+    const h = res.ufhLoops[l.id];
+    if (!l.collectorId || !h) continue;
+    if (!ufhByCollector.has(l.collectorId)) ufhByCollector.set(l.collectorId, []);
+    ufhByCollector.get(l.collectorId).push({ collectorId: l.collectorId, loops: 1, Qout: h.Q / 1.1, dpLoop: h.dpKpa * 1000, loopId: l.id });
+  }
+  res.ufhZoneOut = Object.fromEntries([...zoneOut].filter(([k]) => k));
+  res.ufhRoomPorts = Object.fromEntries(roomPorts);
+  const allCols = new Set([...portCursor.keys(), ...usedPorts.keys()]);
+  res.ufhPorts = Object.fromEntries([...allCols].map((id) => [id, Math.max(0, ...(roomPorts.get(id) ?? []).map((i) => i + 1), ...[...(usedPorts.get(id) ?? [])].map((i) => i + 1))]));
 
   // ---------- 3. radiators ----------
   const rads = elementsOf(project, 'radiator');
@@ -209,7 +294,7 @@ export function runCalculation(project, opts = {}) {
     const room = roomId ? project.elements[roomId] : null;
     const ti = room ? roomTemp(room) : 20;
     const hl = roomId ? res.rooms[roomId] : null;
-    const required = hl ? Math.max(0, hl.required - (res.ufh[roomId]?.Qout ?? 0)) : 0;
+    const required = hl ? Math.max(0, hl.required - (res.ufh[roomId]?.Qout ?? 0) - (res.ufhZoneOut[roomId] ?? 0)) : 0;
     const manual = list.filter((r) => r.selection === 'manual' && r.productId);
     const manualOut = manual.reduce((a, r) => a + outputAt(radiatorById(r.productId, catalog) ?? { q75: 0 }, ts, tr, ti), 0);
     const autos = list.filter((r) => !(r.selection === 'manual' && r.productId));
@@ -309,7 +394,7 @@ export function runCalculation(project, opts = {}) {
   for (const r of rooms) {
     const hl = res.rooms[r.id];
     const radiatorOutput = (byRoom.get(r.id) ?? []).reduce((a, x) => a + res.radiators[x.id].output, 0);
-    const ufhOutput = (res.ufh[r.id]?.Qout ?? 0) + (res.ufhTransit[r.id]?.Q ?? 0);
+    const ufhOutput = (res.ufh[r.id]?.Qout ?? 0) + (res.ufhTransit[r.id]?.Q ?? 0) + (res.ufhZoneOut[r.id] ?? 0);
     hl.emitters = { radiatorOutput, ufhOutput, coverage: hl.required > 0 ? (radiatorOutput + ufhOutput) / hl.required : null };
   }
   const productLookup = (el) => (el.cat === 'radiator' ? res.radiators[el.id]?.product : null);

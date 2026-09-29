@@ -7,6 +7,9 @@ import { REGIMES } from '../engines/radiator.js';
 import { catalogOf } from '../engines/calc.js';
 import { t, msg } from '../core/i18n.js';
 import { esc, f0, f1, f2 } from './reports.js';
+import { UFH_PIPES, SPACINGS as UFH_SPACINGS, WALL_CLEARANCES, STRATEGIES, OBSTACLE_KINDS, pipeType as ufhPipeType } from '../engines/ufh/pipes.js';
+import { collectorCircuits, MAX_CIRCUITS } from '../core/ufhmodel.js';
+import { STRATEGY_LABEL, OBSTACLE_LABEL } from './ufhtool.js';
 
 const CAT_ICON = { wall: '▭', window: '⊞', door: '⌸', room: '▢', radiator: '▥', pipe: '╱', riser: '◉', collector: '☰', boiler: '▣', pump: '◎', thermostat: 'T', obstacle: '▨', text: 'A', dim: '↔', dline: '∕', circle: '○', section: '✂' };
 
@@ -195,6 +198,25 @@ function fieldsFor(el, p, res) {
       return [...common, { k: 'kind', l: t('kind'), type: 'select', opts: [['room', 'Xona termostati'], ['zone', 'Zona termostati'], ['smart', 'Aqlli termostat']] }, { k: 'setpoint', l: 'Setpoint', type: 'number', u: '°C' }];
     case 'obstacle':
       return [...common, { k: 'kind', l: t('kind'), type: 'select', opts: [['beam', 'Balka'], ['duct', 'Havo kanali'], ['cable_tray', 'Kabel lotok'], ['structure', 'Konstruksiya'], ['plumbing', 'Suv quvuri']] }, { k: 'width', l: t('width'), type: 'number', u: 'm' }, { k: 'zBottom', l: 'Pastki belgi', type: 'number', u: 'm' }, { k: 'zTop', l: 'Yuqori belgi', type: 'number', u: 'm' }];
+    case 'ufh_zone': {
+      const cols = elementsOf(p, 'collector', el.levelId).filter((c) => c.kind === 'ufh').map((c) => [c.id, c.mark || c.id]);
+      return [
+        { k: 'name', l: t('name'), type: 'text' },
+        { k: 'collectorId', l: 'Kollektor', type: 'select', opts: cols },
+        { k: 'spacing', l: 'Quvur oralig‘i', type: 'select', opts: UFH_SPACINGS.map((v) => [String(v), `${Math.round(v * 1000)} mm`]), num: true },
+        { k: 'wallClearance', l: 'Devordan masofa', type: 'select', opts: WALL_CLEARANCES.map((v) => [String(v), `${Math.round(v * 1000)} mm`]), num: true },
+        { k: 'obstacleClearance', l: 'To‘siqdan masofa', type: 'select', opts: WALL_CLEARANCES.map((v) => [String(v), `${Math.round(v * 1000)} mm`]), num: true },
+        { k: 'pipeType', l: 'Quvur turi', type: 'select', opts: UFH_PIPES.map((x) => [x.id, x.label]) },
+        { k: 'strategy', l: 'Yotqizish usuli', type: 'select', opts: STRATEGIES.map((x) => [x, STRATEGY_LABEL[x]]) },
+        { k: 'maxLoop', l: 'Maks. kontur', type: 'number', u: 'm' },
+        { k: 'coverageMin', l: 'Min. qamrov (0…1)', type: 'number' },
+        { k: 'maxHole', l: 'Maks. bo‘sh joy', type: 'number', u: 'm²' },
+      ];
+    }
+    case 'floor_obstacle':
+      return [{ k: 'kind', l: t('kind'), type: 'select', opts: OBSTACLE_KINDS.map((k) => [k, OBSTACLE_LABEL[k]]) }, { k: 'clearance', l: 'Clearance (bo‘sh — zonaniki)', type: 'number', u: 'm' }];
+    case 'ufh_loop':
+      return [{ k: 'name', l: t('name'), type: 'text' }];
     case 'text':
       return [{ k: 'text', l: 'Matn', type: 'text' }, { k: 'size', l: 'Balandlik', type: 'number', u: 'm' }];
     case 'dim':
@@ -282,6 +304,8 @@ export function renderProperties(el, app, tab) {
       const updates = sel.map((x) => {
         const patch = setPathPatch(x, f.k, v === undefined ? null : v);
         if (f.k === 'mark') patch.markLocked = !!v;
+        // any zone parameter change needs a REGENERATE (the stored loops were built with the old one)
+        if (x.cat === 'ufh_zone' && f.k !== 'name') patch.stale = true;
         if (f.k === 'heating' && (v === 'ufh' || v === 'mixed') && !x.ufh?.collectorId) {
           // attach to the nearest UFH manifold on the level so the loops are hydraulically connected
           const cols = elementsOf(p, 'collector', x.levelId).filter((c) => c.kind === 'ufh');
@@ -302,6 +326,12 @@ export function renderProperties(el, app, tab) {
     if (a === 'zoom') app.focusElement(first.id);
     if (a === 'issue') app.newIssue(first.id);
     if (a === 'qr') app.showQR(first.id);
+    if (a === 'ufh-regen') app.ufh.regenerate(first.id, false);
+    if (a === 'ufh-repair') app.ufh.regenerate(first.id, true);
+    if (a === 'ufh-zone') {
+      store.select(first.zoneId);
+    }
+    if (a === 'ufh-circuits') app.ufh.circuitsDialog(first);
     if (a === 'addparam') {
       const k = await app.ask('Parametr nomi');
       if (k) store.apply({ update: [{ id: first.id, patch: { custom: { ...(first.custom ?? {}), [k]: '' } } }] }, 'custom');
@@ -349,12 +379,58 @@ function elementResults(e, p, res) {
     const b = res.boiler;
     return sect(t('calc_results'), kv([['Isitish', `${f1(b.heatingKw)} kVt`], ['DHW', `${f1(b.dhwKw)} kVt`], [t('reserve'), b.reserve], [t('required'), `${f1(b.requiredKw)} kVt`], [t('product'), b.product?.model ?? '—'], ['Qarshilik', `${f2(b.dp / 1000)} kPa`], ['Ichki nasos', b.product?.builtInPump ? 'bor' : 'yo‘q']]));
   }
+  if (e.cat === 'ufh_zone') {
+    const z = res.ufhZones?.[e.id];
+    const loops = elementsOf(p, 'ufh_loop').filter((l) => l.zoneId === e.id).sort((a, b) => a.portIndex - b.portIndex);
+    const rep = e.report ?? {};
+    const issues = (rep.issues ?? []).filter((i) => i.level === 'error');
+    return (
+      sect('Tyopliy pol zonasi', kv([
+        ['Holat', e.stale ? 'o‘zgargan — REGENERATE kerak' : e.status === 'valid' ? 'yaroqli ✓' : e.status === 'invalid' ? `yaroqsiz (${rep.errors ?? 0} xato)` : '—'],
+        ['Maydon', `${f2(z?.area ?? 0)} m²`],
+        ['Qamrov', rep.coverage != null ? `${f1(rep.coverage * 100)} %` : '—'],
+        ['Maks. bo‘sh joy', rep.largestHole != null ? `${f2(rep.largestHole)} m²` : '—'],
+        ['Konturlar', loops.length],
+        ['Issiqlik (talab / chiqish)', z ? `${f0(z.demand)} / ${f0(z.Qout)} W` : '—'],
+        ['Usul', STRATEGY_LABEL[rep.strategy] ?? rep.strategy ?? '—'],
+      ])) +
+      (loops.length ? `<table class="tbl"><tr><th>Kontur</th><th>C</th><th>L, m</th><th>G, l/h</th><th>ΔP, kPa</th></tr>${loops.map((l) => `<tr><td>${esc(l.name)}</td><td>${l.circuitId}</td><td class="n">${f1(l.length)}</td><td class="n">${f0(res.ufhLoops?.[l.id]?.flowLh ?? 0)}</td><td class="n">${f1(res.ufhLoops?.[l.id]?.dpKpa ?? 0)}</td></tr>`).join('')}</table>` : '') +
+      (issues.length ? `<ul class="bad" style="font-size:11px;margin:4px 0 6px 16px">${issues.slice(0, 6).map((i) => `<li>${esc(i.msg)}</li>`).join('')}</ul>` : '') +
+      `<div class="btn-row"><button class="btn small primary" data-act="ufh-regen">REGENERATE</button><button class="btn small" data-act="ufh-repair">AUTO REPAIR</button></div>`
+    );
+  }
+  if (e.cat === 'ufh_loop') {
+    const h = res.ufhLoops?.[e.id];
+    const pt = ufhPipeType(e.pipeType);
+    return (
+      sect('Kontur', kv([
+        ['Kontur', e.name],
+        ['Kollektor / circuit', `${p.elements[e.collectorId]?.mark ?? '—'} / ${e.circuitId}`],
+        ['Quvur', `${pt.label} (${pt.material})`],
+        ['Uzunlik (jami)', `${f1(e.length)} m`],
+        ['Supply / isitish / return', `${f1(e.supplyLength)} / ${f1(e.heatingLength)} / ${f1(e.returnLength)} m`],
+        ['Kollektorda tik (2×)', `${f2(e.drop ?? 0)} m`],
+        ['Qadam', `${Math.round((e.spacing ?? 0.15) * 1000)} mm`],
+        ['Issiqlik', h ? `${f0(h.Q)} W` : '—'],
+        ['Sarf', h ? `${f0(h.flowLh)} l/h` : '—'],
+        ['Tezlik', h ? `${f2(h.velocity)} m/s` : '—'],
+        ['Bosim yo‘qotish', h ? `${f1(h.dpKpa)} kPa` : '—'],
+        ['Holat', e.status === 'invalid' ? `xato (${e.errors ?? 0})` : 'yaroqli ✓'],
+        ['Turi', e.manual ? 'qo‘lda (Shlanka olish)' : 'avto (zona)'],
+      ])) + (e.zoneId ? `<div class="btn-row"><button class="btn small" data-act="ufh-zone">Zonani tanlash</button></div>` : '')
+    );
+  }
+  const circ = e.cat === 'collector' && e.kind === 'ufh' ? (() => {
+    const cs = collectorCircuits(p, e, res);
+    const used = cs.filter((c) => c.use);
+    return sect('Circuitlar', `${kv([['Band', `${used.length} / ${MAX_CIRCUITS}`], ['Bo‘sh', cs.length - used.length + (MAX_CIRCUITS - cs.length)]])}<table class="tbl"><tr><th>C</th><th>Kontur</th><th>L</th></tr>${cs.map((c) => `<tr><td>${c.id}</td><td>${c.use === 'loop' ? esc(c.loopName) : c.use === 'room' ? 'xona (avto)' : '<span class="muted">bo‘sh</span>'}</td><td class="n">${c.loopId ? f1(p.elements[c.loopId]?.length ?? 0) : ''}</td></tr>`).join('')}</table><div class="btn-row"><button class="btn small" data-act="ufh-circuits">Circuits…</button></div>`);
+  })() : '';
   if (e.cat === 'collector') {
     // UFH loops on this manifold (a room may be split over several manifolds)
     const mine = Object.values(res.ufh).flatMap((u) => u.layout.filter((l) => (l.collectorId ?? u.collectorId) === e.id).map((l) => ({ u, l })));
     const circuits = res.circuits.filter((c) => c.connected && c.path.includes(e.id));
     const loops = mine.length ? [{ loops: mine.length }] : [];
-    return sect(t('calc_results'), kv([['Ulangan konturlar', circuits.length + mine.length], ['Sarf', `${f0(circuits.reduce((a, c) => a + c.flowLh, 0))} l/h`], ['Issiqlik', `${f0(circuits.reduce((a, c) => a + c.Q, 0))} W`]]) + (loops.length ? `<table class="tbl"><tr><th>#</th><th>Xona</th><th>L</th><th>G</th><th>ΔP</th></tr>${mine.map(({ u, l }, i) => `<tr><td>${(l.portIndex ?? i) + 1}</td><td>${esc(p.elements[u.roomId]?.name)}</td><td class="n">${f1(l.length)}</td><td class="n">${f0(l.flowLh ?? 0)}</td><td class="n">${f2((l.dp ?? 0) / 1000)}</td></tr>`).join('')}</table>` : ''));
+    return circ + sect(t('calc_results'), kv([['Ulangan konturlar', circuits.length + mine.length], ['Sarf', `${f0(circuits.reduce((a, c) => a + c.flowLh, 0))} l/h`], ['Issiqlik', `${f0(circuits.reduce((a, c) => a + c.Q, 0))} W`]]) + (loops.length ? `<table class="tbl"><tr><th>#</th><th>Xona</th><th>L</th><th>G</th><th>ΔP</th></tr>${mine.map(({ u, l }, i) => `<tr><td>${(l.portIndex ?? i) + 1}</td><td>${esc(p.elements[u.roomId]?.name)}</td><td class="n">${f1(l.length)}</td><td class="n">${f0(l.flowLh ?? 0)}</td><td class="n">${f2((l.dp ?? 0) / 1000)}</td></tr>`).join('')}</table>` : ''));
   }
   if (e.cat === 'wall') {
     try {

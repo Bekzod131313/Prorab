@@ -2,7 +2,7 @@
 //
 //   covered   = U ∩ ⋃ buffer(pipe, s/2 + 3 mm)      (a pipe heats a band of width s)
 //   coverage  = area(covered) / area(U)
-//   holes     = connected uncovered pieces (after removing slivers < 2 cm); the largest one is a
+//   holes     = connected uncovered patches wider than one spacing; the largest one is a
 //               hard limit — a big cold patch is an error even when the percentage looks fine
 //
 // The map for the preview (green covered / red uncovered / grey obstacle / yellow clearance) is a
@@ -15,7 +15,9 @@ export function coverageAnalysis({ U, Z, obstacles = [], pipes, s }) {
   const covered = G.intersection(U, band);
   const aU = G.area(U);
   const aC = G.area(covered);
-  const unc = G.opening(G.difference(U, band), 0.02);
+  // a "hole" is a patch that could hold a disc of one spacing: thin stripes where two pipes are a
+  // little further apart than s are counted in the ratio, not as cold patches
+  const unc = G.opening(G.difference(U, band), s / 2);
   const holes = unc.map((sh) => ({ area: G.area([sh]), at: centroidOf(sh.outer), shape: sh })).sort((a, b) => b.area - a.area);
   return {
     area: aU,

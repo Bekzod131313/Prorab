@@ -9,6 +9,7 @@ import { t, setLang, getLang, LANG_NAMES, msg } from '../core/i18n.js';
 import { interpret } from '../core/assistant.js';
 import { PluginHost, sendTelegram, can, ROLES } from '../core/integrations.js';
 import { PlanView } from './plan2d.js';
+import { UfhTool } from './ufhtool.js';
 import { View3D } from './view3d.js';
 import { renderBrowser, renderProperties } from './panels.js';
 import { reportsHTML, dashboardHTML, scheduleDefs, esc, f0 } from './reports.js';
@@ -37,6 +38,7 @@ class App {
     this.applyTheme();
     this.store = new Store(this.initialProject());
     this.plan = new PlanView($('#plan-canvas'), this.store, this);
+    this.ufh = new UfhTool(this);
     this.v3d = new View3D($('#three-host'), $('#toolbar-3d'), this.store, this);
     this.plugins = new PluginHost(this);
     this.registerCommands();
@@ -184,6 +186,24 @@ class App {
       if (!added) return this.toast('Barcha kollektorlarda ≤ 12 chiqish');
       this.autoRoute(true);
     }, 'SPLITCOL');
+    // UFH engine (spec): the manifold's menu is the main entry; the same actions are on the ribbon
+    const ufhCol = () => {
+      const sel = this.ufh.selectedCollector();
+      if (sel) return sel;
+      const cols = elementsOf(this.store.project, 'collector', this.store.activeLevelId).filter((c) => c.kind === 'ufh');
+      if (cols.length === 1) return cols[0];
+      this.toast(cols.length ? 'Avval pol isitish kollektorini tanlang' : 'Bu qavatda pol isitish kollektori yo‘q — avval kollektor qo‘ying', 'error');
+      return null;
+    };
+    cmd('ufh_auto', t('t_ufh_auto'), 'ufh', () => {
+      const c = ufhCol();
+      if (c) this.ufh.startAuto(c);
+    }, 'UFHAUTO');
+    cmd('ufh_pipe', t('t_ufh_pipe'), 'pipe_s', () => {
+      const c = ufhCol();
+      if (c) this.ufh.startManual(c);
+    }, 'SHLANKA');
+    cmd('floor_obstacle', t('t_floor_obstacle'), 'obstacle', () => this.ufh.startObstacle(), 'FOB');
     cmd('auto_col', t('t_auto_col'), 'collector', () => this.autoCollector(), 'AUTOCOL');
     cmd('auto_route', t('t_auto_route'), 'auto_route', () => this.autoRoute(), 'AUTOROUTE');
     cmd('calc', t('t_calc'), 'calc', () => {
@@ -246,10 +266,10 @@ class App {
 
   ribbonLayout() {
     return {
-      project: [['select'], ['wall', 'door', 'window', 'room', 'level'], ['radiator', 'pipe_s', 'pipe_r', 'collector', 'boiler', 'pump', 'riser'], ['text', 'dim'], ['ufh_room', 'auto_rad', 'auto_ufh', 'auto_route', 'calc'], ['view_3d', 'view_reports', 'view_schedules', 'view_sheets', 'exp_dxf']],
+      project: [['select'], ['wall', 'door', 'window', 'room', 'level'], ['radiator', 'pipe_s', 'pipe_r', 'collector', 'boiler', 'pump', 'riser'], ['text', 'dim'], ['ufh_auto', 'ufh_pipe', 'floor_obstacle', 'ufh_room'], ['auto_rad', 'auto_ufh', 'auto_route', 'calc'], ['view_3d', 'view_reports', 'view_schedules', 'view_sheets', 'exp_dxf']],
       edit: [['select', 'undo', 'redo'], ['move', 'copy', 'rotate', 'mirror', 'array', 'offset'], ['trim', 'extend', 'split', 'fillet', 'delete'], ['line', 'polyline', 'circle', 'arc', 'rect', 'hatch', 'leader', 'text', 'dim', 'measure']],
       view: [['view_plan', 'view_3d', 'view_schema', 'view_riser', 'view_section', 'section'], ['auto_grid', 'view_dashboard', 'view_install', 'view_issues', 'tags', 'zoom_fit']],
-      systems: [['radiator', 'pipe_s', 'pipe_r', 'riser'], ['collector', 'ufh_collector', 'ufh_room', 'boiler', 'pump', 'thermostat', 'obstacle'], ['auto_rad', 'auto_ufh', 'split_col', 'auto_col', 'auto_route']],
+      systems: [['radiator', 'pipe_s', 'pipe_r', 'riser'], ['collector', 'ufh_collector', 'ufh_auto', 'ufh_pipe', 'floor_obstacle', 'ufh_room'], ['boiler', 'pump', 'thermostat', 'obstacle'], ['auto_rad', 'auto_ufh', 'split_col', 'auto_col', 'auto_route']],
       calc: [['calc', 'validate', 'balance'], ['view_reports', 'view_dashboard', 'view_schema'], ['ai']],
       docs: [['view_sheets', 'view_schedules', 'exp_pdf'], ['view_schema', 'view_riser', 'view_section', 'section'], ['revision', 'tags']],
       export: [['new', 'open', 'save', 'save_as', 'demo', 'demo_small'], ['imp_dxf', 'imp_img', 'imp_ifc', 'calibrate'], ['exp_dxf', 'exp_ifc', 'exp_xls', 'exp_csv', 'exp_svg', 'exp_png', 'exp_pdf'], ['quote', 'sap', 'telegram']],
@@ -620,6 +640,12 @@ class App {
 
   setCoords(p) {
     $('#status-info').textContent = `X ${p.x.toFixed(3)}  Y ${(-p.y).toFixed(3)} · ${this.statusBase ?? ''}`;
+  }
+
+  showRight(tab) {
+    this.rightTab = tab;
+    this.buildShell();
+    this.refreshPanels();
   }
 
   setHint(h) {

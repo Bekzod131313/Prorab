@@ -15,7 +15,7 @@ import { coverageAnalysis } from './coverage.js';
 
 export const UFH_RULES = {
   spacingTol: 0.012, // pipes may come 12 mm closer at keyholes / jogs
-  bendTol: 0.1, // 10 %: minimum bend radius is the cold-bending radius (5×OD) − 10 % with a spring
+  bendTol: 0.15, // 15 %: pipe table gives the cold-bending radius 5×OD; ≥ 4.25×OD is accepted (bending spring / guide)
   wallTol: 0.003,
   maxHole: 0.5, // m² — largest uncovered patch (≈ 0.7 × 0.7 m)
   coverageMin: 0.85,

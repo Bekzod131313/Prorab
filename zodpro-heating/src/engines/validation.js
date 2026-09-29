@@ -32,6 +32,10 @@ export const RULES = [
   { id: 'R22', code: 'expansion', category: 'equipment', severity: 'warning' },
   { id: 'R23', code: 'balance_unreachable', category: 'hydraulic', severity: 'warning' },
   { id: 'R24', code: 'radiator_not_in_room', category: 'thermal', severity: 'warning' },
+  { id: 'R25', code: 'ufh_zone_invalid', category: 'ufh', severity: 'error' },
+  { id: 'R26', code: 'ufh_zone_stale', category: 'ufh', severity: 'warning' },
+  { id: 'R27', code: 'ufh_loop_long', category: 'ufh', severity: 'error' },
+  { id: 'R28', code: 'ufh_loop_dp', category: 'ufh', severity: 'warning' },
 ];
 
 const SEV_ORDER = { ok: 0, warning: 1, error: 2, critical: 3 };
@@ -182,6 +186,17 @@ export function validate(project, res, net) {
     add('R12', 'critical', 'boiler_missing');
   }
   for (const w of res.expansion?.warnings ?? []) add('R22', 'warning', w.code, w.params);
+
+  // UFH engine zones / stored loops (the zone report is the engine's hard validation, spec §35)
+  for (const z of elementsOf(project, 'ufh_zone')) {
+    if (z.stale) add('R26', 'warning', 'ufh_zone_stale', { name: z.name ?? z.mark ?? 'zona' }, z.id);
+    else if (z.status === 'invalid') add('R25', 'error', 'ufh_zone_invalid', { name: z.name ?? 'zona', n: z.report?.errors ?? 0, first: z.report?.issues?.find((i) => i.level === 'error')?.msg ?? '' }, z.id);
+  }
+  for (const l of elementsOf(project, 'ufh_loop')) {
+    if (l.length > Math.min(60, project.settings.ufhMaxLoopM ?? 60) + 1e-6) add('R27', 'error', 'ufh_loop_long', { name: l.name, L: l.length.toFixed(1), max: Math.min(60, project.settings.ufhMaxLoopM ?? 60) }, l.id);
+    const h = res.ufhLoops?.[l.id];
+    if (h && h.dpKpa > (project.settings.ufhMaxLoopKpa ?? 20)) add('R28', 'warning', 'ufh_loop_dp', { name: l.name, dp: h.dpKpa.toFixed(1), max: project.settings.ufhMaxLoopKpa ?? 20 }, l.id);
+  }
 
   // collectors: ports in use and capacity
   for (const c of elementsOf(project, 'collector')) {

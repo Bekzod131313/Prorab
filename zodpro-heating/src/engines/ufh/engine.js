@@ -27,7 +27,8 @@ export function runUfhEngine(job, onProgress = () => {}) {
   // design bend radius: the pipe's cold-bending radius less the tolerance allowed with a bending
   // spring / guide (validation uses the same value — one rule everywhere)
   const bendTol = job.bendTolerance ?? UFH_RULES.bendTol;
-  const rminEff = pipe.minBend * (1 - bendTol);
+  const rminEff = pipe.minBend * (1 - bendTol); // validation limit
+  const rminDesign = pipe.minBend * (1 - bendTol / 2); // the router aims higher (margin for real geometry)
   const base = {
     zone: job.zone,
     obstacles: job.obstacles ?? [],
@@ -36,7 +37,8 @@ export function runUfhEngine(job, onProgress = () => {}) {
     ports: job.collector.ports,
     anchor: job.collector.anchor,
     s,
-    rmin: rminEff,
+    rmin: rminDesign,
+    rminCheck: rminEff,
     maxLoop: Math.min(60, job.maxLoop ?? 60),
     wallClearance: job.wallClearance ?? 0.1,
     obstacleClearance: job.obstacleClearance ?? 0.1,
@@ -55,8 +57,7 @@ export function runUfhEngine(job, onProgress = () => {}) {
   let best = null;
   const tried = [];
   alts.forEach((inp, k) => {
-    if (best?.v.ok && !job.repair) return;
-    if (best?.v.ok && k > 0 && best.score <= 0) return;
+    if (best?.v.ok) return; // the first valid plan in the order above wins
     onProgress(k === 0 ? 'routing' : 'auto_repair', 0.15 + (0.7 * k) / alts.length);
     const lay = layoutZone(inp);
     const res = finish(lay, inp, job, pipe);
@@ -139,9 +140,9 @@ function finish(lay, inp, job, pipe) {
     obstacles: lay.obstacles ?? [],
     obstaclesTight,
     s: inp.s,
-    rmin: inp.rmin,
+    rmin: inp.rminCheck ?? inp.rmin,
     // keyholes (U-turns widened to the bend radius) may come this much closer to walls / pipes
-    rules: { bendTol: 0, spacingTol: Math.max(UFH_RULES.spacingTol, inp.rmin + 0.004 - inp.s / 2 + 0.004), wallTol: Math.max(UFH_RULES.wallTol, inp.rmin + 0.004 - inp.s / 2 + 0.003) },
+    rules: { bendTol: 0, spacingTol: Math.max(UFH_RULES.spacingTol, (inp.rminCheck ?? inp.rmin) + 0.004 - inp.s / 2 + 0.004), wallTol: Math.max(UFH_RULES.wallTol, (inp.rminCheck ?? inp.rmin) + 0.004 - inp.s / 2 + 0.003) },
     maxLoop: inp.maxLoop,
     wallClearance: inp.wallClearance,
     coverageMin: job.coverageMin ?? UFH_RULES.coverageMin,

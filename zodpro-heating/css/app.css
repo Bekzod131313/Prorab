@@ -275,3 +275,21 @@ table.tbl tr.clickable:hover td { background: var(--accent-soft); cursor: pointe
   .sheet { box-shadow: none; border: 0; page-break-after: always; width: 100%; margin: 0; }
   @page { size: A3 landscape; margin: 0; }
 }
+
+/* ---------- UFH engine UI ---------- */
+.ufh-menu { position: absolute; z-index: 6; display: flex; gap: 2px; padding: 3px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); }
+.ufh-menu button { background: none; border: 0; padding: 6px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; white-space: nowrap; color: var(--text); }
+.ufh-menu button:hover { background: var(--panel-2); }
+.ufh-menu button.primary { background: var(--accent); color: #fff; }
+.ufh-panel { position: absolute; z-index: 5; left: 12px; bottom: 46px; width: min(460px, calc(100% - 24px)); max-height: calc(100% - 120px); overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); padding: 10px 12px; font-size: 12px; }
+.ufh-panel header { font-weight: 700; margin-bottom: 6px; }
+.ufh-panel .ufh-kv { display: grid; grid-template-columns: max-content 1fr; gap: 2px 10px; margin-bottom: 6px; }
+.ufh-panel .ufh-kv span { color: var(--muted); }
+.ufh-panel .tbl.compact td, .ufh-panel .tbl.compact th { padding: 2px 6px; font-size: 11.5px; }
+.ufh-panel .bad, .bad { color: var(--err); }
+.ufh-panel .good, .good { color: var(--ok); }
+.ufh-panel .ufh-errs ul { margin: 4px 0 4px 16px; padding: 0; color: var(--err); }
+.ufh-prog { height: 6px; background: var(--panel-2); border-radius: 3px; overflow: hidden; margin: 6px 0; }
+.ufh-prog > div { height: 100%; background: var(--accent); transition: width .2s; }
+.ufh-panel button[disabled] { opacity: .45; cursor: not-allowed; }
+@media (max-width: 700px) { .ufh-menu button { padding: 6px 7px; font-size: 11px; } .ufh-panel { bottom: 8px; } }

@@ -25,6 +25,9 @@ export const CATEGORIES = [
   'tank',
   'thermostat',
   'obstacle',
+  'ufh_zone',
+  'floor_obstacle',
+  'ufh_loop',
   'text',
   'dim',
 ];

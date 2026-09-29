@@ -164,6 +164,21 @@ export class PlanView {
 
   finishTool() {
     const s = this.ts;
+    if (this.tool === 'ufh_pipe' && s.ufh) {
+      this.ts = {};
+      if (s.pts.length >= 2) this.app.ufh.finishManual(s);
+      this.app.setTool('select');
+      return;
+    }
+    if ((this.tool === 'ufh_zone' || this.tool === 'floor_obstacle') && (s.ufhZone || s.ufhObstacle)) {
+      this.ts = {};
+      this.app.setTool('select');
+      if (s.pts?.length >= 3) {
+        if (s.ufhZone) this.app.ufh.zoneDrawn(s, s.pts);
+        else this.app.ufh.obstacleDrawn(s, s.pts);
+      }
+      return;
+    }
     if ((this.tool === 'pipe_s' || this.tool === 'pipe_r') && s.pts?.length >= 2) this.commitPipe();
     else if (this.tool === 'room_poly' && s.pts?.length >= 3) this.commitRoomPoly();
     else if (this.tool === 'polyline' && s.pts?.length >= 2) this.addEl('dline', { points: s.pts, closed: false }, 'polyline');
@@ -173,6 +188,12 @@ export class PlanView {
   }
 
   cancel() {
+    if (['ufh_pipe', 'ufh_zone', 'floor_obstacle'].includes(this.tool)) {
+      this.ts = {};
+      this.app.setTool('select');
+      this.draw();
+      return;
+    }
     if (Object.keys(this.ts).length) {
       if (this.tool === 'wall' || this.tool === 'line') this.ts = {};
       else this.finishTool();
@@ -345,7 +366,14 @@ export class PlanView {
       if (e.cat === 'obstacle' && projectOnSegment(p, e.a, e.b).d < (e.width ?? 0.3) / 2 + tol) return e.id;
     }
     for (const e of els) {
+      if (e.cat === 'ufh_loop' && e.path) for (let i = 1; i < e.path.length; i++) if (projectOnSegment(p, e.path[i - 1], e.path[i]).d < tol) return e.id;
+    }
+    for (const e of els) {
       if (e.cat === 'wall' && projectOnSegment(p, e.a, e.b).d < (e.thickness ?? 0.2) / 2 + tol) return e.id;
+    }
+    for (const e of els) if (e.cat === 'floor_obstacle' && pointInPolygon(p, e.points)) return e.id;
+    for (const e of els) {
+      if (e.cat === 'ufh_zone' && e.points.some((q, i) => projectOnSegment(p, q, e.points[(i + 1) % e.points.length]).d < tol)) return e.id;
     }
     for (const e of els) {
       if (e.cat === 'room' && pointInPolygon(p, e.points)) return e.id;
@@ -451,7 +479,7 @@ export class PlanView {
     const isPipe = this.tool === 'pipe_s' || this.tool === 'pipe_r';
     return this.snap(p, last, {
       system: isPipe ? (this.tool === 'pipe_s' ? 'supply' : 'return') : null,
-      ortho: (isPipe || this.tool === 'wall') && !e?.altKey,
+      ortho: (isPipe || this.tool === 'wall' || this.tool === 'ufh_pipe') && !e?.altKey,
       onPipes: isPipe,
     });
   }
@@ -570,6 +598,11 @@ export class PlanView {
       this.draw();
       return true;
     }
+    if (k === 'Backspace' && ['ufh_pipe', 'ufh_zone', 'floor_obstacle', 'room_poly', 'polyline', 'pipe_s', 'pipe_r'].includes(this.tool) && this.ts.pts?.length) {
+      if (this.tool !== 'ufh_pipe' || this.ts.pts.length > 1) this.ts.pts.pop();
+      this.draw();
+      return true;
+    }
     if (k === 'Delete' || k === 'Backspace') {
       this.app.run('delete');
       return true;
@@ -594,6 +627,8 @@ export class PlanView {
     }
     if (copy) adds.push(...duplicate(others, translateFn(dx, dy)));
     else for (const e of others) updates.push({ id: e.id, patch: stripId(transformElement(e, translateFn(dx, dy))) });
+    const ufhEdit = others.filter((e) => e.cat === 'ufh_zone' || e.cat === 'floor_obstacle').map((e) => e.id);
+    if (ufhEdit.length && !copy) for (const u of this.staleZones(ufhEdit, others.filter((e) => e.cat === 'floor_obstacle').flatMap((e) => e.points.map((q) => ({ x: q.x + dx, y: q.y + dy }))))) if (!updates.some((x) => x.id === u.id)) updates.push(u); else Object.assign(updates.find((x) => x.id === u.id).patch, u.patch);
     this.store.apply({ add: adds, update: updates }, copy ? 'copy' : 'move');
     if (copy) this.store.select(adds.map((a) => a.id));
   }
@@ -633,7 +668,32 @@ export class PlanView {
     return null;
   }
 
+  /** Zones touched by an edit of zones / floor obstacles must be regenerated (spec §32). */
+  staleZones(ids, extraPts = []) {
+    const proj = this.store.project;
+    const out = [];
+    for (const z of elementsOf(proj, 'ufh_zone')) {
+      if (ids.includes(z.id)) {
+        out.push({ id: z.id, patch: { stale: true } });
+        continue;
+      }
+      const touched = ids.some((id) => {
+        const o = proj.elements[id];
+        return o?.cat === 'floor_obstacle' && (o.points.some((q) => pointInPolygon(q, z.points)) || z.points.some((q) => pointInPolygon(q, o.points)));
+      }) || extraPts.some((q) => pointInPolygon(q, z.points));
+      if (touched) out.push({ id: z.id, patch: { stale: true } });
+    }
+    return out;
+  }
+
   applyGrip(g, p) {
+    const e0 = this.store.project.elements[g.id];
+    if (e0 && (e0.cat === 'ufh_zone' || e0.cat === 'floor_obstacle')) {
+      const pts = e0.points.map((q) => ({ ...q }));
+      pts[g.key] = { ...pts[g.key], x: p.x, y: p.y };
+      this.store.apply({ update: [{ id: e0.id, patch: { points: pts } }, ...this.staleZones([e0.id], [p])] }, 'grip');
+      return;
+    }
     const e = this.store.project.elements[g.id];
     if (typeof g.key === 'string') this.store.apply({ update: [{ id: e.id, patch: { [g.key]: { x: p.x, y: p.y } } }] }, 'grip');
     else {
@@ -803,6 +863,37 @@ export class PlanView {
           this.ts = {};
         }
         break;
+      case 'ufh_pipe': {
+        // manual UFH pipe: snaps orthogonally to the last point; the return outlet ends it
+        const info = s.ufh;
+        if (!info) break;
+        if (dist(p, info.circuit.ret) < 12 / this.scale) {
+          this.finishTool();
+          break;
+        }
+        s.pts.push(p);
+        break;
+      }
+      case 'ufh_zone':
+      case 'floor_obstacle': {
+        s.pts = s.pts ?? [];
+        if (T === 'ufh_zone' && e?.shiftKey && !s.pts.length) {
+          const room = elementsOf(proj, 'room', lv).find((r) => pointInPolygon(p, r.points));
+          if (room) {
+            const t0 = this.ts;
+            this.ts = {};
+            this.app.setTool('select');
+            this.app.ufh.zoneDrawn(t0, room.points.map((q) => ({ x: q.x, y: q.y })));
+            break;
+          }
+        }
+        if (s.pts.length >= 3 && dist(p, s.pts[0]) < 12 / this.scale) {
+          this.finishTool();
+          break;
+        }
+        s.pts.push(p);
+        break;
+      }
       case 'obstacle':
         if (!s.a) this.ts = { a: p };
         else {
@@ -1042,6 +1133,8 @@ export class PlanView {
     if (on('room')) for (const r of els) if (r.cat === 'room' && r.levelId === lv) this.drawRoom(ctx, r, res, sel.has(r.id), this.hover === r.id);
     if (on('ufh') && this.toggles.ufh) for (const r of els) if (r.cat === 'room' && r.levelId === lv && res?.ufh?.[r.id]) this.drawUfh(ctx, r, res.ufh[r.id]);
     if (on('ufh') && this.toggles.ufh && this.toggles.tags && this.scale > 12) this.drawUfhTags(ctx, res);
+    if (on('ufh')) for (const z of els) if (z.cat === 'ufh_zone' && z.levelId === lv) this.drawUfhZone(ctx, z, sel.has(z.id) || this.hover === z.id);
+    for (const o of els) if (o.cat === 'floor_obstacle' && o.levelId === lv && on('obstacle')) this.drawFloorObstacle(ctx, o, sel.has(o.id) || this.hover === o.id);
     for (const h of els) if (h.cat === 'dline' && h.hatch && h.levelId === lv && on('dline')) this.drawHatch(ctx, h, sel.has(h.id));
     // walls & openings
     if (on('wall')) for (const w of els) if (w.cat === 'wall' && w.levelId === lv) this.drawWall(ctx, w, sel.has(w.id), this.hover === w.id);
@@ -1051,6 +1144,11 @@ export class PlanView {
     const flowDir = this.flowDirections(res);
     for (const p of els) if (p.cat === 'pipe' && p.levelId === lv && on(p.system === 'return' ? 'return' : 'supply')) this.drawPipe(ctx, p, res, sel.has(p.id), this.hover === p.id, flowDir);
     for (const r of els) if (r.cat === 'riser' && (r.levelFrom === lv || r.levelTo === lv) && on('riser')) this.drawRiser(ctx, r, sel.has(r.id), res);
+    if (on('ufh') && this.toggles.ufh) {
+      const hideZone = this.app.ufh?.preview && !this.app.ufh.preview.isNew ? this.app.ufh.preview.zone.id : null;
+      for (const l of els) if (l.cat === 'ufh_loop' && l.levelId === lv && (!hideZone || l.zoneId !== hideZone)) this.drawUfhLoop(ctx, l, sel.has(l.id) || this.hover === l.id);
+    }
+    this.drawUfhPreview(ctx);
     // equipment
     for (const e of els) {
       if (e.levelId !== lv || !on(e.cat)) continue;
@@ -1104,6 +1202,122 @@ export class PlanView {
     if (!this.hidden.has('grid')) this.drawGrids(ctx);
     this.drawNorth(ctx);
     this.drawScaleBar(ctx);
+    this.app.ufh?.updateMenu();
+  }
+
+  // ---------- UFH engine objects ----------
+  drawUfhZone(ctx, z, hot) {
+    const pv = this.app.ufh?.preview;
+    ctx.save();
+    this.poly(ctx, z.points, true);
+    ctx.fillStyle = z.stale ? 'rgba(245,158,11,0.07)' : z.status === 'invalid' ? 'rgba(209,26,42,0.05)' : 'rgba(224,138,31,0.05)';
+    ctx.fill();
+    ctx.setLineDash([7, 4]);
+    ctx.strokeStyle = z.stale ? '#f59e0b' : z.status === 'invalid' ? this.col.err : '#e08a1f';
+    ctx.lineWidth = hot ? 2.2 : 1.2;
+    ctx.stroke();
+    ctx.setLineDash([]);
+    if (this.toggles.tags && this.scale > 14 && !(pv && pv.zone.id === z.id)) {
+      const c = this.w2s(z.points.reduce((a, p) => ({ x: a.x + p.x / z.points.length, y: a.y + p.y / z.points.length }), { x: 0, y: 0 }));
+      const cov = z.report?.coverage;
+      this.label(ctx, `${z.name} · ${Math.round((z.spacing ?? 0.15) * 1000)} mm${cov != null ? ` · ${(cov * 100).toFixed(0)}%` : ''}${z.stale ? ' · REGENERATE' : ''}`, c.x, c.y, { size: 11, bg: this.col.panel });
+    }
+    ctx.restore();
+  }
+
+  drawFloorObstacle(ctx, o, hot) {
+    ctx.save();
+    this.poly(ctx, o.points, true);
+    ctx.fillStyle = 'rgba(120,120,120,0.25)';
+    ctx.fill();
+    ctx.strokeStyle = hot ? this.col.accent : '#777';
+    ctx.lineWidth = hot ? 2 : 1;
+    ctx.stroke();
+    ctx.clip();
+    ctx.strokeStyle = 'rgba(90,90,90,0.5)';
+    ctx.beginPath();
+    const b = o.points.reduce((a, p) => ({ x0: Math.min(a.x0, p.x), y0: Math.min(a.y0, p.y), x1: Math.max(a.x1, p.x), y1: Math.max(a.y1, p.y) }), { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity });
+    for (let t = b.x0 - (b.y1 - b.y0); t < b.x1; t += 0.12) {
+      const a = this.w2s({ x: t, y: b.y0 });
+      const c = this.w2s({ x: t + (b.y1 - b.y0), y: b.y1 });
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(c.x, c.y);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /** A stored loop: supply half red, return half blue (the bifilar pair is visible). */
+  drawUfhLoop(ctx, l, hot, alpha = 1) {
+    const path = l.path;
+    if (!path?.length) return;
+    let total = 0;
+    for (let i = 1; i < path.length; i++) total += dist(path[i - 1], path[i]);
+    let acc = 0;
+    let split = path.length - 1;
+    for (let i = 1; i < path.length; i++) {
+      acc += dist(path[i - 1], path[i]);
+      if (acc >= total / 2) {
+        split = i;
+        break;
+      }
+    }
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.lineWidth = hot ? 2.6 : Math.max(1, Math.min(2.2, 0.016 * this.scale));
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = l.status === 'invalid' ? this.col.err : this.col.supply;
+    this.poly(ctx, path.slice(0, split + 1), false);
+    ctx.stroke();
+    ctx.strokeStyle = l.status === 'invalid' ? this.col.err : this.col.ret;
+    this.poly(ctx, path.slice(split), false);
+    ctx.stroke();
+    ctx.restore();
+    if (this.toggles.tags && this.scale > 22 && l.name) {
+      const a = this.w2s(path[Math.min(path.length - 1, Math.max(1, Math.floor(path.length * 0.04)))]);
+      this.label(ctx, `${l.name} · ${l.length.toFixed(1)} m · ${Math.round((l.spacing ?? 0.15) * 1000)}`, a.x + 6, a.y - 8, { size: 10, bg: this.col.panel });
+    }
+  }
+
+  /** Engine preview: coverage map, loops, issue markers (spec §25–§26). */
+  drawUfhPreview(ctx) {
+    const pv = this.app.ufh?.preview;
+    if (!pv || pv.zone.levelId !== this.store.activeLevelId) return;
+    ctx.save();
+    this.poly(ctx, pv.zone.points, true);
+    ctx.setLineDash([6, 4]);
+    ctx.strokeStyle = this.col.accent;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.setLineDash([]);
+    const r = pv.result;
+    if (r?.map) {
+      const m = r.map;
+      const colors = [null, 'rgba(58,167,87,0.22)', 'rgba(224,71,76,0.55)', 'rgba(150,150,150,0.5)', 'rgba(216,180,0,0.28)'];
+      const cs = m.cell * this.scale;
+      for (let j = 0; j < m.ny; j++)
+        for (let i = 0; i < m.nx; i++) {
+          const v = m.grid[j * m.nx + i];
+          if (!v) continue;
+          const a = this.w2s({ x: m.x0 + i * m.cell, y: m.y0 + (j + 1) * m.cell });
+          ctx.fillStyle = colors[v];
+          ctx.fillRect(a.x, a.y, cs + 0.5, cs + 0.5);
+        }
+    }
+    if (r) {
+      r.loops.forEach((l) => this.drawUfhLoop(ctx, { ...l, name: '' }, false, 0.95));
+      for (const is of r.issues) {
+        if (!is.at || is.level !== 'error') continue;
+        const a = this.w2s(is.at);
+        ctx.strokeStyle = this.col.err;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(a.x, a.y, 9, 0, Math.PI * 2);
+        ctx.stroke();
+        if (this.scale > 30) this.label(ctx, is.code.replace('UFH-', ''), a.x + 12, a.y - 10, { size: 9.5, bg: this.col.panel, color: this.col.err });
+      }
+    }
+    ctx.restore();
   }
 
   drawGrid(ctx) {
