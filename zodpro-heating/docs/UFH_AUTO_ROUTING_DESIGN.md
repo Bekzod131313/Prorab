@@ -434,6 +434,20 @@ Qisqa S-burilishlar (lead + spiral jog) uzunroq diagonal bilan almashtiriladi �
 radiusda. Guruhlar orasidagi tirqish ≤ s/2 suriladi, chekka strip ham toq·s bo‘ladi (markazda bo‘sh
 chiziq qolmaydi). Bo‘sh strip (daraxt < 1 m) kontur bo‘lmaydi.
 
+**Kollektor zona ichida (ichki devorda).** Kollektor chiqishlar qatori bo'yicha zona ikkiga kesiladi
+(kesimda clearance yo'q, quvurlar kesimdan s/2 da — ikki tomon orasida aniq s). Har qism o'z
+chiqishlari bilan, kollektor uning chetida turgan oddiy holat kabi hisoblanadi; har qism uchun eng
+yaxshi kirish tomoni (0/1/2) alohida tanlanadi.
+
+**Strip enlari.** Hamma strip s ning toq karrasi bo'lishi kerak (aks holda spiral markazida bo'sh
+chiziq qoladi): chekka strip qoldig'i guruhdagi tirqishlarga (≤ 1,3 s), kollektor yo'lagiga yoki
+tashqi devor clearance'iga (≤ 0,65 s) taqsimlanadi; toq kombinatsiyalar maydon bo'yicha qidiriladi.
+Zona keskin kengaysa/torayса (yo'lak → xona) birinchi strip o'sha joyda tugaydigan variant ham
+sinaladi.
+
+**Egilishni mahalliy tuzatish.** Tayyor quvurda radius < Rmin bo'lgan har joy ikki urinma va Rmin
+yoy bilan qayta egiladi; kvadrat U-burilish yarim aylana bilan almashtiriladi.
+
 Egilish radiusi siyosati: quvur jadvali 5×OD (16 mm → 80 mm) beradi; tekshiruv 15 % tolerantlik bilan
 (≥ 68 mm, prujina/yo‘naltirgich bilan egish), dvigatel esa 7.5 % bilan loyihalaydi (zaxira). Hammasi
 bitta joyda (`validate.js UFH_RULES.bendTol`) va preview panelida ko‘rsatiladi.

@@ -8,7 +8,7 @@
 //      that leaves on the right of the lead (supply) and comes back on the left (return)
 
 import { cornerRadius } from './spiral.js';
-import { cleanRing, removeSpikes, fillet, bufferPolylines, union, difference, closing, pointAt, pathLength, cleanPath, norm, ringArea } from './geom.js';
+import { cleanRing, removeSpikes, fillet, bufferPolylines, union, difference, closing, pointAt, pathLength, cleanPath, norm, ringArea, subPath, minBendRadius } from './geom.js';
 
 function disc(c, r, n = 48) {
   return Array.from({ length: n }, (_, i) => ({ x: c.x + r * Math.cos((2 * Math.PI * i) / n), y: c.y + r * Math.sin((2 * Math.PI * i) / n) }));
@@ -166,5 +166,107 @@ export function buildLoop(main, branches, s, rmin, o = {}) {
   const d0 = Math.hypot(pts[0].x - sup.x, pts[0].y - sup.y);
   const d1 = Math.hypot(pts[pts.length - 1].x - sup.x, pts[pts.length - 1].y - sup.y);
   if (d1 < d0) pipe = removeSpikes(cleanPath([sup, ...[...pts].reverse(), ret], 1e-6));
+  // spots left tighter than the pipe allows (a notch cut by a lead, two corners close together):
+  // re-bent locally with a true arc of the design radius
+  if (o.pipeFillet) pipe = repairBends(pipe, o.bendMin ?? o.pipeFillet * 0.92, o.pipeFillet);
   return { pipe, errors, center, branches: brs, region };
+}
+
+/** Arc-length position of the point of `pts` nearest to p. */
+function positionOf(pts, p) {
+  let acc = 0;
+  let best = { d: Infinity, s: 0 };
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1];
+    const b = pts[i];
+    const L = Math.hypot(b.x - a.x, b.y - a.y);
+    if (L > 0) {
+      const t = Math.max(0, Math.min(1, ((p.x - a.x) * (b.x - a.x) + (p.y - a.y) * (b.y - a.y)) / (L * L)));
+      const d = Math.hypot(a.x + t * (b.x - a.x) - p.x, a.y + t * (b.y - a.y) - p.y);
+      if (d < best.d) best = { d, s: acc + t * L };
+    }
+    acc += L;
+  }
+  return best.s;
+}
+
+/**
+ * Local bend repair: every spot whose bend radius (same measure as the validation) is below
+ * `rmin` is replaced, between the points d before and after it, by the two tangents there meeting
+ * at a corner rounded with radius `r` — the smallest d whose arc keeps the full radius wins.
+ */
+export function repairBends(pipe, rmin, r) {
+  let P = pipe;
+  const tried = new Set();
+  const keyOf = (p) => `${p.x.toFixed(3)},${p.y.toFixed(3)}`;
+  // the next tight spot not tried yet (spots that cannot be re-bent, e.g. at the outlets, stay)
+  const nextSpot = () => {
+    const L = pathLength(P);
+    for (let a = 0; a < L; a += 0.4) {
+      const w = subPath(P, Math.max(0, a - 0.05), Math.min(L, a + 0.45));
+      if (w.length < 3) continue;
+      const m = minBendRadius(w);
+      if (m.at && m.radius < rmin && !tried.has(keyOf(m.at))) return m;
+    }
+    return null;
+  };
+  for (let it = 0; it < 24; it++) {
+    const w = nextSpot();
+    if (!w) break;
+    tried.add(keyOf(w.at));
+    const L = pathLength(P);
+    const sAt = positionOf(P, w.at);
+    let fixed = false;
+    for (const d of [0.05, 0.08, 0.12, 0.17, 0.24]) {
+      if (sAt - d < 0.05 || sAt + d > L - 0.05) continue;
+      const A = pointAt(P, sAt - d);
+      const A0 = pointAt(P, sAt - d - 0.02);
+      const B = pointAt(P, sAt + d);
+      const B1 = pointAt(P, sAt + d + 0.02);
+      const ua = norm({ x: A.x - A0.x, y: A.y - A0.y });
+      const ub = norm({ x: B1.x - B.x, y: B1.y - B.y });
+      const den = ua.x * ub.y - ua.y * ub.x;
+      if (Math.abs(den) < 0.02 && ua.x * ub.x + ua.y * ub.y < -0.98) {
+        // a squared U-turn: the legs are parallel — one semicircle of half their distance
+        const ab = { x: B.x - A.x, y: B.y - A.y };
+        const along = ab.x * ua.x + ab.y * ua.y;
+        const nv = { x: ab.x - ua.x * along, y: ab.y - ua.y * along };
+        const wd = Math.hypot(nv.x, nv.y);
+        if (wd / 2 < rmin + 0.001) continue;
+        const n = { x: nv.x / wd, y: nv.y / wd };
+        const S = along >= 0 ? { x: A.x + ua.x * along, y: A.y + ua.y * along } : A;
+        const C = { x: S.x + (n.x * wd) / 2, y: S.y + (n.y * wd) / 2 };
+        const arc = [];
+        const steps = Math.max(12, Math.ceil((Math.PI * wd) / 2 / 0.004));
+        for (let k = 0; k <= steps; k++) {
+          const f = (Math.PI * k) / steps;
+          arc.push({ x: C.x + (wd / 2) * (-n.x * Math.cos(f) + ua.x * Math.sin(f)), y: C.y + (wd / 2) * (-n.y * Math.cos(f) + ua.y * Math.sin(f)) });
+        }
+        const midU = cleanPath([A, ...arc, B], 1e-6);
+        const nextU = cleanPath([...subPath(P, 0, sAt - d), ...midU.slice(1, -1), ...subPath(P, sAt + d, L)], 1e-6);
+        const aroundU = subPath(nextU, Math.max(0, sAt - d - 0.1), Math.min(pathLength(nextU), sAt + d + 0.1));
+        if (minBendRadius(aroundU).radius >= rmin) {
+          P = nextU;
+          break;
+        }
+        continue;
+      }
+      if (Math.abs(den) < 1e-6) continue;
+      // A + t·ua = B − k·ub
+      const t = ((B.x - A.x) * ub.y - (B.y - A.y) * ub.x) / den;
+      const k = (ua.x * (B.y - A.y) - ua.y * (B.x - A.x)) / den;
+      if (t <= 0 || k <= 0 || t > 3 * d || k > 3 * d) continue;
+      const V = { x: A.x + t * ua.x, y: A.y + t * ua.y };
+      const mid = fillet([A, V, B], r).pts;
+      const next = cleanPath([...subPath(P, 0, sAt - d), ...mid.slice(1, -1), ...subPath(P, sAt + d, L)], 1e-6);
+      const around = subPath(next, Math.max(0, sAt - d - 0.1), Math.min(pathLength(next), sAt + d + 0.1));
+      if (minBendRadius(around).radius >= rmin) {
+        P = next;
+        fixed = true;
+        break;
+      }
+    }
+    if (!fixed) continue;
+  }
+  return P;
 }

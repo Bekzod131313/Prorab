@@ -74,10 +74,11 @@ export function runUfhEngine(job, onProgress = () => {}) {
   const alts = job.frameOnly != null ? [{ ...base, frameIndex: job.frameOnly }] : candidates(base, job.repair ? 'full' : 'basic');
   let best = null;
   const tried = [];
+  const splitMemo = new Map();
   alts.forEach((inp, k) => {
     if (best?.v.ok) return; // the first valid plan in the order above wins
     onProgress(k === 0 ? 'routing' : 'auto_repair', 0.15 + (0.7 * k) / alts.length);
-    const lay = layoutZone(inp);
+    const lay = layoutSplit(inp, (l, q) => badness(finish(l, q, job, pipe)), splitMemo) ?? layoutZone(inp);
     const res = finish(lay, inp, job, pipe);
     const score = badness(res);
     tried.push({ strategy: inp.strategy, frameIndex: inp.frameIndex ?? 0, loops: res.loops.length, errors: res.v.errors.length, coverage: res.v.coverage?.ratio ?? 0 });
@@ -106,6 +107,99 @@ export function runUfhEngine(job, onProgress = () => {}) {
   function fail(code, msg) {
     return { version: UFH_ENGINE_VERSION, ok: false, loops: [], issues: [{ level: 'error', code, msg }], coverage: null, map: null, tried: [], ms: Date.now() - t0 };
   }
+}
+
+/**
+ * Manifold standing inside the zone (on an inner wall, outlets into one room, the zone going on
+ * behind it): the zone is cut along the outlet row into the part in front of the outlets and the
+ * part behind them. Each part has the manifold on its edge — the normal layout — and gets its share
+ * of the outlets (consecutive ones, by the loops each part needs); the connections of the rear loops
+ * are kept clear in the front part. Returns null when the manifold stands on the zone edge.
+ */
+export function manifoldCut(inp) {
+  const P = inp.ports;
+  if (P.length < 2) return null;
+  const a = P[0].supply;
+  const b = P[P.length - 1].supply;
+  const L = Math.hypot(b.x - a.x, b.y - a.y);
+  if (L < 1e-6) return null;
+  const e = { x: (b.x - a.x) / L, y: (b.y - a.y) / L };
+  let f = { x: P[0].ret.x - P[0].supply.x, y: P[0].ret.y - P[0].supply.y };
+  const fd = f.x * e.x + f.y * e.y;
+  f = G.norm({ x: f.x - fd * e.x, y: f.y - fd * e.y });
+  if (!Number.isFinite(f.x)) return null;
+  const B = 1e3;
+  // pipes run on the edge of the usable area: each half stops s/2 short of the cut line
+  const h = (inp.s ?? 0.15) / 2;
+  const half = (k) => {
+    const o = { x: a.x + k * f.x * h, y: a.y + k * f.y * h };
+    return [
+      { x: o.x - e.x * B, y: o.y - e.y * B },
+      { x: o.x + e.x * B, y: o.y + e.y * B },
+      { x: o.x + e.x * B + k * f.x * B, y: o.y + e.y * B + k * f.y * B },
+      { x: o.x - e.x * B + k * f.x * B, y: o.y - e.y * B + k * f.y * B },
+    ];
+  };
+  const { U } = usableArea({ ...inp });
+  const front = half(1);
+  const back = half(-1);
+  const Af = G.area(G.intersection(U, [{ outer: G.ccw(front), holes: [] }]));
+  const Ab = G.area(G.intersection(U, [{ outer: G.ccw(back), holes: [] }]));
+  // behind a wall-mounted manifold there is (almost) nothing — normal layout
+  if (Math.min(Af, Ab) < Math.max(1.5, 0.08 * (Af + Ab))) return null;
+  return { front, back, Af, Ab, e };
+}
+
+function layoutSplit(inp, score, memo) {
+  const cut = manifoldCut(inp);
+  if (!cut) return null;
+  const key = `${inp.strategy}|${inp.loops ?? ''}|${inp.loopsPlus ?? 0}`;
+  if (memo?.has(key)) return memo.get(key);
+  const P = inp.ports;
+  const s = inp.s;
+  const cap = (inp.maxLoop ?? 60) * 0.92;
+  const need = (A) => Math.max(1, Math.ceil((A / s + 2 + (inp.dropLength ?? 0.8)) / cap));
+  let nb;
+  let nf;
+  if (inp.loops) {
+    nb = Math.max(1, Math.min(inp.loops - 1, Math.round((inp.loops * cut.Ab) / (cut.Ab + cut.Af))));
+    nf = inp.loops - nb;
+  } else {
+    nb = need(cut.Ab);
+    nf = need(cut.Af);
+  }
+  // spare outlets shared by area (each part may take one loop more than estimated)
+  const spare = Math.max(0, P.length - nb - nf);
+  const kb = Math.max(1, Math.min(P.length - 1, nb + Math.round((spare * cut.Ab) / (cut.Ab + cut.Af))));
+  const ord = [...P].sort((p, q) => (p.supply.x - q.supply.x) * cut.e.x + (p.supply.y - q.supply.y) * cut.e.y);
+  // each part on its own best entry edge (the cut edge, or a side wall with the manifold at its end)
+  const bestOf = (base) => {
+    let b = null;
+    for (const frameIndex of [0, 1, 2]) {
+      const q = { ...base, frameIndex };
+      const lay = layoutZone(q);
+      const sc = score(lay, q);
+      if (!b || sc < b.sc) b = { lay, sc };
+    }
+    return b.lay;
+  };
+  // each part's manifold point is the middle of its own outlets (its leads start there)
+  const mid = (ps) => ({ x: ps.reduce((a, q) => a + (q.supply.x + q.ret.x) / 2, 0) / ps.length, y: ps.reduce((a, q) => a + (q.supply.y + q.ret.y) / 2, 0) / ps.length });
+  const layB = bestOf({ ...inp, ports: ord.slice(0, kb), anchor: mid(ord.slice(0, kb)), clip: cut.back, loops: inp.loops ? nb : null });
+  // the rear loops' connections at the manifold are kept clear in the front part
+  const conn = (layB.loops ?? []).flatMap((l) => [l.path.slice(0, 2), l.path.slice(-2)]);
+  const layF = bestOf({ ...inp, ports: ord.slice(kb), anchor: mid(ord.slice(kb)), clip: cut.front, avoid: [...(inp.avoid ?? []), ...conn], loops: inp.loops ? nf : null });
+  const out = {
+    loops: [...(layB.loops ?? []), ...(layF.loops ?? [])],
+    errors: [...(layB.errors ?? []), ...(layF.errors ?? [])],
+    U: G.union([...(layB.U ?? []), ...(layF.U ?? [])]),
+    Z: layB.Z ?? layF.Z,
+    obstacles: layB.obstacles ?? layF.obstacles,
+    frame: layB.frame,
+    split: true,
+  };
+  memo?.set(key, out);
+  return out;
 }
 
 const WEIGHT = { 'UFH-LEN': 1000, 'UFH-TOPO': 1000, 'UFH-CROSS': 800, UFH_STRIP_EMPTY: 500, 'UFH-GEOM': 400, 'UFH-OBST': 300, 'UFH-WALL': 300, 'UFH-ZONE': 300, 'UFH-COV': 200, 'UFH-SPACE': 40, 'UFH-BEND': 20 };
