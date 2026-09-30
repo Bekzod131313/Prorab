@@ -91,9 +91,9 @@ export function runUfhEngine(job, onProgress = () => {}) {
       const scR = (l, q) => {
         const r = finish(l, q, job, pipe);
         l.valid = r.v.ok;
-        return badness(r) + (r.v.errors.some((e) => e.code !== 'UFH-COV') ? 500 : 0);
+        return badness(r) + (r.v.errors.some((e) => e.code !== 'UFH-COV') ? 2000 : 0);
       };
-      if (!splitMemo.has(key)) splitMemo.set(key, layoutRooms(inp, scR));
+      if (!splitMemo.has(key)) splitMemo.set(key, layoutRooms({ ...inp, splitLayout: (q) => layoutSplit(q, scR, null) }, scR));
       lay = splitMemo.get(key);
     }
     lay = lay ?? layoutSplit(inp, sc, splitMemo) ?? layoutZone(inp);

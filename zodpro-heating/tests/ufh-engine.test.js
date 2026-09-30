@@ -229,3 +229,25 @@ test('rooms: leads to a side door leave the manifold as nested L-routes (no diag
   const byX = [...tr].sort((a, b) => a.transit[0].x - b.transit[0].x);
   for (let k = 1; k < byX.length; k++) assert.ok(turn(byX[k]) > turn(byX[k - 1]), 'L-routes cross');
 });
+
+test('rooms: door in the manifold wall — nested U leads, own pairs drop past them, no crossings', () => {
+  // manifold in 104 (below) on the wall to corridor 103, the door to 103 beside it in the same wall
+  const zone = [{ x: 0, y: 0 }, { x: 5.8, y: 0 }, { x: 5.8, y: 18.76 }, { x: 0, y: 18.76 }, { x: 0, y: 11.6 }, { x: 3.2, y: 11.6 }, { x: 3.2, y: 5.6 }, { x: 0, y: 5.6 }];
+  const R = (x0, y0, x1, y1, h = 0.08) => [{ x: x0 + h, y: y0 + h }, { x: x1 - h, y: y0 + h }, { x: x1 - h, y: y1 - h }, { x: x0 + h, y: y1 - h }];
+  const rooms = [{ id: 'a', name: '101', poly: R(0, 11.6, 5.8, 18.76) }, { id: 'b', name: '103', poly: R(3.2, 5.6, 5.8, 11.6) }, { id: 'c', name: '104', poly: R(0, 0, 5.8, 5.6) }];
+  const doors = [
+    { c: { x: 4.5, y: 11.6 }, u: { x: 1, y: 0 }, n: { x: 0, y: 1 }, width: 0.9, half: 0.08, ra: 0, rb: 1 },
+    { c: { x: 4.07, y: 5.6 }, u: { x: 1, y: 0 }, n: { x: 0, y: 1 }, width: 0.9, half: 0.08, ra: 1, rb: 2 },
+  ];
+  const ports = Array.from({ length: 12 }, (_, i) => ({ circuitId: `C${i + 1}`, index: i, supply: { x: 4.8 + i * 0.05, y: 5.33 }, ret: { x: 4.8 + i * 0.05, y: 5.13 } }));
+  const r = runUfhEngine({ zone, rooms, doors, collector: { anchor: { x: 5.07, y: 5.43 }, ports }, spacing: 0.2, wallClearance: 0.2, obstacleClearance: 0.2 });
+  assert.deepEqual(codes(r).filter((c) => c !== 'UFH-COV'), []);
+  assert.ok(r.coverage.ratio > 0.9, `coverage ${r.coverage.ratio}`);
+  // transit centrelines: axis-parallel, and no two of them cross
+  const tr = r.loops.filter((l) => l.transit).map((l) => l.transit);
+  assert.ok(tr.length >= 5);
+  for (let a = 0; a < tr.length; a++)
+    for (let b = a + 1; b < tr.length; b++)
+      for (let i = 1; i < tr[a].length; i++)
+        for (let j = 1; j < tr[b].length; j++) assert.ok(!G.segmentsIntersect(tr[a][i - 1], tr[a][i], tr[b][j - 1], tr[b][j]), 'transit leads cross');
+});
