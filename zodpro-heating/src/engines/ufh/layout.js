@@ -365,9 +365,30 @@ function buildStrips(ctx, shares) {
     }
     const byAng = strips.filter((t) => !straight || t !== first).sort((a, b) => ang(a) - ang(b));
     (q ? byAng : byAng.reverse()).forEach((t, k) => (t.root = rs[k + (straight ? 1 : 0)]));
+    // nested L's along the walls (reference drawings): every lead leaves the manifold with a short
+    // riser, runs along the end wall at its own level (2 s apart; the one for the farthest strip
+    // outermost) and turns down the entry wall at its track. The first strip lies below the bundle.
+    if (straight && strips.length > 1) {
+      const others = strips.filter((t) => t !== first).sort((a, b) => a.track - b.track);
+      const rsAsc = rs.slice(1).sort((a, b) => a.y - b.y || a.x - b.x);
+      const level = (k) => (q ? prof.x1 - s / 2 - 2 * s * k : prof.x0 + s / 2 + 2 * s * k);
+      const ok = others.every((t, k) => (q ? t.xe < level(k) - s : t.xe > level(k) + s));
+      const lv1 = level(others.length);
+      const fOk = q ? Math.max(first.lo, prof.x0) < lv1 - 2 * s : Math.min(first.hi, prof.x1) > lv1 + 2 * s;
+      if (ok && fOk) {
+        others.forEach((t, k) => {
+          t.root = rsAsc[k];
+          t.nestLead = G.cleanPath([t.root, { x: level(k), y: t.root.y }, { x: level(k), y: t.track }, { x: t.xe, y: t.track }]);
+        });
+        first.xe = lv1;
+        first.d = lv1;
+        first.target = { x: lv1, y: first.root.y };
+        first.nestLead = G.cleanPath([first.root, first.target]);
+      }
+    }
   }
   for (const t of strips) {
-    t.lead = leadPath(t.root, t.d, t.track, t.xe, s);
+    t.lead = t.nestLead ?? leadPath(t.root, t.d, t.track, t.xe, s);
     if (single && t.group === 'R' && t.j === 1) {
       t.target = { x: ua, y: s / 2 };
       t.lead = G.cleanPath([t.root, { x: ua, y: t.root.y }, t.target]);
@@ -555,12 +576,21 @@ export function layoutZone(inp) {
   const ua = Math.max(prof.x0 + s, Math.min(prof.x1 - s, anchorL.x));
   // outlets in u order; root of each lead just in front of its outlet pair
   const ports = inp.ports
-    .map((pt) => ({ ...pt, sl: toLocal(F, pt.supply), rl: toLocal(F, pt.ret) }))
+    .map((pt) => ({
+      ...pt,
+      sl: toLocal(F, pt.supply),
+      rl: toLocal(F, pt.ret),
+      // virtual outlet at a door: the pipe comes from the real manifold along `transit`
+      tr: pt.transit ? mapLine(pt.transit, (q) => toLocal(F, q)) : null,
+      rsl: pt.realSupply ? toLocal(F, pt.realSupply) : null,
+      rrl: pt.realRet ? toLocal(F, pt.realRet) : null,
+    }))
     .sort((a, b) => a.sl.x + a.rl.x - b.sl.x - b.rl.x);
   const serp = (inp.strategy ?? 'adaptive_spiral').includes('serpentine');
   const ctx = { L, prof, ua, s, rmin, maxLoop, drop, strategy: inp.strategy ?? 'adaptive_spiral' };
   const connLen = (t) => {
     const pt = t.port;
+    if (pt.tr) return 2 * G.pathLength(pt.tr) + 0.4;
     return Math.hypot(pt.sl.x - t.root.x, pt.sl.y - t.root.y) + Math.hypot(pt.rl.x - t.root.x, pt.rl.y - t.root.y);
   };
   // estimated loop length from the centreline (fast; exact geometry is built once at the end)
@@ -588,6 +618,7 @@ export function layoutZone(inp) {
         const y = Math.max(pt.sl.y, pt.rl.y) + 0.05;
         // outlets at the entry edge (their return row may reach into the heated area when the
         // manifold stands inside the zone): the lead starts just outside the heated area, as at a wall
+        if (pt.tr) return { pi, x: pt.tr[pt.tr.length - 1].x, y: pt.tr[pt.tr.length - 1].y };
         return { pi, x: (pt.sl.x + pt.rl.x) / 2, y: y < 2 * s ? Math.min(y, -0.05) : y };
       });
       // the staircase starts at the zone end only when the manifold really stands at that end
@@ -730,22 +761,29 @@ export function layoutZone(inp) {
           if (h2 < h - 0.1) (t.tree = tr), (h = h2), (t.treeS = s * f);
         }
     }
-    const main = G.cleanPath([...t.lead, ...t.tree.path.slice(G.pathLength([t.lead[t.lead.length - 1], t.tree.path[0]]) < 1e-6 ? 1 : 0)]);
+    const trL = t.port.tr ? G.pathLength(t.port.tr) : 0;
+    const main = G.cleanPath([...(t.port.tr ? t.port.tr.slice(0, -1) : []), ...t.lead, ...t.tree.path.slice(G.pathLength([t.lead[t.lead.length - 1], t.tree.path[0]]) < 1e-6 ? 1 : 0)]);
     if (G.pathLength(t.tree.path) < 1) {
       // nothing to heat in this strip (only the lead) — never a real loop
       errors.push({ code: 'UFH_STRIP_EMPTY', msg: 'Kontur uchun joy qolmadi (bo‘sh strip)', at: toPlan(F, t.target) });
       continue;
     }
-    const lp = buildLoop(main, t.tree.branches, s, rmin, { uturns: t.tree.uturns, rminKey: inp.rminCheck ?? rmin, pipeFillet: rmin, bendMin: (inp.rminCheck ?? rmin) + 0.002, treeS: t.treeS, leadLen: G.pathLength(t.lead) + Math.hypot(t.tree.path[0].x - t.lead[t.lead.length - 1].x, t.tree.path[0].y - t.lead[t.lead.length - 1].y) + s });
+    const lp = buildLoop(main, t.tree.branches, s, rmin, { uturns: t.tree.uturns, rminKey: inp.rminCheck ?? rmin, pipeFillet: rmin, bendMin: (inp.rminCheck ?? rmin) + 0.002, treeS: t.treeS, transitLen: trL, transitS: inp.transitS ?? s, leadLen: trL + G.pathLength(t.lead) + Math.hypot(t.tree.path[0].x - t.lead[t.lead.length - 1].x, t.tree.path[0].y - t.lead[t.lead.length - 1].y) + s });
     for (const e of lp.errors) errors.push({ ...e, msg: `Kontur geometriyasi: ${e.code}` });
     const pt = t.port;
     const pipeL = lp.pipe;
-    const full = G.cleanPath([pt.sl, ...pipeL, pt.rl]);
+    if (!pipeL || pipeL.length < 2) {
+      errors.push({ code: 'UFH-GEOM', msg: 'Kontur quvuri qurilmadi', at: toPlan(F, t.target) });
+      continue;
+    }
+    const cs = pt.rsl ?? pt.sl;
+    const cr = pt.rrl ?? pt.rl;
+    const full = G.cleanPath([cs, ...pipeL, cr]);
     const plan = mapLine(full, (q) => toPlan(F, q));
     const leadLen = G.pathLength(t.lead);
     const total = G.pathLength(plan);
-    const sConn = Math.hypot(pt.sl.x - pipeL[0].x, pt.sl.y - pipeL[0].y);
-    const rConn = Math.hypot(pt.rl.x - pipeL[pipeL.length - 1].x, pt.rl.y - pipeL[pipeL.length - 1].y);
+    const sConn = Math.hypot(cs.x - pipeL[0].x, cs.y - pipeL[0].y) + trL;
+    const rConn = Math.hypot(cr.x - pipeL[pipeL.length - 1].x, cr.y - pipeL[pipeL.length - 1].y) + trL;
     loops.push({
       circuitId: pt.circuitId,
       portIndex: pt.index,
@@ -759,6 +797,7 @@ export function layoutZone(inp) {
       region: mapRegion(t.region, (q) => toPlan(F, q)),
       stats: t.tree.stats,
       treeS: t.treeS ?? s,
+      transit: pt.tr ? mapLine(pt.tr, (q) => toPlan(F, q)) : null,
       fanLen: G.pathLength(t.lead.slice(0, 2)) + 0.3,
     });
   }

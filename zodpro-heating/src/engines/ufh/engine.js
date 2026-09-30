@@ -5,6 +5,7 @@
 
 import * as G from './geom.js';
 import { layoutZone, usableArea } from './layout.js';
+import { layoutRooms } from './rooms.js';
 
 const polygonCentroid = (pts) => pts.reduce((a, p) => ({ x: a.x + p.x / pts.length, y: a.y + p.y / pts.length }), { x: 0, y: 0 });
 import { validateLayout, UFH_RULES } from './validate.js';
@@ -47,6 +48,10 @@ export function runUfhEngine(job, onProgress = () => {}) {
     strategy: job.strategy ?? 'adaptive_spiral',
     dropLength: job.dropLength ?? 0.8,
     loops: job.loops ?? null,
+    // rooms and doors of the level (room-by-room layout, leads through the doors)
+    rooms: job.rooms ?? null,
+    doors: job.doors ?? null,
+    transitS: job.transitSpacing ?? 0.1,
   };
   onProgress('boundary', 0.05);
   const Z = G.sanitize(job.zone);
@@ -78,7 +83,14 @@ export function runUfhEngine(job, onProgress = () => {}) {
   alts.forEach((inp, k) => {
     if (best?.v.ok) return; // the first valid plan in the order above wins
     onProgress(k === 0 ? 'routing' : 'auto_repair', 0.15 + (0.7 * k) / alts.length);
-    const lay = layoutSplit(inp, (l, q) => badness(finish(l, q, job, pipe)), splitMemo) ?? layoutZone(inp);
+    const sc = (l, q) => badness(finish(l, q, job, pipe));
+    let lay = null;
+    if (inp.rooms?.length) {
+      const key = `rooms|${inp.strategy}|${inp.loopsPlus ?? 0}`;
+      if (!splitMemo.has(key)) splitMemo.set(key, layoutRooms(inp, sc));
+      lay = splitMemo.get(key);
+    }
+    lay = lay ?? layoutSplit(inp, sc, splitMemo) ?? layoutZone(inp);
     const res = finish(lay, inp, job, pipe);
     const score = badness(res);
     tried.push({ strategy: inp.strategy, frameIndex: inp.frameIndex ?? 0, loops: res.loops.length, errors: res.v.errors.length, coverage: res.v.coverage?.ratio ?? 0 });
@@ -92,7 +104,7 @@ export function runUfhEngine(job, onProgress = () => {}) {
     version: UFH_ENGINE_VERSION,
     ok: best.v.ok && best.loops.length > 0,
     loops: best.loops,
-    issues: [...(best.lay.errors ?? []).map((e) => ({ level: 'error', code: e.code?.startsWith('UFH') ? e.code : 'UFH-GEOM', msg: e.msg ?? e.code, at: e.at })), ...best.v.issues],
+    issues: [...(best.lay.errors ?? []).map((e) => ({ level: e.level ?? 'error', code: e.code?.startsWith('UFH') ? e.code : 'UFH-GEOM', msg: e.msg ?? e.code, at: e.at })), ...best.v.issues],
     coverage: cov ? { ratio: cov.ratio, area: cov.area, coveredArea: cov.coveredArea, largestHole: cov.largestHole, holes: cov.holes.slice(0, 20).map((h) => ({ area: h.area, at: h.at })), zoneArea: cov.zoneArea, obstacleArea: cov.obstacleArea } : null,
     map,
     usable: best.lay.U,
@@ -208,7 +220,7 @@ const WEIGHT = { 'UFH-LEN': 1000, 'UFH-TOPO': 1000, 'UFH-CROSS': 800, UFH_STRIP_
 function badness(res) {
   let b = 0;
   for (const e of res.v.errors) b += WEIGHT[e.code] ?? 100;
-  for (const e of res.lay.errors ?? []) b += WEIGHT[e.code] ?? 400;
+  for (const e of res.lay.errors ?? []) if (e.level !== 'warning') b += WEIGHT[e.code] ?? 400;
   b += (1 - (res.v.coverage?.ratio ?? 0)) * 1000;
   b += res.loops.length * 2;
   if (!res.loops.length) b += 1e6;
@@ -241,10 +253,11 @@ function finish(lay, inp, job, pipe) {
     heatingLength: Math.max(0, l.length - l.supplyLen - l.returnLen - l.drop),
     drop: l.drop,
     fan: l.lead.slice(0, 2),
+    transit: l.transit ?? null,
     spacing: l.treeS ?? inp.s,
     pipeType: pipe.id,
   }));
-  const connectors = Object.fromEntries(inp.ports.map((p) => [p.circuitId, { supply: p.supply, ret: p.ret }]));
+  const connectors = Object.fromEntries(inp.ports.map((p) => [p.circuitId, { supply: p.realSupply ?? p.supply, ret: p.realRet ?? p.ret }]));
   const obstaclesTight = (inp.obstacles ?? []).length ? G.union(inp.obstacles.map((o) => G.offset(G.sanitize(o.polygon), (o.clearance ?? inp.obstacleClearance) - 0.003, 'round')).flat()) : [];
   const v = validateLayout(loops, {
     Z: lay.Z,

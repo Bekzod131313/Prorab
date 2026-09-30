@@ -175,3 +175,30 @@ test('capacity: a zone needing more than 12 loops is UFH-CIRC; split into manifo
     assert.ok(rp.loops.length <= 12 && rp.loops.every((l) => l.length <= 60));
   }
 });
+
+test('rooms: loops stay in their rooms, leads cross walls only through the doors', () => {
+  // 101 (top) — corridor 103 with the manifold — 105 (bottom); one door at each end of the corridor
+  const zone = [{ x: 0, y: 0 }, { x: 5.8, y: 0 }, { x: 5.8, y: 18.76 }, { x: 0, y: 18.76 }, { x: 0, y: 11.6 }, { x: 3.2, y: 11.6 }, { x: 3.2, y: 5.6 }, { x: 0, y: 5.6 }];
+  const R = (x0, y0, x1, y1, h = 0.08) => [{ x: x0 + h, y: y0 + h }, { x: x1 - h, y: y0 + h }, { x: x1 - h, y: y1 - h }, { x: x0 + h, y: y1 - h }];
+  const rooms = [{ id: 'a', name: '101', poly: R(0, 11.6, 5.8, 18.76) }, { id: 'b', name: '103', poly: R(3.2, 5.6, 5.8, 11.6) }, { id: 'c', name: '105', poly: R(0, 0, 5.8, 5.6) }];
+  const doors = [
+    { c: { x: 4.5, y: 11.6 }, u: { x: 1, y: 0 }, n: { x: 0, y: 1 }, width: 0.9, half: 0.08, ra: 0, rb: 1 },
+    { c: { x: 4.0, y: 5.6 }, u: { x: 1, y: 0 }, n: { x: 0, y: 1 }, width: 0.9, half: 0.08, ra: 1, rb: 2 },
+  ];
+  const ports = Array.from({ length: 10 }, (_, i) => ({ circuitId: `C${i + 1}`, index: i, supply: { x: 4.55 - i * 0.05, y: 5.75 }, ret: { x: 4.55 - i * 0.05, y: 5.95 } }));
+  const r = runUfhEngine({ zone, rooms, doors, collector: { anchor: { x: 4.3, y: 5.85 }, ports }, spacing: 0.2, wallClearance: 0.2, obstacleClearance: 0.2 });
+  assert.ok(r.loops.length >= 6, `loops ${r.loops.length}`);
+  const hardCodes = codes(r).filter((c) => ['UFH-LEN', 'UFH-TOPO', 'UFH-CROSS', 'UFH-ZONE'].includes(c));
+  assert.deepEqual(hardCodes, []);
+  // every crossing of the two walls (y = 5.6, y = 11.6) lies inside a door opening
+  for (const l of r.loops)
+    for (let k = 1; k < l.path.length; k++) {
+      const a = l.path[k - 1];
+      const b = l.path[k];
+      for (const [y, dx] of [[11.6, 4.5], [5.6, 4.0]])
+        if ((a.y - y) * (b.y - y) < 0 && a.x < 3.2 === false) {
+          const x = a.x + ((y - a.y) * (b.x - a.x)) / (b.y - a.y);
+          if (x > 3.2) assert.ok(Math.abs(x - dx) <= 0.45 + 1e-6, `${l.name} crosses the wall at x=${x.toFixed(2)} (door at ${dx})`);
+        }
+    }
+});

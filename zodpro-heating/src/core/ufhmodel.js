@@ -8,7 +8,8 @@
 //                     return connector), length, supplyLength, heatingLength, returnLength, drop,
 //                     spacing, pipeType, manual, status, errors, warnings }
 
-import { elementsOf, collectorPort, newElement } from './model.js';
+import { elementsOf, collectorPort, newElement, openingPos, wallDir } from './model.js';
+import { insetPolygon, sharedSegments } from './wallroute.js';
 import { pointInPolygon, polygonArea, polygonCentroid } from './util.js';
 import { pipeType, DEFAULT_PIPE } from '../engines/ufh/pipes.js';
 
@@ -87,6 +88,45 @@ export function zoneObstacles(project, zone) {
 }
 
 /** Engine job for a zone (spec §5–§10): the zone, its obstacles, pipes to avoid, free circuits. */
+/**
+ * Rooms (interiors: axis outline inset by half the wall) and doors of a level for the room-by-room
+ * UFH layout. Neighbouring rooms without a door get a virtual passage through their common wall
+ * (the router uses it only when there is no way through doors).
+ */
+export function roomsAndDoors(project, levelId) {
+  const list = elementsOf(project, 'room', levelId).filter((r) => r.points?.length >= 3);
+  const walls = elementsOf(project, 'wall', levelId);
+  const half = Math.max(0.05, ...walls.filter((w) => !w.exterior).map((w) => (w.thickness ?? 0.16) / 2));
+  const rooms = list.map((r) => ({ id: r.id, name: r.name ?? r.number ?? 'Xona', poly: insetPolygon(r.points, half) }));
+  const inside = (p) => list.findIndex((r) => pointInPolygon(p, r.points));
+  const doors = [];
+  for (const d of elementsOf(project, 'door', levelId)) {
+    const pos = openingPos(project, d);
+    if (!pos) continue;
+    const dir = wallDir(pos.wall);
+    const th = pos.wall.thickness ?? 0.16;
+    const n = { x: -dir.y, y: dir.x };
+    const k = th / 2 + 0.15;
+    const ra = inside({ x: pos.x + n.x * k, y: pos.y + n.y * k });
+    const rb = inside({ x: pos.x - n.x * k, y: pos.y - n.y * k });
+    if (ra < 0 || rb < 0 || ra === rb) continue;
+    doors.push({ id: d.id, c: { x: pos.x, y: pos.y }, u: { x: dir.x, y: dir.y }, n, width: d.width ?? 0.9, half: th / 2, ra, rb });
+  }
+  const linked = new Set(doors.map((d) => `${Math.min(d.ra, d.rb)}|${Math.max(d.ra, d.rb)}`));
+  for (let i = 0; i < list.length; i++)
+    for (let j = i + 1; j < list.length; j++) {
+      if (linked.has(`${i}|${j}`)) continue;
+      const seg = sharedSegments(list[i].points, list[j].points).sort((a, b) => Math.hypot(b.b.x - b.a.x, b.b.y - b.a.y) - Math.hypot(a.b.x - a.a.x, a.b.y - a.a.y))[0];
+      if (!seg) continue;
+      const L = Math.hypot(seg.b.x - seg.a.x, seg.b.y - seg.a.y);
+      if (L < 1.0) continue;
+      const u = { x: (seg.b.x - seg.a.x) / L, y: (seg.b.y - seg.a.y) / L };
+      const c = { x: (seg.a.x + seg.b.x) / 2, y: (seg.a.y + seg.b.y) / 2 };
+      doors.push({ id: null, c, u, n: { x: -u.y, y: u.x }, width: 0.6, half, ra: i, rb: j, virtual: true });
+    }
+  return { rooms, doors };
+}
+
 export function zoneJob(project, zone, res = null, extra = {}) {
   const col = extra.col ?? project.elements[zone.collectorId];
   if (!col) throw new Error('Zona uchun kollektor tanlanmagan');
@@ -98,8 +138,11 @@ export function zoneJob(project, zone, res = null, extra = {}) {
     .filter((l) => !own.has(l.id))
     .map((l) => l.path)
     .filter((path) => path.some((p) => pointInPolygon(p, zone.points)));
+  const { rooms, doors } = roomsAndDoors(project, zone.levelId);
   return {
     zone: zone.points,
+    rooms,
+    doors,
     obstacles: zoneObstacles(project, zone).map((o) => ({ polygon: o.points, clearance: o.clearance ?? null, kind: o.kind })),
     avoid,
     collector: { id: col.id, anchor: collectorAnchor(col), ports: ports.map((c) => ({ circuitId: c.id, index: c.index, supply: c.supply, ret: c.ret })) },

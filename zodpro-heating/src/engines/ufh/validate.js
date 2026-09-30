@@ -57,7 +57,10 @@ export function validateLayout(loops, ctx) {
   };
   // manifold fan: the dense zone where pipes converge on the outlets (spacing rules waived)
   const fans = loops.map((l) => l.fan).filter((f) => f && f.length >= 2);
-  const inFan = (p) => fans.some((f) => G.segDist(p, f[0], f[1]) < s * 1.6);
+  // transit bundles (leads from the manifold through the doors) lie closer than s by design
+  const transits = loops.map((l) => l.transit).filter((tr) => tr && tr.length >= 2);
+  const nearTransit = (p) => transits.some((tr) => tr.some((q, k) => k > 0 && G.segDist(p, tr[k - 1], q) < 0.14));
+  const inFan = (p) => fans.some((f) => G.segDist(p, f[0], f[1]) < s * 1.6) || nearTransit(p);
   const Zin = ctx.Z ? G.offset(ctx.Z, -(ctx.wallClearance ?? 0.1) + R.wallTol, 'round') : null;
 
   // ---- per loop ----

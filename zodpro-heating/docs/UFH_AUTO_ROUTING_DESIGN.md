@@ -448,6 +448,18 @@ sinaladi.
 **Egilishni mahalliy tuzatish.** Tayyor quvurda radius < Rmin bo'lgan har joy ikki urinma va Rmin
 yoy bilan qayta egiladi; kvadrat U-burilish yarim aylana bilan almashtiriladi.
 
+**Xonalar bo'yicha qatlash (loyihachi shablonlaridan).** Zona bir necha xonani qamrasa:
+1. Kontur o'z xonasidan chiqmaydi; devordan faqat ikki lead quvuri o'tadi va faqat **eshikdan**.
+2. Lead'lar kollektordan zich to'plam (tranzit, 100 mm) bo'lib, oraliq xonalarning devori bo'ylab va
+   eshiklari orqali o'z xonasigacha boradi (eshik kengligida har lead'ga joy ajratiladi).
+3. Har xona alohida qatlanadi: eshik uning "kollektori"; strip/spirallar shu eshikdan.
+4. Kollektor xonasi o'z chiqishlari bilan isitiladi; tranzit to'plamlar uning isitish maydonidan
+   chiqarib tashlanadi (to'plam o'zi isitadi); tekshiruvda tranzit (fan kabi) oraliq talabidan ozod.
+5. Yo'l: xonalar grafi (eshiklar) bo'yicha eng qisqa yo'l (Dijkstra); eshiksiz qo'shni xonalar uchun
+   devor orqali "virtual o'tish" — faqat boshqa yo'l bo'lmasa, ogohlantirish bilan.
+6. Kollektor xonasida lead'lar ichma-ich "L" bo'lib devor bo'ylab ketadi (uzoq strip lead'i eng
+   tashqarida), birinchi strip to'plam ostida.
+
 Egilish radiusi siyosati: quvur jadvali 5×OD (16 mm → 80 mm) beradi; tekshiruv 15 % tolerantlik bilan
 (≥ 68 mm, prujina/yo‘naltirgich bilan egish), dvigatel esa 7.5 % bilan loyihalaydi (zaxira). Hammasi
 bitta joyda (`validate.js UFH_RULES.bendTol`) va preview panelida ko‘rsatiladi.

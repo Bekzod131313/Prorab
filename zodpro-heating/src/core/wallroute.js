@@ -56,7 +56,7 @@ function projOnRing(ring, p) {
 }
 
 /** Common wall of two room outlines as segments [{a, b}] (collinear overlaps). */
-function sharedSegments(A, B, tol = 0.05) {
+export function sharedSegments(A, B, tol = 0.05) {
   const out = [];
   for (let i = 0; i < A.length; i++) {
     const p = A[i];

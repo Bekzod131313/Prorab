@@ -117,10 +117,17 @@ export function buildLoop(main, branches, s, rmin, o = {}) {
   const center = f.pts;
   const brs = branches.map((b) => fillet(b, o.filletR ?? Rc).pts).filter((b) => b.length >= 2 && pathLength(b) > 1e-3);
   let region;
-  if (sT > s + 1e-6 && o.leadLen > 0) {
+  // transit part (from the manifold through the doors to the room) at its own, tighter spacing
+  const tS = o.transitLen > 0 ? o.transitS ?? s : s;
+  if ((sT > s + 1e-6 && o.leadLen > 0) || o.transitLen > 0) {
     const Lc = pathLength(center);
-    const cut = Math.min(Lc, o.leadLen);
-    region = union(bufferPolylines([subPath(center, 0, cut)], s / 2), bufferPolylines([subPath(center, Math.max(0, cut - 0.002), Lc), ...brs], sT / 2));
+    const tc = Math.min(Lc, o.transitLen ?? 0);
+    const cut = Math.max(tc, Math.min(Lc, o.leadLen ?? 0));
+    const parts = [];
+    if (tc > 0) parts.push(bufferPolylines([subPath(center, 0, tc)], tS / 2));
+    if (cut > tc) parts.push(bufferPolylines([subPath(center, Math.max(0, tc - 0.002), cut)], s / 2));
+    parts.push(bufferPolylines([subPath(center, Math.max(0, cut - 0.002), Lc), ...brs], (cut > 0 ? sT : s) / 2));
+    region = union(parts.flat());
   } else region = bufferPolylines([center, ...brs], s / 2);
   // keyholes only where the plain U-turn (radius s/2) would be tighter than the checked minimum
   const rb = (o.rminKey ?? rmin) + 0.004;
@@ -153,7 +160,7 @@ export function buildLoop(main, branches, s, rmin, o = {}) {
   const root = center[0];
   const d = norm({ x: center[1].x - root.x, y: center[1].y - root.y });
   const n = ring.length;
-  const behind = ring.map((p) => (p.x - root.x) * d.x + (p.y - root.y) * d.y < -1e-5 && Math.hypot(p.x - root.x, p.y - root.y) <= s / 2 + rmin + 1e-3);
+  const behind = ring.map((p) => (p.x - root.x) * d.x + (p.y - root.y) * d.y < -1e-5 && Math.hypot(p.x - root.x, p.y - root.y) <= tS / 2 + rmin + 1e-3);
   if (!behind.some(Boolean)) errors.push({ code: 'loop_root' });
   // first vertex after the cap run
   let start = -1;
@@ -167,8 +174,8 @@ export function buildLoop(main, branches, s, rmin, o = {}) {
   }
   // exact end points on the root line: root ± right·s/2
   const right = { x: d.y, y: -d.x };
-  const sup = { x: root.x + right.x * (s / 2), y: root.y + right.y * (s / 2) };
-  const ret = { x: root.x - right.x * (s / 2), y: root.y - right.y * (s / 2) };
+  const sup = { x: root.x + right.x * (tS / 2), y: root.y + right.y * (tS / 2) };
+  const ret = { x: root.x - right.x * (tS / 2), y: root.y - right.y * (tS / 2) };
   let pipe = removeSpikes(cleanPath([sup, ...pts, ret], 1e-6));
   // CCW boundary: the right side of the lead is walked outwards first — if not, reverse
   const d0 = Math.hypot(pts[0].x - sup.x, pts[0].y - sup.y);
