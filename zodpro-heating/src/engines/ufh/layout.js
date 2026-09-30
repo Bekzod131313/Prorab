@@ -390,34 +390,35 @@ function buildStrips(ctx, shares) {
       R = G.difference(R, [{ outer: G.ccw(wedge), holes: [] }]);
     }
     R = removeHoles(R, s, { x: 0, y: 1 });
-    // a strip that is a room plus a thin leftover of a corridor (where the other leads run): the
-    // loop heats the room; its lead goes on through the leftover to it
-    let reach = null;
-    if (R.length) {
-      const A = G.area(R);
-      const thick = G.opening(R, 1.4 * s, 'miter');
-      const big = thick.reduce((a, b) => (!a || G.area([b]) > G.area([a]) ? b : a), null);
-      if (big && G.area([big]) >= 0.5 * A && A - G.area([big]) >= 0.15 * A && G.distToRegionBoundary(t.target, [big]) > 2 * s && !G.pointInRegion(t.target, [big])) {
-        R = [big];
-        const q0 = G.closestOnRing(t.target, big.outer);
-        reach = q0.p ?? q0;
-      }
-    }
     t.region = R;
     const last = t.lead[t.lead.length - 1];
     const prev = t.lead[t.lead.length - 2];
-    const dir = reach ? G.norm({ x: reach.x - last.x, y: reach.y - last.y }) : G.norm({ x: last.x - prev.x, y: last.y - prev.y });
+    const dir = G.norm({ x: last.x - prev.x, y: last.y - prev.y });
     t.dir = dir;
     let tree = null;
     if (R.length) {
       const serp = strategy === 'serpentine' || strategy === 'adaptive_serpentine';
       if (serp) tree = serpentineTree(R, s, t.target, strategy === 'adaptive_serpentine' ? t.axis ?? 'x' : 'x');
-      else tree = spiralTree(R, s, t.target, dir, { rmin, prefer: t.group === 'L' ? -1 : 1, allowBranches: strategy !== 'spiral' });
+      else {
+        const so = { rmin, prefer: t.group === 'L' ? -1 : 1, allowBranches: strategy !== 'spiral' };
+        tree = spiralTree(R, s, t.target, dir, so);
+        t.treeS = s;
+        t.spiralOpts = so;
+      }
     }
     t.tree = tree;
     t.centerLen = tree ? G.pathLength([...t.lead, ...tree.path]) + tree.branches.reduce((a, b) => a + G.pathLength(b), 0) : 0;
   }
   return strips;
+}
+
+/** Unheated patches (m²) a centreline tree at pair spacing sT leaves in its strip region. */
+function holeArea(R, tree, sT, s) {
+  const lines = [tree.path, ...tree.branches].filter((l) => l.length >= 2);
+  if (!lines.length) return G.area(R);
+  const cov = G.bufferPolylines(lines, sT);
+  const unc = G.difference(R, cov);
+  return G.area(G.opening(unc, s / 2));
 }
 
 /**
@@ -716,13 +717,26 @@ export function layoutZone(inp) {
       errors.push({ code: 'UFH_STRIP_EMPTY', msg: 'Kontur uchun joy qolmadi', at: toPlan(F, t.target) });
       continue;
     }
+    // a band the rings at spacing s leave half empty (its width no odd multiple of s): the spiral
+    // of this loop is laid a little wider (≤ 1.45 s) so its pipes share the band evenly (the lead
+    // keeps s; the layout itself was chosen at s)
+    if (t.spiralOpts && G.pathLength(t.tree.path) >= 1) {
+      let h = holeArea(t.region, t.tree, s, s);
+      if (h > 0.45)
+        for (const f of [1.15, 1.3, 1.45]) {
+          const tr = spiralTree(t.region, s * f, t.target, t.dir, t.spiralOpts);
+          if (!tr || G.pathLength(tr.path) < 1) continue;
+          const h2 = holeArea(t.region, tr, s * f, s);
+          if (h2 < h - 0.1) (t.tree = tr), (h = h2), (t.treeS = s * f);
+        }
+    }
     const main = G.cleanPath([...t.lead, ...t.tree.path.slice(G.pathLength([t.lead[t.lead.length - 1], t.tree.path[0]]) < 1e-6 ? 1 : 0)]);
     if (G.pathLength(t.tree.path) < 1) {
       // nothing to heat in this strip (only the lead) — never a real loop
       errors.push({ code: 'UFH_STRIP_EMPTY', msg: 'Kontur uchun joy qolmadi (bo‘sh strip)', at: toPlan(F, t.target) });
       continue;
     }
-    const lp = buildLoop(main, t.tree.branches, s, rmin, { uturns: t.tree.uturns, rminKey: inp.rminCheck ?? rmin, pipeFillet: rmin, bendMin: (inp.rminCheck ?? rmin) + 0.002 });
+    const lp = buildLoop(main, t.tree.branches, s, rmin, { uturns: t.tree.uturns, rminKey: inp.rminCheck ?? rmin, pipeFillet: rmin, bendMin: (inp.rminCheck ?? rmin) + 0.002, treeS: t.treeS, leadLen: G.pathLength(t.lead) + Math.hypot(t.tree.path[0].x - t.lead[t.lead.length - 1].x, t.tree.path[0].y - t.lead[t.lead.length - 1].y) + s });
     for (const e of lp.errors) errors.push({ ...e, msg: `Kontur geometriyasi: ${e.code}` });
     const pt = t.port;
     const pipeL = lp.pipe;
@@ -744,6 +758,7 @@ export function layoutZone(inp) {
       center: mapLine(lp.center, (q) => toPlan(F, q)),
       region: mapRegion(t.region, (q) => toPlan(F, q)),
       stats: t.tree.stats,
+      treeS: t.treeS ?? s,
       fanLen: G.pathLength(t.lead.slice(0, 2)) + 0.3,
     });
   }

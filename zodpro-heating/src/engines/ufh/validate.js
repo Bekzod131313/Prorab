@@ -141,7 +141,7 @@ export function validateLayout(loops, ctx) {
   // ---- coverage ----
   let cov = null;
   if (ctx.U && ctx.U.length) {
-    cov = coverageAnalysis({ U: ctx.U, Z: ctx.Z, obstacles: ctx.obstacles ?? [], pipes: loops.map((l) => l.path), s });
+    cov = coverageAnalysis({ U: ctx.U, Z: ctx.Z, obstacles: ctx.obstacles ?? [], pipes: loops.map((l) => l.path), s, widths: loops.map((l) => Math.max(s, l.spacing ?? s)) });
     const cmin = ctx.coverageMin ?? R.coverageMin;
     if (cov.ratio < cmin) push(null, err('UFH-COV', `Qamrov ${(cov.ratio * 100).toFixed(1)} % < ${(cmin * 100).toFixed(0)} %`, { value: cov.ratio }));
     const mh = ctx.maxHole ?? R.maxHole;

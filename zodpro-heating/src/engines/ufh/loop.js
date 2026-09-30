@@ -80,7 +80,7 @@ export function easeS(pts, r) {
     if (need(t1.th) + need(t2.th) <= L + 1e-6) continue;
     const La = len(a, b) - (i - 1 === 0 ? 0 : len(a, b) / 2);
     const Ld = len(c, d) - (i + 2 === P.length - 1 ? 0 : len(c, d) / 2);
-    for (let k = 1; k <= 40; k++) {
+    for (let k = 1; k <= 20; k++) {
       const e = 0.01 * k;
       if (e > La - 1e-6 || e > Ld - 1e-6) break;
       const b2 = { x: b.x - u.x * e, y: b.y - u.y * e };
@@ -109,11 +109,19 @@ export function easeS(pts, r) {
  */
 export function buildLoop(main, branches, s, rmin, o = {}) {
   const errors = [];
-  const Rc = cornerRadius(s, rmin);
+  // the heating part may be laid wider than the lead (o.treeS ≥ s: a band whose width is no odd
+  // multiple of s is filled evenly); corners are sized for the wider pair
+  const sT = Math.max(s, o.treeS ?? s);
+  const Rc = cornerRadius(sT, rmin);
   const f = fillet(easeS(main, o.filletR ?? Rc), o.filletR ?? Rc);
   const center = f.pts;
   const brs = branches.map((b) => fillet(b, o.filletR ?? Rc).pts).filter((b) => b.length >= 2 && pathLength(b) > 1e-3);
-  let region = bufferPolylines([center, ...brs], s / 2);
+  let region;
+  if (sT > s + 1e-6 && o.leadLen > 0) {
+    const Lc = pathLength(center);
+    const cut = Math.min(Lc, o.leadLen);
+    region = union(bufferPolylines([subPath(center, 0, cut)], s / 2), bufferPolylines([subPath(center, Math.max(0, cut - 0.002), Lc), ...brs], sT / 2));
+  } else region = bufferPolylines([center, ...brs], s / 2);
   // keyholes only where the plain U-turn (radius s/2) would be tighter than the checked minimum
   const rb = (o.rminKey ?? rmin) + 0.004;
   if (rb > s / 2 + 1e-6) {

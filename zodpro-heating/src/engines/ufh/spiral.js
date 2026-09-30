@@ -126,7 +126,11 @@ export function spineOf(ring) {
     if (offset(R, -m).length) lo = m;
     else hi = m;
   }
-  const d = lo;
+  // uneven piece (a thin band with a wider blob): the widest spot would give a spine only there —
+  // the typical half-width (area / perimeter) keeps the whole length
+  const perim = ring.reduce((a, p, i) => a + Math.hypot(ring[(i + 1) % ring.length].x - p.x, ring[(i + 1) % ring.length].y - p.y), 0);
+  const typical = Math.abs(area(R)) / (perim || 1);
+  const d = lo > 1.6 * typical && typical > 0.01 ? 0.85 * typical + 0.004 : lo;
   const sl = offset(R, -Math.max(0, d - 0.004));
   if (!sl.length) return null;
   const main = sl.reduce((x, y) => (area([y]) > area([x]) ? y : x));
@@ -135,6 +139,17 @@ export function spineOf(ring) {
   m = straighten(m);
   // a nearly straight spine becomes exactly straight (hairpins at its ends stay symmetric)
   if (m.length > 2 && m.slice(1, -1).every((q) => segDistPt(q, m[0], m[m.length - 1]) < 0.02)) m = [m[0], m[m.length - 1]];
+  // a short end piece bent away (> 40°) from the spine — a slanted end of the piece — would make a
+  // sharp U-turn: the spine ends straight instead
+  const bent = (a, b, c) => {
+    const u = { x: b.x - a.x, y: b.y - a.y };
+    const v = { x: c.x - b.x, y: c.y - b.y };
+    const lu = Math.hypot(u.x, u.y) || 1;
+    const lv = Math.hypot(v.x, v.y) || 1;
+    return (u.x * v.x + u.y * v.y) / (lu * lv) < Math.cos((40 * Math.PI) / 180) && lv < 0.6;
+  };
+  while (m.length > 2 && bent(m[m.length - 3], m[m.length - 2], m[m.length - 1])) m.pop();
+  while (m.length > 2 && bent(m[2], m[1], m[0])) m.shift();
   const ext = (p, q) => {
     const L = Math.hypot(p.x - q.x, p.y - q.y) || 1;
     // the sliver ends sit (d − 4 mm) inside the region's ends: extend by exactly that much
@@ -218,6 +233,55 @@ function straightStop(pts, stop, before, after) {
   return -1;
 }
 
+/** Points every ≤ step along a polyline (vertices kept). */
+function densifyPath(pts, step) {
+  const out = [pts[0]];
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1];
+    const b = pts[i];
+    const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / step));
+    for (let k = 1; k <= n; k++) out.push({ x: a.x + ((b.x - a.x) * k) / n, y: a.y + ((b.y - a.y) * k) / n });
+  }
+  return out;
+}
+
+/** Distance from p along direction d to the first crossing of the shape's boundary. */
+function rayToBoundary(p, d, shape) {
+  let best = Infinity;
+  for (const r of [shape.outer, ...(shape.holes ?? [])])
+    for (let i = 0; i < r.length; i++) {
+      const a = r[i];
+      const b = r[(i + 1) % r.length];
+      const ex = b.x - a.x;
+      const ey = b.y - a.y;
+      const den = d.x * ey - d.y * ex;
+      if (Math.abs(den) < 1e-12) continue;
+      const t = ((a.x - p.x) * ey - (a.y - p.y) * ex) / den;
+      const u = ((a.x - p.x) * d.y - (a.y - p.y) * d.x) / den;
+      if (t > 1e-9 && u >= -1e-9 && u <= 1 + 1e-9 && t < best) best = t;
+    }
+  return best;
+}
+
+/**
+ * Centre line of a strip one pipe pair wide: every point moved to the middle between the two
+ * sides (measured square to the line), so both pipes keep the same distance to the walls.
+ */
+function recentre(pts, shape) {
+  const out = pts.map((p, i) => {
+    const a = pts[Math.max(0, i - 1)];
+    const b = pts[Math.min(pts.length - 1, i + 1)];
+    const L = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    const n = { x: -(b.y - a.y) / L, y: (b.x - a.x) / L };
+    const dp = rayToBoundary(p, n, shape);
+    const dm = rayToBoundary(p, { x: -n.x, y: -n.y }, shape);
+    if (!Number.isFinite(dp) || !Number.isFinite(dm) || dp + dm > 0.6) return p;
+    const sh = (dp - dm) / 2;
+    return { x: p.x + n.x * sh, y: p.y + n.y * sh };
+  });
+  return cleanPath(out, 0.002);
+}
+
 /**
  * Adaptive spiral centreline tree for a simply connected region (pipe-axis region: the outermost
  * pipe may lie on its boundary).
@@ -235,7 +299,21 @@ export function spiralTree(region, s, E0, dir, o = {}) {
   const jogGap = gap / Math.sin(JOG);
   const jogAhead = gap / Math.tan(JOG);
   const lv0 = offset(region, -(s / 2 + EPS)).filter((sh) => area([sh]) > minPiece * 0.25);
-  if (!lv0.length) return null;
+  if (!lv0.length) {
+    // a strip only one pipe pair wide (a corridor beside the leads): one hairpin along its middle,
+    // entered at the end nearer to the lead
+    const big = region.reduce((a, b) => (!a || area([b]) > area([a]) ? b : a), null);
+    const sp = big && spineOf(big.outer);
+    if (!sp || pathLength(sp) < 1) return null;
+    const a = sp[0];
+    const b = sp[sp.length - 1];
+    let path = Math.hypot(a.x - E0.x, a.y - E0.y) <= Math.hypot(b.x - E0.x, b.y - E0.y) ? sp : [...sp].reverse();
+    path = recentre(densifyPath(path, 0.25), big);
+    // the U-turn at the far end is a half circle of s/2 around the spine end: it ends on the straight
+    // part of the strip, clear of where the strip widens
+    path = subPath(path, 0, Math.max(0.5, pathLength(path) - 1.5 * s));
+    return { entry: path[0], path: cleanPath(path), branches: [], sign: 1, stats: { rings: 0, spines: 1, branches: 0, dropped: 0, droppedArea: 0 }, uturns: [] };
+  }
   const stats = { rings: 0, spines: 0, branches: 0, dropped: 0, droppedArea: 0 };
   const branches = [];
   const uturns = [];
@@ -257,8 +335,15 @@ export function spiralTree(region, s, E0, dir, o = {}) {
         continue;
       }
       for (const c of op) out.push({ shape: c });
-      const rest = area([piece]) - area(op);
-      if (rest > minPiece) stats.droppedArea += rest;
+      // thin arms beside the thick part (the strip beside an obstacle, a corridor end): one spine
+      // each — a pipe pair down the arm — instead of an unheated band
+      for (const arm of difference([piece], offset(op, 0.003, 'miter'))) {
+        const aA = area([arm]);
+        if (aA < minPiece * 2) continue;
+        const sp = spineOf(arm.outer);
+        if (sp && pathLength(sp) >= 3 * s) out.push({ spine: sp, arm: true });
+        else stats.droppedArea += aA;
+      }
     }
     return out;
   };
@@ -484,9 +569,32 @@ export function spiralTree(region, s, E0, dir, o = {}) {
   }
   const path = [entry];
   walk(first, entry, path);
+  // the other pieces of the outer level (arms beside an obstacle): T-branches from the nearest
+  // point of the path
   for (const k of top) if (k !== first) {
-    stats.dropped++;
-    stats.droppedArea += kidArea(k);
+    if (!allowBranches || kidArea(k) < minPiece) {
+      stats.dropped++;
+      stats.droppedArea += kidArea(k);
+      continue;
+    }
+    const run = cleanPath(path);
+    const cand = k.shape ? k.shape.outer : k.spine;
+    let best = null;
+    for (const p of cand) {
+      const q = nearestOnPolyline(p, run);
+      if (!best || q.d < best.d) best = q;
+    }
+    if (!best || best.d > gap * 1.5) {
+      stats.dropped++;
+      stats.droppedArea += kidArea(k);
+      continue;
+    }
+    const Ec = k.shape ? closestOnRing(best.p, k.shape.outer).p : nearestOnPolyline(best.p, k.spine).p;
+    const br = [best.p];
+    stats.branches++;
+    if (k.shape) br.push(Ec);
+    walk(k, Ec, br);
+    branches.push(cleanPath(br));
   }
   return { entry, path: cleanPath(path), branches, sign, stats, uturns };
 }

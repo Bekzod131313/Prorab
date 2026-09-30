@@ -241,7 +241,7 @@ function finish(lay, inp, job, pipe) {
     heatingLength: Math.max(0, l.length - l.supplyLen - l.returnLen - l.drop),
     drop: l.drop,
     fan: l.lead.slice(0, 2),
-    spacing: inp.s,
+    spacing: l.treeS ?? inp.s,
     pipeType: pipe.id,
   }));
   const connectors = Object.fromEntries(inp.ports.map((p) => [p.circuitId, { supply: p.supply, ret: p.ret }]));
