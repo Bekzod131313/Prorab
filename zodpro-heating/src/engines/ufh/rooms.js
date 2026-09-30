@@ -48,7 +48,7 @@ function alongRing(R, a, b) {
  *   inp.doors  [{ c, u, n, width, half, ra, rb, virtual }]  door centre on the wall axis, unit
  *              vectors along / across the wall, wall half thickness, rooms on the two sides
  */
-export function layoutRooms(inp, score) {
+export function layoutRooms(inp, score, kFix = null) {
   const rooms = inp.rooms ?? [];
   const doors = inp.doors ?? [];
   if (rooms.length < 2) return null;
@@ -147,12 +147,14 @@ export function layoutRooms(inp, score) {
   if (total > P.length) return { loops: [], errors: [...errors, { code: 'UFH-CIRC', msg: `Xonalar uchun ≈ ${total} kontur kerak, kollektorda ${P.length} ta chiqish` }], U: [], Z, obstacles: [] };
   // spare outlets by area (a room may take one loop more when its strips need it)
   let spare = P.length - total;
-  const byArea = [...plan].sort((a, b) => b.area - a.area);
-  for (const p of byArea) p.k = p.need;
+  const byArea = [...plan].sort((a, b) => !a.chain.length - !b.chain.length || b.area - a.area);
+  for (const p of byArea) p.k = kFix?.has(p.i) ? kFix.get(p.i) : p.need;
+  if (kFix) spare = P.length - plan.reduce((a, b) => a + b.k, 0);
+  const fits = (p) => !kFix?.has(p.i);
   for (let k = 0; spare > 0 && k < 50; k++)
     for (const p of byArea) {
       if (spare <= 0) break;
-      if (p.k < p.need + 1) (p.k += 1), (spare -= 1);
+      if (p.k < p.need + 1 && fits(p)) (p.k += 1), (spare -= 1);
     }
 
   // ---- outlets: rooms in the order of the way their leads leave the manifold ----
@@ -217,11 +219,16 @@ export function layoutRooms(inp, score) {
   const deep = G.offset(R0, -(mBase + (combLeads.length + 1) * 2 * st), 'miter');
   // (a door right at the manifold: the pairs go straight through it, no spread needed)
   const doorNear = plan.some((p) => p.chain.length && Math.hypot(doors[p.chain[0].di].c.x - inp.anchor.x, doors[p.chain[0].di].c.y - inp.anchor.y) < 1.0);
+  // too narrow for the spread: the pairs drop straight from their own outlets (a column, as at a
+  // real manifold) and turn at nested depths; a door right at the manifold: straight through it
+  let column = false;
   if (!combLeads.length || doorNear || G.area(deep) < 0.5) {
     combX.clear();
+    column = combLeads.length > 0 && !doorNear;
     combD = 0.05;
-    mBase = outD + 0.08;
+    mBase = column ? outD + 0.2 : outD + 0.08;
   }
+  const comb = combX.size > 0 || column;
   const laneRing = (ri, lane) => {
     const base = ri === mr ? Math.max(0.12, mBase) : 0.12;
     const off = G.offset(ring(rooms[ri].poly), -(base + st / 2 + lane * 2 * st), 'miter');
@@ -251,13 +258,57 @@ export function layoutRooms(inp, score) {
     grp.sort((A, B) => sgn * (along(B.port.supply) - along(A.port.supply)));
     grp.forEach((L, k) => firstLane.set(L.port.circuitId, k));
   }
+  // a door on a side wall of the manifold room: the pair nearest to it turns first, so it takes the
+  // slot nearest the manifold's wall (L-routes nested, none crossing)
+  const fM = (() => {
+    const q = inp.ports[0];
+    const l = q ? Math.hypot(q.ret.x - q.supply.x, q.ret.y - q.supply.y) || 1 : 1;
+    return q ? { x: (q.ret.x - q.supply.x) / l, y: (q.ret.y - q.supply.y) / l } : { x: 0, y: 1 };
+  })();
+  for (const [di, list] of through) {
+    const d = doors[di];
+    if (Math.abs(d.n.x * fM.x + d.n.y * fM.y) > 0.3) continue;
+    if (!list.every((x) => x.p.chain[0]?.di === di)) continue;
+    const uf = d.u.x * fM.x + d.u.y * fM.y;
+    let offs = list.map((x) => slot.get(`${di}|${x.port.circuitId}`)).sort((a, b) => uf * (a - b));
+    // the slots sit beyond the point where the pairs leave the outlets (room for the L's corner)
+    const depth = (o) => (d.c.x + d.u.x * o) * fM.x + (d.c.y + d.u.y * o) * fM.y;
+    const need = Math.max(...list.map((x) => x.port.ret.x * fM.x + x.port.ret.y * fM.y)) + (comb ? combD : 0.15) + 0.1;
+    const lift = need - depth(offs[0]);
+    if (lift > 0) {
+      const room0 = (d.width ?? 0.8) / 2 - st / 2 - 0.02 - Math.abs(offs[offs.length - 1]);
+      const sh = Math.min(lift, Math.max(0, room0));
+      offs = offs.map((o) => o + uf * sh);
+    }
+    [...list].sort((A, B) => (firstLane.get(A.port.circuitId) ?? 0) - (firstLane.get(B.port.circuitId) ?? 0)).forEach((x, k) => slot.set(`${di}|${x.port.circuitId}`, offs[k]));
+  }
+  const inMr = (() => {
+    const Ri = G.offset(ring(rooms[mr].poly), -0.05, 'miter');
+    return (a, b) => [0, 0.25, 0.5, 0.75, 1].every((s) => G.pointInRegion({ x: a.x + (b.x - a.x) * s, y: a.y + (b.y - a.y) * s }, Ri));
+  })();
+  // a door on a side wall near the manifold's wall: straight out of the manifold, then one turn
+  // into the door (an L; a door farther on is reached along the walls, not across the room)
+  const directRoute = (L, cur, qIn) => {
+    const dot = (a, b) => a.x * b.x + a.y * b.y;
+    const dv = { x: qIn.x - cur.x, y: qIn.y - cur.y };
+    const nOut = inside(doors[L.p.chain[0].di], mr);
+    let pts = null;
+    if (Math.abs(dot(nOut, fM)) < 0.3) {
+      const t = dot(dv, fM);
+      if (t > 0.095 && t < 1.5) pts = [{ x: cur.x + fM.x * t, y: cur.y + fM.y * t }];
+    }
+    if (!pts) return null;
+    const all = [cur, ...pts, qIn];
+    for (let i = 1; i < all.length; i++) if (!inMr(all[i - 1], all[i])) return null;
+    return pts;
+  };
   const used = new Map([[mr, Math.max(0, ...[...firstLane.values()].map((k) => k + 1))]]);
   for (const L of [...leads].sort((A, B) => B.p.T - A.p.T)) {
     const { p, port } = L;
     const fl0 = Math.hypot(port.ret.x - port.supply.x, port.ret.y - port.supply.y) || 1;
     const f0 = { x: (port.ret.x - port.supply.x) / fl0, y: (port.ret.y - port.supply.y) / fl0 };
     const sh = (combX.get(port.circuitId) ?? alongA(port.ret)) - alongA(port.ret);
-    let cur = combX.size ? { x: port.ret.x + f0.x * combD + e.x * sh, y: port.ret.y + f0.y * combD + e.y * sh } : { x: (port.supply.x + port.ret.x) / 2 + f0.x * 0.15, y: (port.supply.y + port.ret.y) / 2 + f0.y * 0.15 };
+    let cur = comb ? { x: port.ret.x + f0.x * combD + e.x * sh, y: port.ret.y + f0.y * combD + e.y * sh } : { x: (port.supply.x + port.ret.x) / 2 + f0.x * 0.15, y: (port.supply.y + port.ret.y) / 2 + f0.y * 0.15 };
     const line = [cur];
     let room = mr;
     p.chain.forEach((c, ci) => {
@@ -272,7 +323,16 @@ export function layoutRooms(inp, score) {
         used.set(room, lane + 1);
       }
       const R = laneRing(room, lane);
-      if (ci === 0 && R && combX.size) {
+      const dr = ci === 0 ? directRoute(L, cur, qIn) : null;
+      if (dr) {
+        line.push(...dr, qIn, q);
+        const nIn = inside(d, c.to);
+        cur = { x: q.x + nIn.x * (d.half + 0.12), y: q.y + nIn.y * (d.half + 0.12) };
+        line.push(cur);
+        room = c.to;
+        return;
+      }
+      if (ci === 0 && R && comb) {
         // straight out of the outlet onto its lane, then along the walls to the door
         // perpendicular to the manifold first (no hooks at the outlet rows), then onto the lane
         const fl = Math.hypot(port.ret.x - port.supply.x, port.ret.y - port.supply.y) || 1;
@@ -289,7 +349,7 @@ export function layoutRooms(inp, score) {
         line.push(q0);
         cur = q0;
       }
-      if (R && Math.hypot(qIn.x - cur.x, qIn.y - cur.y) > (ci === 0 && combX.size ? 0.3 : ci === 0 ? 2.0 : 1.0)) line.push(...alongRing(R, cur, qIn));
+      if (R && Math.hypot(qIn.x - cur.x, qIn.y - cur.y) > (ci === 0 && comb ? 0.3 : ci === 0 ? 2.0 : 1.0)) line.push(...alongRing(R, cur, qIn));
       line.push(qIn, q);
       const nIn = inside(d, c.to);
       cur = { x: q.x + nIn.x * (d.half + 0.12), y: q.y + nIn.y * (d.half + 0.12) };
@@ -322,11 +382,21 @@ export function layoutRooms(inp, score) {
     // other rooms' bundles (not this room's own leads) are kept clear
     const others = allTransit.filter((tr, k) => !ports.some((pt) => pt.transit === tr));
     const keepOut = others.length ? G.bufferPolylines(others, st / 2 + s) : [];
-    const base = { ...inp, zone: big.outer, ports, anchor, keepOut: [...(inp.keepOut ?? []), ...keepOut.map((sh) => sh.outer)], transitS: st, rooms: null, doors: null };
+    // a sliver cut off by the bundles (between a bundle and the wall) is left out of the room
+    let zoneRing = big.outer;
+    if (keepOut.length) {
+      const pieces = G.difference([big], keepOut).sort((a, b) => G.area([b]) - G.area([a]));
+      if (pieces.length > 1 && pieces.slice(1).every((pc) => G.area([pc]) < 1.5)) {
+        zoneRing = G.difference([big], G.offset(pieces.slice(1), 0.01, 'miter')).reduce((a, b) => (!a || G.area([b]) > G.area([a]) ? b : a), null)?.outer ?? big.outer;
+      }
+    }
+    const base = { ...inp, zone: zoneRing, ports, anchor, keepOut: [...(inp.keepOut ?? []), ...keepOut.map((sh) => sh.outer)], transitS: st, rooms: null, doors: null };
     let best = null;
     for (const frameIndex of [0, 1, 2]) {
       const q = { ...base, frameIndex };
       const lay = layoutZone(q);
+      // a stub loop (a few metres in a leftover strip) heats nothing worth an outlet
+      if (lay.loops?.length > 1) lay.loops = lay.loops.filter((l) => !(l.length < 8));
       // the leads come through the other rooms of the zone: checked against the whole zone
       lay.Z = Z;
       const sc = score ? score(lay, q) : (lay.errors?.length ?? 0);
@@ -340,5 +410,19 @@ export function layoutRooms(inp, score) {
     out.frame = out.frame ?? lay.frame;
   }
   out.U = out.U.length ? G.union(out.U) : [];
+  // a room behind a door that used fewer outlets than it was given: planned again with that count,
+  // so no unused lead holds a place in the doors and bundles
+  if (!kFix) {
+    const fix = new Map();
+    for (const p of plan) {
+      if (!p.chain.length) continue;
+      const n = out.loops.filter((l) => p.ports.some((pt) => pt.circuitId === l.circuitId)).length;
+      if (n > 0 && n < p.k) fix.set(p.i, n);
+    }
+    if (fix.size) {
+      for (const p of plan) if (p.chain.length && !fix.has(p.i)) fix.set(p.i, p.k);
+      return layoutRooms(inp, score, fix);
+    }
+  }
   return out;
 }

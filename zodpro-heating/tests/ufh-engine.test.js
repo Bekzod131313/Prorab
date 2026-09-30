@@ -202,3 +202,29 @@ test('rooms: loops stay in their rooms, leads cross walls only through the doors
         }
     }
 });
+
+test('rooms: leads to a side door leave the manifold as nested L-routes (no diagonal fan)', () => {
+  // 102 (left) is fed from the manifold in corridor 103 through a door low on the shared wall
+  const zone = [{ x: 0, y: 5.6 }, { x: 5.8, y: 5.6 }, { x: 5.8, y: 11.6 }, { x: 0, y: 11.6 }];
+  const R = (x0, y0, x1, y1, h = 0.08) => [{ x: x0 + h, y: y0 + h }, { x: x1 - h, y: y0 + h }, { x: x1 - h, y: y1 - h }, { x: x0 + h, y: y1 - h }];
+  const rooms = [{ id: 'b', name: '103', poly: R(3.2, 5.6, 5.8, 11.6) }, { id: 'd', name: '102', poly: R(0, 5.6, 3.2, 11.6) }];
+  const doors = [{ c: { x: 3.2, y: 6.2 }, u: { x: 0, y: 1 }, n: { x: 1, y: 0 }, width: 0.9, half: 0.08, ra: 1, rb: 0 }];
+  const ports = Array.from({ length: 12 }, (_, i) => ({ circuitId: `C${i + 1}`, index: i, supply: { x: 5.5 - i * 0.05, y: 5.75 }, ret: { x: 5.5 - i * 0.05, y: 5.95 } }));
+  const r = runUfhEngine({ zone, rooms, doors, collector: { anchor: { x: 5.2, y: 5.85 }, ports }, spacing: 0.15, wallClearance: 0.15, obstacleClearance: 0.15 });
+  const hardCodes = codes(r).filter((c) => ['UFH-LEN', 'UFH-TOPO', 'UFH-CROSS', 'UFH-ZONE', 'UFH-SPACE'].includes(c));
+  assert.deepEqual(hardCodes, []);
+  const tr = r.loops.filter((l) => l.transit);
+  assert.ok(tr.length >= 2, `transit leads ${tr.length}`);
+  for (const l of tr) {
+    // every transit segment runs along x or y
+    for (let k = 1; k < l.transit.length; k++) {
+      const a = l.transit[k - 1];
+      const b = l.transit[k];
+      assert.ok(Math.min(Math.abs(a.x - b.x), Math.abs(a.y - b.y)) < 0.01, `${l.circuitId} diagonal transit segment`);
+    }
+  }
+  // nested: the lead nearest the door turns lowest
+  const turn = (l) => l.transit[1].y;
+  const byX = [...tr].sort((a, b) => a.transit[0].x - b.transit[0].x);
+  for (let k = 1; k < byX.length; k++) assert.ok(turn(byX[k]) > turn(byX[k - 1]), 'L-routes cross');
+});
