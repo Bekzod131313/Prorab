@@ -188,8 +188,9 @@ test('rooms: loops stay in their rooms, leads cross walls only through the doors
   const ports = Array.from({ length: 10 }, (_, i) => ({ circuitId: `C${i + 1}`, index: i, supply: { x: 4.55 - i * 0.05, y: 5.75 }, ret: { x: 4.55 - i * 0.05, y: 5.95 } }));
   const r = runUfhEngine({ zone, rooms, doors, collector: { anchor: { x: 4.3, y: 5.85 }, ports }, spacing: 0.2, wallClearance: 0.2, obstacleClearance: 0.2 });
   assert.ok(r.loops.length >= 6, `loops ${r.loops.length}`);
-  const hardCodes = codes(r).filter((c) => ['UFH-LEN', 'UFH-TOPO', 'UFH-CROSS', 'UFH-ZONE'].includes(c));
+  const hardCodes = codes(r).filter((c) => ['UFH-LEN', 'UFH-TOPO', 'UFH-CROSS', 'UFH-ZONE', 'UFH-SPACE', 'UFH-BEND'].includes(c));
   assert.deepEqual(hardCodes, []);
+  assert.ok(r.ok, `invalid: ${codes(r).join(',')}`);
   // every crossing of the two walls (y = 5.6, y = 11.6) lies inside a door opening
   for (const l of r.loops)
     for (let k = 1; k < l.path.length; k++) {

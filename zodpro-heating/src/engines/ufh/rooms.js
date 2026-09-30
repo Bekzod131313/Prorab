@@ -392,15 +392,21 @@ export function layoutRooms(inp, score, kFix = null) {
     }
     const base = { ...inp, zone: zoneRing, ports, anchor, keepOut: [...(inp.keepOut ?? []), ...keepOut.map((sh) => sh.outer)], transitS: st, rooms: null, doors: null };
     let best = null;
-    for (const frameIndex of [0, 1, 2]) {
-      const q = { ...base, frameIndex };
+    // the requested pattern first; the other one only when no variant of it is free of errors
+    const strat = base.strategy ?? 'adaptive_spiral';
+    const other = strat.includes('serpentine') ? 'adaptive_spiral' : 'adaptive_serpentine';
+    const variants = [0, 1, 2].map((frameIndex) => ({ frameIndex, strategy: strat, pen: 0 }));
+    for (let vi = 0; vi < variants.length; vi++) {
+      const { frameIndex, strategy, pen } = variants[vi];
+      const q = { ...base, frameIndex, strategy };
       const lay = layoutZone(q);
       // a stub loop (a few metres in a leftover strip) heats nothing worth an outlet
       if (lay.loops?.length > 1) lay.loops = lay.loops.filter((l) => !(l.length < 8));
       // the leads come through the other rooms of the zone: checked against the whole zone
       lay.Z = Z;
-      const sc = score ? score(lay, q) : (lay.errors?.length ?? 0);
+      const sc = (score ? score(lay, q) : (lay.errors?.length ?? 0)) + pen;
       if (!best || sc < best.sc) best = { lay, sc };
+      if (vi === 2 && best.lay.valid === false) variants.push(...[0, 1, 2].map((f) => ({ frameIndex: f, strategy: other, pen: 30 })));
     }
     const lay = best.lay;
     out.loops.push(...(lay.loops ?? []));

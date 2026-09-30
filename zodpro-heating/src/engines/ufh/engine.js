@@ -87,7 +87,13 @@ export function runUfhEngine(job, onProgress = () => {}) {
     let lay = null;
     if (inp.rooms?.length) {
       const key = `rooms|${inp.strategy}|${inp.loopsPlus ?? 0}`;
-      if (!splitMemo.has(key)) splitMemo.set(key, layoutRooms(inp, sc));
+      // per room: a variant without hard errors beats one with more coverage
+      const scR = (l, q) => {
+        const r = finish(l, q, job, pipe);
+        l.valid = r.v.ok;
+        return badness(r) + (r.v.errors.some((e) => e.code !== 'UFH-COV') ? 500 : 0);
+      };
+      if (!splitMemo.has(key)) splitMemo.set(key, layoutRooms(inp, scR));
       lay = splitMemo.get(key);
     }
     lay = lay ?? layoutSplit(inp, sc, splitMemo) ?? layoutZone(inp);
