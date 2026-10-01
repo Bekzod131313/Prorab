@@ -249,9 +249,30 @@ export function layoutRooms(inp, score, kFix = null) {
     mBase = column ? outD + 0.2 : outD + 0.08;
   }
   const comb = combX.size > 0 || column;
+  // lanes keep 0.12 m from the walls; in the manifold room they keep clear of the outlets only on
+  // the manifold's side (a cut across the room in front of them), not along every wall
+  const mrLaneArea = (() => {
+    const q0 = inp.ports[0];
+    if (!q0 || mBase <= 0.12) return ring(rooms[mr].poly);
+    const fl = Math.hypot(q0.ret.x - q0.supply.x, q0.ret.y - q0.supply.y) || 1;
+    const f = { x: (q0.ret.x - q0.supply.x) / fl, y: (q0.ret.y - q0.supply.y) / fl };
+    const r = Math.max(...inp.ports.map((q) => q.ret.x * f.x + q.ret.y * f.y));
+    const cut = r - outD + (mBase - 0.12);
+    const o = { x: f.x * cut, y: f.y * cut };
+    const u = { x: -f.y, y: f.x };
+    const B = 1000;
+    const half = [
+      { x: o.x - u.x * B, y: o.y - u.y * B },
+      { x: o.x + u.x * B, y: o.y + u.y * B },
+      { x: o.x + u.x * B + f.x * B, y: o.y + u.y * B + f.y * B },
+      { x: o.x - u.x * B + f.x * B, y: o.y - u.y * B + f.y * B },
+    ];
+    const kept = G.intersection(ring(rooms[mr].poly), [{ outer: G.ccw(half), holes: [] }]);
+    const big = kept.reduce((a, b) => (!a || G.area([b]) > G.area([a]) ? b : a), null);
+    return big ? [{ outer: big.outer, holes: [] }] : ring(rooms[mr].poly);
+  })();
   const laneRing = (ri, lane) => {
-    const base = ri === mr ? Math.max(0.12, mBase) : 0.12;
-    const off = G.offset(ring(rooms[ri].poly), -(base + st / 2 + lane * 2 * st), 'miter');
+    const off = G.offset(ri === mr ? mrLaneArea : ring(rooms[ri].poly), -(0.12 + st / 2 + lane * 2 * st), 'miter');
     const big = off.reduce((a, b) => (!a || G.area([b]) > G.area([a]) ? b : a), null);
     return big?.outer ?? null;
   };
@@ -482,9 +503,10 @@ export function layoutRooms(inp, score, kFix = null) {
         line.push(q0);
         cur = q0;
       }
-      if (ci > 0 && R && Math.hypot(qIn.x - cur.x, qIn.y - cur.y) > 1.0) {
-        // straight in from the door to the lane's depth, then onto the lane (no diagonal)
-        const nIn0 = inside(doors[p.chain[ci - 1].di], room);
+      if (R && !(ci === 0 && comb) && Math.hypot(qIn.x - cur.x, qIn.y - cur.y) > (ci === 0 ? 2.0 : 1.0)) {
+        // straight in (from the door, or out of the manifold) to the lane's depth, then onto the
+        // lane (no diagonal)
+        const nIn0 = ci > 0 ? inside(doors[p.chain[ci - 1].di], room) : fM;
         const q0 = G.closestOnRing(cur, R).p;
         const dd = (q0.x - cur.x) * nIn0.x + (q0.y - cur.y) * nIn0.y;
         if (dd > 0.05) {

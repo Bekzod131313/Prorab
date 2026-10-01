@@ -251,3 +251,23 @@ test('rooms: door in the manifold wall — nested U leads, own pairs drop past t
       for (let i = 1; i < tr[a].length; i++)
         for (let j = 1; j < tr[b].length; j++) assert.ok(!G.segmentsIntersect(tr[a][i - 1], tr[a][i], tr[b][j - 1], tr[b][j]), 'transit leads cross');
 });
+
+test('sample house: left column fed from the corridor manifold (no inner doors) — valid', async () => {
+  const { createSampleProject } = await import('../src/core/demo.js');
+  const { elementsOf } = await import('../src/core/model.js');
+  const { zoneJob, defaultZoneParams } = await import('../src/core/ufhmodel.js');
+  const p = createSampleProject();
+  const col = elementsOf(p, 'collector', 'lvl_0').find((c) => Math.abs(c.x - 4) < 1e-6 && c.kind === 'ufh');
+  const points = [{ x: 0.08, y: 0.08 }, { x: 5.72, y: 0.08 }, { x: 5.72, y: 18.68 }, { x: 0.08, y: 18.68 }];
+  const zone = { id: 'z1', cat: 'ufh_zone', levelId: 'lvl_0', points, collectorId: col.id, name: 'Z', ...defaultZoneParams(p), spacing: 0.2, wallClearance: 0.2, obstacleClearance: 0.2 };
+  const r = runUfhEngine(zoneJob(p, zone, null));
+  assert.ok(r.ok, `invalid: ${codes(r).join(',')}`);
+  // the leads to the living room run down the corridor in lanes: no long diagonal transit segment
+  for (const l of r.loops.filter((x) => x.transit))
+    for (let k = 1; k < l.transit.length; k++) {
+      const a = l.transit[k - 1];
+      const b = l.transit[k];
+      const L = Math.hypot(b.x - a.x, b.y - a.y);
+      assert.ok(L < 1 || Math.min(Math.abs(a.x - b.x), Math.abs(a.y - b.y)) < 0.05, `${l.circuitId} diagonal transit ${L.toFixed(2)} m`);
+    }
+});
