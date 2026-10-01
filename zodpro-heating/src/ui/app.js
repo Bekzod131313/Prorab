@@ -247,6 +247,7 @@ class App {
     }, 'PDF', 'docs.export');
     cmd('quote', 'Tijorat taklifi', 'quote', () => this.openQuotation(), 'QUOTE', 'view');
     cmd('telegram', 'Telegram', 'telegram', () => this.telegramDialog(), 'TG', 'view');
+    cmd('send_claude', "Claude'ga yuborish", 'save', () => this.sendToClaude(), 'CLAUDE', 'view');
     cmd('sap', 'SAP / Ombor', 'sap', () => {
       this.scheduleKey = 'bom';
       this.showView('schedules');
@@ -272,7 +273,7 @@ class App {
       systems: [['radiator', 'pipe_s', 'pipe_r', 'riser'], ['collector', 'ufh_collector', 'ufh_auto', 'ufh_pipe', 'floor_obstacle', 'ufh_room'], ['boiler', 'pump', 'thermostat', 'obstacle'], ['auto_rad', 'auto_ufh', 'split_col', 'auto_col', 'auto_route']],
       calc: [['calc', 'validate', 'balance'], ['view_reports', 'view_dashboard', 'view_schema'], ['ai']],
       docs: [['view_sheets', 'view_schedules', 'exp_pdf'], ['view_schema', 'view_riser', 'view_section', 'section'], ['revision', 'tags']],
-      export: [['new', 'open', 'save', 'save_as', 'demo', 'demo_small'], ['imp_dxf', 'imp_img', 'imp_ifc', 'calibrate'], ['exp_dxf', 'exp_ifc', 'exp_xls', 'exp_csv', 'exp_svg', 'exp_png', 'exp_pdf'], ['quote', 'sap', 'telegram']],
+      export: [['new', 'open', 'save', 'save_as', 'demo', 'demo_small'], ['imp_dxf', 'imp_img', 'imp_ifc', 'calibrate'], ['exp_dxf', 'exp_ifc', 'exp_xls', 'exp_csv', 'exp_svg', 'exp_png', 'exp_pdf'], ['quote', 'sap', 'telegram', 'send_claude']],
       settings: [['view_settings', 'view_library'], ['plugins', 'errors']],
       help: [['view_help', 'palette', 'ai']],
     };
@@ -1114,6 +1115,23 @@ class App {
     };
     if (initial) ask(initial);
     q.focus();
+  }
+
+  /** The project into the published page's shared database (read there by Claude), in parts
+   * of ≤ 200 kB. Only in the claude.ai viewer; elsewhere it says so. */
+  async sendToClaude() {
+    const db = window.claude?.use ? await window.claude.use('db').catch(() => null) : null;
+    if (!db) return this.toast("Claude'ga yuborish faqat claude.ai sahifasida ishlaydi");
+    const text = serializeProject(this.store.project);
+    const ts = Date.now();
+    const size = 200000;
+    const n = Math.ceil(text.length / size) || 1;
+    try {
+      for (let i = 0; i < n; i++) await db.doc(`uploads/${ts}_${String(i).padStart(3, '0')}`).set({ ts, i, n, name: this.fileBase(), text: text.slice(i * size, (i + 1) * size) });
+      this.toast(`Loyiha Claude'ga yuborildi (${n} qism)`);
+    } catch (e) {
+      this.toast(`Yuborilmadi: ${e?.code ?? e?.message ?? e}`);
+    }
   }
 
   telegramDialog(text) {
