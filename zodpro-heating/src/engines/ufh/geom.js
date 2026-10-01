@@ -166,14 +166,37 @@ export function offset(region, d, join = 'miter', miterLimit = 4) {
 }
 
 /** Buffer open polylines by r (round caps and joins) — the swept area of a pipe of width 2r. */
-export function bufferPolylines(lines, r, cap = 'round', join = 'round') {
-  const co = new C.ClipperOffset(8, ARC_TOL);
+export function bufferPolylines(lines, r, cap = 'round', join = 'round', arcTol = ARC_TOL / SCALE) {
+  const co = new C.ClipperOffset(8, arcTol * SCALE);
   const et = cap === 'butt' ? C.EndType.etOpenButt : cap === 'square' ? C.EndType.etOpenSquare : C.EndType.etOpenRound;
   const jt = join === 'miter' ? C.JoinType.jtMiter : C.JoinType.jtRound;
   for (const l of lines) if (l.length >= 2) co.AddPath(toPath(l), jt, et);
   const tree = new C.PolyTree();
   co.Execute(tree, r * SCALE);
   return treeToRegion(tree);
+}
+
+/** Douglas–Peucker simplification of an open polyline (tolerance tol), iterative. */
+export function simplifyPath(pts, tol) {
+  const n = pts.length;
+  if (n < 3) return pts;
+  const keep = new Uint8Array(n);
+  keep[0] = keep[n - 1] = 1;
+  const stack = [[0, n - 1]];
+  while (stack.length) {
+    const [i, j] = stack.pop();
+    let md = -1;
+    let mi = -1;
+    for (let k = i + 1; k < j; k++) {
+      const d = segDist(pts[k], pts[i], pts[j]);
+      if (d > md) (md = d), (mi = k);
+    }
+    if (md > tol) {
+      keep[mi] = 1;
+      stack.push([i, mi], [mi, j]);
+    }
+  }
+  return pts.filter((_, k) => keep[k]);
 }
 
 /** Morphological opening (rounds convex corners, removes parts thinner than 2r). */

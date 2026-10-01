@@ -86,14 +86,19 @@ export function runUfhEngine(job, onProgress = () => {}) {
     const sc = (l, q) => badness(finish(l, q, job, pipe));
     let lay = null;
     if (inp.rooms?.length) {
-      const key = `rooms|${inp.strategy}|${inp.loopsPlus ?? 0}`;
+      // (the room-by-room layout tries both patterns in every room itself and sizes the loops per
+      // room: one run serves every repair candidate)
+      const key = 'rooms';
       // per room: a variant without hard errors beats one with more coverage
       const scR = (l, q) => {
         const r = finish(l, q, job, pipe);
         l.valid = r.v.ok;
         return badness(r) + (r.v.errors.some((e) => e.code !== 'UFH-COV') ? 2000 : 0);
       };
-      if (!splitMemo.has(key)) splitMemo.set(key, layoutRooms({ ...inp, splitLayout: (q) => layoutSplit(q, scR, null) }, scR));
+      if (splitMemo.has(key)) {
+        // the same layout for every candidate: evaluated once
+        if (splitMemo.get(key)) return;
+      } else splitMemo.set(key, layoutRooms({ ...inp, splitLayout: (q) => layoutSplit(q, scR, null) }, scR));
       lay = splitMemo.get(key);
     }
     lay = lay ?? layoutSplit(inp, sc, splitMemo) ?? layoutZone(inp);

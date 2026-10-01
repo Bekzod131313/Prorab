@@ -10,11 +10,13 @@
 
 import * as G from './geom.js';
 
-export function coverageAnalysis({ U, Z, obstacles = [], pipes, s, widths = null }) {
+export function coverageAnalysis({ U, Z, obstacles = [], pipes: pipes0, s, widths = null }) {
+  // (the pipes are densely sampled along their bends: 2 mm off the drawn line changes nothing here)
+  const pipes = pipes0.map((p) => G.simplifyPath(p, 0.002));
   // a loop laid at a wider spacing (an odd band filled evenly) heats a band of its own spacing
   const band = widths && widths.some((w) => w > s + 1e-6)
-    ? G.union([...new Set(widths)].flatMap((w) => G.bufferPolylines(pipes.filter((_, i) => widths[i] === w), w / 2 + 0.003)))
-    : G.bufferPolylines(pipes, s / 2 + 0.003);
+    ? G.union([...new Set(widths)].flatMap((w) => G.bufferPolylines(pipes.filter((_, i) => widths[i] === w), w / 2 + 0.003, 'round', 'round', 0.001)))
+    : G.bufferPolylines(pipes, s / 2 + 0.003, 'round', 'round', 0.001);
   const covered = G.intersection(U, band);
   const aU = G.area(U);
   const aC = G.area(covered);
