@@ -232,6 +232,8 @@ export function spiralRegion(region, s, o = {}) {
       const uncovered = G.area(G.difference([{ outer: P, holes: [] }], band));
       valid.push({
         ok: true,
+        // geometry only — not a heating loop: the loop length planner turns raw spirals into loops
+        kind: 'RAW_SPIRAL',
         path: b.path,
         heating,
         supply: b.armA[0],
@@ -259,8 +261,9 @@ export function spiralRegion(region, s, o = {}) {
 }
 
 /**
- * Of all start corners: the spirals leaving at most `maxHole` uncovered first, of those the one
- * whose ends are nearest to `toward` (the manifold side); else the one leaving the least uncovered.
+ * Of all start corners (whose ends may leave there — o.exitOk): the spirals leaving at most `maxHole`
+ * uncovered first, of those the one whose ends are nearest to `toward` (the manifold side); else the
+ * one leaving the least uncovered.
  */
 export function bestSpiral(region, s, o = {}) {
   const P = convexRing(region);
@@ -269,7 +272,9 @@ export function bestSpiral(region, s, o = {}) {
   const all = [];
   for (let i = 0; i < P.length; i++) {
     const sp = spiralRegion(P, s, { ...o, start: i });
-    if (sp.ok) all.push({ ...sp, dist: o.toward ? Math.hypot(sp.supply.x - o.toward.x, sp.supply.y - o.toward.y) : 0 });
+    // (o.exitOk: where the two ends may leave the region, e.g. only through a wall, never into a
+    // neighbouring region)
+    if (sp.ok && (!o.exitOk || o.exitOk(sp))) all.push({ ...sp, dist: o.toward ? Math.hypot(sp.supply.x - o.toward.x, sp.supply.y - o.toward.y) : 0 });
   }
   if (!all.length) return { ok: false, reason: 'no_valid_spiral' };
   const good = all.filter((sp) => sp.uncovered <= maxHole);
