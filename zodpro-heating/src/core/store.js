@@ -41,6 +41,10 @@ export class Store {
 
   setProject(project) {
     repairReferences(project);
+    // every project carries its own id (exports name their source by it)
+    project.meta = project.meta ?? {};
+    if (!project.meta.projectId) project.meta.projectId = `prj_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+    this.revision = 0;
     this.project = project;
     this.undoStack = [];
     this.redoStack = [];
@@ -172,6 +176,7 @@ export class Store {
 
   changed(label) {
     this.dirty = true;
+    this.revision = (this.revision ?? 0) + 1;
     this.project.history.push({ label, time: new Date().toISOString() });
     if (this.project.history.length > 500) this.project.history.splice(0, this.project.history.length - 500);
     this.recalc();

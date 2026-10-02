@@ -248,6 +248,7 @@ class App {
     cmd('quote', 'Tijorat taklifi', 'quote', () => this.openQuotation(), 'QUOTE', 'view');
     cmd('telegram', 'Telegram', 'telegram', () => this.telegramDialog(), 'TG', 'view');
     cmd('send_claude', "Claude'ga yuborish", 'save', () => this.sendToClaude(), 'CLAUDE', 'view');
+    cmd('exp_json', 'JSON yuklab olish', 'save', () => this.downloadSnapshot(), 'JSONOUT', 'view');
     cmd('sap', 'SAP / Ombor', 'sap', () => {
       this.scheduleKey = 'bom';
       this.showView('schedules');
@@ -273,7 +274,7 @@ class App {
       systems: [['radiator', 'pipe_s', 'pipe_r', 'riser'], ['collector', 'ufh_collector', 'ufh_auto', 'ufh_pipe', 'floor_obstacle', 'ufh_room'], ['boiler', 'pump', 'thermostat', 'obstacle'], ['auto_rad', 'auto_ufh', 'split_col', 'auto_col', 'auto_route']],
       calc: [['calc', 'validate', 'balance'], ['view_reports', 'view_dashboard', 'view_schema'], ['ai']],
       docs: [['view_sheets', 'view_schedules', 'exp_pdf'], ['view_schema', 'view_riser', 'view_section', 'section'], ['revision', 'tags']],
-      export: [['new', 'open', 'save', 'save_as', 'demo', 'demo_small'], ['imp_dxf', 'imp_img', 'imp_ifc', 'calibrate'], ['exp_dxf', 'exp_ifc', 'exp_xls', 'exp_csv', 'exp_svg', 'exp_png', 'exp_pdf'], ['quote', 'sap', 'telegram', 'send_claude']],
+      export: [['new', 'open', 'save', 'save_as', 'demo', 'demo_small'], ['imp_dxf', 'imp_img', 'imp_ifc', 'calibrate'], ['exp_dxf', 'exp_ifc', 'exp_xls', 'exp_csv', 'exp_svg', 'exp_png', 'exp_pdf'], ['quote', 'sap', 'telegram'], ['send_claude', 'exp_json', 'save']],
       settings: [['view_settings', 'view_library'], ['plugins', 'errors']],
       help: [['view_help', 'palette', 'ai']],
     };
@@ -1117,21 +1118,111 @@ class App {
     q.focus();
   }
 
-  /** The project into the published page's shared database (read there by Claude), in parts
-   * of ≤ 200 kB. Only in the claude.ai viewer; elsewhere it says so. */
+  /**
+   * A fresh snapshot of the project open right now (never a saved or cached copy): the whole model,
+   * the calculation results, and an UFH zone still in preview (not yet APPLYed — it exists only in
+   * the tool until then), with the source project's id and a summary to check against.
+   */
+  projectSnapshot() {
+    const project = this.store.project;
+    const els = Object.values(project.elements);
+    const rooms = els.filter((e) => e.cat === 'room');
+    const summary = {
+      projectId: project.meta?.projectId ?? null,
+      name: project.meta?.name ?? '',
+      number: project.meta?.number ?? '',
+      revision: this.store.revision ?? 0,
+      levels: project.levels.length,
+      rooms: rooms.length,
+      roomNames: rooms.map((r) => r.name ?? r.number ?? r.id),
+      collectors: els.filter((e) => e.cat === 'collector').length,
+      ufhZones: els.filter((e) => e.cat === 'ufh_zone').length,
+      ufhLoops: els.filter((e) => e.cat === 'ufh_loop').length,
+    };
+    // plain data only (typed arrays of maps / caches would bloat or break JSON)
+    const plain = (x) => {
+      try {
+        return JSON.parse(JSON.stringify(x, (k, v) => (ArrayBuffer.isView(v) ? undefined : v)));
+      } catch {
+        return null;
+      }
+    };
+    const pv = this.ufh?.preview;
+    const r = pv?.result;
+    const ufhPreview = pv?.zone
+      ? plain({
+          applied: false,
+          zone: pv.zone,
+          ok: r?.ok ?? null,
+          coverage: r?.coverage ?? null,
+          issues: r?.issues ?? [],
+          loops: (r?.loops ?? []).map((l) => ({ name: l.name, circuitId: l.circuitId, length: l.length, supplyLength: l.supplyLength, returnLength: l.returnLength, heatingLength: l.heatingLength, spacing: l.spacing, pipeType: l.pipeType, status: l.status, path: l.path, transit: l.transit })),
+          params: r?.params ?? null,
+        })
+      : null;
+    const snap = {
+      format: 'ZODPRO-EXPORT',
+      exportVersion: 1,
+      timestamp: new Date().toISOString(),
+      sourceProjectId: summary.projectId,
+      summary,
+      project: JSON.parse(serializeProject(project)),
+      ufhPreview,
+      calculations: plain(this.store.results),
+    };
+    return { snap, summary, text: JSON.stringify(snap) };
+  }
+
+  /** Checks a serialized snapshot against the project open now: id and contents must match. */
+  checkSnapshot(text, live) {
+    const back = JSON.parse(text);
+    const p = back.project?.project ?? {};
+    const rooms = Object.values(p.elements ?? {}).filter((e) => e.cat === 'room').length;
+    console.info('[export] CURRENT OPEN PROJECT:', live);
+    console.info('[export] EXPORTED PROJECT:', { projectId: p.meta?.projectId, name: p.meta?.name, rooms });
+    if (back.sourceProjectId !== live.projectId || p.meta?.projectId !== live.projectId || rooms !== live.rooms) throw new Error('Export current project mismatch');
+  }
+
+  /** The project open now into the published page's shared database (read there by Claude). */
   async sendToClaude() {
     const db = window.claude?.use ? await window.claude.use('db').catch(() => null) : null;
-    if (!db) return this.toast("Claude'ga yuborish faqat claude.ai sahifasida ishlaydi");
-    const text = serializeProject(this.store.project);
-    const ts = Date.now();
-    const size = 200000;
-    const n = Math.ceil(text.length / size) || 1;
+    if (!db) return this.toast("Claude'ga yuborish faqat claude.ai sahifasida ishlaydi — «JSON yuklab olish» dan foydalaning", 'error');
+    const { summary, text } = this.projectSnapshot();
     try {
-      for (let i = 0; i < n; i++) await db.doc(`uploads/${ts}_${String(i).padStart(3, '0')}`).set({ ts, i, n, name: this.fileBase(), text: text.slice(i * size, (i + 1) * size) });
-      this.toast(`Loyiha Claude'ga yuborildi (${n} qism)`);
+      this.checkSnapshot(text, summary);
     } catch (e) {
-      this.toast(`Yuborilmadi: ${e?.code ?? e?.message ?? e}`);
+      return this.toast(`${e.message} — yuborilmadi`, 'error');
     }
+    const names = summary.roomNames.slice(0, 12).join(', ') + (summary.roomNames.length > 12 ? ' …' : '');
+    const zones = summary.ufhZones + (this.ufh?.preview?.zone ? ' (+1 ko‘rib chiqilayotgan)' : '');
+    if (!(await this.confirmBox(`Yuboriladi: «${summary.name || summary.number}» · xonalar ${summary.rooms} (${names}) · kollektor ${summary.collectors} · UFH zona ${zones}. Davom etamizmi?`))) return;
+    const ts = Date.now();
+    // ≤ 60 000 characters a part (≤ 180 kB even all in Cyrillic; a document holds 256 KiB)
+    const size = 60000;
+    const n = Math.ceil(text.length / size) || 1;
+    const id = (i) => `uploads/${ts}_${String(i).padStart(3, '0')}`;
+    try {
+      for (let i = 0; i < n; i++) await db.doc(id(i)).set({ ts, i, n, name: this.fileBase(), sourceProjectId: summary.projectId, rooms: summary.rooms, text: text.slice(i * size, (i + 1) * size) });
+      // read back: only a stored copy counts as sent
+      const first = await db.doc(id(0)).get();
+      if (!first.exists || first.data()?.sourceProjectId !== summary.projectId) throw new Error('saqlangani tasdiqlanmadi');
+      this.toast(`Yuborildi: «${summary.name || summary.number}», ${summary.rooms} xona, ${n} qism`);
+    } catch (e) {
+      this.toast(`Yuborilmadi: ${e?.code ?? e?.message ?? e}`, 'error');
+    }
+  }
+
+  /** The same snapshot as a JSON file (works everywhere, also outside claude.ai). */
+  downloadSnapshot() {
+    const { summary, text } = this.projectSnapshot();
+    try {
+      this.checkSnapshot(text, summary);
+    } catch (e) {
+      return this.toast(`${e.message} — fayl yaratilmadi`, 'error');
+    }
+    const date = new Date().toISOString().slice(0, 10);
+    download(`ZODPRO_${this.fileBase()}_${date}.json`, text, 'application/json');
+    this.toast(`JSON: «${summary.name || summary.number}», ${summary.rooms} xona`);
   }
 
   telegramDialog(text) {
