@@ -616,7 +616,7 @@ export function ringsOf(P, s, res = null) {
  * @param s      spacing
  * @param o      { r, toward, maxHole, exitOk(sp), edgeOk(a, b) (the ends may leave through edge a→b), maxSeams,
  *                 measure (variants measured per group), residual (try residual closures), supplyAt,
- *                 returnAll (every measured variant) }
+ *                 returnAll (every measured variant), groupByStart (measure per start corner) }
  * @returns best RAW_SPIRAL (with .seams, .seamed) or { ok: false, reason, tries }
  */
 export function obstacleSpiral(shape, s, o = {}) {
@@ -685,7 +685,7 @@ export function obstacleSpiral(shape, s, o = {}) {
             tries.push({ start: i, reason: res.reason });
             continue;
           }
-          const key = `${margin}|${spec ? spec.n + ',' + spec.rho + (spec.single ? 's' : 'u') : '-'}`;
+          const key = `${margin}|${spec ? spec.n + ',' + spec.rho + (spec.single ? 's' : 'u') : '-'}${o.groupByStart ? '|' + i : ''}`;
           // (a residual spec whose variant never reaches the residual offsets = the nominal one)
           for (const c of res.variants) if (!spec || c.residualUsed) all.push({ ...c, seams, seamed: P, margin, marginHoles: margin ? holes : null, group: key });
         }

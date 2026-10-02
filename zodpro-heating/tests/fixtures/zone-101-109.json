@@ -1,0 +1,16 @@
+{
+  "source": "ZODPRO export of project 101–109 (ZONE-01, level 1): rooms 101, 107, 108 heated by manifold C-01",
+  "s": 0.2,
+  "wallClearance": 0.2,
+  "obstacleClearance": 0.2,
+  "manifold": { "name": "C-01", "at": { "x": 5.315, "y": 13.64 }, "outlets": 6, "virtualPortsOfferedBefore": 12 },
+  "doors": [
+    { "name": "D-03", "between": ["107", "108"], "at": { "x": 4.65, "y": 13.16 } },
+    { "name": "D-04", "between": ["108", "101"], "at": { "x": 4.45, "y": 7.16 } }
+  ],
+  "rooms": [
+    { "name": "101", "poly": [{ "x": 0.08, "y": 0.08 }, { "x": 5.72, "y": 0.08 }, { "x": 5.72, "y": 7.08 }, { "x": 0.08, "y": 7.08 }], "via": ["D-03", "D-04"] },
+    { "name": "107", "poly": [{ "x": 0.08, "y": 13.24 }, { "x": 5.72, "y": 13.24 }, { "x": 5.72, "y": 18.68 }, { "x": 0.08, "y": 18.68 }], "via": [] },
+    { "name": "108", "poly": [{ "x": 3.28, "y": 7.24 }, { "x": 5.72, "y": 7.24 }, { "x": 5.72, "y": 13.08 }, { "x": 3.28, "y": 13.08 }], "via": ["D-03"] }
+  ]
+}

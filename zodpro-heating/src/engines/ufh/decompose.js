@@ -286,7 +286,9 @@ export function spiralRegions(U, s, o = {}) {
   const minW = 3 * s + 2 * (o.r ?? Math.max(0.072, s / 2)) * 0.5;
   // the area's outer outline (walls): spiral ends leave there — never onto an obstacle's side (the
   // leads could not get past it to the manifold) nor into a neighbouring region
-  const outerWalls = region.map((sh) => ({ outer: sh.outer, holes: [] }));
+  // (o.walls: the real walls when the area is itself a part of a larger one — e.g. a loop planner
+  // strip: its cut sides are no walls)
+  const outerWalls = o.walls ?? region.map((sh) => ({ outer: sh.outer, holes: [] }));
   const onWall = (q) => G.distToRegionBoundary(q, outerWalls) < 1e-6;
   // a rectangle side lying on the area's outline (where a spiral's ends can leave)
   const wallSides = (r) => {

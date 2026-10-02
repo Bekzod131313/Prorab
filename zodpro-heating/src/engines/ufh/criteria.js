@@ -28,6 +28,14 @@ export const ENGINEERING_FINAL_COVERAGE = UFH_RULES.coverageMin; // 0.85, heatin
 export const ENGINEERING_FINAL_MAX_HOLE = UFH_RULES.maxHole; // m²
 export const ENGINEERING_FINAL_CHECKS = ['heating_coverage', 'uncovered_polygons', 'spacing', 'clearance', 'bend_radius', 'loop_length_60m', 'manifold_connection'];
 export const MAX_LOOP_M = 60;
+// ---- step 6: loop planner ----
+// loop total (supply + heating + return) ≤ MAX_LOOP_M exactly; the only tolerance is the floating
+// point representation of a sum of lengths (1 nm) — 60.0001 m is never 60
+export const LOOP_LENGTH_EPS = 1e-9;
+// the loop planner also tries two rows of strips (squarer loops) when the strips alone leave more
+// uncovered than this share of the region (search effort only, no acceptance criterion)
+export const ROWS_TRY_UNCOVERED_SHARE = 0.03;
+
 
 /**
  * Known limitations — kept visible (tests assert the current numbers so any change is noticed);

@@ -43,7 +43,10 @@ export function closureOrder(a, b) {
  * @param shape  the region's usable shape { outer, holes }
  * @param sp     its current raw spiral (nominal)
  * @param s      nominal spacing
- * @param o      { r, toward, exitOk, edgeOk }
+ * @param o      { r, toward, exitOk, edgeOk, accept(candidate) — an extra hard filter (e.g. the loop
+ *                 length budget of the loop planner: a closure adds pipe), residual (false: odd /
+ *                 even ring counts, centre types and the mirror only — no residual spacing),
+ *                 returnAll (also every measured candidate, best first) }
  * @returns { spiral (the better one, or sp), changed, old: {uncovered, largestHole}, new: {...}, tried }
  */
 export function closeCentre(shape, sp, s, o = {}) {
@@ -65,7 +68,7 @@ export function closeCentre(shape, sp, s, o = {}) {
       edgeOk: o.edgeOk && ((a, b) => o.edgeOk(M(b), M(a))),
       cornerAt: corner && M(corner),
       supplyAt: M(sp.supply),
-      residual: true,
+      residual: o.residual ?? true,
       returnAll: true,
       measure: o.measure ?? 1,
       maxSeams: 3,
@@ -90,10 +93,12 @@ export function closeCentre(shape, sp, s, o = {}) {
     }));
   };
   // terminal only: never more residual rings than allowed (the generator builds no more anyway)
-  const cands = [...run(false), ...run(true)].filter((x) => !x.residual || x.residual.rings <= MAX_RESIDUAL_RINGS);
+  const cands = [...run(false), ...run(true)].filter((x) => (!x.residual || x.residual.rings <= MAX_RESIDUAL_RINGS) && (!o.accept || o.accept(x)));
   report.tried = cands.length;
-  if (!cands.length) return { spiral: sp, ...report, new: report.old };
+  if (!cands.length) return { spiral: sp, ...report, new: report.old, candidates: [] };
   const best = cands.sort(closureOrder)[0];
+  // (o.returnAll: every measured closure, best first — the caller chooses, e.g. by its budget)
+  if (o.returnAll) report.candidates = cands;
   const better = best.largestHole < old.largestHole - 0.005 || (best.largestHole <= old.largestHole + 0.005 && best.uncovered < old.uncovered - 0.01);
   if (!better) return { spiral: sp, ...report, new: report.old };
   return { spiral: { ...best, closure: true }, ...report, changed: true, new: { uncovered: best.uncovered, largestHole: best.largestHole } };
