@@ -35,7 +35,7 @@ function checkCase(name, r) {
     assert.equal(selfCrossings(x.spiral.path), 0);
   }
   assert.ok(chk.gap_m2 < 1e-4 && chk.overlap_m2 < 1e-6 && Math.abs(chk.regionUnion_m2 - chk.usable_m2) < 1e-4, `${name}: regions ≠ usable area`);
-  for (const k of ['spacing', 'bends', 'noCrossing', 'inside', 'exitsOnWall', 'noOverlap', 'noGap', 'regionsInside']) assert.ok(chk.checks[k], `${name}: ${k}`);
+  for (const k of ['spacing', 'residualSpacing', 'bends', 'noCrossing', 'inside', 'exitsOnWall', 'noOverlap', 'noGap', 'regionsInside']) assert.ok(chk.checks[k], `${name}: ${k}`);
   assert.ok(chk.minSpacing >= c.s - SPACING_TOL);
   // the pipe keeps the obstacle clearance + half a pitch (it is laid outside the exclusion at ≥ s/2)
   assert.ok(obstacleClear >= OBSTACLE_CLEARANCE + c.s / 2 - SPACING_TOL, `${name}: obstacle clearance ${obstacleClear}`);
@@ -87,14 +87,16 @@ test('obstacle O9: 0.3 m corridor between column and wall — no pipe squeezed i
   assert.ok(r.chk.holes.some((h) => h.area > 0.3), 'the corridor is reported uncovered');
 });
 
-test('obstacle O10: column on the spiral centre — geometry valid, coverage under the limit: INVALID ZONE (known limitation, phase 5)', () => {
+test('obstacle O10: column on the spiral centre — step 4 alone under the limit (78 %); with the centre closure (step 5) valid', () => {
+  const before = runCase('O10', { closure: false });
+  checkCase('O10', before);
+  assert.equal(before.chk.status, 'INVALID_ZONE');
+  assert.equal(before.chk.checks.coverage, false);
   const r = runCase('O10');
   checkCase('O10', r);
-  const k = kl('O10');
-  assert.ok(k);
-  assert.equal(r.chk.status, 'INVALID_ZONE');
-  assert.equal(r.chk.checks.coverage, false);
-  assert.ok(r.chk.coverage >= k.coverage - 0.005, `worse: ${r.chk.coverage}`);
+  assert.equal(kl('O10'), undefined, 'no longer a known limitation');
+  assert.equal(r.chk.status, 'RAW_GEOMETRY_VALID');
+  assert.ok(r.chk.coverage > before.chk.coverage);
 });
 
 test('obstacle L3b / U9 regressions: fewer regions than step 3, still valid', () => {

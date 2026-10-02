@@ -34,6 +34,7 @@
 import * as G from './geom.js';
 import { bestSpiral } from './spiralgen.js';
 import { obstacleSpiral } from './obstaclespiral.js';
+import { closeCentre } from './closure.js';
 import { MAX_LOOP_M, GEOMETRY_TEST_COVERAGE_SINGLE_REGION, GEOMETRY_TEST_COVERAGE_MULTI_REGION, GEOMETRY_TEST_COVERAGE_OBSTACLE_REGION, GEOMETRY_TEST_MAX_HOLE } from './criteria.js';
 
 const AX = 1e-6;
@@ -390,26 +391,27 @@ export function spiralRegions(U, s, o = {}) {
     const area = rectArea(r);
     const holesOf = r.shape ? r.shape[0].holes ?? [] : [];
     if (!sp.ok) return { poly, holes: holesOf, area, status: 'INVALID_REGION', reason: sp.reason === 'no_valid_spiral' ? 'no valid spiral (too narrow / no wall exit)' : sp.reason };
+    return { poly, holes: holesOf, area, status: 'VALID', spiral: sp, obstacleRegion: !!r.shape, stats: statsOf(sp, area, !!r.shape, holesOf) };
+  }
+  function statsOf(sp, area, obst, holesOf) {
     return {
-      poly,
-      holes: holesOf,
       area,
-      status: 'VALID',
-      spiral: sp,
-      stats: {
-        area,
-        spacing: s,
-        rawSpiral_m: sp.heatingLength,
-        laps: sp.laps,
-        centre: sp.centre,
-        // round an obstacle: the seam(s) and the pipe-free margin beside the exclusion (if any)
-        obstacle: r.shape ? { wraps: holesOf.length, notch: !holesOf.length, seams: sp.seams.map((q) => [q.a, q.b]), margin: sp.margin } : null,
-        minBend_mm: G.minBendRadius(sp.path).radius * 1000,
-        // a raw spiral longer than a whole loop is split by the loop length planner (not invalid)
-        exceeds60: sp.heatingLength > MAX_LOOP_M,
-        // at least this many loops (raw spiral only; the leads come on top)
-        estimatedLoops: Math.ceil(sp.heatingLength / MAX_LOOP_M),
-      },
+      spacing: s,
+      // nominal spacing of the whole spiral; a residual closure (if any) only in its terminal part
+      nominalSpacing: s,
+      residualSpacing: sp.residualSpacing ?? null,
+      rawSpiral_m: sp.heatingLength,
+      // heating pipe only (the leads are not in it — not coverage either)
+      heatingPipeLength_m: sp.heatingLength,
+      laps: sp.laps,
+      centre: sp.centre,
+      // round an obstacle: the seam(s) and the pipe-free margin beside the exclusion (if any)
+      obstacle: obst ? { wraps: holesOf.length, notch: !holesOf.length, seams: (sp.seams ?? []).map((q) => [q.a, q.b]), margin: sp.margin } : null,
+      minBend_mm: G.minBendRadius(sp.path).radius * 1000,
+      // a raw spiral longer than a whole loop is split by the loop length planner (not invalid)
+      exceeds60: sp.heatingLength > MAX_LOOP_M,
+      // at least this many loops (raw spiral only; the leads come on top)
+      estimatedLoops: Math.ceil(sp.heatingLength / MAX_LOOP_M),
     };
   }
   let chosen = best;
@@ -436,6 +438,30 @@ export function spiralRegions(U, s, o = {}) {
   }
   // per-region coverage (its own spiral, heating pipe only); copies — memo entries are shared
   const regs = chosen.regs.map((x, i) => ({ ...x, label: `R${i + 1}`, stats: x.stats ? { ...x.stats } : undefined }));
+  // step 5: CENTER CLOSURE + RESIDUAL SPACING per region of the chosen split (same topology, same
+  // ends; replaced only when better — see closure.js)
+  let closed = false;
+  if (o.closure !== false)
+    for (const x of regs) {
+      if (!x.spiral) continue;
+      const shape = { outer: x.poly, holes: x.holes ?? [] };
+      const c = closeCentre(shape, x.spiral, s, {
+        r: o.r,
+        toward: o.toward,
+        exitOk: (q) => onWall(q.supply) && onWall(q.ret),
+        edgeOk: (a, b) => onWall({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }),
+      });
+      if (c.changed) {
+        closed = true;
+        x.spiral = c.spiral;
+        x.stats = statsOf(c.spiral, x.area, x.obstacleRegion, x.holes ?? []);
+      }
+      x.stats.closure = { changed: c.changed, tried: c.tried, skipped: c.skipped ?? null, old: c.old, new: c.new };
+    }
+  if (closed) {
+    const pipes = regs.filter((x) => x.spiral).map((x) => G.simplifyPath(x.spiral.heating, 0.002));
+    chosen = { ...chosen, unc: G.difference(region, G.bufferPolylines(pipes, s / 2 + 0.003, 'round', 'round', 0.001)) };
+  }
   for (const x of regs)
     if (x.spiral) {
       const own = G.intersection([{ outer: x.poly, holes: x.holes ?? [] }], G.bufferPolylines([G.simplifyPath(x.spiral.heating, 0.002)], s / 2 + 0.003, 'round', 'round', 0.001));
@@ -446,7 +472,7 @@ export function spiralRegions(U, s, o = {}) {
     kind: 'RAW_SPIRAL_SET',
     regions: regs,
     uncovered: chosen.unc,
-    acceptable: !!bestOk && chosen === bestOk,
+    acceptable: !!bestOk && (chosen === bestOk || chosen.k === bestOk.k && chosen.regs === bestOk.regs),
     candidates: parts.length,
     evaluated: tried,
   };

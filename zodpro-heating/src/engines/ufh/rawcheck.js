@@ -2,7 +2,8 @@
 // Global checks, not per region: two regions' spirals must keep s from each other too.
 //
 //   regions   union ≈ usable heating area (gap = unexplained area), no overlap
-//   pipes     min spacing over ALL spirals (incl. across region cuts), bends ≥ RMIN_CHECK, no
+//   pipes     min spacing over ALL spirals (incl. across region cuts; a spiral's residual centre
+//             closure apart: ≥ MIN_RESIDUAL_CLOSURE_SPACING), bends ≥ RMIN_CHECK, no
 //             crossing (within a spiral and between spirals), inside the usable area
 //   exits     both ends of every spiral on an outer wall
 //   coverage  heating pipe coverage and the largest uncovered patch within the engineering limits
@@ -11,7 +12,7 @@
 //             "valid hydraulic loop": loops do not exist before the loop length planner
 
 import * as G from './geom.js';
-import { RMIN_CHECK, SPACING_TOL, MAX_LOOP_M, ENGINEERING_FINAL_COVERAGE, ENGINEERING_FINAL_MAX_HOLE } from './criteria.js';
+import { RMIN_CHECK, SPACING_TOL, MAX_LOOP_M, ENGINEERING_FINAL_COVERAGE, ENGINEERING_FINAL_MAX_HOLE, MIN_RESIDUAL_CLOSURE_SPACING } from './criteria.js';
 
 /** Segments of a path with their arc-length positions and bounding boxes. */
 function segsOf(path) {
@@ -27,12 +28,18 @@ function segsOf(path) {
   return { segs: out, L: acc };
 }
 
-/** Minimum distance between pipe stretches (same path: more than `gap` apart along it). */
-function minGap(paths, s, step = 0.05) {
+/**
+ * Minimum distance between pipe stretches (same path: more than `gap` apart along it). A pair with a
+ * point in a spiral's own terminal closure stretch (terminals[pi] = [t0, t1] arc length) is a
+ * residual pair: reported apart (res), never mixed with the nominal minimum.
+ */
+function minGap(paths, s, terminals = [], step = 0.05) {
   const S = paths.map(segsOf);
   const gap = Math.PI * s * 0.5 + 2 * s;
   const reach = s * 1.5; // only near segments matter
   let best = { d: Infinity, at: null };
+  let res = { d: Infinity, at: null };
+  const inT = (pi, q) => !!terminals[pi] && q >= terminals[pi][0] && q <= terminals[pi][1];
   S.forEach(({ L }, pi) => {
     for (let q = 0; q <= L; q += step) {
       const p = G.pointAt(paths[pi], q);
@@ -41,12 +48,14 @@ function minGap(paths, s, step = 0.05) {
           if (p.x < sg.x0 - reach || p.x > sg.x1 + reach || p.y < sg.y0 - reach || p.y > sg.y1 + reach) continue;
           if (pi === pj && sg.s1 > q - gap && sg.s0 < q + gap) continue;
           const d = G.segDist(p, sg.a, sg.b);
-          if (d < best.d) best = { d, at: p };
+          if (pi === pj && (inT(pi, q) || inT(pi, (sg.s0 + sg.s1) / 2))) {
+            if (d < res.d) res = { d, at: p };
+          } else if (d < best.d) best = { d, at: p };
         }
       });
     }
   });
-  return best;
+  return { ...best, res };
 }
 
 function crossings(paths) {
@@ -84,7 +93,7 @@ export function checkRawSet(res, U, s) {
   const sp = res.regions.filter((x) => x.spiral).map((x) => x.spiral);
   const paths = sp.map((x) => x.path);
   const heat = sp.map((x) => x.heating);
-  const g = paths.length ? minGap(paths, s) : { d: Infinity, at: null };
+  const g = paths.length ? minGap(paths, s, sp.map((x) => x.residual?.terminal ?? null)) : { d: Infinity, at: null, res: { d: Infinity } };
   const minBend = Math.min(Infinity, ...paths.map((p) => G.minBendRadius(p).radius));
   const cross = crossings(paths);
   const grown = G.offset(usable, 1e-4);
@@ -104,6 +113,8 @@ export function checkRawSet(res, U, s) {
     noGap: gap_m2 < 1e-4,
     regionsInside: outside_m2 < 1e-6,
     spacing: g.d >= s - SPACING_TOL,
+    // residual closure pairs (terminal part only): ≥ MIN_RESIDUAL_CLOSURE_SPACING
+    residualSpacing: g.res.d >= MIN_RESIDUAL_CLOSURE_SPACING - SPACING_TOL,
     bends: minBend >= RMIN_CHECK,
     noCrossing: cross === 0,
     inside,
@@ -126,6 +137,8 @@ export function checkRawSet(res, U, s) {
     invalidRegions,
     minSpacing: g.d,
     minSpacingAt: g.at,
+    minResidualSpacing: g.res.d,
+    residualSpacings: [...new Set(sp.filter((x) => x.residualSpacing).map((x) => x.residualSpacing))],
     minBend,
     crossings: cross,
     coverage: usable_m2 > 0 ? covered / usable_m2 : 0,

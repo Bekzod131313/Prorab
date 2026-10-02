@@ -26,7 +26,7 @@
 // variants are compared like spiralgen's (coverage of the heating pipe first).
 
 import * as G from './geom.js';
-import { SEAM_WIDTH, SPACING_TOL } from './criteria.js';
+import { SEAM_WIDTH, SPACING_TOL, RMIN_CHECK, MIN_RESIDUAL_CLOSURE_SPACING, MAX_RESIDUAL_RINGS, RESIDUAL_SEARCH_STEP } from './criteria.js';
 
 const EPS = 1e-9;
 const sub = (a, b) => ({ x: a.x - b.x, y: a.y - b.y });
@@ -104,6 +104,59 @@ export function minPipeGap(path, s, stop = -1) {
     }
   }
   return best;
+}
+
+/**
+ * Spacing with a residual closure: a pair with a point in the terminal stretch of the path
+ * (inZone(arc length) — the closure: residual ring, hairpin legs, centre turn) may be closer than s
+ * (the residual), every other pair keeps the nominal spacing.
+ * Returns { nom, res } — the smallest gap of each kind (stops early below the limits).
+ */
+export function zonedGap(path, s, inZone, stopNom = -1, stopRes = -1) {
+  const gap = Math.PI * s * 0.5 + 2 * s;
+  const cell = s;
+  const grid = new Map();
+  const segs = [];
+  let acc = 0;
+  for (let i = 1; i < path.length; i++) {
+    const a = path[i - 1];
+    const b = path[i];
+    const l = len(sub(b, a));
+    const sg = { a, b, s0: acc, s1: acc + l, deep: null };
+    segs.push(sg);
+    acc += l;
+    for (let gx = Math.floor(Math.min(a.x, b.x) / cell); gx <= Math.floor(Math.max(a.x, b.x) / cell); gx++)
+      for (let gy = Math.floor(Math.min(a.y, b.y) / cell); gy <= Math.floor(Math.max(a.y, b.y) / cell); gy++) {
+        const k = gx * 100003 + gy;
+        if (!grid.has(k)) grid.set(k, []);
+        grid.get(k).push(sg);
+      }
+  }
+  const deep = (sg) => (sg.deep ??= inZone((sg.s0 + sg.s1) / 2));
+  const out = { nom: Infinity, res: Infinity };
+  for (const sg of segs) {
+    const l = sg.s1 - sg.s0;
+    for (let q = Math.ceil(sg.s0 / 0.05) * 0.05; q < sg.s1; q += 0.05) {
+      const f = l > 0 ? (q - sg.s0) / l : 0;
+      const p = { x: sg.a.x + (sg.b.x - sg.a.x) * f, y: sg.a.y + (sg.b.y - sg.a.y) * f };
+      let pDeep = null;
+      const gx = Math.floor(p.x / cell);
+      const gy = Math.floor(p.y / cell);
+      for (let dx = -1; dx <= 1; dx++)
+        for (let dy = -1; dy <= 1; dy++)
+          for (const t of grid.get((gx + dx) * 100003 + gy + dy) ?? []) {
+            if (t.s1 > q - gap && t.s0 < q + gap) continue;
+            const dd = G.segDist(p, t.a, t.b);
+            if (dd >= s) continue;
+            pDeep ??= inZone(q);
+            if (pDeep || deep(t)) {
+              if (dd < out.res) (out.res = dd), (out.atRes = { p, q, s: (t.s0 + t.s1) / 2 });
+            } else if (dd < out.nom) (out.nom = dd), (out.atNom = { p, q, s: (t.s0 + t.s1) / 2 });
+            if (out.nom < stopNom || out.res < stopRes) return out;
+          }
+    }
+  }
+  return out;
 }
 
 /**
@@ -251,7 +304,12 @@ export function seamSpiral(P, s, o = {}) {
   const n = P.length;
   const r = o.r ?? Math.max(0.072, s / 2);
   const v = o.start ?? 0;
-  const d = (k) => s / 2 + k * s;
+  // ring offsets: nominal s/2 + k·s; with a residual closure (o.res = { n, rho, single }) the
+  // element after ring n−1 (ring n, at most MAX_RESIDUAL_RINGS rings, or the hairpin legs) steps
+  // by rho < s — and the following ones by rho as well ('uniform': the centre turn diameter rho), or
+  // by s again ('single': the residual only once, the turn at the nominal diameter)
+  const res = o.res ?? null;
+  const d = (k) => (!res || k < res.n ? s / 2 + k * s : s / 2 + (res.n - 1) * s + res.rho + (k - res.n) * (res.single ? s : res.rho));
   const Cn = P[v];
   const ePrev = P[(v - 1 + n) % n];
   const eNext = P[(v + 1) % n];
@@ -260,7 +318,7 @@ export function seamSpiral(P, s, o = {}) {
   if (cross(uL, uF) <= 1e-9) return { ok: false, reason: 'start_not_convex' };
   const nF = left(uF);
   const nL = left(uL);
-  const ringsAll = o.rings ?? ringsOf(P, s);
+  const ringsAll = o.rings ?? ringsOf(P, s, res);
   // rings in the start vertex's frame: rotated so V[0] is the image of the start corner
   const rings = [];
   for (let k = 0; k < ringsAll.length; k++) {
@@ -295,9 +353,11 @@ export function seamSpiral(P, s, o = {}) {
     return t > room - 1e-6 && t < len(sub(R[0], a)) + 1e-6;
   };
   // one arm: rings p, p+2, …, last; ends at `end` on the last ring's last side
-  const arm = (p, last, end, endRad) => {
+  const arm = (p, last, end, endRad, endTerm = false) => {
     const pts = [];
     const rad = [];
+    // index of the first point of the terminal (residual) part, if any
+    let term = -1;
     const stub = lineX(firstLine(p).p, uF, ePrev, sub(Cn, ePrev));
     pts.push(stub, rings[p].V[0]);
     rad.push(0, rings[p].rad[0]);
@@ -307,14 +367,16 @@ export function seamSpiral(P, s, o = {}) {
       if (k < last) {
         const X = T(k, k + 2);
         if (!X || !onLast(k, X, rings[k].rad[R.V.length - 1] + r)) return null;
+        if (res && k + 2 >= res.n && term < 0) term = pts.length;
         pts.push(X);
         rad.push(r);
       } else {
+        if (endTerm && term < 0) term = pts.length;
         pts.push(...end);
         rad.push(...endRad);
       }
     }
-    return { pts, rad };
+    return { pts, rad, term };
   };
   const valid = [];
   const tries = [];
@@ -331,21 +393,28 @@ export function seamSpiral(P, s, o = {}) {
     let radOut;
     let turn;
     if (centre === 'side') {
-      const ET = { p: add(Cn, mul(nF, d(kIn) + 1.5 * s)), u: uF };
+      // the innermost two laps joined by a 180° turn of diameter t (their distance), its apex t
+      // short of ring kIn's first side
+      const t = d(kIn) - d(kOut);
+      if (t / 2 < RMIN_CHECK) return { reason: 'bend', turn: t / 2 };
+      const ET = { p: add(Cn, mul(nF, d(kIn) + 1.5 * t)), u: uF };
       const EO = lineX(lastLine(kOut).p, uL, ET.p, uF);
-      const EI = add(EO, mul(nL, s));
+      const EI = add(EO, mul(nL, t));
       if (!onLast(kOut, EO, rings[kOut].rad[rings[kOut].V.length - 1]) || !onLast(kIn, EI, rings[kIn].rad[rings[kIn].V.length - 1])) return { reason: 'centre' };
       endOut = [EO];
       endIn = [EI];
       radOut = [0];
       radIn = [0];
-      turn = inA ? uturn(EI, uL, mul(nL, -1), s) : uturn(EO, uL, nL, s);
+      turn = inA ? uturn(EI, uL, mul(nL, -1), t) : uturn(EO, uL, nL, t);
     } else {
-      // hairpin: the last laps step onto the first side lines of rings kIn+1, kIn+2 and run along
-      // them to 1.5 s short of ring kIn's second side
+      // hairpin: the last laps step onto the first side lines of rings kIn+1, kIn+2 (legs t apart)
+      // and run along them to (gap + t/2) short of ring kIn's second side
+      const t = d(kIn + 2) - d(kIn + 1);
+      const gapA = d(kIn + 1) - d(kIn);
+      if (t / 2 < RMIN_CHECK) return { reason: 'bend', turn: t / 2 };
       const RI = rings[kIn].V;
       if (Math.abs(dot(unit(sub(RI[2], RI[1])), uF)) > 1e-6) return { reason: 'centre' };
-      const stop = { p: sub(RI[1], mul(uF, 1.5 * s)), u: unit(sub(RI[2], RI[1])) };
+      const stop = { p: sub(RI[1], mul(uF, gapA + t / 2)), u: unit(sub(RI[2], RI[1])) };
       const LO = firstLine(kIn + 1);
       const LI = firstLine(kIn + 2);
       const TO = T(kOut, kIn + 1);
@@ -359,12 +428,15 @@ export function seamSpiral(P, s, o = {}) {
       endIn = [TI, XI];
       radOut = [r, 0];
       radIn = [r, 0];
-      turn = inA ? uturn(XI, uF, mul(nF, -1), s) : uturn(XO, uF, nF, s);
+      turn = inA ? uturn(XI, uF, mul(nF, -1), t) : uturn(XO, uF, nF, t);
     }
     const lastA = inA ? kIn : kOut;
     const lastB = inA ? kOut : kIn;
-    const A = arm(0, lastA, inA ? endIn : endOut, inA ? radIn : radOut);
-    const B = arm(1, lastB, inA ? endOut : endIn, inA ? radOut : radIn);
+    // hairpin legs on residual offsets are terminal from their first point (the transition)
+    const legTermIn = centre === 'hairpin' && !!res && kIn + 2 >= res.n;
+    const legTermOut = centre === 'hairpin' && !!res && kIn + 1 >= res.n;
+    const A = arm(0, lastA, inA ? endIn : endOut, inA ? radIn : radOut, inA ? legTermIn : legTermOut);
+    const B = arm(1, lastB, inA ? endOut : endIn, inA ? radOut : radIn, inA ? legTermOut : legTermIn);
     if (!A || !B) return { reason: 'transition' };
     const fa = filletVar(A.pts, A.rad, true);
     const fb = filletVar(B.pts, B.rad, true);
@@ -373,27 +445,67 @@ export function seamSpiral(P, s, o = {}) {
     const leadIn = len(sub(A.pts[1], A.pts[0]));
     const leadOut = len(sub(B.pts[1], B.pts[0]));
     const estimate = G.pathLength(A.pts) + G.pathLength(B.pts) - leadIn - leadOut;
+    let fA = null;
+    let fB = null;
+    const fa0 = () => (fA ??= filletVar(A.pts, A.rad).pts);
+    const fb0 = () => (fB ??= filletVar(B.pts, B.rad).pts);
     const make = () => {
-      const path = G.cleanPath([...filletVar(A.pts, A.rad).pts, ...turn, ...[...filletVar(B.pts, B.rad).pts].reverse()], 1e-6);
+      const path = G.cleanPath([...fa0(), ...turn, ...[...fb0()].reverse()], 1e-6);
       const total = G.pathLength(path);
       const heating = G.subPath(path, leadIn, total - leadOut);
-      return { path, heating, leadIn, leadOut, total, supply: A.pts[0], ret: B.pts[0] };
+      // the terminal stretch [t0, t1] of the path (arc length): from the first residual element of
+      // arm A, through the turn, to that of arm B (an arm without one: from its end)
+      // (positions on the filleted pipe: the arc length of its point nearest to the corner, less r)
+      const at = (pts, q) => {
+        let acc = 0;
+        let best = { d: Infinity, s: 0 };
+        for (let i = 1; i < pts.length; i++) {
+          const a = pts[i - 1];
+          const b = pts[i];
+          const l = len(sub(b, a));
+          const c = G.closestOnSegment(q, a, b);
+          const dd = len(sub(c, q));
+          if (dd < best.d) best = { d: dd, s: acc + len(sub(c, a)) };
+          acc += l;
+        }
+        return Math.max(0, best.s - r);
+      };
+      const t0 = A.term >= 0 ? at(fa0(), A.pts[A.term]) : G.pathLength(fa0());
+      const t1 = total - (B.term >= 0 ? at(fb0(), B.pts[B.term]) : G.pathLength(fb0()));
+      return { path, heating, leadIn, leadOut, total, supply: A.pts[0], ret: B.pts[0], terminal: [t0, t1] };
     };
-    return { make, estimate };
+    return { make, estimate, turnR: (centre === 'side' ? d(kIn) - d(kOut) : d(kIn + 2) - d(kIn + 1)) / 2 };
   };
   // the built geometry checked: spacing and clearance (null when valid)
-  const check = (b) => {
+  const check = (b, used, centre) => {
     // (spacing on the path simplified within 0.5 mm: the arcs in fewer pieces)
-    const sp = minPipeGap(G.simplifyPath(b.path, 0.0005), s, s - SPACING_TOL);
-    if (sp < s - SPACING_TOL) return { reason: 'spacing', gap: sp };
+    const lean = G.simplifyPath(b.path, 0.0005);
+    if (resUsed(used, centre)) {
+      // nominal pairs ≥ s − tol; pairs in the terminal (residual) zone ≥ MIN_RESIDUAL_CLOSURE_SPACING
+      const [t0, t1] = b.terminal;
+      const z = zonedGap(lean, s, (q) => q >= t0 && q <= t1, s - SPACING_TOL, MIN_RESIDUAL_CLOSURE_SPACING - SPACING_TOL);
+      if (z.nom < s - SPACING_TOL) return { reason: 'spacing', gap: z.nom, at: z.atNom, terminal: b.terminal };
+      if (z.res < MIN_RESIDUAL_CLOSURE_SPACING - SPACING_TOL) return { reason: 'residual_spacing', gap: z.res };
+      b.minResidual = z.res;
+      b.minNominal = z.nom;
+    } else {
+      const sp = minPipeGap(lean, s, s - SPACING_TOL);
+      if (sp < s - SPACING_TOL) return { reason: 'spacing', gap: sp };
+    }
     // every heating point keeps s/2 from the outline, the exclusions and the seams
     const lim = s / 2 - SPACING_TOL;
     for (const q of G.densify(G.simplifyPath(b.heating, 0.0005), 0.05)) if (!G.pointInRing(q, P) || G.distToRegionBoundary(q, region) < lim) return { reason: 'clearance', at: q };
     return null;
   };
+  // does a variant reach the residual offsets (rings from res.n on, or hairpin legs there)?
+  const resUsed = (used, centre) => !!res && (centre === 'hairpin' ? used + 1 : used - 1) >= res.n;
   const variant = (b, used, centre) => ({
     ok: true,
     kind: 'RAW_SPIRAL',
+    // nominal spacing of the whole spiral; a residual closure only in its terminal part
+    nominalSpacing: s,
+    residualSpacing: resUsed(used, centre) ? res.rho : null,
+    residual: resUsed(used, centre) ? { n: res.n, rho: res.rho, single: !!res.single, dRes: d(res.n), terminal: b.terminal, rings: Math.max(0, used - res.n), minMeasured: b.minResidual ?? null } : null,
     path: b.path,
     heating: b.heating,
     supply: b.supply,
@@ -426,10 +538,11 @@ export function seamSpiral(P, s, o = {}) {
           estimate: g.estimate,
           used,
           centre,
+          residualUsed: resUsed(used, centre),
           start: v,
           get: () => {
             const b = g.make();
-            return check(b) ?? variant(b, used, centre);
+            return check(b, used, centre) ?? { ...variant(b, used, centre), minBend: Math.min(r, g.turnR) };
           },
         });
       }
@@ -439,7 +552,7 @@ export function seamSpiral(P, s, o = {}) {
     for (const centre of ['hairpin', 'side']) {
       const g = build(used, centre);
       const b = g.make ? g.make() : null;
-      const bad = b ? check(b) : g;
+      const bad = b ? check(b, used, centre) : g;
       if (bad) {
         tries.push({ used, centre, ...bad });
         continue;
@@ -466,15 +579,32 @@ export function measure(x, s, cover) {
 /**
  * Rings of a seamed region: offsets at s/2 + k·s, parts thinner than s cut off. Each ring is a list
  * of CCW rings (the offset may fall apart — only the part holding the start corner is used).
+ * With a residual closure (res = { n, rho }): rings 0 … n−1 nominal, then at most
+ * MAX_RESIDUAL_RINGS rings rho further in (parts thinner than MIN_RESIDUAL_CLOSURE_SPACING cut off).
  */
-export function ringsOf(P, s) {
+const ringCache = new WeakMap();
+export function ringsOf(P, s, res = null) {
+  if (!ringCache.has(P)) ringCache.set(P, new Map());
+  const cache = ringCache.get(P);
+  const ring = (dk, cut) => {
+    const key = `${dk.toFixed(6)}|${cut.toFixed(6)}`;
+    if (!cache.has(key)) {
+      const R = G.offset(G.offset([{ outer: P, holes: [] }], -(dk + cut), 'miter', 4), cut, 'miter', 4);
+      cache.set(key, R.filter((sh) => !(sh.holes ?? []).length).map((sh) => tidy(sh.outer)));
+    }
+    return cache.get(key);
+  };
   const out = [];
-  const cut = s / 2 - 0.001;
-  for (let k = 0; k < 400; k++) {
-    const dk = s / 2 + k * s;
-    const R = G.offset(G.offset([{ outer: P, holes: [] }], -(dk + cut), 'miter', 4), cut, 'miter', 4);
+  const nom = res ? res.n : 400;
+  for (let k = 0; k < nom; k++) {
+    const R = ring(s / 2 + k * s, s / 2 - 0.001);
+    if (!R.length) return out;
+    out.push(R);
+  }
+  for (let j = 1; res && j <= MAX_RESIDUAL_RINGS; j++) {
+    const R = ring(s / 2 + (res.n - 1) * s + j * res.rho, MIN_RESIDUAL_CLOSURE_SPACING / 2 - 0.001);
     if (!R.length) break;
-    out.push(R.filter((sh) => !(sh.holes ?? []).length).map((sh) => tidy(sh.outer)));
+    out.push(R);
   }
   return out;
 }
@@ -484,7 +614,9 @@ export function ringsOf(P, s) {
  * obstacles biting into its outline (a notched rectangle — the rings follow the notch).
  * @param shape  { outer (rectilinear ring), holes: [exclusion rings] }
  * @param s      spacing
- * @param o      { r, toward, maxHole, exitOk(sp), edgeOk(a, b) (the ends may leave through edge a→b), maxSeams, measure }
+ * @param o      { r, toward, maxHole, exitOk(sp), edgeOk(a, b) (the ends may leave through edge a→b), maxSeams,
+ *                 measure (variants measured per group), residual (try residual closures), supplyAt,
+ *                 returnAll (every measured variant) }
  * @returns best RAW_SPIRAL (with .seams, .seamed) or { ok: false, reason, tries }
  */
 export function obstacleSpiral(shape, s, o = {}) {
@@ -531,17 +663,32 @@ export function obstacleSpiral(shape, s, o = {}) {
         continue;
       }
       const rings = ringsOf(P, s);
+      // residual closure (o.residual): the last nominal ring n = R or R − 1 (R nominal rings), then
+      // the closure rho apart, rho from MIN_RESIDUAL_CLOSURE_SPACING up to just under s
+      const specs = [null];
+      if (o.residual)
+        for (const n of [rings.length - 1, rings.length])
+          if (n >= 2)
+            for (let rho = MIN_RESIDUAL_CLOSURE_SPACING; rho < s - 1e-6; rho += RESIDUAL_SEARCH_STEP)
+              for (const single of [false, true]) specs.push({ n, rho: Math.round(rho * 1e4) / 1e4, single });
       for (let i = 0; i < P.length; i++) {
         const a = P[(i - 1 + P.length) % P.length];
         const b = P[(i + 1) % P.length];
         if (cross(sub(P[i], a), sub(b, P[i])) <= 1e-9) continue; // convex corners only
         if (o.edgeOk && !o.edgeOk(a, P[i])) continue; // the ends leave through this edge
-        const res = seamSpiral(P, s, { r: o.r, start: i, rings, cover: real, lazy: true });
-        if (!res.ok) {
-          tries.push({ start: i, reason: res.reason });
-          continue;
+        // o.cornerAt / o.supplyAt: keep the ends where they are (at that corner / that point — the
+        // supply end sits s/2 from its corner)
+        if ((o.cornerAt || o.supplyAt) && !(o.cornerAt && len(sub(P[i], o.cornerAt)) < 1e-3) && !(o.supplyAt && len(sub(sub(P[i], mul(unit(sub(P[i], a)), s / 2)), o.supplyAt)) < 1e-3)) continue;
+        for (const spec of specs) {
+          const res = seamSpiral(P, s, { r: o.r, start: i, rings: spec ? ringsOf(P, s, spec) : rings, res: spec, cover: real, lazy: true });
+          if (!res.ok) {
+            tries.push({ start: i, reason: res.reason });
+            continue;
+          }
+          const key = `${margin}|${spec ? spec.n + ',' + spec.rho + (spec.single ? 's' : 'u') : '-'}`;
+          // (a residual spec whose variant never reaches the residual offsets = the nominal one)
+          for (const c of res.variants) if (!spec || c.residualUsed) all.push({ ...c, seams, seamed: P, margin, marginHoles: margin ? holes : null, group: key });
         }
-        for (const c of res.variants) all.push({ ...c, seams, seamed: P, margin, marginHoles: margin ? holes : null });
       }
     }
   }
@@ -551,9 +698,9 @@ export function obstacleSpiral(shape, s, o = {}) {
   // length, so the longest heating pipes of each margin variant are measured
   all.sort((a, b) => b.estimate - a.estimate);
   const ranked = [];
-  for (const mv of new Set(all.map((x) => x.margin))) {
+  for (const mv of new Set(all.map((x) => x.group))) {
     let n = 0;
-    for (const c of all.filter((y) => y.margin === mv)) {
+    for (const c of all.filter((y) => y.group === mv)) {
       if (n >= (o.measure ?? 4)) break;
       const sp = c.get();
       if (!sp.ok) {
@@ -567,6 +714,7 @@ export function obstacleSpiral(shape, s, o = {}) {
     }
   }
   if (!ranked.length) return { ok: false, reason: 'no_valid_spiral', tries };
+  if (o.returnAll) return { ok: true, ranked, tries };
   const okHole = ranked.filter((x) => x.largestHole <= maxHole);
   const pool = okHole.length ? okHole : ranked;
   // least uncovered first (variants within 0.1 m²: the smaller patch, then nearest to the manifold)

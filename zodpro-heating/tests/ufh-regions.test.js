@@ -29,7 +29,7 @@ function checkGeometry(name, r) {
   assert.ok(chk.overlap_m2 < 1e-6, `${name}: overlap ${chk.overlap_m2}`);
   assert.ok(Math.abs(chk.regionUnion_m2 - chk.usable_m2) < 1e-4);
   // global pipe checks (across region cuts too)
-  for (const k of ['spacing', 'bends', 'noCrossing', 'inside', 'exitsOnWall', 'noOverlap', 'noGap', 'regionsInside']) assert.ok(chk.checks[k], `${name}: ${k}`);
+  for (const k of ['spacing', 'residualSpacing', 'bends', 'noCrossing', 'inside', 'exitsOnWall', 'noOverlap', 'noGap', 'regionsInside']) assert.ok(chk.checks[k], `${name}: ${k}`);
 }
 
 // (step 4: U3, U9 — invalid in step 3 — are valid with spirals round / beside the column)
@@ -102,7 +102,8 @@ test('regions U8 / O8: splits that fail (invalid regions, patches over the limit
 });
 
 test('regions: fewer regions win over a little more coverage (C before B unless C breaks the limits)', () => {
-  const r = runCase('U5');
+  // (the region search itself — before the centre closure of step 5 improves the chosen split)
+  const r = runCase('U5', { closure: false });
   const k = r.res.regions.length;
   // a valid split with more regions and (slightly) more coverage exists — it is not taken
   const more = r.res.evaluated.filter((t) => !t.invalid && !t.rejected && t.regions > k && t.coverage > r.chk.coverage);
