@@ -21,11 +21,20 @@
 //   wall (the area's boundary), never into a neighbouring region — that is where the leads to the
 //   manifold attach later (collector connection is a later phase).
 //
+//   Obstacles (step 4): a rectangle may also WRAP one or more exclusions (obstacle + clearance)
+//   lying strictly inside it — that region gets an obstacle-around spiral (obstaclespiral: the
+//   rings follow the obstacle round, seam to the outline). Wrapping splits are enumerated with the
+//   others, so the minimum region count holds: one spiral round the obstacle (k = 1) is tried
+//   before any split round it; decomposition round an obstacle only when that is impossible or
+//   unacceptable. Ranking inside one count: least uncovered, smallest patch, least cut length
+//   (unnecessary boundaries), narrowness, manifold distance.
+//
 // Output: RAW SPIRALS per region (geometry). Loop lengths (≤ 60 m with leads) are planned later.
 
 import * as G from './geom.js';
 import { bestSpiral } from './spiralgen.js';
-import { MAX_LOOP_M, GEOMETRY_TEST_COVERAGE_SINGLE_REGION, GEOMETRY_TEST_COVERAGE_MULTI_REGION, GEOMETRY_TEST_MAX_HOLE } from './criteria.js';
+import { obstacleSpiral } from './obstaclespiral.js';
+import { MAX_LOOP_M, GEOMETRY_TEST_COVERAGE_SINGLE_REGION, GEOMETRY_TEST_COVERAGE_MULTI_REGION, GEOMETRY_TEST_COVERAGE_OBSTACLE_REGION, GEOMETRY_TEST_MAX_HOLE } from './criteria.js';
 
 const AX = 1e-6;
 
@@ -217,14 +226,61 @@ export function spiralRegions(U, s, o = {}) {
     free.push([]);
     for (let i = 0; i < nx; i++) free[j].push(G.pointInRegion({ x: (xs[i] + xs[i + 1]) / 2, y: (ys[j] + ys[j + 1]) / 2 }, region));
   }
-  // the reflex-cut partitions first (few, good), then the general enumeration
+  // exclusions (holes of the usable area) and their cells — a rectangle may wrap them
+  const holes = region.flatMap((sh) => sh.holes ?? []);
+  const holeOf = [];
+  for (let j = 0; j < ny; j++) {
+    holeOf.push([]);
+    for (let i = 0; i < nx; i++) {
+      const c = { x: (xs[i] + xs[i + 1]) / 2, y: (ys[j] + ys[j + 1]) / 2 };
+      holeOf[j].push(free[j][i] ? -1 : holes.findIndex((h) => G.pointInRing(c, h)));
+    }
+  }
+  // the reflex-cut partitions first (few, good), then the general enumeration; then the wrapping
+  // ones: for every set of exclusions, partitions of the area with those exclusions filled in, a
+  // rectangle holding an exclusion's cells holding all of them with free cells all round
   const seen = new Set();
   const parts = [];
+  const keyOf = (p) => p.map((q) => q.join(',')).sort().join('|');
   for (const p of [...reflexPartitions(free, nx, ny), ...partitions(free, nx, ny)]) {
-    const key = p.map((q) => q.join(',')).sort().join('|');
+    const key = keyOf(p);
     if (!seen.has(key)) seen.add(key), parts.push(p);
   }
-  const rectOf = ([i0, j0, i1, j1]) => ({ x0: xs[i0], y0: ys[j0], x1: xs[i1 + 1], y1: ys[j1 + 1] });
+  const hn = Math.min(holes.length, 3);
+  for (let mask = 1; mask < 1 << hn; mask++) {
+    const filled = free.map((row, j) => row.map((f, i) => f || (holeOf[j][i] >= 0 && holeOf[j][i] < hn && !!(mask & (1 << holeOf[j][i])))));
+    for (const p of [...reflexPartitions(filled, nx, ny), ...partitions(filled, nx, ny, 1500)]) {
+      // every rectangle holds usable floor; the exclusion cells it holds are cut out of it again
+      // (a hole inside it: the spiral wraps the obstacle; at its side: a notch the rings follow)
+      let ok = true;
+      const q = p.map(([i0, j0, i1, j1]) => {
+        const hs = new Set();
+        let freeCells = 0;
+        for (let j = j0; j <= j1; j++)
+          for (let i = i0; i <= i1; i++) {
+            if (free[j][i]) freeCells++;
+            else if (holeOf[j][i] >= 0) hs.add(holeOf[j][i]);
+          }
+        if (!freeCells) ok = false;
+        return hs.size ? [i0, j0, i1, j1, ...[...hs].sort().map((h) => 'h' + h)] : [i0, j0, i1, j1];
+      });
+      if (!ok) continue;
+      const key = keyOf(q);
+      if (!seen.has(key)) seen.add(key), parts.push(q);
+    }
+  }
+  // a rectangle of a split; one holding exclusion cells is the rectangle ∩ usable area (its shape)
+  const shapes = new Map();
+  const rectOf = ([i0, j0, i1, j1, ...hs]) => {
+    const r = { x0: xs[i0], y0: ys[j0], x1: xs[i1 + 1], y1: ys[j1 + 1], holes: hs.map((h) => holes[+h.slice(1)]) };
+    if (r.holes.length) {
+      const key = `${r.x0},${r.y0},${r.x1},${r.y1}`;
+      if (!shapes.has(key)) shapes.set(key, G.intersection(region, [{ outer: [{ x: r.x0, y: r.y0 }, { x: r.x1, y: r.y0 }, { x: r.x1, y: r.y1 }, { x: r.x0, y: r.y1 }], holes: [] }]));
+      r.shape = shapes.get(key);
+    }
+    return r;
+  };
+  const rectArea = (r) => (r.shape ? G.area(r.shape) : (r.x1 - r.x0) * (r.y1 - r.y0));
   // a region needs ≥ 2 rings (supply + return) and room for the bends: narrower than ~3 s holds no spiral
   const minW = 3 * s + 2 * (o.r ?? Math.max(0.072, s / 2)) * 0.5;
   // the area's outer outline (walls): spiral ends leave there — never onto an obstacle's side (the
@@ -263,7 +319,13 @@ export function spiralRegions(U, s, o = {}) {
   let bestOk = null;
   let bestValid = null;
   let bestAny = null;
-  const covMin = (k) => (k === 1 ? GEOMETRY_TEST_COVERAGE_SINGLE_REGION : GEOMETRY_TEST_COVERAGE_MULTI_REGION);
+  // (a split with a region wrapping an obstacle: its own, named threshold — see criteria.js)
+  const covMin = (k, wraps) => Math.min(k === 1 ? GEOMETRY_TEST_COVERAGE_SINGLE_REGION : GEOMETRY_TEST_COVERAGE_MULTI_REGION, wraps ? GEOMETRY_TEST_COVERAGE_OBSTACLE_REGION : 1);
+  // cut length of a split: region outlines that are not the area's boundary (both sides counted once)
+  const boundary = region.reduce((a, sh) => a + [sh.outer, ...(sh.holes ?? [])].reduce((b, R) => b + G.pathLength(R, true), 0), 0);
+  const perim = (r) => (r.shape ? r.shape.reduce((a, sh) => a + [sh.outer, ...(sh.holes ?? [])].reduce((b, R) => b + G.pathLength(R, true), 0), 0) : 2 * (r.x1 - r.x0 + r.y1 - r.y0));
+  const cutLength = (rs) => (rs.reduce((a, r) => a + perim(r), 0) - boundary) / 2;
+  const keyOfRect = (r) => `${r.x0},${r.y0},${r.x1},${r.y1}${r.holes.length ? '+' + r.holes.map((h) => holes.indexOf(h)).join(',') : ''}`;
   for (const k of counts) {
     const list = byCount.get(k).sort((a, b) => a.c - b.c);
     let validHere = 0;
@@ -271,20 +333,20 @@ export function spiralRegions(U, s, o = {}) {
       if (evals >= maxEval || validHere >= perCount) break;
       // early rejection (no spiral built): a rectangle too narrow for two rings and the bends, or
       // without any outer wall for the ends
-      const early = rs.find((r) => Math.min(r.x1 - r.x0, r.y1 - r.y0) < minW || !wallSides(r));
+      const early = rs.find((r) => Math.min(r.x1 - r.x0, r.y1 - r.y0) < minW || !wallSides(r) || (r.shape && r.shape.length !== 1));
       if (early) {
-        tried.push({ regions: k, rejected: Math.min(early.x1 - early.x0, early.y1 - early.y0) < minW ? 'narrow' : 'no_wall' });
+        tried.push({ regions: k, rejected: Math.min(early.x1 - early.x0, early.y1 - early.y0) < minW ? 'narrow' : early.shape && early.shape.length !== 1 ? 'split_by_obstacle' : 'no_wall' });
         continue;
       }
       const regs = rs.map((r) => {
-        const key = `${r.x0},${r.y0},${r.x1},${r.y1}`;
+        const key = keyOfRect(r);
         if (!memo.has(key)) memo.set(key, build([{ x: r.x0, y: r.y0 }, { x: r.x1, y: r.y0 }, { x: r.x1, y: r.y1 }, { x: r.x0, y: r.y1 }], r));
         return memo.get(key);
       });
       const invalid = regs.filter((x) => x.status !== 'VALID').length;
       if (invalid) {
         // an invalid split is kept only as the last resort (for reporting which region fails)
-        tried.push({ regions: k, invalid });
+        tried.push({ regions: k, invalid, wraps: rs.some((r) => r.shape) });
         if (!bestAny || invalid < bestAny.invalid) bestAny = { k, regs, unc: region, uncovered: G.area(region), score: Infinity, invalid };
         continue;
       }
@@ -300,11 +362,14 @@ export function spiralRegions(U, s, o = {}) {
       const raws = regs.filter((x) => x.spiral).map((x) => x.spiral.heatingLength);
       const loopPenalty = raws.reduce((a, l) => a + Math.ceil(l / MAX_LOOP_M), 0) - Math.ceil(raws.reduce((a, l) => a + l, 0) / MAX_LOOP_M);
       const dist = o.toward ? regs.reduce((a, x) => a + (x.spiral ? Math.hypot(x.spiral.supply.x - o.toward.x, x.spiral.supply.y - o.toward.y) : 0), 0) : 0;
-      // an extra region must buy at least 0.2 m² of coverage (no regions just for a few tenths of a %)
-      const score = k * 2 + uncovered * 10 + loopPenalty * 5 + narrowness(rs) + dist * 0.001;
-      const cand = { k, regs, unc, uncovered, hole, coverage, score, loopPenalty };
-      const okCand = !invalid && coverage >= covMin(k) && hole <= GEOMETRY_TEST_MAX_HOLE;
-      tried.push({ regions: k, invalid, coverage, hole, ok: okCand });
+      // an extra region must buy at least 0.2 m² of coverage (no regions just for a few tenths of a %);
+      // then the largest patch, unnecessary cuts, narrow regions, the manifold distance
+      const cut = cutLength(rs);
+      const score = k * 2 + uncovered * 10 + hole * 2 + loopPenalty * 5 + cut * 0.02 + narrowness(rs) + dist * 0.001;
+      const wraps = rs.some((r) => r.shape);
+      const cand = { k, regs, unc, uncovered, hole, coverage, score, loopPenalty, cut, wraps };
+      const okCand = !invalid && coverage >= covMin(k, wraps) && hole <= GEOMETRY_TEST_MAX_HOLE;
+      tried.push({ regions: k, invalid, coverage, hole, cut, wraps, ok: okCand });
       if (okCand && (!bestOk || score < bestOk.score)) bestOk = cand;
       // (a split leaving a patch over the limit ranks after every split that does not)
       cand.rank = (hole > GEOMETRY_TEST_MAX_HOLE ? 1e4 : 0) + score;
@@ -315,16 +380,19 @@ export function spiralRegions(U, s, o = {}) {
   }
   const best = bestOk ?? bestValid ?? bestAny;
   function build(poly, r) {
-    const sp = bestSpiral(poly, s, {
-      r: o.r,
-      toward: o.toward,
-      // both ends leave through a wall of the area, not into a neighbouring region
-      exitOk: (q) => onWall(q.supply) && onWall(q.ret),
-    });
-    const area = (r.x1 - r.x0) * (r.y1 - r.y0);
-    if (!sp.ok) return { poly, area, status: 'INVALID_REGION', reason: sp.reason === 'no_valid_spiral' ? 'no valid spiral (too narrow / no wall exit)' : sp.reason };
+    // both ends leave through a wall of the area, not into a neighbouring region
+    const exitOk = (q) => onWall(q.supply) && onWall(q.ret);
+    // round / beside an obstacle: the region's real shape (exclusions cut out)
+    if (r.shape) poly = r.shape[0].outer;
+    const sp = r.shape
+      ? obstacleSpiral(r.shape[0], s, { r: o.r, toward: o.toward, exitOk, edgeOk: (a, b) => onWall({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }) })
+      : bestSpiral(poly, s, { r: o.r, toward: o.toward, exitOk });
+    const area = rectArea(r);
+    const holesOf = r.shape ? r.shape[0].holes ?? [] : [];
+    if (!sp.ok) return { poly, holes: holesOf, area, status: 'INVALID_REGION', reason: sp.reason === 'no_valid_spiral' ? 'no valid spiral (too narrow / no wall exit)' : sp.reason };
     return {
       poly,
+      holes: holesOf,
       area,
       status: 'VALID',
       spiral: sp,
@@ -334,6 +402,8 @@ export function spiralRegions(U, s, o = {}) {
         rawSpiral_m: sp.heatingLength,
         laps: sp.laps,
         centre: sp.centre,
+        // round an obstacle: the seam(s) and the pipe-free margin beside the exclusion (if any)
+        obstacle: r.shape ? { wraps: holesOf.length, notch: !holesOf.length, seams: sp.seams.map((q) => [q.a, q.b]), margin: sp.margin } : null,
         minBend_mm: G.minBendRadius(sp.path).radius * 1000,
         // a raw spiral longer than a whole loop is split by the loop length planner (not invalid)
         exceeds60: sp.heatingLength > MAX_LOOP_M,
@@ -346,17 +416,17 @@ export function spiralRegions(U, s, o = {}) {
   if (!chosen || chosen.score === Infinity) {
     // no split with every region valid: report the split whose invalid part is smallest (the
     // narrow / shut-in rectangles there are the INVALID REGIONS; the rest keep their spirals)
-    const bad = (r) => Math.min(r.x1 - r.x0, r.y1 - r.y0) < minW || !wallSides(r);
+    const bad = (r) => Math.min(r.x1 - r.x0, r.y1 - r.y0) < minW || !wallSides(r) || (r.shape && r.shape.length !== 1);
     let pick = null;
     for (const p of parts) {
       const rs = p.map(rectOf);
-      const badArea = rs.filter(bad).reduce((a, r) => a + (r.x1 - r.x0) * (r.y1 - r.y0), 0);
+      const badArea = rs.filter(bad).reduce((a, r) => a + rectArea(r), 0);
       if (!pick || badArea < pick.badArea - 1e-9 || (Math.abs(badArea - pick.badArea) <= 1e-9 && rs.length < pick.rs.length)) pick = { rs, badArea };
     }
     const regs = (pick?.rs ?? []).map((r) => {
       const poly = [{ x: r.x0, y: r.y0 }, { x: r.x1, y: r.y0 }, { x: r.x1, y: r.y1 }, { x: r.x0, y: r.y1 }];
-      if (bad(r)) return { poly, area: (r.x1 - r.x0) * (r.y1 - r.y0), status: 'INVALID_REGION', reason: 'too narrow / no outer wall' };
-      const key = `${r.x0},${r.y0},${r.x1},${r.y1}`;
+      if (bad(r)) return { poly: r.shape ? r.shape[0].outer : poly, holes: r.shape ? r.shape[0].holes ?? [] : [], area: rectArea(r), status: 'INVALID_REGION', reason: 'too narrow / no outer wall' };
+      const key = keyOfRect(r);
       if (!memo.has(key)) memo.set(key, build(poly, r));
       return memo.get(key);
     });
@@ -368,7 +438,7 @@ export function spiralRegions(U, s, o = {}) {
   const regs = chosen.regs.map((x, i) => ({ ...x, label: `R${i + 1}`, stats: x.stats ? { ...x.stats } : undefined }));
   for (const x of regs)
     if (x.spiral) {
-      const own = G.intersection([{ outer: x.poly, holes: [] }], G.bufferPolylines([G.simplifyPath(x.spiral.heating, 0.002)], s / 2 + 0.003, 'round', 'round', 0.001));
+      const own = G.intersection([{ outer: x.poly, holes: x.holes ?? [] }], G.bufferPolylines([G.simplifyPath(x.spiral.heating, 0.002)], s / 2 + 0.003, 'round', 'round', 0.001));
       x.stats.coverage = G.area(own) / x.area;
     }
   return {

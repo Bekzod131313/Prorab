@@ -4,7 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as G from '../src/engines/ufh/geom.js';
 import { runCase } from '../tools/ufh-regions-debug.mjs';
-import { GEOMETRY_TEST_COVERAGE_MULTI_REGION, GEOMETRY_TEST_MAX_HOLE, KNOWN_LIMITATIONS, MAX_LOOP_M } from '../src/engines/ufh/criteria.js';
+import { GEOMETRY_TEST_COVERAGE_MULTI_REGION, GEOMETRY_TEST_COVERAGE_OBSTACLE_REGION, GEOMETRY_TEST_MAX_HOLE, KNOWN_LIMITATIONS, MAX_LOOP_M } from '../src/engines/ufh/criteria.js';
 
 const kl = (name) => KNOWN_LIMITATIONS.find((k) => k.case === name);
 
@@ -21,6 +21,8 @@ function checkGeometry(name, r) {
     assert.equal(x.spiral.kind, 'RAW_SPIRAL'); // a region is not a loop
     assert.equal(x.loops, undefined);
     assert.ok(['side', 'hairpin'].includes(x.spiral.centre));
+    // never another pipe pattern: a region round / beside an obstacle is a spiral too
+    if (x.stats.obstacle) assert.ok(x.spiral.seamed, `${name}: obstacle region without its seamed ring path`);
   }
   // regions: union = usable heating area, no gap, no overlap
   assert.ok(chk.gap_m2 < 1e-4, `${name}: region gap ${chk.gap_m2}`);
@@ -30,7 +32,8 @@ function checkGeometry(name, r) {
   for (const k of ['spacing', 'bends', 'noCrossing', 'inside', 'exitsOnWall', 'noOverlap', 'noGap', 'regionsInside']) assert.ok(chk.checks[k], `${name}: ${k}`);
 }
 
-const VALID = ['L1', 'L2', 'L3', 'L3b', 'L4a', 'L5', 'U1', 'U1c', 'U2', 'U4', 'U5'];
+// (step 4: U3, U9 — invalid in step 3 — are valid with spirals round / beside the column)
+const VALID = ['L1', 'L2', 'L3', 'L3b', 'L4a', 'L5', 'U1', 'U1c', 'U2', 'U3', 'U4', 'U5', 'U9'];
 for (const name of VALID)
   test(`regions ${name}: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts`, () => {
     const r = runCase(name);
@@ -38,11 +41,13 @@ for (const name of VALID)
     assert.equal(r.chk.status, 'RAW_GEOMETRY_VALID', JSON.stringify(r.chk.checks));
     assert.ok(r.res.ok);
     assert.ok(r.chk.largestHole_m2 <= GEOMETRY_TEST_MAX_HOLE, `${name}: hole ${r.chk.largestHole_m2}`);
-    // the geometry self-check (multi-region) — named, not hidden
-    if (r.res.acceptable) assert.ok(r.chk.coverage >= GEOMETRY_TEST_COVERAGE_MULTI_REGION - 1e-3, `${name}: ${r.chk.coverage}`);
+    // the geometry self-check (multi-region; with a region round / beside an obstacle its own
+    // threshold) — named, not hidden
+    const min = r.res.regions.some((x) => x.stats?.obstacle) ? Math.min(GEOMETRY_TEST_COVERAGE_MULTI_REGION, GEOMETRY_TEST_COVERAGE_OBSTACLE_REGION) : GEOMETRY_TEST_COVERAGE_MULTI_REGION;
+    if (r.res.acceptable) assert.ok(r.chk.coverage >= min - 1e-3, `${name}: ${r.chk.coverage}`);
   });
 
-for (const name of ['L4b', 'U4b', 'U9'])
+for (const name of ['L4b', 'U4b'])
   test(`regions ${name}: an invalid region makes the zone INVALID (no other pipe pattern) — known limitation`, () => {
     const r = runCase(name);
     checkGeometry(name, r);
@@ -54,15 +59,14 @@ for (const name of ['L4b', 'U4b', 'U9'])
     assert.equal(r.chk.loopPlannerRequired, false);
   });
 
-test('regions U3: obstacle in the open floor — valid spirals, centre gap over the limit stays visible (known limitation)', () => {
-  const r = runCase('U3');
-  checkGeometry('U3', r);
-  assert.ok(r.res.ok, 'every region a valid spiral');
-  const k = kl('U3');
-  assert.ok(k);
-  assert.ok(r.chk.largestHole_m2 <= k.centreGap_m2 + 0.005, `grew: ${r.chk.largestHole_m2}`);
-  // the zone is not reported valid while the gap is over the limit
-  assert.equal(r.chk.status, r.chk.largestHole_m2 > 0.5 ? 'INVALID_ZONE' : 'RAW_GEOMETRY_VALID');
+test('regions U3 / U9: the step-3 limitations are gone — no longer listed as known limitations', () => {
+  assert.equal(kl('U3'), undefined);
+  assert.equal(kl('U9'), undefined);
+  for (const name of ['U3', 'U9']) {
+    const r = runCase(name);
+    assert.ok(r.res.regions.some((x) => x.stats?.obstacle), `${name}: no region round / beside the column`);
+    assert.ok(r.chk.largestHole_m2 <= GEOMETRY_TEST_MAX_HOLE);
+  }
 });
 
 test('regions L6 / L7 / U6: raw spirals over 60 m are flagged, the zone needs the loop planner — no loops yet', () => {
@@ -86,11 +90,15 @@ test('regions U10 / U7: the minimum region count with an acceptable split is cho
   assert.ok(ok.every((t) => t.regions >= k), 'an acceptable split with fewer regions was skipped'); // U10
 });
 
-test('regions U8: splits that fail (narrow / shut-in / invalid regions) are rejected, a valid one is used', () => {
-  const r = runCase('U8');
-  checkGeometry('U8', r);
-  assert.ok(r.res.evaluated.some((t) => t.rejected || t.invalid), 'no failing split seen');
-  assert.equal(r.chk.status, 'RAW_GEOMETRY_VALID');
+test('regions U8 / O8: splits that fail (invalid regions, patches over the limit) are passed over, a valid one is used', () => {
+  for (const name of ['U8', 'O8']) {
+    const r = runCase(name);
+    checkGeometry(name, r);
+    assert.equal(r.chk.status, 'RAW_GEOMETRY_VALID');
+  }
+  const r = runCase('O8');
+  assert.ok(r.res.evaluated.some((t) => t.invalid || t.hole > GEOMETRY_TEST_MAX_HOLE), 'no failing split seen');
+  assert.ok(r.res.evaluated.every((t) => !t.ok || t.regions >= r.res.regions.length));
 });
 
 test('regions: fewer regions win over a little more coverage (C before B unless C breaks the limits)', () => {

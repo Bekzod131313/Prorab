@@ -1,7 +1,9 @@
 // UFH debug picture and metrics (no routing here — it only shows what a router produced).
-//   blue: zone · gray: obstacles · yellow: clearance · green: usable heating area · red: uncovered
-//   purple: cell / region boundaries · black: leads (collector side) · orange: bend < minimum
-//   pipes: supply arm red, return arm blue, drawn as centrelines
+//   blue: zone · yellow: wall clearance · green: usable heating area · dark red: obstacles ·
+//   orange: obstacle clearance (exclusion) · red translucent: uncovered (light: strips thinner than
+//   s, strong: patches) · purple: region
+//   boundaries · black: leads (collector side) · orange ring: bend < minimum · dashed purple: seam
+//   of a spiral round an obstacle · pipes: supply arm red, return arm blue, thin centrelines
 
 import * as G from './geom.js';
 
@@ -55,11 +57,11 @@ export function selfCrossings(path) {
 
 /** SVG of a debug scene (plan y up unless flipY). */
 export function debugSVG(scene, o = {}) {
-  const { zone, usable = [], obstacles = [], uncovered = [], cells = [], pipes = [], leads = [], bends = [], marks = [], lines = [], labels = [] } = scene;
+  const { zone, usable = [], obstacles = [], exclusions = [], uncovered = [], uncoveredThin = [], cells = [], pipes = [], leads = [], seams = [], bends = [], marks = [], lines = [], labels = [] } = scene;
   const bb = G.regionBBox(zone);
   const k = o.scale ?? 100;
   const pad = 30;
-  const W = (bb.x1 - bb.x0) * k + 2 * pad;
+  const W = Math.max((bb.x1 - bb.x0) * k + 2 * pad, ...lines.map((s) => String(s).length * 7.9 + 2 * pad));
   const Hp = (bb.y1 - bb.y0) * k + 2 * pad;
   const textH = lines.length ? lines.length * 16 + 12 : 0;
   const X = (p) => `${(pad + (p.x - bb.x0) * k).toFixed(1)},${(pad + (o.flipY ? p.y - bb.y0 : bb.y1 - p.y) * k).toFixed(1)}`;
@@ -71,11 +73,14 @@ export function debugSVG(scene, o = {}) {
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W.toFixed(0)}" height="${(Hp + textH).toFixed(0)}" style="background:#fff" font-family="monospace" font-size="13">`;
   svg += poly(G.difference(zr, usable), '#f4d03f', 'none', 0, 0.55);
   svg += poly(usable, '#7bd389', 'none', 0, 0.4);
-  svg += poly(obstacles, '#9e9e9e');
-  svg += poly(uncovered, '#e53935', 'none', 0, 0.85);
+  svg += poly(exclusions, '#ff9800', 'none', 0, 0.75);
+  svg += poly(obstacles, '#7f1d1d');
+  svg += poly(uncoveredThin, '#e53935', 'none', 0, 0.25);
+  svg += poly(uncovered, '#e53935', 'none', 0, 0.55);
   for (const c of cells) svg += poly(c, 'none', '#8e24aa', 2);
   svg += poly(zr, 'none', '#1e63d6', 3);
   for (const p of pipes) svg += `<polyline points="${p.pts.map(X).join(' ')}" fill="none" stroke="${p.color ?? '#c0392b'}" stroke-width="${p.w ?? 1.6}"/>`;
+  for (const [a, b] of seams) svg += `<line x1="${X(a).split(',')[0]}" y1="${X(a).split(',')[1]}" x2="${X(b).split(',')[0]}" y2="${X(b).split(',')[1]}" stroke="#8e24aa" stroke-width="2" stroke-dasharray="6 4"/>`;
   for (const l of leads) svg += `<polyline points="${l.map(X).join(' ')}" fill="none" stroke="#000" stroke-width="2"/>`;
   for (const b of bends) svg += `<circle cx="${X(b).split(',')[0]}" cy="${X(b).split(',')[1]}" r="9" fill="none" stroke="#ff8c00" stroke-width="3"/>`;
   for (const m of marks) svg += `<circle cx="${X(m.p).split(',')[0]}" cy="${X(m.p).split(',')[1]}" r="${m.r ?? 4}" fill="${m.color ?? '#000'}"/>`;

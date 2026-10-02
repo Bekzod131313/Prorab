@@ -72,9 +72,10 @@ function crossings(paths) {
  */
 export function checkRawSet(res, U, s) {
   const usable = G.asRegion(U);
-  const polys = res.regions.map((x) => [{ outer: x.poly, holes: [] }]);
+  // (a region wrapping an obstacle carries the exclusion as its hole)
+  const polys = res.regions.map((x) => [{ outer: x.poly, holes: x.holes ?? [] }]);
   const union = polys.length ? G.union(polys.flat()) : [];
-  const sumA = res.regions.reduce((a, x) => a + G.area([{ outer: x.poly, holes: [] }]), 0);
+  const sumA = polys.reduce((a, q) => a + G.area(q), 0);
   const regionUnion_m2 = G.area(union);
   const usable_m2 = G.area(usable);
   const overlap_m2 = Math.max(0, sumA - regionUnion_m2);
