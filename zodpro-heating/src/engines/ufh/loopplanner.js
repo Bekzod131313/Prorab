@@ -136,7 +136,15 @@ export function planLoops(res, U, s, ctx) {
     }
     const shape = { outer: x.poly, holes: x.holes ?? [] };
     const plan = planRegion(x, shape);
-    regions.push({ label: x.label, rawSpiral_m: x.spiral.heatingLength, exceeds60: x.spiral.heatingLength > MAX_LOOP_M, ...plan.summary });
+    // lower bounds of the loop count (why fewer loops cannot exist): a loop carries at most
+    // 60 − 2 × (the shortest lead to this region) of heating pipe; and covering the floor the plan
+    // covers needs at least covered / (s + 6 mm) of pipe (each pipe covers a band s/2 + 3 mm wide
+    // on either side)
+    const leadMin = leadMinOf(shape);
+    const perLoop = MAX_LOOP_M - 2 * leadMin;
+    const covered = plan.parts.reduce((a, p) => a + G.area([p.shape]) - (p.uncovered ?? measure({ heating: p.spiral.heating }, s, [p.shape]).uncovered), 0);
+    const bound = { leadMin, perLoopHeatingMax: perLoop, rawHeating: x.spiral.heatingLength, kRaw: Math.ceil(x.spiral.heatingLength / perLoop - 1e-9), coveredArea: covered, pipeForCoverage: covered / (s + 0.006), kCoverage: Math.ceil(covered / (s + 0.006) / perLoop - 1e-9) };
+    regions.push({ label: x.label, rawSpiral_m: x.spiral.heatingLength, exceeds60: x.spiral.heatingLength > MAX_LOOP_M, lowerBound: bound, ...plan.summary });
     for (const p of plan.parts) {
       const l = leadsOf(p.spiral);
       const loop = {
@@ -175,9 +183,9 @@ export function planLoops(res, U, s, ctx) {
     if (!r) return { parts: [{ spiral: sp0, shape }], summary: { loopCount: 1, split: null, tried: [], failed: 'no valid split within 60 m' } };
     // the centre closure of loops not closed yet — only within their 60 m budget
     const parts = r.parts.map((p) => {
-      if (!p.open) return { spiral: p.spiral, shape: p.shape };
+      if (!p.open) return { spiral: p.spiral, shape: p.shape, uncovered: p.uncovered };
       const c = closeCentre(p.shape, p.spiral, s, { r: ctx.r, toward: ctx.toward, exitOk, edgeOk, accept: (q) => lengthOk(totalOf(q)) });
-      return { spiral: c.changed ? c.spiral : p.spiral, shape: p.shape };
+      return { spiral: c.changed ? c.spiral : p.spiral, shape: p.shape, uncovered: c.changed ? c.new.uncovered : p.uncovered };
     });
     return { parts, summary: { loopCount: parts.length, split: r.split, tried: r.tried } };
   }
@@ -269,7 +277,7 @@ export function planLoops(res, U, s, ctx) {
       }
       if (pick) {
         const sp = moveSpiral(pick.sp, b.x0, b.y0);
-        out = { pieces: [{ spiral: sp, shape: { outer: C, holes: [] }, total: totalOf(sp), uncovered: pick.m.uncovered, open: !pick.closed }] };
+        out = { pieces: [{ spiral: sp, shape: { outer: C, holes: [] }, total: totalOf(sp), uncovered: pick.m.uncovered, hole: pick.m.largestHole, open: !pick.closed }] };
       }
       memo.set(key, out);
       return out;
@@ -295,7 +303,7 @@ export function planLoops(res, U, s, ctx) {
         else {
           const { sp, m } = okc[0];
           // a part leaving a patch over the limit is no valid loop (coverage is never traded for length)
-          piece = m.largestHole > MAX_LARGEST_GAP ? { reason: 'uncovered_patch', hole: m.largestHole } : { spiral: sp, shape: pieceShape, total: totalOf(sp), uncovered: m.uncovered, open: !okc[0].closed };
+          piece = m.largestHole > MAX_LARGEST_GAP ? { reason: 'uncovered_patch', hole: m.largestHole } : { spiral: sp, shape: pieceShape, total: totalOf(sp), uncovered: m.uncovered, hole: m.largestHole, open: !okc[0].closed };
         }
       }
       if (piece.spiral) out = { pieces: [piece] };
@@ -305,7 +313,7 @@ export function planLoops(res, U, s, ctx) {
           if (!y.spiral) return null;
           const yShape = { outer: y.poly, holes: y.holes ?? [] };
           const m = measure({ heating: y.spiral.heating }, s, [yShape]);
-          return m.largestHole > MAX_LARGEST_GAP ? null : { spiral: y.spiral, shape: yShape, total: totalOf(y.spiral), uncovered: m.uncovered, open: true };
+          return m.largestHole > MAX_LARGEST_GAP ? null : { spiral: y.spiral, shape: yShape, total: totalOf(y.spiral), uncovered: m.uncovered, hole: m.largestHole, open: true };
         });
         out = sub.ok && pieces.every(Boolean) ? { pieces } : piece;
       } else out = piece;
@@ -325,10 +333,8 @@ export function planLoops(res, U, s, ctx) {
     const rectOf = (axis, a0, a1) => (axis === 'x' ? [{ x: a0, y: bb.y0 }, { x: a1, y: bb.y0 }, { x: a1, y: bb.y1 }, { x: a0, y: bb.y1 }] : [{ x: bb.x0, y: a0 }, { x: bb.x1, y: a0 }, { x: bb.x1, y: a1 }, { x: bb.x0, y: a1 }]);
     const range = (axis) => (axis === 'x' ? [bb.x0, bb.x1] : [bb.y0, bb.y1]);
     const tried = [];
-    // lower bound of the loop count: the pipe within the budget left by the shortest leads
-    const wallPts = G.densify([...shape.outer, shape.outer[0]], 0.1).filter(onWall);
-    const leadMin = wallPts.length ? Math.min(...wallPts.map((q) => ctx.leadTo(q))) : 0;
-    const kLow = Math.max(1, Math.ceil(heatingEst / (MAX_LOOP_M - 2 * leadMin)));
+    const leadMin = leadMinOf(shape);
+    const kLow = lowerBound(shape, heatingEst);
     const whole = part(shape, rectOf('x', bb.x0, bb.x1));
     if (fits(whole)) return summarize([{ parts: whole.pieces, split: null }])[0];
     const evalCuts = (cuts, axis) => {
@@ -408,15 +414,29 @@ export function planLoops(res, U, s, ctx) {
     if (depth === 0 && (!stripBest || stripBest.loops > kLow || stripBest.uncovered > ROWS_TRY_UNCOVERED_SHARE * area))
       for (const axis of ['x', 'y']) {
         const [lo, hi] = range(axis);
-        for (const f of [0.5]) {
-          const c = Math.round((lo + (hi - lo) * f) * 100) / 100;
+        // row cuts from the budget, not fixed fractions: a row height that gives square loops
+        // (side √(budget · s) — loop area ≈ budget · s), stepped from both ends, and the cut at
+        // equal areas; each cut pruned by the lower bound of the loop count of its two rows
+        const q = Math.sqrt((MAX_LOOP_M - 2 * (leadMin + s)) * s);
+        const cuts = new Set();
+        for (let j = 1; lo + j * q < hi; j++) cuts.add(Math.round((lo + j * q) * 100) / 100), cuts.add(Math.round((hi - j * q) * 100) / 100);
+        cuts.add(Math.round(((lo + hi) / 2) * 100) / 100);
+        for (const c of [...cuts].filter((c) => c >= lo + minW && c <= hi - minW).sort((a, b) => a - b)) {
+          const f = (c - lo) / (hi - lo);
           const A = G.intersection([shape], [{ outer: rectOf(axis, lo, c), holes: [] }]);
           const B = G.intersection([shape], [{ outer: rectOf(axis, c, hi), holes: [] }]);
           if (A.length !== 1 || B.length !== 1) continue;
           const sa = { outer: A[0].outer, holes: A[0].holes ?? [] };
           const sb = { outer: B[0].outer, holes: B[0].holes ?? [] };
+          const best = cands.length ? summarize([...cands])[0].loops : Infinity;
+          const kA = lowerBound(sa, heatingEst * f);
+          const kB = lowerBound(sb, heatingEst * (1 - f));
+          if (kA + kB > best) {
+            tried.push({ rows: axis, cut: c, pruned: `lower bound ${kA}+${kB} > ${best}` });
+            continue;
+          }
           const pa = planShape(sa, heatingEst * f, 1);
-          const pb = pa && planShape(sb, heatingEst * (1 - f), 1);
+          const pb = pa && pa.loops + kB <= best ? planShape(sb, heatingEst * (1 - f), 1) : null;
           tried.push({ rows: axis, cut: c, ok: !!(pa && pb) });
           if (pa && pb) cands.push({ parts: [...pa.parts, ...pb.parts], split: { rows: axis, cut: c, a: pa.split, b: pb.split } });
         }
@@ -425,7 +445,16 @@ export function planLoops(res, U, s, ctx) {
     const best = summarize(cands)[0];
     return { ...best, tried };
   }
-  // fewest loops, then coverage (heating pipe), the longest loop, the leads, the balance
+  // the shortest lead to a shape's walls
+  function leadMinOf(shape) {
+    const wallPts = G.densify([...shape.outer, shape.outer[0]], 0.1).filter(onWall);
+    return wallPts.length ? Math.min(...wallPts.map((q) => ctx.leadTo(q))) : 0;
+  }
+  // lower bound of the loop count: the pipe within the budget left by the shortest leads
+  function lowerBound(shape, heatingEst) {
+    return Math.max(1, Math.ceil(heatingEst / (MAX_LOOP_M - 2 * leadMinOf(shape))));
+  }
+  // fewest loops, then coverage (heating pipe), the largest patch, the balance, the leads, the pipe
   function summarize(cands) {
     for (const f of cands) {
       const totals = f.parts.map((p) => p.total);
@@ -434,8 +463,12 @@ export function planLoops(res, U, s, ctx) {
       f.max = Math.max(...totals);
       f.leads = f.parts.reduce((a, p) => a + p.total - p.spiral.heatingLength, 0);
       f.spread = f.max - Math.min(...totals);
+      f.hole = Math.max(0, ...f.parts.map((p) => p.hole ?? 0));
+      f.pipe = f.parts.reduce((a, p) => a + p.spiral.heatingLength, 0);
     }
-    return cands.sort((a, b) => a.loops - b.loops || Math.round((a.uncovered - b.uncovered) * 10) || a.max - b.max || a.leads - b.leads || a.spread - b.spread);
+    // HARD INVALID never gets here; then: fewest loops → most covered (0.1 m² steps) → smallest
+    // patch (0.01 m²) → balanced loop lengths (0.5 m) → least lead → least pipe
+    return cands.sort((a, b) => a.loops - b.loops || Math.round((a.uncovered - b.uncovered) * 10) || Math.round((a.hole - b.hole) * 100) || Math.round((a.spread - b.spread) * 2) || a.leads - b.leads || a.pipe - b.pipe);
   }
 
   // all loop spirals together: spacing across loops, overlaps, coverage (heating pipe only)
