@@ -43,14 +43,24 @@ function minPipeGap(path, s) {
   const segs = [];
   for (let i = 1; i < path.length; i++) {
     const l = len(sub(path[i], path[i - 1]));
-    segs.push({ a: path[i - 1], b: path[i], s0: acc, s1: acc + l });
+    const a = path[i - 1];
+    const b = path[i];
+    segs.push({ a, b, s0: acc, s1: acc + l, x0: Math.min(a.x, b.x) - s, x1: Math.max(a.x, b.x) + s, y0: Math.min(a.y, b.y) - s, y1: Math.max(a.y, b.y) + s });
     acc += l;
   }
-  // sample points every 5 cm and at every vertex of the straight runs
+  // sample points every 5 cm (walking the segments); only segments within s can be closer than s
   let best = Infinity;
-  for (let q = 0; q <= acc; q += 0.05) {
-    const p = G.pointAt(path, q);
+  const samples = [];
+  for (const sg of segs) {
+    const l = sg.s1 - sg.s0;
+    for (let q = Math.ceil(sg.s0 / 0.05) * 0.05; q < sg.s1; q += 0.05) {
+      const f = l > 0 ? (q - sg.s0) / l : 0;
+      samples.push({ q, p: { x: sg.a.x + (sg.b.x - sg.a.x) * f, y: sg.a.y + (sg.b.y - sg.a.y) * f } });
+    }
+  }
+  for (const { q, p } of samples) {
     for (const sg of segs) {
+      if (p.x < sg.x0 || p.x > sg.x1 || p.y < sg.y0 || p.y > sg.y1) continue;
       if (sg.s1 > q - gap && sg.s0 < q + gap) continue;
       const dd = G.segDist(p, sg.a, sg.b);
       if (dd < best) best = dd;
@@ -228,7 +238,7 @@ export function spiralRegion(region, s, o = {}) {
       }
       const heating = G.subPath(b.path, b.leadIn, b.total - b.leadOut);
       // the uncovered core (the spiral's own band, s/2 each side) decides between the variants
-      const band = G.bufferPolylines([heating], s / 2 + 0.003);
+      const band = G.bufferPolylines([G.simplifyPath(heating, 0.002)], s / 2 + 0.003, 'round', 'round', 0.001);
       const uncovered = G.area(G.difference([{ outer: P, holes: [] }], band));
       valid.push({
         ok: true,

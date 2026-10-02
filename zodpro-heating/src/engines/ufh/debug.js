@@ -55,7 +55,7 @@ export function selfCrossings(path) {
 
 /** SVG of a debug scene (plan y up unless flipY). */
 export function debugSVG(scene, o = {}) {
-  const { zone, usable = [], obstacles = [], uncovered = [], cells = [], pipes = [], leads = [], bends = [], marks = [], lines = [] } = scene;
+  const { zone, usable = [], obstacles = [], uncovered = [], cells = [], pipes = [], leads = [], bends = [], marks = [], lines = [], labels = [] } = scene;
   const bb = G.regionBBox(zone);
   const k = o.scale ?? 100;
   const pad = 30;
@@ -79,6 +79,14 @@ export function debugSVG(scene, o = {}) {
   for (const l of leads) svg += `<polyline points="${l.map(X).join(' ')}" fill="none" stroke="#000" stroke-width="2"/>`;
   for (const b of bends) svg += `<circle cx="${X(b).split(',')[0]}" cy="${X(b).split(',')[1]}" r="9" fill="none" stroke="#ff8c00" stroke-width="3"/>`;
   for (const m of marks) svg += `<circle cx="${X(m.p).split(',')[0]}" cy="${X(m.p).split(',')[1]}" r="${m.r ?? 4}" fill="${m.color ?? '#000'}"/>`;
+  // region labels: a white box with one line per entry, at the label point
+  for (const lb of labels) {
+    const [x, y] = X(lb.p).split(',').map(Number);
+    const w = Math.max(...lb.text.map((s) => s.length)) * 7.4 + 8;
+    const h = lb.text.length * 14 + 6;
+    svg += `<rect x="${(x - w / 2).toFixed(1)}" y="${(y - h / 2).toFixed(1)}" width="${w.toFixed(1)}" height="${h}" fill="#fff" fill-opacity="0.85" stroke="#8e24aa" stroke-width="1" rx="3"/>`;
+    lb.text.forEach((s, i) => (svg += `<text x="${(x - w / 2 + 4).toFixed(1)}" y="${(y - h / 2 + 15 + i * 14).toFixed(1)}" font-size="12" fill="${lb.color ?? '#4a148c'}">${String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')}</text>`));
+  }
   lines.forEach((t, i) => (svg += `<text x="${pad}" y="${(Hp + 16 + i * 16).toFixed(0)}">${String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;')}</text>`));
   return svg + '</svg>';
 }

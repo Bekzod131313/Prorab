@@ -5,7 +5,7 @@ import * as G from '../src/engines/ufh/geom.js';
 import { spiralRegion, bestSpiral } from '../src/engines/ufh/spiralgen.js';
 import { coverageAnalysis } from '../src/engines/ufh/coverage.js';
 import { tightBends, minSpacing, selfCrossings } from '../src/engines/ufh/debug.js';
-import { GEOMETRY_TEST_COVERAGE, GEOMETRY_TEST_MAX_HOLE, KNOWN_LIMITATIONS } from '../src/engines/ufh/criteria.js';
+import { GEOMETRY_TEST_COVERAGE_SINGLE_REGION, GEOMETRY_TEST_MAX_HOLE, KNOWN_LIMITATIONS } from '../src/engines/ufh/criteria.js';
 
 const RMIN = 0.068; // PE-RT 16×2.0: 80 mm − 15 %
 const rect = (w, h, c = 0.2) => [{ x: c, y: c }, { x: w - c, y: c }, { x: w - c, y: h - c }, { x: c, y: h - c }];
@@ -35,7 +35,7 @@ for (const [w, h] of [[5, 5], [3.5, 3.5], [6, 4]])
       assert.equal(sp.kind, 'RAW_SPIRAL'); // geometry, not a heating loop
       // GEOMETRY test coverage (heating pipe only) — not the final engineering validation
       const cov = coverageAnalysis({ U: reg, Z: reg, pipes: [sp.heating], s });
-      assert.ok(cov.ratio >= GEOMETRY_TEST_COVERAGE, `coverage ${cov.ratio}`);
+      assert.ok(cov.ratio >= GEOMETRY_TEST_COVERAGE_SINGLE_REGION, `coverage ${cov.ratio}`);
       assert.ok(cov.largestHole <= GEOMETRY_TEST_MAX_HOLE, `hole ${cov.largestHole}`);
       // known limitation: the centre gap of the 3.5 m square stays visible until the centre closure
       // optimizer; the recorded size must not grow
