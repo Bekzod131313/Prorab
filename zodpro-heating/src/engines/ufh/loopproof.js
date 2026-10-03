@@ -91,9 +91,25 @@ export function proveLoopCount(o) {
   const area = (rect.x1 - rect.x0) * (rect.y1 - rect.y0);
   // the shortest lead to a rectangle's wall points (its exits are there); Infinity: no wall
   const leadMinMemo = new Map();
+  // (numeric keys on the raster indices; the memo is emptied when it grows past LEADMIN_MEMO_MAX —
+  // a value is recomputed the same)
+  const LEADMIN_MEMO_MAX = 2e6;
+  let xIdx = null;
+  let yIdx = null;
   const leadMinOf = (x0, y0, x1, y1) => {
-    const key = `${x0},${y0},${x1},${y1}`;
-    if (leadMinMemo.has(key)) return leadMinMemo.get(key);
+    // (the raster's own values: their exact index; anything else a string key)
+    if (!xIdx) {
+      xIdx = new Map(xs.map((v, i) => [v, i]));
+      yIdx = new Map(ys.map((v, i) => [v, i]));
+    }
+    const a = xIdx.get(x0);
+    const b = xIdx.get(x1);
+    const c = yIdx.get(y0);
+    const d = yIdx.get(y1);
+    const key = a === undefined || b === undefined || c === undefined || d === undefined ? `${x0},${y0},${x1},${y1}` : ((a * 4096 + b) * 4096 + c) * 4096 + d;
+    const hit = leadMinMemo.get(key);
+    if (hit !== undefined) return hit;
+    if (leadMinMemo.size > LEADMIN_MEMO_MAX) leadMinMemo.clear();
     let m = Infinity;
     const R = [{ x: x0, y: y0 }, { x: x1, y: y0 }, { x: x1, y: y1 }, { x: x0, y: y1 }];
     for (let i = 0; i < 4; i++) for (const q of G.densify([R[i], R[(i + 1) % 4]], 0.05)) if (onWall(q)) m = Math.min(m, leadTo(q));
@@ -223,7 +239,7 @@ export function proveLoopCount(o) {
   const leafMemo = new Map();
   // best cover of a rectangle as one valid loop (≤ 60 m with its leads there, no patch) or null
   const leaf = (i0, j0, i1, j1) => {
-    const key = `${i0},${j0},${i1},${j1}`;
+    const key = ((i0 * 4096 + i1) * 4096 + j0) * 4096 + j1;
     if (leafMemo.has(key)) return leafMemo.get(key);
     stats.leafCalls++;
     const x0 = xs[i0];

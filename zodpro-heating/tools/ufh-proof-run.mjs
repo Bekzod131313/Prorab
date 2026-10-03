@@ -20,51 +20,63 @@ export function diskCache(dir) {
   const hash = h.digest('hex').slice(0, 12);
   fs.mkdirSync(dir, { recursive: true });
   const file = `${dir}/variants-${hash}.jsonl`;
-  const map = new Map();
-  if (fs.existsSync(file))
-    for (const line of fs.readFileSync(file, 'utf8').split('\n')) {
-      if (!line) continue;
-      try {
-        const [k, v] = JSON.parse(line);
-        map.set(k, v);
-      } catch {
-        // a torn line: that rectangle is built again
-      }
-    }
-  const fd = fs.openSync(file, 'a');
-  // other processes append to the same file: a miss reads what they added since (whole lines)
-  let pos = fs.statSync(file).size;
-  const refresh = () => {
+  if (!fs.existsSync(file)) fs.writeFileSync(file, '');
+  // in memory only an index key → (offset, length) of its last line; a list is read from disk
+  // when asked for (the whole file is hundreds of MB)
+  const index = new Map();
+  let pos = 0;
+  const scan = () => {
     const size = fs.statSync(file).size;
     if (size <= pos) return;
-    const buf = Buffer.alloc(size - pos);
     const rfd = fs.openSync(file, 'r');
-    fs.readSync(rfd, buf, 0, buf.length, pos);
-    fs.closeSync(rfd);
-    const text = buf.toString('utf8');
-    const end = text.lastIndexOf('\n');
-    if (end < 0) return;
-    for (const line of text.slice(0, end).split('\n')) {
-      if (!line) continue;
-      try {
-        const [k, v] = JSON.parse(line);
-        if (!map.has(k) || (v.closures && !map.get(k).closures)) map.set(k, v);
-      } catch {
-        // torn line: built again
+    const CH = 1 << 24;
+    let carry = Buffer.alloc(0);
+    let at = pos;
+    while (at < size) {
+      const buf = Buffer.alloc(Math.min(CH, size - at));
+      fs.readSync(rfd, buf, 0, buf.length, at);
+      at += buf.length;
+      let data = Buffer.concat([carry, buf]);
+      let start = 0;
+      for (let i = data.indexOf(10); i >= 0; i = data.indexOf(10, start)) {
+        // a line: ["key",{…}]
+        const lineStart = pos + start;
+        const head = data.toString('utf8', start, Math.min(i, start + 200));
+        const q = head.indexOf('",');
+        if (head.startsWith('["') && q > 2) index.set(head.slice(2, q), { off: lineStart, len: i - start });
+        start = i + 1;
       }
+      carry = data.subarray(start);
+      pos += start;
     }
-    pos += Buffer.byteLength(text.slice(0, end + 1), 'utf8');
+    fs.closeSync(rfd);
   };
+  scan();
+  const loaded = index.size;
+  const readAt = ({ off, len }) => {
+    const buf = Buffer.alloc(len);
+    const rfd = fs.openSync(file, 'r');
+    fs.readSync(rfd, buf, 0, len, off);
+    fs.closeSync(rfd);
+    try {
+      return JSON.parse(buf.toString('utf8'))[1];
+    } catch {
+      return undefined; // a torn line: built again
+    }
+  };
+  const fd = fs.openSync(file, 'a');
   return {
     file,
-    loaded: map.size,
+    loaded,
     get: (k) => {
-      if (!map.has(k)) refresh();
-      return map.get(k);
+      if (!index.has(k)) scan(); // (other processes append to the same file)
+      const e = index.get(k);
+      return e ? readAt(e) : undefined;
     },
     set: (k, v) => {
-      map.set(k, v);
-      fs.writeSync(fd, JSON.stringify([k, v]) + '\n');
+      const line = JSON.stringify([k, v]) + '\n';
+      fs.writeSync(fd, line);
+      // (indexed on the next scan — this process keeps the entry itself in its own memo)
     },
   };
 }
