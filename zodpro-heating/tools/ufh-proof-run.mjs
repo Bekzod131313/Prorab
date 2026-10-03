@@ -15,7 +15,8 @@ const SOURCES = ['geom.js', 'spiralgen.js', 'obstaclespiral.js', 'closure.js', '
 
 export function diskCache(dir) {
   const h = crypto.createHash('sha1');
-  for (const f of SOURCES) h.update(fs.readFileSync(new URL(`../src/engines/ufh/${f}`, import.meta.url)));
+  // (comment lines left out: a comment edit keeps the cache)
+  for (const f of SOURCES) h.update(fs.readFileSync(new URL(`../src/engines/ufh/${f}`, import.meta.url), 'utf8').split('\n').filter((l) => !l.trim().startsWith('//')).join('\n'));
   const hash = h.digest('hex').slice(0, 12);
   fs.mkdirSync(dir, { recursive: true });
   const file = `${dir}/variants-${hash}.jsonl`;
