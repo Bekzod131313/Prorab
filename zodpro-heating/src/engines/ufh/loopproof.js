@@ -277,7 +277,19 @@ export function proveLoopCount(o) {
 
   // ---- branch and bound over the partitions (partitionsearch.js: LEAF / SLICE / PINWHEEL) ----
   // ub of an interior part is −∞ (no wall: no lead route) — the lead-access rule P7 holds
-  const search = partitionSearch({ xs, ys, minW, leaf: timedLeaf, ub, kMax: 16, opts: o.searchOpts, stats, rootShard: o.rootShard });
+  // memory guard (Node): past 60 % of the heap limit every memo here and in the search is emptied
+  // — caches only, recomputed the same
+  const heapLimit = globalThis.process?.memoryUsage ? (o.heapLimit_MB ?? 0) * 1048576 : 0;
+  const memoryGuard = heapLimit
+    ? () => {
+        if (process.memoryUsage().heapUsed < 0.6 * heapLimit) return false;
+        leafMemo.clear();
+        rectMemo.clear();
+        leadMinMemo.clear();
+        return true;
+      }
+    : undefined;
+  const search = partitionSearch({ xs, ys, minW, leaf: timedLeaf, ub, kMax: 16, opts: o.searchOpts, stats, rootShard: o.rootShard, memoryGuard });
   const best = (i0, j0, i1, j1, k, target, early) => search.best(i0, j0, i1, j1, k, target, early);
   const searchModel = search.opts.pinwheel ? 'LEAF/SLICE/PINWHEEL' : 'GUILLOTINE';
   let timedOut = false;

@@ -260,3 +260,16 @@ test('resumable root: the root splits done in earlier (interrupted) runs are ski
     }
   }
 });
+
+test('memory guard: the memo emptied again and again changes no result', () => {
+  for (let seed = 91; seed <= 96; seed++) {
+    const I = instance(seed, 6, 6, { walls: seed % 2 === 0 });
+    const S = partitionSearch({ xs: I.xs, ys: I.ys, minW: 1, leaf: I.leaf, ub: I.ub, memoryGuard: () => true, guardEvery: 1, opts: { ...SEARCH_OPTS_DEFAULT, interiorAccess: seed % 2 !== 0 } });
+    for (let k = 1; k <= 6; k++) {
+      const want = I.brute(k, P66);
+      const got = S.best(0, 0, 6, 6, k, -1e9)?.cover ?? null;
+      assert.ok(want === null ? got === null : Math.abs(got - want) < 1e-9, `seed ${seed} k ${k}`);
+    }
+    assert.ok(S.stats.memoClears > 0);
+  }
+});

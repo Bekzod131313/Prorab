@@ -115,6 +115,12 @@ export function partitionSearch(o) {
     }
     st.generated++;
     if (depth > st.maxDepth) st.maxDepth = depth;
+    // memory: the memo is a cache only — emptied when the caller's guard says so (same results)
+    if (o.memoryGuard && st.generated % (o.guardEvery ?? 4096) === 0 && o.memoryGuard()) {
+      exactMemo.clear();
+      belowMemo.clear();
+      st.memoClears = (st.memoClears ?? 0) + 1;
+    }
     const R = [i0, j0, i1, j1];
     if (U(R, k) < target - EPS) {
       st.prunedNodeBound++;

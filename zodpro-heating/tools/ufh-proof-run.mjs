@@ -5,6 +5,7 @@
 // generators are deterministic, a cached list is the list a build gives.
 import fs from 'fs';
 import crypto from 'crypto';
+import v8 from 'v8';
 import * as G from '../src/engines/ufh/geom.js';
 import { proveLoopCount } from '../src/engines/ufh/loopproof.js';
 import { SEARCH_OPTS_BASELINE, SEARCH_OPTS_DEFAULT } from '../src/engines/ufh/partitionsearch.js';
@@ -163,6 +164,7 @@ if (process.argv[1]?.endsWith('ufh-proof-run.mjs')) {
     searchOpts,
     variantCache,
     rootShard,
+    heapLimit_MB: v8.getHeapStatistics().heap_size_limit / 1048576,
     // (with a cache dir: the root is resumable — progress kept next to the cache)
     rootFor: cacheDir ? (k) => rootProgress(cacheDir, `${name}-k${k}-g${grid ?? 'default'}-${mode}`) : undefined,
     log: (x) => console.log(`  k ${x.k} ${x.status} ${x.ms} ms · ${x.search_model} · peak ${x.memory_MB} MB · memo ${x.memoEntries} · ${JSON.stringify(x.stats)}`),
