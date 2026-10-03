@@ -32,6 +32,7 @@ import * as G from './geom.js';
 import { bestSpiral } from './spiralgen.js';
 import { obstacleSpiral, measure } from './obstaclespiral.js';
 import { closeCentre } from './closure.js';
+import { partitionSearch, modelComplete } from './partitionsearch.js';
 import { MAX_LOOP_M, MAX_LARGEST_GAP, ENGINEERING_FINAL_COVERAGE, LOOP_LENGTH_EPS, LOOP_CUT_GRID, RMIN_CHECK, GEOMETRY_NUMERICAL_TOLERANCE as REBUILD_TOL, ENGINEERING_COVERAGE_TOLERANCE } from './criteria.js';
 
 const lengthOk = (t) => t <= MAX_LOOP_M + LOOP_LENGTH_EPS;
@@ -71,7 +72,7 @@ export function proveLoopCount(o) {
   const cap = Math.PI * (s / 2 + 0.003) ** 2;
   const minW = 3 * s + (o.r ?? Math.max(0.072, s / 2));
   const t0 = Date.now();
-  const stats = { leafCalls: 0, leafBuilds: 0, nodes: 0, pruned: 0 };
+  const stats = { leafCalls: 0, leafBuilds: 0, closureBuilds: 0, buildMs: 0, closureMs: 0, leafMs: 0, variantsKept: 0 };
   // raster: cuts every `grid` from the low side, the far side exactly
   const axis = (a, b) => {
     const v = [];
@@ -152,10 +153,15 @@ export function proveLoopCount(o) {
     const key = `${w.toFixed(4)}x${h.toFixed(4)}|${pat}`;
     if (rectMemo.has(key)) return rectMemo.get(key);
     stats.leafBuilds++;
+    const tb = Date.now();
     const v = buildVariants(w, h, pat, false);
+    stats.buildMs += Date.now() - tb;
     const entry = { list: v.list, closures: null };
+    stats.variantsKept += v.list.length;
     entry.closed = () => {
       if (!entry.closures) {
+        const tc = Date.now();
+        stats.closureBuilds++;
         entry.closures = [];
         if (v.baseKeep)
           for (const residual of [false, true]) {
@@ -163,6 +169,7 @@ export function proveLoopCount(o) {
             for (const x of c.candidates ?? []) entry.closures.push(slim(x, { uncovered: x.uncovered, largestHole: x.largestHole }, true));
           }
         v.baseKeep = null; // (its pipe is not needed any more)
+        stats.closureMs += Date.now() - tc;
       }
       return entry.closures;
     };
@@ -208,84 +215,19 @@ export function proveLoopCount(o) {
     leafMemo.set(key, out);
     return out;
   };
-
-  // ---- branch and bound over guillotine partitions ----
-  // best(R, k, target): the MAXIMUM cover of R by ≤ k valid loops (a guillotine partition) when
-  // it is ≥ target, else null. The maximum (not the first partition found) — a split of R into A
-  // and B needs A's best cover to give B the smallest requirement. memo per (R, k): the exact
-  // maximum, or "below t" (the maximum is < t).
-  const memo = new Map();
-  let deadline = Infinity;
-  let timedOut = false;
-  const best = (i0, j0, i1, j1, k, target, early = false) => {
-    if (Date.now() > deadline) {
-      timedOut = true;
-      return null;
-    }
-    stats.nodes++;
-    const x0 = xs[i0];
-    const y0 = ys[j0];
-    const x1 = xs[i1];
-    const y1 = ys[j1];
-    const U = ub(x0, y0, x1, y1, k);
-    if (U < target - 1e-9) {
-      stats.pruned++;
-      return null;
-    }
-    const key = `${i0},${j0},${i1},${j1},${k}`;
-    const m = memo.get(key);
-    if (m) {
-      if (m.exact) return m.exact.cover >= target - 1e-9 ? m.exact : null;
-      if (target >= m.below - 1e-9) return null;
-    }
-    let top = null;
-    const lf = leaf(i0, j0, i1, j1);
-    if (lf) top = { cover: lf.cover, parts: [lf] };
-    const bar = () => Math.max(target, top ? top.cover : -Infinity);
-    let complete = true;
-    if (k > 1)
-      outer: for (const ax of ['x', 'y']) {
-        const lo = ax === 'x' ? i0 : j0;
-        const hi = ax === 'x' ? i1 : j1;
-        const vs = ax === 'x' ? xs : ys;
-        for (let c = lo + 1; c < hi; c++) {
-          if (vs[c] - vs[lo] < minW - 1e-9 || vs[hi] - vs[c] < minW - 1e-9) continue;
-          const A = ax === 'x' ? [i0, j0, c, j1] : [i0, j0, i1, c];
-          const B = ax === 'x' ? [c, j0, i1, j1] : [i0, c, i1, j1];
-          for (let k1 = 1; k1 < k; k1++) {
-            const k2 = k - k1;
-            const ubA = ub(xs[A[0]], ys[A[1]], xs[A[2]], ys[A[3]], k1);
-            const ubB = ub(xs[B[0]], ys[B[1]], xs[B[2]], ys[B[3]], k2);
-            // only a split that can beat the current best (and the target) is opened
-            if (ubA + ubB <= bar() + 1e-9 && !(top === null && ubA + ubB >= target - 1e-9)) {
-              stats.pruned++;
-              continue;
-            }
-            const a = best(...A, k1, bar() - ubB);
-            if (timedOut) {
-              complete = false;
-              break outer;
-            }
-            if (!a) continue;
-            const b2 = best(...B, k2, Math.max(bar() - a.cover, -Infinity));
-            if (timedOut) {
-              complete = false;
-              break outer;
-            }
-            if (!b2) continue;
-            if (!top || a.cover + b2.cover > top.cover + 1e-9) top = { cover: a.cover + b2.cover, parts: [...a.parts, ...b2.parts] };
-            // (root: a partition reaching the need is enough to decide feasibility)
-            if (early && top.cover >= target - 1e-9) break outer;
-          }
-        }
-      }
-    if (timedOut && !complete) return top && top.cover >= target - 1e-9 ? top : null;
-    if (!early || !top || top.cover < target - 1e-9) {
-      if (top && top.cover >= target - 1e-9) memo.set(key, { exact: top });
-      else memo.set(key, { below: Math.min(m?.below ?? Infinity, top ? Math.max(target, top.cover + 1e-9) : target) });
-    }
-    return top && top.cover >= target - 1e-9 ? top : null;
+  const timedLeaf = (...a) => {
+    const tl = Date.now();
+    const r = leaf(...a);
+    stats.leafMs += Date.now() - tl;
+    return r;
   };
+
+  // ---- branch and bound over the partitions (partitionsearch.js: LEAF / SLICE / PINWHEEL) ----
+  // ub of an interior part is −∞ (no wall: no lead route) — the lead-access rule P7 holds
+  const search = partitionSearch({ xs, ys, minW, leaf: timedLeaf, ub, kMax: 16, opts: o.searchOpts, stats });
+  const best = (i0, j0, i1, j1, k, target, early) => search.best(i0, j0, i1, j1, k, target, early);
+  const searchModel = search.opts.pinwheel ? 'LEAF/SLICE/PINWHEEL' : 'GUILLOTINE';
+  let timedOut = false;
 
   // a found partition, rebuilt and checked against what the search scored (the search keeps
   // numbers only): pipe length, cover, largest patch, min radius, and the loop total ≤ 60 m
@@ -332,10 +274,13 @@ export function proveLoopCount(o) {
   const ks = o.ks ?? Array.from({ length: Math.max(0, (o.kMax ?? o.chosen - 1) - bounds.FINAL_LOWER_BOUND + 1) }, (_, i) => bounds.FINAL_LOWER_BOUND + i);
   for (const k of ks) {
     const tk = Date.now();
-    timedOut = false;
-    deadline = o.timeLimit_ms ? tk + o.timeLimit_ms : Infinity;
+    const before = { ...stats };
+    search.setDeadline(o.timeLimit_ms ? tk + o.timeLimit_ms : Infinity);
     const found = best(0, 0, xs.length - 1, ys.length - 1, k, need0, true);
-    const r = { k, grid, ms: Date.now() - tk, nodes: stats.nodes, leafBuilds: stats.leafBuilds, memory_MB: mem() };
+    timedOut = search.timedOut();
+    const delta = Object.fromEntries(Object.entries(stats).map(([n, v]) => [n, typeof v === 'number' ? v - (before[n] ?? 0) : v]));
+    delta.maxDepth = stats.maxDepth;
+    const r = { k, grid, ms: Date.now() - tk, search_model: searchModel, nodes: delta.generated, leafBuilds: delta.leafBuilds, stats: delta, memoEntries: search.memoSize(), memory_MB: mem() };
     if (found) {
       const v = validate(found);
       r.status = v.ok ? 'PROVEN_FEASIBLE' : 'FOUND_NOT_VALIDATED';
@@ -353,12 +298,16 @@ export function proveLoopCount(o) {
     if (timedOut) {
       r.status = 'SEARCH_NOT_EXHAUSTIVE';
       r.completeness = 'time limit';
-    } else if (k <= GUILLOTINE_COMPLETE_MAX) {
+    } else if (modelComplete(k, search.opts)) {
       r.status = 'GRID_EXHAUSTIVE';
-      r.completeness = `every partition into ≤ ${k} rectangles (all guillotine) with cuts on the ${grid} m raster`;
+      r.completeness = k <= GUILLOTINE_COMPLETE_MAX
+        ? `every partition into ≤ ${k} rectangles (all guillotine) with cuts on the ${grid} m raster`
+        : `every partition into ≤ ${k} rectangles (guillotine + pinwheel trees — all of them for k ≤ 6) with cuts on the ${grid} m raster`;
     } else {
       r.status = 'SEARCH_NOT_EXHAUSTIVE';
-      r.completeness = `guillotine partitions on the ${grid} m raster searched completely; non-guillotine (pinwheel) partitions of ${k} rectangles not searched`;
+      r.completeness = search.opts.pinwheel
+        ? `guillotine + pinwheel trees on the ${grid} m raster searched completely; for ${k} > 6 rectangles other non-guillotine partitions exist and are not searched`
+        : `guillotine partitions on the ${grid} m raster searched completely; non-guillotine (pinwheel) partitions of ${k} rectangles not searched`;
     }
     r.proof_method = r.status === 'GRID_EXHAUSTIVE' ? 'GRID_EXHAUSTIVE' : 'branch and bound (partial)';
     r.proof_resolution = grid;
