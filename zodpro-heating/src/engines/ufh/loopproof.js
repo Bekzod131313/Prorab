@@ -313,6 +313,9 @@ export function proveLoopCount(o) {
     const tk = Date.now();
     const before = { ...stats };
     search.setDeadline(o.timeLimit_ms ? tk + o.timeLimit_ms : Infinity);
+    // o.rootFor(k): the resumable root of this k ({ skip, onEvent, progress() }) — runs share it
+    const rootCtl = o.rootFor?.(k) ?? null;
+    search.setRoot(rootCtl);
     const found = best(0, 0, xs.length - 1, ys.length - 1, k, need0, true);
     timedOut = search.timedOut();
     const delta = Object.fromEntries(Object.entries(stats).map(([n, v]) => [n, typeof v === 'number' ? v - (before[n] ?? 0) : v]));
@@ -335,6 +338,18 @@ export function proveLoopCount(o) {
     if (timedOut) {
       r.status = 'SEARCH_NOT_EXHAUSTIVE';
       r.completeness = 'time limit';
+    } else if (rootCtl) {
+      // complete only when every root split, the root leaf and its pinwheels are recorded done
+      // (by this run, its shards, or earlier runs)
+      const pg = rootCtl.progress();
+      r.root = pg;
+      if (pg.complete && modelComplete(k, search.opts)) {
+        r.status = 'GRID_EXHAUSTIVE';
+        r.completeness = `every partition into ≤ ${k} rectangles (${k <= GUILLOTINE_COMPLETE_MAX ? 'all guillotine' : 'guillotine + pinwheel trees — all of them for k ≤ 6'}) with cuts on the ${grid} m raster — all ${pg.n} root splits, the root leaf and its pinwheels searched (over ${pg.runs} run(s))`;
+      } else {
+        r.status = 'SEARCH_NOT_EXHAUSTIVE';
+        r.completeness = pg.complete ? 'the model does not hold every partition for this k' : `root splits searched ${pg.done} of ${pg.n}${pg.leaf ? '' : ', root leaf not yet'}${pg.pinwheel ? '' : ', root pinwheels not yet'}`;
+      }
     } else if (o.rootShard) {
       // one shard of the root proves nothing alone: the shards are merged (all done, none found)
       r.status = 'SHARD_DONE_NOT_FOUND';

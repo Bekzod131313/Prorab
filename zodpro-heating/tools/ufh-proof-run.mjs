@@ -69,6 +69,50 @@ export function diskCache(dir) {
   };
 }
 
+// the resumable root of one search (case, k, raster, need, model, code): every root split
+// searched to the end is appended to <dir>/root-….jsonl; later runs and parallel shards skip them
+export function rootProgress(dir, id) {
+  const h = crypto.createHash('sha1');
+  for (const f of [...SOURCES, 'partitionsearch.js']) h.update(fs.readFileSync(new URL(`../src/engines/ufh/${f}`, import.meta.url), 'utf8').split('\n').filter((l) => !l.trim().startsWith('//')).join('\n'));
+  h.update(fs.readFileSync(new URL('./ufh-loops-debug.mjs', import.meta.url))); // (the cases)
+  h.update(id);
+  const file = `${dir}/root-${id.replace(/[^A-Za-z0-9_.-]+/g, '_')}-${h.digest('hex').slice(0, 12)}.jsonl`;
+  fs.mkdirSync(dir, { recursive: true });
+  const read = () => {
+    const st = { n: null, leaf: false, pinwheel: false, splits: new Set(), runs: 0 };
+    if (!fs.existsSync(file)) return st;
+    for (const line of fs.readFileSync(file, 'utf8').split('\n')) {
+      if (!line) continue;
+      let e;
+      try {
+        e = JSON.parse(line);
+      } catch {
+        continue;
+      }
+      if (e.type === 'splits') st.n = e.n;
+      else if (e.type === 'start') st.runs++;
+      else if (e.type === 'leaf') st.leaf = true;
+      else if (e.type === 'pinwheel') st.pinwheel = true;
+      else if (e.type === 'split') st.splits.add(e.si);
+    }
+    return st;
+  };
+  const st0 = read();
+  const skip = new Set([...st0.splits, ...(st0.leaf ? ['leaf'] : []), ...(st0.pinwheel ? ['pinwheel'] : [])]);
+  const fd = fs.openSync(file, 'a');
+  fs.writeSync(fd, JSON.stringify({ type: 'start', at: new Date().toISOString() }) + '\n');
+  return {
+    file,
+    skip,
+    onEvent: (e) => fs.writeSync(fd, JSON.stringify(e) + '\n'),
+    progress: () => {
+      const s = read();
+      const done = s.n === null ? 0 : [...s.splits].filter((i) => i < s.n).length;
+      return { file, n: s.n, done, leaf: s.leaf, pinwheel: s.pinwheel, runs: s.runs, complete: s.n !== null && done === s.n && s.leaf && s.pinwheel };
+    },
+  };
+}
+
 export function caseSetup(name) {
   let rect;
   let leadTo;
@@ -107,12 +151,14 @@ if (process.argv[1]?.endsWith('ufh-proof-run.mjs')) {
     searchOpts,
     variantCache,
     rootShard,
+    // (with a cache dir: the root is resumable — progress kept next to the cache)
+    rootFor: cacheDir ? (k) => rootProgress(cacheDir, `${name}-k${k}-g${grid ?? 'default'}-${mode}`) : undefined,
     log: (x) => console.log(`  k ${x.k} ${x.status} ${x.ms} ms · ${x.search_model} · peak ${x.memory_MB} MB · memo ${x.memoEntries} · ${JSON.stringify(x.stats)}`),
   });
   console.log(name, JSON.stringify(r.bounds));
   for (const x of r.results) console.log(' ', x.k, x.status, `${x.ms} ms`, x.completeness ?? '', x.cover_m2?.toFixed(3) ?? '', x.parts ? JSON.stringify(x.parts.map((p) => [p.x0, p.y0, p.x1, p.y1, +p.total.toFixed(3), +p.cover.toFixed(3)])) : x.reason ?? '');
   console.log(JSON.stringify({ lower: r.minimum_loop_count_lower_bound, continuous: r.continuous_lower_bound, candidate: r.candidate_minimum, scope: r.proof_scope, provenGlobally: r.provenGlobally, provenWithinModel: r.provenWithinModel, stats: r.stats }));
   // one line for tools/ufh-proof-merge.mjs
-  console.log('RESULT ' + JSON.stringify({ case: name, grid: r.stats.grid, mode, shard: rootShard ?? null, results: r.results.map((x) => ({ k: x.k, status: x.status, modelComplete: x.modelComplete, ms: x.ms, memory_MB: x.memory_MB, search_model: x.search_model, stats: x.stats, cover_m2: x.cover_m2, parts: x.parts, engineering: x.validation?.engineering, rebuildMatches: x.validation?.rebuildMatches })) }));
+  console.log('RESULT ' + JSON.stringify({ case: name, grid: r.stats.grid, mode, shard: rootShard ?? null, results: r.results.map((x) => ({ k: x.k, status: x.status, root: x.root, modelComplete: x.modelComplete, ms: x.ms, memory_MB: x.memory_MB, search_model: x.search_model, stats: x.stats, cover_m2: x.cover_m2, parts: x.parts, engineering: x.validation?.engineering, rebuildMatches: x.validation?.rebuildMatches })) }));
   for (const x of r.results) if (x.validation) console.log('  validation', x.k, JSON.stringify({ rebuildMatches: x.validation.rebuildMatches, engineering: x.validation.engineering, rows: x.validation.rows.map((q) => ({ ...q.values, ok: [q.length, q.coverage, q.largestGap, q.minRadius, q.total].join('') })) }));
 }

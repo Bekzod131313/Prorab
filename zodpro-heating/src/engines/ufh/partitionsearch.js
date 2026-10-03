@@ -64,6 +64,10 @@ export function partitionSearch(o) {
   // split list; shard 0 also the root's leaf and pinwheels. The root is not memoized. A k is
   // exhausted only when every shard is (tools/ufh-proof-run.mjs merges them).
   const shard = o.rootShard ?? null;
+  // resumable root (o.root = { skip: Set, onEvent }): the root target is fixed (the need), so a
+  // root split searched to the end is a fact of its own — 'leaf', 'pinwheel' and split indices
+  // already done in an earlier run are skipped; onEvent reports each one finished now
+  let root = o.root ?? null;
   const now = o.now ?? (() => Date.now());
   const st = o.stats ?? {};
   for (const c of ['generated', 'expanded', 'prunedNodeBound', 'prunedSplitBound', 'prunedMonotone', 'leafGated', 'memoExact', 'memoBelow', 'reexpanded', 'feasible', 'splitsOpened', 'cutOrderSkipped', 'pinwheelChecked', 'pinwheelLeadAccess', 'pinwheelOpened', 'maxDepth']) st[c] = st[c] ?? 0;
@@ -71,7 +75,10 @@ export function partitionSearch(o) {
   const NY = ys.length;
   // numeric memo keys: (i0, i1, j0, j1, k, side)
   const key = (i0, j0, i1, j1, k, side) => ((((i0 * NX + i1) * NY + j0) * NY + j1) * (kMax + 1) + k) * 3 + side;
-  const memo = new Map();
+  // memo: the exact maximum (a result tree) or "below t" (a number) — kept small, a tree of
+  // results instead of copied part lists
+  const exactMemo = new Map();
+  const belowMemo = new Map();
   let deadline = Infinity;
   let timedOut = false;
   const fits = (i0, j0, i1, j1) => xs[i1] - xs[i0] >= minW - EPS && ys[j1] - ys[j0] >= minW - EPS;
@@ -82,16 +89,26 @@ export function partitionSearch(o) {
     for (let k2 = k; k2 <= kMax; k2++)
       for (const s2 of side === 0 ? [0] : [0, side]) {
         if (k2 === k && s2 === side) continue;
-        const m = memo.get(key(i0, j0, i1, j1, k2, s2));
-        if (!m) continue;
-        if (m.below !== undefined && target >= m.below - EPS) return true;
-        if (m.exact && m.exact.cover < target - EPS) return true;
+        const k3 = key(i0, j0, i1, j1, k2, s2);
+        const b = belowMemo.get(k3);
+        if (b !== undefined && target >= b - EPS) return true;
+        const e = exactMemo.get(k3);
+        if (e && e.cover < target - EPS) return true;
       }
     return false;
   };
 
   // side: 0 any top cut, 1 no top x-cut, 2 no top y-cut (P6)
   const best = (i0, j0, i1, j1, k, target, early = false, side = 0, depth = 0) => {
+    const r = search(i0, j0, i1, j1, k, target, early, side, depth);
+    return r && { cover: r.cover, parts: flatten(r) };
+  };
+  const flatten = (r, out = []) => {
+    if (r.leaf) out.push(r.leaf);
+    else for (const c of r.kids) flatten(c, out);
+    return out;
+  };
+  const search = (i0, j0, i1, j1, k, target, early = false, side = 0, depth = 0) => {
     if (now() > deadline) {
       timedOut = true;
       return null;
@@ -104,13 +121,14 @@ export function partitionSearch(o) {
       return null;
     }
     const kk = key(i0, j0, i1, j1, k, side);
-    const m = memo.get(kk);
-    if (m) {
-      if (m.exact) {
-        st.memoExact++;
-        return m.exact.cover >= target - EPS ? m.exact : null;
-      }
-      if (target >= m.below - EPS) {
+    const ex = exactMemo.get(kk);
+    if (ex) {
+      st.memoExact++;
+      return ex.cover >= target - EPS ? ex : null;
+    }
+    const below = belowMemo.get(kk);
+    if (below !== undefined) {
+      if (target >= below - EPS) {
         st.memoBelow++;
         return null;
       }
@@ -123,12 +141,16 @@ export function partitionSearch(o) {
     st.expanded++;
     let top = null;
     const rootOnlyShard = shard && depth === 0;
-    if (rootOnlyShard && shard.i !== 0) {
-      // (the root's own leaf: shard 0)
-    } else if (!opt.leafGate || U(R, 1) >= target - EPS) {
-      const lf = leaf(i0, j0, i1, j1);
-      if (lf) top = { cover: lf.cover, parts: [lf] };
-    } else st.leafGated++;
+    const atRoot = root && depth === 0;
+    if ((rootOnlyShard && shard.i !== 0) || (atRoot && root.skip.has('leaf'))) {
+      // (the root's own leaf: shard 0 / an earlier run)
+    } else {
+      if (!opt.leafGate || U(R, 1) >= target - EPS) {
+        const lf = leaf(i0, j0, i1, j1);
+        if (lf) top = { cover: lf.cover, leaf: lf };
+      } else st.leafGated++;
+      if (atRoot) root.onEvent?.({ type: 'leaf' });
+    }
     const bar = () => Math.max(target, top ? top.cover : -Infinity);
     let complete = true;
     if (k > 1) {
@@ -153,32 +175,35 @@ export function partitionSearch(o) {
         }
       }
       if (opt.order) splits.sort((p, q) => q.ubA + q.ubB - (p.ubA + p.ubB));
+      if (atRoot) root.onEvent?.({ type: 'splits', n: splits.length });
       for (let si = 0; si < splits.length; si++) {
         if (rootOnlyShard && si % shard.n !== shard.i) continue;
+        if (atRoot && root.skip.has(si)) continue;
         const sp = splits[si];
         const { A, B, k1, ubA, ubB } = sp;
         if (ubA + ubB <= bar() + EPS && !(top === null && ubA + ubB >= target - EPS)) {
           st.prunedSplitBound++;
+          if (atRoot) root.onEvent?.({ type: 'split', si });
           continue;
         }
         st.splitsOpened++;
-        const a = best(...A, k1, bar() - ubB, false, sp.sideA, depth + 1);
+        const a = search(...A, k1, bar() - ubB, false, sp.sideA, depth + 1);
         if (timedOut) {
           complete = false;
           break;
         }
-        if (!a) continue;
-        const b2 = best(...B, k - k1, bar() - a.cover, false, 0, depth + 1);
+        const b2 = a && search(...B, k - k1, bar() - a.cover, false, 0, depth + 1);
         if (timedOut) {
           complete = false;
           break;
         }
+        if (atRoot) root.onEvent?.({ type: 'split', si });
         if (!b2) continue;
-        if (!top || a.cover + b2.cover > top.cover + EPS) top = { cover: a.cover + b2.cover, parts: [...a.parts, ...b2.parts] };
+        if (!top || a.cover + b2.cover > top.cover + EPS) top = { cover: a.cover + b2.cover, kids: [a, b2] };
         if (early && top.cover >= target - EPS) break;
       }
       // PINWHEEL (k ≥ 5): four arms + a centre, every part ≥ minW wide
-      if (complete && opt.pinwheel && k >= 5 && !(rootOnlyShard && shard.i !== 0) && !(early && top && top.cover >= target - EPS)) {
+      if (complete && opt.pinwheel && k >= 5 && !(rootOnlyShard && shard.i !== 0) && !(atRoot && root.skip.has('pinwheel')) && !(early && top && top.cover >= target - EPS)) {
         const comps = compositions(k, 5);
         st.pinwheelChecked++;
         // P7: the centre is interior to R — check its bound on the real ub (smallest centre: the
@@ -222,11 +247,11 @@ export function partitionSearch(o) {
                       // the centre first (the most constrained), then the arms
                       const order = [4, 0, 1, 2, 3];
                       let got = 0;
-                      const parts = [];
+                      const kids = [];
                       let ok = true;
                       for (const i of order) {
                         rest -= ubs[i];
-                        const r = best(...P[i], cp[i], bar() - got - rest, false, 0, depth + 1);
+                        const r = search(...P[i], cp[i], bar() - got - rest, false, 0, depth + 1);
                         if (timedOut) {
                           complete = false;
                           break outer;
@@ -236,17 +261,21 @@ export function partitionSearch(o) {
                           break;
                         }
                         got += r.cover;
-                        parts.push(...r.parts);
+                        kids.push(r);
                       }
-                      if (ok && (!top || got > top.cover + EPS)) top = { cover: got, parts };
+                      if (ok && (!top || got > top.cover + EPS)) top = { cover: got, kids };
                       if (ok && early && top.cover >= target - EPS) break outer;
                     }
       }
     }
+    // (the root's pinwheels — none for k < 5 — searched to the end)
+    if (atRoot && complete && !timedOut && !(rootOnlyShard && shard.i !== 0) && !root.skip.has('pinwheel') && !(early && top && top.cover >= target - EPS)) root.onEvent?.({ type: 'pinwheel' });
     if (timedOut && !complete) return top && top.cover >= target - EPS ? top : null;
-    if (!rootOnlyShard && (!early || !top || top.cover < target - EPS)) {
-      if (top && top.cover >= target - EPS) memo.set(kk, { exact: top });
-      else memo.set(kk, { below: Math.min(m?.below ?? Infinity, top ? Math.max(target, top.cover + EPS) : target) });
+    if (!rootOnlyShard && !atRoot && (!early || !top || top.cover < target - EPS)) {
+      if (top && top.cover >= target - EPS) {
+        exactMemo.set(kk, top);
+        belowMemo.delete(kk);
+      } else belowMemo.set(kk, Math.min(below ?? Infinity, top ? Math.max(target, top.cover + EPS) : target));
     }
     if (top && top.cover >= target - EPS) st.feasible++;
     return top && top.cover >= target - EPS ? top : null;
@@ -258,7 +287,10 @@ export function partitionSearch(o) {
       timedOut = false;
     },
     timedOut: () => timedOut,
-    memoSize: () => memo.size,
+    setRoot: (r) => {
+      root = r;
+    },
+    memoSize: () => exactMemo.size + belowMemo.size,
     opts: opt,
     stats: st,
   };

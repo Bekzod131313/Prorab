@@ -225,3 +225,38 @@ test('root shards: the union of n shards decides exactly what the unsharded sear
     }
   }
 });
+
+test('resumable root: the root splits done in earlier (interrupted) runs are skipped — the same decision', () => {
+  for (let seed = 81; seed <= 88; seed++) {
+    const I = instance(seed, 6, 6, { walls: seed % 2 === 0 });
+    for (let k = 3; k <= 6; k++) {
+      const want = I.brute(k, P66);
+      if (want === null) continue;
+      for (const t of [want - 1e-6, want + 1e-6]) {
+        // run 1 stops after a few root events (a clock that runs out), run 2 resumes
+        const skip = new Set();
+        let n = null;
+        const onEvent = (e) => {
+          if (e.type === 'splits') n = e.n;
+          else skip.add(e.type === 'split' ? e.si : e.type);
+        };
+        let ticks = 0;
+        const S1 = partitionSearch({ xs: I.xs, ys: I.ys, minW: 1, leaf: I.leaf, ub: I.ub, root: { skip: new Set(), onEvent }, now: () => ticks++, opts: { ...SEARCH_OPTS_DEFAULT, interiorAccess: seed % 2 !== 0 } });
+        S1.setDeadline(40);
+        const r1 = S1.best(0, 0, 6, 6, k, t, true);
+        let found = !!r1 && !S1.timedOut();
+        if (!found) {
+          const S2 = partitionSearch({ xs: I.xs, ys: I.ys, minW: 1, leaf: I.leaf, ub: I.ub, root: { skip: new Set(skip), onEvent }, opts: { ...SEARCH_OPTS_DEFAULT, interiorAccess: seed % 2 !== 0 } });
+          found = !!S2.best(0, 0, 6, 6, k, t, true);
+          if (!found && I.ub(0, 0, 6, 6, k) >= t) {
+            // exhausted (the root not cut by its own bound): every root split, the leaf and the
+            // pinwheels reported done
+            for (let i = 0; i < n; i++) assert.ok(skip.has(i), `split ${i}`);
+            assert.ok(skip.has('leaf') && skip.has('pinwheel'));
+          }
+        }
+        assert.equal(found, want >= t, `seed ${seed} k ${k} t ${t}`);
+      }
+    }
+  }
+});
