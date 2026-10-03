@@ -23,7 +23,7 @@ import { bestSpiral } from './spiralgen.js';
 import { obstacleSpiral, minPipeGap, zonedGap, measure } from './obstaclespiral.js';
 import { closeCentre } from './closure.js';
 import { spiralRegions } from './decompose.js';
-import { loopLowerBounds, proveLoopCount } from './loopproof.js';
+import { loopLowerBounds, proveLoopCount, regionCoverMin } from './loopproof.js';
 import { checkRawSet } from './rawcheck.js';
 import { MAX_LOOP_M, RMIN_CHECK, SPACING_TOL, MIN_RESIDUAL_CLOSURE_SPACING, LOOP_LENGTH_EPS, MAX_LARGEST_GAP, ROWS_TRY_UNCOVERED_SHARE, LOOP_LOW_MARGIN_M, ENGINEERING_FINAL_COVERAGE } from './criteria.js';
 
@@ -145,23 +145,23 @@ export function planLoops(res, U, s, ctx) {
     // cannot make up even fully covered)
     const aReg = G.area([shape]);
     const aZone = G.area(usable);
-    const coverMin = Math.max(0, ENGINEERING_FINAL_COVERAGE * aZone - (aZone - aReg)) / aReg;
+    const coverMin = regionCoverMin(aZone, aReg);
     const bounds = loopLowerBounds({ area: aReg, s, leadMin, rawHeating: x.spiral.heatingLength, coverMin });
     let proof = null;
     const bb = G.bbox(shape.outer);
     const isRect = !shape.holes.length && Math.abs(G.area([shape]) - (bb.x1 - bb.x0) * (bb.y1 - bb.y0)) < 1e-6;
-    if (plan.parts.length === bounds.FINAL_LOWER_BOUND) proof = { provenMinimum: true, by: 'FINAL_LOWER_BOUND', results: [] };
+    if (plan.parts.length === bounds.FINAL_LOWER_BOUND) proof = { provenMinimum: true, provenGlobally: true, proof_scope: 'LOWER_BOUND — any geometry', minimum_loop_count_lower_bound: bounds.FINAL_LOWER_BOUND, candidate_minimum: plan.parts.length, by: 'FINAL_LOWER_BOUND', results: [] };
     else if (ctx.prove && isRect) {
       const pr = proveLoopCount({ rect: bb, s, r: ctx.r, onWall, leadTo: ctx.leadTo, rawHeating: x.spiral.heatingLength, chosen: plan.parts.length, coverMin, grid: ctx.proofGrid, timeLimit_ms: ctx.proofTimeLimit_ms });
-      proof = { provenMinimum: pr.provenMinimum, by: 'exhaustive search', results: pr.results.map(({ parts, ...q }) => q), grid: pr.stats.grid, ms: pr.stats.ms };
+      proof = { provenMinimum: pr.provenWithinModel, provenGlobally: pr.provenGlobally, proof_scope: pr.proof_scope, minimum_loop_count_lower_bound: pr.minimum_loop_count_lower_bound, candidate_minimum: pr.candidate_minimum, by: 'search', results: pr.results.map(({ parts, validation, ...q }) => q), grid: pr.stats.grid, ms: pr.stats.ms };
       // a valid partition with fewer loops: it is the plan (the minimum loop count comes first)
       if (pr.improved) {
         const parts = pr.solution.parts.map((p) => ({ spiral: moveSpiral(p.spiral(), p.x0, p.y0), shape: { outer: [{ x: p.x0, y: p.y0 }, { x: p.x1, y: p.y0 }, { x: p.x1, y: p.y1 }, { x: p.x0, y: p.y1 }], holes: [] }, uncovered: p.v.uncovered }));
         plan = { parts, summary: { ...plan.summary, loopCount: parts.length, split: { proof: pr.solution.parts.map((p) => [p.x0, p.y0, p.x1, p.y1]) }, plannerCount: plan.parts.length } };
       }
-    } else proof = { provenMinimum: false, by: ctx.prove ? 'not a rectangular region — not searched' : 'not searched (ctx.prove off)', results: [] };
+    } else proof = { provenMinimum: false, provenGlobally: false, proof_scope: 'NOT_RUN', minimum_loop_count_lower_bound: bounds.FINAL_LOWER_BOUND, candidate_minimum: plan.parts.length, by: ctx.prove ? 'not a rectangular region — not searched' : 'not searched (ctx.prove off)', results: [] };
     const covered = plan.parts.reduce((a, p) => a + G.area([p.shape]) - (p.uncovered ?? measure({ heating: p.spiral.heating }, s, [p.shape]).uncovered), 0);
-    regions.push({ label: x.label, rawSpiral_m: x.spiral.heatingLength, exceeds60: x.spiral.heatingLength > MAX_LOOP_M, lowerBound: { ...bounds, coveredArea: covered }, chosenLoops: plan.parts.length, proof, ...plan.summary });
+    regions.push({ label: x.label, rawSpiral_m: x.spiral.heatingLength, exceeds60: x.spiral.heatingLength > MAX_LOOP_M, lowerBound: { ...bounds, coverMin, coveredArea: covered }, regionCoverage: covered / aReg, chosenLoops: plan.parts.length, proof, ...plan.summary });
     for (const p of plan.parts) {
       const l = leadsOf(p.spiral);
       const loop = {
@@ -511,6 +511,9 @@ export function assessHydraulics(plan, manifold) {
   if (loops.some((l) => !l.lengthValid)) reasons.push('loop_length_60m');
   if (loops.some((l) => !l.geometryValid)) reasons.push('loop_geometry');
   for (const k of ['spacing', 'residualSpacing', 'bends', 'noCrossing', 'inside', 'exitsOnWall']) if (!check.checks[k]) reasons.push('loop_set_' + k);
+  // the final acceptance is the zone's: its total heating-pipe coverage and its largest patch
+  if (!check.checks.coverage) reasons.push('zone_coverage');
+  if (!check.checks.maxHole) reasons.push('largest_gap');
   if (availableOutlets === null) reasons.push('outlets_unknown');
   else if (loops.length > availableOutlets) reasons.push('outlet_shortage');
   return { ...plan, requiredLoops: loops.length, availableOutlets, status: reasons.length ? 'HYDRAULIC_LOOP_INVALID' : 'HYDRAULIC_LOOP_VALID', reasons };

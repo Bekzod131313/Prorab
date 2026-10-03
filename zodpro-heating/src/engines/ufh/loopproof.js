@@ -19,15 +19,20 @@
 //   bound over guillotine partitions decides whether k loops can reach the needed cover with every
 //   loop ≤ 60 m (supply + heating + return) and no patch over MAX_LARGEST_GAP. Pruning uses the
 //   bound above only (rigorous). Every partition of a rectangle into at most 4 rectangles is a
-//   guillotine one, so for k ≤ 4 the search covers all rectangle partitions (on the raster):
-//   PROVEN_INFEASIBLE. For k ≥ 5 non-guillotine ("pinwheel") partitions exist and are not searched:
-//   SEARCH_NOT_EXHAUSTIVE.
+//   guillotine one, so for k ≤ 4 the search covers all rectangle partitions on the raster.
+//
+// Status per loop count k — "not found" and "impossible" are never the same:
+//   PROVEN_INFEASIBLE      k below the continuous lower bound (any geometry, no raster)
+//   GRID_EXHAUSTIVE        k ≤ 4: no rectangle partition on the raster works (NOT a continuous proof)
+//   SEARCH_NOT_EXHAUSTIVE  k ≥ 5 (guillotine only) or the time limit hit
+//   PROVEN_FEASIBLE        a partition found, its geometry rebuilt and validated
+//   NOT_RUN                not searched
 
 import * as G from './geom.js';
 import { bestSpiral } from './spiralgen.js';
 import { obstacleSpiral, measure } from './obstaclespiral.js';
 import { closeCentre } from './closure.js';
-import { MAX_LOOP_M, MAX_LARGEST_GAP, ENGINEERING_FINAL_COVERAGE, LOOP_LENGTH_EPS, LOOP_CUT_GRID } from './criteria.js';
+import { MAX_LOOP_M, MAX_LARGEST_GAP, ENGINEERING_FINAL_COVERAGE, LOOP_LENGTH_EPS, LOOP_CUT_GRID, RMIN_CHECK, REBUILD_TOL } from './criteria.js';
 
 const lengthOk = (t) => t <= MAX_LOOP_M + LOOP_LENGTH_EPS;
 const GUILLOTINE_COMPLETE_MAX = 4; // every partition of a rectangle into ≤ 4 rectangles is guillotine
@@ -103,7 +108,8 @@ export function proveLoopCount(o) {
   // (kept slim: the numbers the search needs — the geometry of a variant is rebuilt for the
   // solution only; thousands of parts are evaluated)
   const sig = (sp) => `${sp.start}|${sp.centre}|${sp.usedRings}|${sp.residualSpacing ?? '-'}|${sp.mirrored ? 'm' : ''}|${sp.heatingLength.toFixed(6)}`;
-  const slim = (sp, m, closed) => ({ heatingLength: sp.heatingLength, leadIn: sp.leadIn, leadOut: sp.leadOut, supply: { x: sp.supply.x, y: sp.supply.y }, ret: { x: sp.ret.x, y: sp.ret.y }, uncovered: m.uncovered, hole: m.largestHole, closed, sig: sig(sp) });
+  // (min radius: the generator's own value — r, or a centre turn's ρ/2 — else measured on the pipe)
+  const slim = (sp, m, closed) => ({ heatingLength: sp.heatingLength, leadIn: sp.leadIn, leadOut: sp.leadOut, supply: { x: sp.supply.x, y: sp.supply.y }, ret: { x: sp.ret.x, y: sp.ret.y }, uncovered: m.uncovered, hole: m.largestHole, minRadius: sp.minBend ?? G.minBendRadius(sp.path).radius, closed, sig: sig(sp) });
   const rectMemo = new Map();
   // every variant of a w × h rectangle with that wall pattern (built at the origin); full = keep geometry
   const buildVariants = (w, h, pat, full) => {
@@ -281,33 +287,103 @@ export function proveLoopCount(o) {
     return top && top.cover >= target - 1e-9 ? top : null;
   };
 
+  // a found partition, rebuilt and checked against what the search scored (the search keeps
+  // numbers only): pipe length, cover, largest patch, min radius, and the loop total ≤ 60 m
+  // recomputed on the rebuilt pipe where it lies
+  const validate = (found) => {
+    const rows = [];
+    for (const p of found.parts) {
+      const sp = materialize(p);
+      if (!sp) return { ok: false, rows, reason: 'variant not rebuilt' };
+      const m = measure({ heating: sp.heating }, s, [{ outer: [{ x: 0, y: 0 }, { x: p.x1 - p.x0, y: 0 }, { x: p.x1 - p.x0, y: p.y1 - p.y0 }, { x: 0, y: p.y1 - p.y0 }], holes: [] }]);
+      const total = sp.heatingLength + sp.leadIn + sp.leadOut + leadTo({ x: sp.supply.x + p.x0, y: sp.supply.y + p.y0 }) + leadTo({ x: sp.ret.x + p.x0, y: sp.ret.y + p.y0 });
+      const minR = G.minBendRadius(sp.path).radius;
+      const row = {
+        length: Math.abs(sp.heatingLength - p.v.heatingLength) <= REBUILD_TOL.length_m,
+        coverage: Math.abs(m.uncovered - p.v.uncovered) <= REBUILD_TOL.area_m2,
+        largestGap: Math.abs(m.largestHole - p.v.hole) <= REBUILD_TOL.area_m2,
+        minRadius: Math.abs(minR - p.v.minRadius) <= REBUILD_TOL.radius_m && minR >= RMIN_CHECK,
+        total: lengthOk(total) && Math.abs(total - p.total) <= REBUILD_TOL.length_m,
+        values: { heating: sp.heatingLength, total, uncovered: m.uncovered, largestGap: m.largestHole, minRadius: minR },
+      };
+      rows.push(row);
+    }
+    return { ok: rows.every((r) => r.length && r.coverage && r.largestGap && r.minRadius && r.total), rows };
+  };
+  const mem = () => Math.round(process.memoryUsage().rss / 1048576);
+
   const results = [];
-  let minimum = null;
-  let solution = null;
-  const kMax = o.kMax ?? o.chosen - 1;
-  for (let k = bounds.FINAL_LOWER_BOUND; k <= kMax; k++) {
+  // below the continuous lower bound: impossible for any geometry
+  if (bounds.FINAL_LOWER_BOUND > 1) results.push({ k: `1…${bounds.FINAL_LOWER_BOUND - 1}`, status: 'PROVEN_INFEASIBLE', proof_method: 'LOWER_BOUND', completeness: 'complete — any geometry (continuous)', ms: 0 });
+  let found1 = null;
+  const ks = o.ks ?? Array.from({ length: Math.max(0, (o.kMax ?? o.chosen - 1) - bounds.FINAL_LOWER_BOUND + 1) }, (_, i) => bounds.FINAL_LOWER_BOUND + i);
+  for (const k of ks) {
     const tk = Date.now();
     timedOut = false;
-    if (o.timeLimit_ms) deadline = tk + o.timeLimit_ms;
+    deadline = o.timeLimit_ms ? tk + o.timeLimit_ms : Infinity;
     const found = best(0, 0, xs.length - 1, ys.length - 1, k, need0, true);
-    const r = { k, ms: Date.now() - tk, nodes: stats.nodes, leafBuilds: stats.leafBuilds };
+    const r = { k, grid, ms: Date.now() - tk, nodes: stats.nodes, leafBuilds: stats.leafBuilds, memory_MB: mem() };
     if (found) {
-      r.status = 'FEASIBLE';
+      const v = validate(found);
+      r.status = v.ok ? 'PROVEN_FEASIBLE' : 'FOUND_NOT_VALIDATED';
+      r.proof_method = 'constructed partition, rebuilt and validated';
+      r.completeness = 'n/a (a solution)';
       r.cover_m2 = found.cover;
-      r.parts = found.parts.map((p) => ({ x0: p.x0, y0: p.y0, x1: p.x1, y1: p.y1, total: p.total, cover: p.cover }));
+      r.validation = v;
+      r.parts = found.parts.map((p) => ({ x0: p.x0, y0: p.y0, x1: p.x1, y1: p.y1, total: p.total, cover: p.cover, hole: p.v.hole, minRadius: p.v.minRadius }));
       results.push(r);
-      minimum = k;
-      solution = found;
-      break;
+      o.log?.(r);
+      if (v.ok && !found1) found1 = { k, found };
+      if (!o.ks) break;
+      continue;
     }
-    r.status = timedOut ? 'SEARCH_NOT_EXHAUSTIVE' : k <= GUILLOTINE_COMPLETE_MAX ? 'PROVEN_INFEASIBLE' : 'SEARCH_NOT_EXHAUSTIVE';
-    r.reason = timedOut ? 'time limit' : k <= GUILLOTINE_COMPLETE_MAX ? `no partition of the region into ≤ ${k} rectangles (cuts on a ${grid} m raster) gives ${k} valid loops ≤ 60 m covering ≥ ${need0.toFixed(2)} m²` : `guillotine partitions searched completely; non-guillotine (pinwheel) partitions of ${k} rectangles not searched`;
+    if (timedOut) {
+      r.status = 'SEARCH_NOT_EXHAUSTIVE';
+      r.completeness = 'time limit';
+    } else if (k <= GUILLOTINE_COMPLETE_MAX) {
+      r.status = 'GRID_EXHAUSTIVE';
+      r.completeness = `every partition into ≤ ${k} rectangles (all guillotine) with cuts on the ${grid} m raster`;
+    } else {
+      r.status = 'SEARCH_NOT_EXHAUSTIVE';
+      r.completeness = `guillotine partitions on the ${grid} m raster searched completely; non-guillotine (pinwheel) partitions of ${k} rectangles not searched`;
+    }
+    r.proof_method = r.status === 'GRID_EXHAUSTIVE' ? 'GRID_EXHAUSTIVE' : 'branch and bound (partial)';
+    r.proof_resolution = grid;
+    r.reason = `no partition found giving ${k} valid loops ≤ 60 m covering ≥ ${need0.toFixed(2)} m²`;
     results.push(r);
     o.log?.(r);
   }
-  // the planner's count is the minimum when every smaller count is proven infeasible
-  const below = results.filter((r) => r.k < (minimum ?? o.chosen));
-  const provenMinimum = minimum === null && (o.chosen === bounds.FINAL_LOWER_BOUND || (below.length === o.chosen - bounds.FINAL_LOWER_BOUND && below.every((r) => r.status === 'PROVEN_INFEASIBLE')));
+  // what is proven: the counts below the first one not excluded
+  const excluded = (k) => k < bounds.FINAL_LOWER_BOUND || results.some((r) => r.k === k && r.status === 'GRID_EXHAUSTIVE');
+  let lowerBound = 1;
+  while (excluded(lowerBound)) lowerBound++;
+  const candidate = found1 ? found1.k : o.chosen;
+  const globally = candidate === bounds.FINAL_LOWER_BOUND;
+  const withinModel = globally || lowerBound >= candidate;
+  const solution = found1?.found ?? null;
   if (solution) for (const p of solution.parts) p.spiral = () => materialize(p);
-  return { bounds, results, minimum: minimum ?? o.chosen, improved: minimum !== null && minimum < o.chosen, provenMinimum: minimum === null ? provenMinimum : results.slice(0, -1).every((r) => r.status === 'PROVEN_INFEASIBLE') || minimum === bounds.FINAL_LOWER_BOUND, solution, stats: { ...stats, ms: Date.now() - t0, grid } };
+  return {
+    bounds,
+    results,
+    minimum_loop_count_lower_bound: lowerBound,
+    continuous_lower_bound: bounds.FINAL_LOWER_BOUND,
+    candidate_minimum: candidate,
+    proof_scope: globally ? 'LOWER_BOUND — any geometry' : withinModel ? `GRID_EXHAUSTIVE — rectangle partitions, ${grid} m raster` : 'SEARCH_NOT_EXHAUSTIVE',
+    provenGlobally: globally,
+    provenWithinModel: withinModel,
+    provenMinimum: withinModel,
+    minimum: candidate,
+    improved: !!found1 && found1.k < o.chosen,
+    solution,
+    stats: { ...stats, ms: Date.now() - t0, grid, memory_MB: mem() },
+  };
+}
+
+/**
+ * The cover a region must give at least so that its zone can still reach the zone requirement —
+ * the other regions covering all of their floor (a relaxation: the sum over the regions never
+ * exceeds the zone requirement).
+ */
+export function regionCoverMin(zoneArea, regionArea, coverMin = ENGINEERING_FINAL_COVERAGE) {
+  return Math.max(0, coverMin * zoneArea - (zoneArea - regionArea)) / regionArea;
 }

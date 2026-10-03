@@ -35,7 +35,12 @@ export const LOOP_LENGTH_EPS = 1e-9;
 // a loop within this much of 60 m is flagged LOW_MARGIN (a warning, not invalid): its leads are
 // estimated routes (rectilinear, through the doors) — the real lead routing (step 7: risers,
 // manifold connections, bends) may add pipe
-export const LOOP_LOW_MARGIN_M = 0.5;
+export const LOOP_LOW_MARGIN_M = 0.25;
+// a search candidate (numbers only) and its rebuilt geometry must agree within these: lengths to
+// floating point; areas to 1 cm² (Clipper's 0.1 mm integer grid — the same pipe measured on the
+// region outline started at another vertex differs by ~0.1 cm²); the min radius to 2 mm (measured
+// on the polyline: 3-point circumradius over 40 mm of the 4 mm arc steps)
+export const REBUILD_TOL = { length_m: 1e-9, area_m2: 1e-4, radius_m: 0.002 };
 // raster of the cuts in the exhaustive minimum-loop-count search (loopproof.js) — the resolution
 // a "PROVEN_INFEASIBLE" refers to
 export const LOOP_CUT_GRID = 0.05;
