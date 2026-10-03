@@ -78,7 +78,7 @@ export function proveLoopCount(o) {
   const cap = Math.PI * (s / 2 + 0.003) ** 2;
   const minW = 3 * s + (o.r ?? Math.max(0.072, s / 2));
   const t0 = Date.now();
-  const stats = { leafCalls: 0, leafBuilds: 0, cacheHits: 0, closureBuilds: 0, buildMs: 0, closureMs: 0, leafMs: 0, variantsKept: 0 };
+  const stats = { leafCalls: 0, leafBuilds: 0, cacheHits: 0, baseRebuilds: 0, closureBuilds: 0, buildMs: 0, closureMs: 0, leafMs: 0, variantsKept: 0 };
   // raster: cuts every `grid` from the low side, the far side exactly
   const axis = (a, b) => {
     const v = [];
@@ -159,6 +159,11 @@ export function proveLoopCount(o) {
   // rectangle kept across runs — the generators are deterministic, the caller keys the store by
   // the generator sources (tools/ufh-proof-run.mjs); a hit is the same list a build would give
   const cacheKey = (key) => `${s}|${o.r ?? '-'}|${key}`;
+  // the base spiral a closure starts from is full geometry: it is kept for the last
+  // KEEP_BASES built rectangles only (closures are asked for right after a build, at the first
+  // position); an older one is built again when its closures are needed (deterministic)
+  const KEEP_BASES = 200;
+  const kept = [];
   const variantsOf = (w, h, pat) => {
     const key = `${w.toFixed(4)}x${h.toFixed(4)}|${pat}`;
     if (rectMemo.has(key)) return rectMemo.get(key);
@@ -169,7 +174,12 @@ export function proveLoopCount(o) {
       const tb = Date.now();
       v = buildVariants(w, h, pat, false);
       stats.buildMs += Date.now() - tb;
+      kept.push(drop);
+      if (kept.length > KEEP_BASES) kept.shift()();
       return v;
+    };
+    const drop = () => {
+      v = null;
     };
     const entry = { list: null, closures: hit?.closures ?? null };
     if (hit) {
@@ -182,7 +192,10 @@ export function proveLoopCount(o) {
     stats.variantsKept += entry.list.length;
     entry.closed = () => {
       if (!entry.closures) {
-        if (!v) build();
+        if (!v) {
+          if (stats.leafBuilds && !hit) stats.baseRebuilds++;
+          build();
+        }
         const tc = Date.now();
         stats.closureBuilds++;
         entry.closures = [];
