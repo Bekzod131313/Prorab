@@ -32,6 +32,13 @@ export const MAX_LOOP_M = 60;
 // loop total (supply + heating + return) ≤ MAX_LOOP_M exactly; the only tolerance is the floating
 // point representation of a sum of lengths (1 nm) — 60.0001 m is never 60
 export const LOOP_LENGTH_EPS = 1e-9;
+// a loop within this much of 60 m is flagged LOW_MARGIN (a warning, not invalid): its leads are
+// estimated routes (rectilinear, through the doors) — the real lead routing (step 7: risers,
+// manifold connections, bends) may add pipe
+export const LOOP_LOW_MARGIN_M = 0.5;
+// raster of the cuts in the exhaustive minimum-loop-count search (loopproof.js) — the resolution
+// a "PROVEN_INFEASIBLE" refers to
+export const LOOP_CUT_GRID = 0.05;
 // the loop planner also tries two rows of strips (squarer loops) when the strips alone leave more
 // uncovered than this share of the region (search effort only, no acceptance criterion)
 export const ROWS_TRY_UNCOVERED_SHARE = 0.03;

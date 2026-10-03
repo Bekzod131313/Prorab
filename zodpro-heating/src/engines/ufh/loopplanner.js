@@ -23,8 +23,9 @@ import { bestSpiral } from './spiralgen.js';
 import { obstacleSpiral, minPipeGap, zonedGap, measure } from './obstaclespiral.js';
 import { closeCentre } from './closure.js';
 import { spiralRegions } from './decompose.js';
+import { loopLowerBounds, proveLoopCount } from './loopproof.js';
 import { checkRawSet } from './rawcheck.js';
-import { MAX_LOOP_M, RMIN_CHECK, SPACING_TOL, MIN_RESIDUAL_CLOSURE_SPACING, LOOP_LENGTH_EPS, MAX_LARGEST_GAP, ROWS_TRY_UNCOVERED_SHARE } from './criteria.js';
+import { MAX_LOOP_M, RMIN_CHECK, SPACING_TOL, MIN_RESIDUAL_CLOSURE_SPACING, LOOP_LENGTH_EPS, MAX_LARGEST_GAP, ROWS_TRY_UNCOVERED_SHARE, LOOP_LOW_MARGIN_M, ENGINEERING_FINAL_COVERAGE } from './criteria.js';
 
 /** Loop length rule: exact, the only tolerance is the floating point representation (1 nm). */
 export const lengthOk = (total) => total <= MAX_LOOP_M + LOOP_LENGTH_EPS;
@@ -135,16 +136,32 @@ export function planLoops(res, U, s, ctx) {
       continue;
     }
     const shape = { outer: x.poly, holes: x.holes ?? [] };
-    const plan = planRegion(x, shape);
-    // lower bounds of the loop count (why fewer loops cannot exist): a loop carries at most
-    // 60 − 2 × (the shortest lead to this region) of heating pipe; and covering the floor the plan
-    // covers needs at least covered / (s + 6 mm) of pipe (each pipe covers a band s/2 + 3 mm wide
-    // on either side)
+    let plan = planRegion(x, shape);
+    // lower bounds of the loop count (loopproof.js — named; FINAL = the larger of the two valid
+    // ones; the raw pipe estimate is no bound) and, on request (ctx.prove), the exhaustive search
+    // of every smaller count in the region model (rectangular region: rectangle partitions)
     const leadMin = leadMinOf(shape);
-    const perLoop = MAX_LOOP_M - 2 * leadMin;
+    // (the zone must reach ENGINEERING_FINAL_COVERAGE; this region at least what the other regions
+    // cannot make up even fully covered)
+    const aReg = G.area([shape]);
+    const aZone = G.area(usable);
+    const coverMin = Math.max(0, ENGINEERING_FINAL_COVERAGE * aZone - (aZone - aReg)) / aReg;
+    const bounds = loopLowerBounds({ area: aReg, s, leadMin, rawHeating: x.spiral.heatingLength, coverMin });
+    let proof = null;
+    const bb = G.bbox(shape.outer);
+    const isRect = !shape.holes.length && Math.abs(G.area([shape]) - (bb.x1 - bb.x0) * (bb.y1 - bb.y0)) < 1e-6;
+    if (plan.parts.length === bounds.FINAL_LOWER_BOUND) proof = { provenMinimum: true, by: 'FINAL_LOWER_BOUND', results: [] };
+    else if (ctx.prove && isRect) {
+      const pr = proveLoopCount({ rect: bb, s, r: ctx.r, onWall, leadTo: ctx.leadTo, rawHeating: x.spiral.heatingLength, chosen: plan.parts.length, coverMin, grid: ctx.proofGrid, timeLimit_ms: ctx.proofTimeLimit_ms });
+      proof = { provenMinimum: pr.provenMinimum, by: 'exhaustive search', results: pr.results.map(({ parts, ...q }) => q), grid: pr.stats.grid, ms: pr.stats.ms };
+      // a valid partition with fewer loops: it is the plan (the minimum loop count comes first)
+      if (pr.improved) {
+        const parts = pr.solution.parts.map((p) => ({ spiral: moveSpiral(p.v.sp, p.x0, p.y0), shape: { outer: [{ x: p.x0, y: p.y0 }, { x: p.x1, y: p.y0 }, { x: p.x1, y: p.y1 }, { x: p.x0, y: p.y1 }], holes: [] }, uncovered: p.v.uncovered }));
+        plan = { parts, summary: { ...plan.summary, loopCount: parts.length, split: { proof: pr.solution.parts.map((p) => [p.x0, p.y0, p.x1, p.y1]) }, plannerCount: plan.parts.length } };
+      }
+    } else proof = { provenMinimum: false, by: ctx.prove ? 'not a rectangular region — not searched' : 'not searched (ctx.prove off)', results: [] };
     const covered = plan.parts.reduce((a, p) => a + G.area([p.shape]) - (p.uncovered ?? measure({ heating: p.spiral.heating }, s, [p.shape]).uncovered), 0);
-    const bound = { leadMin, perLoopHeatingMax: perLoop, rawHeating: x.spiral.heatingLength, kRaw: Math.ceil(x.spiral.heatingLength / perLoop - 1e-9), coveredArea: covered, pipeForCoverage: covered / (s + 0.006), kCoverage: Math.ceil(covered / (s + 0.006) / perLoop - 1e-9) };
-    regions.push({ label: x.label, rawSpiral_m: x.spiral.heatingLength, exceeds60: x.spiral.heatingLength > MAX_LOOP_M, lowerBound: bound, ...plan.summary });
+    regions.push({ label: x.label, rawSpiral_m: x.spiral.heatingLength, exceeds60: x.spiral.heatingLength > MAX_LOOP_M, lowerBound: { ...bounds, coveredArea: covered }, chosenLoops: plan.parts.length, proof, ...plan.summary });
     for (const p of plan.parts) {
       const l = leadsOf(p.spiral);
       const loop = {
@@ -165,6 +182,11 @@ export function planLoops(res, U, s, ctx) {
         shape: p.shape,
       };
       loop.remainingBudget = MAX_LOOP_M - loop.totalLength;
+      // the leads are estimated routes (rectilinear, through the doors) until step 7 routes them
+      loop.estimatedLead = true;
+      loop.remainingMargin = loop.remainingBudget;
+      loop.lowMargin = loop.remainingMargin < LOOP_LOW_MARGIN_M;
+      if (loop.lowMargin) loop.warnings = ['LOW_MARGIN'];
       loop.exceeds60 = !lengthOk(loop.totalLength);
       const v = validateLoopLength(loop, s);
       loop.status = v.status;

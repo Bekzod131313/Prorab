@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { runLoops, run101 } from '../../tools/ufh-loops-debug.mjs';
 import { tightBends } from '../../src/engines/ufh/debug.js';
-import { MAX_LOOP_M, RMIN_CHECK, SPACING_TOL, MAX_LARGEST_GAP, ENGINEERING_FINAL_COVERAGE } from '../../src/engines/ufh/criteria.js';
+import { MAX_LOOP_M, RMIN_CHECK, SPACING_TOL, MAX_LARGEST_GAP, ENGINEERING_FINAL_COVERAGE, LOOP_LOW_MARGIN_M } from '../../src/engines/ufh/criteria.js';
 
 const memo = new Map();
 export const run = (name) => {
@@ -19,6 +19,10 @@ export function checkPlan(name, plan, s) {
     assert.ok(Math.abs(l.totalLength - (l.heatingLength + l.supplyLength + l.returnLength)) < 1e-9);
     assert.ok(Math.abs(l.remainingBudget - (MAX_LOOP_M - l.totalLength)) < 1e-9);
     assert.equal(l.exceeds60, false);
+    // the leads are estimated (step 7 routes them): flagged, the margin kept, a low one warned
+    assert.equal(l.estimatedLead, true);
+    assert.ok(Math.abs(l.remainingMargin - (MAX_LOOP_M - l.totalLength)) < 1e-9);
+    assert.equal(l.lowMargin, l.remainingMargin < LOOP_LOW_MARGIN_M);
     // the loop is a spiral (never a cut piece of one): RAW_SPIRAL geometry, start / end on the wall
     assert.equal(l.spiral.kind, 'RAW_SPIRAL');
     assert.ok(['side', 'hairpin'].includes(l.spiral.centre));
@@ -27,6 +31,8 @@ export function checkPlan(name, plan, s) {
     assert.equal(l.nominalSpacing, s);
     assert.equal(tightBends(l.spiral.path, RMIN_CHECK).length, 0, `${name} ${l.loopId}: bend < RMIN`);
   }
+  // the lower bound never exceeds the chosen count
+  for (const g of plan.regions) if (g.lowerBound) assert.ok(g.lowerBound.FINAL_LOWER_BOUND <= g.chosenLoops, `${name} ${g.label}: bound ${g.lowerBound.FINAL_LOWER_BOUND} > ${g.chosenLoops}`);
   const c = plan.check;
   for (const k of ['spacing', 'residualSpacing', 'bends', 'noCrossing', 'inside', 'exitsOnWall', 'noOverlap', 'noGap', 'regionsInside']) assert.ok(c.checks[k], `${name}: loop set ${k}`);
   assert.ok(c.minSpacing >= s - SPACING_TOL);
