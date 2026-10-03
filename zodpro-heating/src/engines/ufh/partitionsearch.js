@@ -60,6 +60,10 @@ export function partitionSearch(o) {
   const minW = o.minW ?? 0;
   const opt = { ...SEARCH_OPTS_DEFAULT, ...(o.opts ?? {}) };
   const kMax = o.kMax ?? 16;
+  // root sharding: shard i of n opens only the root splits i, i + n, i + 2n … of the (ordered)
+  // split list; shard 0 also the root's leaf and pinwheels. The root is not memoized. A k is
+  // exhausted only when every shard is (tools/ufh-proof-run.mjs merges them).
+  const shard = o.rootShard ?? null;
   const now = o.now ?? (() => Date.now());
   const st = o.stats ?? {};
   for (const c of ['generated', 'expanded', 'prunedNodeBound', 'prunedSplitBound', 'prunedMonotone', 'leafGated', 'memoExact', 'memoBelow', 'reexpanded', 'feasible', 'splitsOpened', 'cutOrderSkipped', 'pinwheelChecked', 'pinwheelLeadAccess', 'pinwheelOpened', 'maxDepth']) st[c] = st[c] ?? 0;
@@ -118,7 +122,10 @@ export function partitionSearch(o) {
     }
     st.expanded++;
     let top = null;
-    if (!opt.leafGate || U(R, 1) >= target - EPS) {
+    const rootOnlyShard = shard && depth === 0;
+    if (rootOnlyShard && shard.i !== 0) {
+      // (the root's own leaf: shard 0)
+    } else if (!opt.leafGate || U(R, 1) >= target - EPS) {
       const lf = leaf(i0, j0, i1, j1);
       if (lf) top = { cover: lf.cover, parts: [lf] };
     } else st.leafGated++;
@@ -146,7 +153,9 @@ export function partitionSearch(o) {
         }
       }
       if (opt.order) splits.sort((p, q) => q.ubA + q.ubB - (p.ubA + p.ubB));
-      for (const sp of splits) {
+      for (let si = 0; si < splits.length; si++) {
+        if (rootOnlyShard && si % shard.n !== shard.i) continue;
+        const sp = splits[si];
         const { A, B, k1, ubA, ubB } = sp;
         if (ubA + ubB <= bar() + EPS && !(top === null && ubA + ubB >= target - EPS)) {
           st.prunedSplitBound++;
@@ -169,7 +178,7 @@ export function partitionSearch(o) {
         if (early && top.cover >= target - EPS) break;
       }
       // PINWHEEL (k ≥ 5): four arms + a centre, every part ≥ minW wide
-      if (complete && opt.pinwheel && k >= 5 && !(early && top && top.cover >= target - EPS)) {
+      if (complete && opt.pinwheel && k >= 5 && !(rootOnlyShard && shard.i !== 0) && !(early && top && top.cover >= target - EPS)) {
         const comps = compositions(k, 5);
         st.pinwheelChecked++;
         // P7: the centre is interior to R — check its bound on the real ub (smallest centre: the
@@ -235,7 +244,7 @@ export function partitionSearch(o) {
       }
     }
     if (timedOut && !complete) return top && top.cover >= target - EPS ? top : null;
-    if (!early || !top || top.cover < target - EPS) {
+    if (!rootOnlyShard && (!early || !top || top.cover < target - EPS)) {
       if (top && top.cover >= target - EPS) memo.set(kk, { exact: top });
       else memo.set(kk, { below: Math.min(m?.below ?? Infinity, top ? Math.max(target, top.cover + EPS) : target) });
     }

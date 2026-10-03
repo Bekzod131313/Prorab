@@ -1,13 +1,14 @@
 // UFH Coverage Router, step 6: MINIMUM LOOP COUNT — named lower bounds and the exhaustive search
 // (loopproof.js). "Not found" and "impossible" are never the same status: PROVEN_INFEASIBLE only
 // below the continuous lower bound; GRID_EXHAUSTIVE where every rectangle partition on the raster
-// was searched (≤ 4 parts); SEARCH_NOT_EXHAUSTIVE otherwise; PROVEN_FEASIBLE for a rebuilt,
-// validated solution.
+// was searched (≤ 4 parts guillotine, ≤ 6 with pinwheels); SEARCH_NOT_EXHAUSTIVE otherwise;
+// PROVEN_FEASIBLE for a rebuilt, validated solution (never "the minimum" by itself).
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as G from '../src/engines/ufh/geom.js';
 import { loopLowerBounds, proveLoopCount, regionCoverMin } from '../src/engines/ufh/loopproof.js';
 import { assessHydraulics } from '../src/engines/ufh/loopplanner.js';
+import { modelComplete, SEARCH_OPTS_DEFAULT } from '../src/engines/ufh/partitionsearch.js';
 import { CASES } from '../tools/ufh-loops-debug.mjs';
 import { MAX_LOOP_M, MAX_LARGEST_GAP, REBUILD_TOL, GEOMETRY_NUMERICAL_TOLERANCE, ENGINEERING_COVERAGE_TOLERANCE, RMIN_CHECK, ENGINEERING_FINAL_COVERAGE } from '../src/engines/ufh/criteria.js';
 
@@ -80,11 +81,37 @@ test('LP7: 3 loops GRID_EXHAUSTIVE on the 0.2 m raster — 4 within the model, n
   assert.equal(r.provenGlobally, false);
 });
 
-test('k ≥ 5 or a time limit: SEARCH_NOT_EXHAUSTIVE — never GRID_EXHAUSTIVE or PROVEN_INFEASIBLE', () => {
+test('a time limit, a guillotine-only k ≥ 5 or any k > 6: SEARCH_NOT_EXHAUSTIVE — never GRID_EXHAUSTIVE or PROVEN_INFEASIBLE', () => {
   const r = proveLoopCount({ ...setup('LP8'), chosen: 7, grid: 0.2, timeLimit_ms: 1 });
   for (const x of r.results.filter((q) => typeof q.k === 'number')) assert.equal(x.status, 'SEARCH_NOT_EXHAUSTIVE', `k ${x.k}`);
   assert.equal(r.provenWithinModel, false);
   assert.equal(r.proof_scope, 'SEARCH_NOT_EXHAUSTIVE');
+  // the model's completeness per k (partitionsearch.js: guillotine to 4, + pinwheels to 6)
+  assert.equal(modelComplete(5, { ...SEARCH_OPTS_DEFAULT, pinwheel: false }), false);
+  assert.equal(modelComplete(6, SEARCH_OPTS_DEFAULT), true);
+  assert.equal(modelComplete(7, SEARCH_OPTS_DEFAULT), false);
+});
+
+test('LP8 k = 5 (0.2 m raster): guillotine alone SEARCH_NOT_EXHAUSTIVE, with pinwheels GRID_EXHAUSTIVE; a variant cache changes nothing', () => {
+  const store = new Map();
+  const variantCache = { get: (k) => store.get(k), set: (k, v) => store.set(k, JSON.parse(JSON.stringify(v))) };
+  const g = proveLoopCount({ ...setup('LP8'), chosen: 7, grid: 0.2, ks: [5], searchOpts: { ...SEARCH_OPTS_DEFAULT, pinwheel: false }, variantCache });
+  const p = proveLoopCount({ ...setup('LP8'), chosen: 7, grid: 0.2, ks: [5], variantCache });
+  const k5g = g.results.find((x) => x.k === 5);
+  const k5p = p.results.find((x) => x.k === 5);
+  assert.equal(k5g.status, 'SEARCH_NOT_EXHAUSTIVE');
+  assert.equal(k5g.search_model, 'GUILLOTINE');
+  assert.equal(k5p.status, 'GRID_EXHAUSTIVE');
+  assert.equal(k5p.search_model, 'LEAF/SLICE/PINWHEEL');
+  assert.equal(k5p.proof_resolution, 0.2);
+  // the pinwheels: rejected by the lead-access rule (P7), checked on the real bound
+  assert.ok(k5p.stats.pinwheelChecked > 0 && k5p.stats.pinwheelLeadAccess === k5p.stats.pinwheelChecked);
+  // the second run built nothing: every rectangle came from the cache, the same decision
+  assert.equal(k5p.stats.leafBuilds, 0);
+  assert.ok(k5p.stats.cacheHits > 0);
+  // k = 5 alone is not a proof that 7 is the least: 6 not searched here
+  assert.equal(p.candidate_minimum, 7);
+  assert.equal(p.provenWithinModel, false);
 });
 
 test('multi-region zone: the regions\' minimum covers never add up to more than the zone requirement', () => {

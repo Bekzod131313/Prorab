@@ -201,3 +201,27 @@ test('the oracle is sharp: pinwheel-winning instances exist and are checked, an 
   }
   assert.ok(caught > 0, 'the unsafe bound went unnoticed');
 });
+
+test('root shards: the union of n shards decides exactly what the unsharded search decides', () => {
+  for (let seed = 61; seed <= 70; seed++) {
+    const I = instance(seed, 6, 6, { walls: seed % 2 === 0 });
+    for (let k = 2; k <= 6; k++) {
+      const want = I.brute(k, P66);
+      if (want === null) continue;
+      for (const t of [want - 1e-6, want + 1e-6]) {
+        for (const n of [2, 3]) {
+          let any = false;
+          for (let i = 0; i < n; i++) {
+            const S = partitionSearch({ xs: I.xs, ys: I.ys, minW: 1, leaf: I.leaf, ub: I.ub, rootShard: { i, n }, opts: { ...SEARCH_OPTS_DEFAULT, interiorAccess: seed % 2 !== 0 } });
+            const r = S.best(0, 0, 6, 6, k, t, true);
+            if (r) {
+              assert.ok(r.cover >= t - 1e-9);
+              any = true;
+            }
+          }
+          assert.equal(any, want >= t, `seed ${seed} k ${k} n ${n}`);
+        }
+      }
+    }
+  }
+});

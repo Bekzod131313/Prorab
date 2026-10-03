@@ -16,16 +16,22 @@
 //   rectangles of it (the decomposition model of steps 2–4), every cut on a CUT_GRID raster, every
 //   part with every spiral variant the generators give (start corners, ring counts, centre types,
 //   mirror, centre closures with residual spacing), at its real position (its leads). A branch and
-//   bound over guillotine partitions decides whether k loops can reach the needed cover with every
-//   loop ≤ 60 m (supply + heating + return) and no patch over MAX_LARGEST_GAP. Pruning uses the
-//   bound above only (rigorous). Every partition of a rectangle into at most 4 rectangles is a
-//   guillotine one, so for k ≤ 4 the search covers all rectangle partitions on the raster.
+//   bound (partitionsearch.js) over LEAF / SLICE / PINWHEEL trees decides whether k loops can
+//   reach the needed cover with every loop ≤ 60 m (supply + heating + return) and no patch over
+//   MAX_LARGEST_GAP. Every pruning rule is exact (partitionsearch.js P1–P7, each checked against
+//   brute force). Every partition into ≤ 4 rectangles is guillotine; every partition into ≤ 6 is
+//   a LEAF / SLICE / PINWHEEL tree — with pinwheels the search covers all rectangle partitions on
+//   the raster for k ≤ 6. A loop's supply and return lie on the region's walls (its leads reach
+//   the manifold without crossing other loops): a part off the walls has no valid loop.
 //
 // Status per loop count k — "not found" and "impossible" are never the same:
 //   PROVEN_INFEASIBLE      k below the continuous lower bound (any geometry, no raster)
-//   GRID_EXHAUSTIVE        k ≤ 4: no rectangle partition on the raster works (NOT a continuous proof)
-//   SEARCH_NOT_EXHAUSTIVE  k ≥ 5 (guillotine only) or the time limit hit
-//   PROVEN_FEASIBLE        a partition found, its geometry rebuilt and validated
+//   GRID_EXHAUSTIVE        no rectangle partition on the raster works, every one searched
+//                          (k ≤ 4; k ≤ 6 with pinwheels) — NOT a continuous proof
+//   SEARCH_NOT_EXHAUSTIVE  the model does not hold every partition (k > 6, or guillotine-only and
+//                          k ≥ 5) or the time limit hit
+//   PROVEN_FEASIBLE        a partition found, its geometry rebuilt and validated — a feasible k,
+//                          not by itself the minimum
 //   NOT_RUN                not searched
 
 import * as G from './geom.js';
@@ -72,7 +78,7 @@ export function proveLoopCount(o) {
   const cap = Math.PI * (s / 2 + 0.003) ** 2;
   const minW = 3 * s + (o.r ?? Math.max(0.072, s / 2));
   const t0 = Date.now();
-  const stats = { leafCalls: 0, leafBuilds: 0, closureBuilds: 0, buildMs: 0, closureMs: 0, leafMs: 0, variantsKept: 0 };
+  const stats = { leafCalls: 0, leafBuilds: 0, cacheHits: 0, closureBuilds: 0, buildMs: 0, closureMs: 0, leafMs: 0, variantsKept: 0 };
   // raster: cuts every `grid` from the low side, the far side exactly
   const axis = (a, b) => {
     const v = [];
@@ -149,17 +155,34 @@ export function proveLoopCount(o) {
     const baseKeep = base && { heating: base.sp.heating, region: base.sp.region, start: base.sp.start, supply: base.sp.supply, ret: base.sp.ret, path: base.sp.path, heatingLength: base.sp.heatingLength, leadIn: base.sp.leadIn, leadOut: base.sp.leadOut };
     return { list, closures: full ? closures : null, baseKeep, sh0, ex0, eo0 };
   };
+  // o.variantCache (optional, { get(key), set(key, value) }): the slim lists of a (w, h, walls)
+  // rectangle kept across runs — the generators are deterministic, the caller keys the store by
+  // the generator sources (tools/ufh-proof-run.mjs); a hit is the same list a build would give
+  const cacheKey = (key) => `${s}|${o.r ?? '-'}|${key}`;
   const variantsOf = (w, h, pat) => {
     const key = `${w.toFixed(4)}x${h.toFixed(4)}|${pat}`;
     if (rectMemo.has(key)) return rectMemo.get(key);
-    stats.leafBuilds++;
-    const tb = Date.now();
-    const v = buildVariants(w, h, pat, false);
-    stats.buildMs += Date.now() - tb;
-    const entry = { list: v.list, closures: null };
-    stats.variantsKept += v.list.length;
+    const hit = o.variantCache?.get(cacheKey(key));
+    let v = null;
+    const build = () => {
+      stats.leafBuilds++;
+      const tb = Date.now();
+      v = buildVariants(w, h, pat, false);
+      stats.buildMs += Date.now() - tb;
+      return v;
+    };
+    const entry = { list: null, closures: hit?.closures ?? null };
+    if (hit) {
+      stats.cacheHits++;
+      entry.list = hit.list;
+    } else {
+      entry.list = build().list;
+      o.variantCache?.set(cacheKey(key), { list: entry.list, closures: null });
+    }
+    stats.variantsKept += entry.list.length;
     entry.closed = () => {
       if (!entry.closures) {
+        if (!v) build();
         const tc = Date.now();
         stats.closureBuilds++;
         entry.closures = [];
@@ -168,8 +191,9 @@ export function proveLoopCount(o) {
             const c = closeCentre(v.sh0, v.baseKeep, s, { r: o.r, exitOk: v.ex0, edgeOk: v.eo0, residual, returnAll: true });
             for (const x of c.candidates ?? []) entry.closures.push(slim(x, { uncovered: x.uncovered, largestHole: x.largestHole }, true));
           }
-        v.baseKeep = null; // (its pipe is not needed any more)
+        v = null; // (the base pipe is not needed any more)
         stats.closureMs += Date.now() - tc;
+        o.variantCache?.set(cacheKey(key), { list: entry.list, closures: entry.closures });
       }
       return entry.closures;
     };
@@ -224,7 +248,7 @@ export function proveLoopCount(o) {
 
   // ---- branch and bound over the partitions (partitionsearch.js: LEAF / SLICE / PINWHEEL) ----
   // ub of an interior part is −∞ (no wall: no lead route) — the lead-access rule P7 holds
-  const search = partitionSearch({ xs, ys, minW, leaf: timedLeaf, ub, kMax: 16, opts: o.searchOpts, stats });
+  const search = partitionSearch({ xs, ys, minW, leaf: timedLeaf, ub, kMax: 16, opts: o.searchOpts, stats, rootShard: o.rootShard });
   const best = (i0, j0, i1, j1, k, target, early) => search.best(i0, j0, i1, j1, k, target, early);
   const searchModel = search.opts.pinwheel ? 'LEAF/SLICE/PINWHEEL' : 'GUILLOTINE';
   let timedOut = false;
@@ -298,6 +322,12 @@ export function proveLoopCount(o) {
     if (timedOut) {
       r.status = 'SEARCH_NOT_EXHAUSTIVE';
       r.completeness = 'time limit';
+    } else if (o.rootShard) {
+      // one shard of the root proves nothing alone: the shards are merged (all done, none found)
+      r.status = 'SHARD_DONE_NOT_FOUND';
+      r.shard = o.rootShard;
+      r.modelComplete = modelComplete(k, search.opts);
+      r.completeness = `root shard ${o.rootShard.i + 1}/${o.rootShard.n} searched completely`;
     } else if (modelComplete(k, search.opts)) {
       r.status = 'GRID_EXHAUSTIVE';
       r.completeness = k <= GUILLOTINE_COMPLETE_MAX
