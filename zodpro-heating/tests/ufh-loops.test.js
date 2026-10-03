@@ -20,6 +20,8 @@ test('validateLoopLength: 60.000 m VALID, 60.001 / 60.0001 m INVALID — no roun
   assert.equal(L(57, 1.5, 1.501).status, 'LOOP_INVALID'); // 60.001
   assert.equal(lengthOk(60), true);
   assert.equal(lengthOk(60.000001), false);
+  assert.equal(lengthOk(60.000000001), false);
+  assert.equal(L(59, 0.5, 0.500000001).status, 'LOOP_INVALID'); // 60.000000001
   // floating point sums of exactly 60
   assert.equal(L(0.1 + 0.2 + 59.7, 0, 0).status, 'LOOP_VALID');
 });

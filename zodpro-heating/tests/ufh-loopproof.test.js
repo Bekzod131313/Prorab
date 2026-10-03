@@ -9,7 +9,7 @@ import * as G from '../src/engines/ufh/geom.js';
 import { loopLowerBounds, proveLoopCount, regionCoverMin } from '../src/engines/ufh/loopproof.js';
 import { assessHydraulics } from '../src/engines/ufh/loopplanner.js';
 import { CASES } from '../tools/ufh-loops-debug.mjs';
-import { MAX_LOOP_M, MAX_LARGEST_GAP, REBUILD_TOL, RMIN_CHECK, ENGINEERING_FINAL_COVERAGE } from '../src/engines/ufh/criteria.js';
+import { MAX_LOOP_M, MAX_LARGEST_GAP, REBUILD_TOL, GEOMETRY_NUMERICAL_TOLERANCE, ENGINEERING_COVERAGE_TOLERANCE, RMIN_CHECK, ENGINEERING_FINAL_COVERAGE } from '../src/engines/ufh/criteria.js';
 
 const man = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 const setup = (name) => {
@@ -42,6 +42,13 @@ test('a found partition is PROVEN_FEASIBLE: rebuilt geometry = scored numbers (t
     assert.ok(row.values.total <= MAX_LOOP_M && row.values.minRadius >= RMIN_CHECK);
   }
   assert.deepEqual(REBUILD_TOL, { length_m: 1e-9, area_m2: 1e-4, radius_m: 0.002 });
+  assert.equal(REBUILD_TOL, GEOMETRY_NUMERICAL_TOLERANCE);
+  // the engineering acceptance is separate and has no tolerance: measured on the rebuilt pipes
+  assert.equal(ENGINEERING_COVERAGE_TOLERANCE, 0);
+  const e = f.validation.engineering;
+  assert.ok(f.validation.rebuildMatches && e.coverage && e.largestGap && e.minRadius && e.total, JSON.stringify(e));
+  assert.ok(e.values.covered >= r.bounds.neededCover_m2 && e.values.largestGap <= MAX_LARGEST_GAP);
+  assert.ok(e.values.minRadius >= RMIN_CHECK && e.values.maxTotal <= MAX_LOOP_M);
   for (const p of r.solution.parts) {
     const sp = p.spiral();
     assert.ok(Math.abs(sp.heatingLength - p.v.heatingLength) <= REBUILD_TOL.length_m);

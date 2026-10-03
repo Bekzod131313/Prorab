@@ -32,7 +32,7 @@ import * as G from './geom.js';
 import { bestSpiral } from './spiralgen.js';
 import { obstacleSpiral, measure } from './obstaclespiral.js';
 import { closeCentre } from './closure.js';
-import { MAX_LOOP_M, MAX_LARGEST_GAP, ENGINEERING_FINAL_COVERAGE, LOOP_LENGTH_EPS, LOOP_CUT_GRID, RMIN_CHECK, REBUILD_TOL } from './criteria.js';
+import { MAX_LOOP_M, MAX_LARGEST_GAP, ENGINEERING_FINAL_COVERAGE, LOOP_LENGTH_EPS, LOOP_CUT_GRID, RMIN_CHECK, GEOMETRY_NUMERICAL_TOLERANCE as REBUILD_TOL, ENGINEERING_COVERAGE_TOLERANCE } from './criteria.js';
 
 const lengthOk = (t) => t <= MAX_LOOP_M + LOOP_LENGTH_EPS;
 const GUILLOTINE_COMPLETE_MAX = 4; // every partition of a rectangle into ≤ 4 rectangles is guillotine
@@ -308,9 +308,22 @@ export function proveLoopCount(o) {
       };
       rows.push(row);
     }
-    return { ok: rows.every((r) => r.length && r.coverage && r.largestGap && r.minRadius && r.total), rows };
+    // engineering acceptance on the rebuilt pipes' own measures (no numerical tolerance): the
+    // covered area ≥ required, every gap ≤ MAX_LARGEST_GAP, R ≥ RMIN, total ≤ 60 m
+    const covered = found.parts.reduce((a, p, i) => a + (p.x1 - p.x0) * (p.y1 - p.y0) - rows[i].values.uncovered, 0);
+    const engineering = {
+      coverage: covered >= need0 - ENGINEERING_COVERAGE_TOLERANCE,
+      largestGap: rows.every((r) => r.values.largestGap <= MAX_LARGEST_GAP),
+      minRadius: rows.every((r) => r.values.minRadius >= RMIN_CHECK),
+      total: rows.every((r) => lengthOk(r.values.total)),
+      values: { covered, required: need0, largestGap: Math.max(...rows.map((r) => r.values.largestGap)), minRadius: Math.min(...rows.map((r) => r.values.minRadius)), maxTotal: Math.max(...rows.map((r) => r.values.total)) },
+    };
+    const rebuildMatches = rows.every((r) => r.length && r.coverage && r.largestGap && r.minRadius && r.total);
+    const engOk = engineering.coverage && engineering.largestGap && engineering.minRadius && engineering.total;
+    return { ok: rebuildMatches && engOk, rebuildMatches, engineering, rows };
   };
-  const mem = () => Math.round(process.memoryUsage().rss / 1048576);
+  // peak resident memory of the process so far (MB)
+  const mem = () => Math.round(process.resourceUsage().maxRSS / 1024);
 
   const results = [];
   // below the continuous lower bound: impossible for any geometry

@@ -30,19 +30,27 @@ export const ENGINEERING_FINAL_CHECKS = ['heating_coverage', 'uncovered_polygons
 export const MAX_LOOP_M = 60;
 // ---- step 6: loop planner ----
 // loop total (supply + heating + return) ≤ MAX_LOOP_M exactly; the only tolerance is the floating
-// point representation of a sum of lengths (1 nm) — 60.0001 m is never 60
-export const LOOP_LENGTH_EPS = 1e-9;
+// point representation of a sum of a few lengths (~1e-14 m; 1e-12 kept) — 60.000000001 m is
+// already over 60 and INVALID
+export const LOOP_LENGTH_EPS = 1e-12;
 // a loop within this much of 60 m is flagged LOW_MARGIN (a warning, not invalid): its leads are
 // estimated routes (rectilinear, through the doors) — the real lead routing (step 7: risers,
 // manifold connections, bends) may add pipe
 export const LOOP_LOW_MARGIN_M = 0.25;
-// a search candidate (numbers only) and its rebuilt geometry must agree within these: lengths to
-// floating point; areas to 1 cm² (Clipper's 0.1 mm integer grid — the same pipe measured on the
-// region outline started at another vertex differs by ~0.1 cm²); the min radius to 2 mm (measured
-// on the polyline: 3-point circumradius over 40 mm of the 4 mm arc steps)
-export const REBUILD_TOL = { length_m: 1e-9, area_m2: 1e-4, radius_m: 0.002 };
-// raster of the cuts in the exhaustive minimum-loop-count search (loopproof.js) — the resolution
-// a "PROVEN_INFEASIBLE" refers to
+// GEOMETRY_NUMERICAL_TOLERANCE: a search candidate (numbers only) and its rebuilt geometry must
+// agree within these: lengths to floating point; areas to 1 cm² (Clipper's 0.1 mm integer grid —
+// the same pipe measured on the region outline started at another vertex differs by ~0.1 cm²);
+// the min radius to 2 mm (measured on the polyline: 3-point circumradius over 40 mm of the 4 mm
+// arc steps). It only says "the rebuild is the candidate that was scored" — never an
+// acceptance criterion.
+export const GEOMETRY_NUMERICAL_TOLERANCE = { length_m: 1e-9, area_m2: 1e-4, radius_m: 0.002 };
+export const REBUILD_TOL = GEOMETRY_NUMERICAL_TOLERANCE;
+// ENGINEERING_COVERAGE_TOLERANCE: the engineering acceptance (coverage ≥ required, largest gap ≤
+// MAX_LARGEST_GAP) is checked on the rebuilt geometry's own measured areas with no tolerance — the
+// numerical tolerance above never hides real uncovered area
+export const ENGINEERING_COVERAGE_TOLERANCE = 0;
+// raster of the cuts in the minimum-loop-count search (loopproof.js) — the resolution a
+// "GRID_EXHAUSTIVE" refers to
 export const LOOP_CUT_GRID = 0.05;
 // the loop planner also tries two rows of strips (squarer loops) when the strips alone leave more
 // uncovered than this share of the region (search effort only, no acceptance criterion)
