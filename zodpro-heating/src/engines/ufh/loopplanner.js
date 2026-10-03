@@ -156,7 +156,7 @@ export function planLoops(res, U, s, ctx) {
       proof = { provenMinimum: pr.provenMinimum, by: 'exhaustive search', results: pr.results.map(({ parts, ...q }) => q), grid: pr.stats.grid, ms: pr.stats.ms };
       // a valid partition with fewer loops: it is the plan (the minimum loop count comes first)
       if (pr.improved) {
-        const parts = pr.solution.parts.map((p) => ({ spiral: moveSpiral(p.v.sp, p.x0, p.y0), shape: { outer: [{ x: p.x0, y: p.y0 }, { x: p.x1, y: p.y0 }, { x: p.x1, y: p.y1 }, { x: p.x0, y: p.y1 }], holes: [] }, uncovered: p.v.uncovered }));
+        const parts = pr.solution.parts.map((p) => ({ spiral: moveSpiral(p.spiral(), p.x0, p.y0), shape: { outer: [{ x: p.x0, y: p.y0 }, { x: p.x1, y: p.y0 }, { x: p.x1, y: p.y1 }, { x: p.x0, y: p.y1 }], holes: [] }, uncovered: p.v.uncovered }));
         plan = { parts, summary: { ...plan.summary, loopCount: parts.length, split: { proof: pr.solution.parts.map((p) => [p.x0, p.y0, p.x1, p.y1]) }, plannerCount: plan.parts.length } };
       }
     } else proof = { provenMinimum: false, by: ctx.prove ? 'not a rectangular region — not searched' : 'not searched (ctx.prove off)', results: [] };

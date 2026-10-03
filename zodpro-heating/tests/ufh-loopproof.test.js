@@ -35,6 +35,9 @@ test('exhaustive search finds a feasible partition where one exists (LP4: 2 loop
   for (const p of r.solution.parts) {
     assert.ok(p.total <= MAX_LOOP_M);
     assert.ok(p.v.hole <= MAX_LARGEST_GAP);
+    // the solution's spiral is rebuilt exactly (same pipe length as evaluated)
+    const sp = p.spiral();
+    assert.ok(sp && Math.abs(sp.heatingLength - p.v.heatingLength) < 1e-9);
   }
   assert.ok(f.cover_m2 >= r.bounds.neededCover_m2);
 });

@@ -100,11 +100,13 @@ export function proveLoopCount(o) {
   };
 
   // ---- one rectangle as one loop: every generator variant, measured, at its position ----
+  // (kept slim: the numbers the search needs — the geometry of a variant is rebuilt for the
+  // solution only; thousands of parts are evaluated)
+  const sig = (sp) => `${sp.start}|${sp.centre}|${sp.usedRings}|${sp.residualSpacing ?? '-'}|${sp.mirrored ? 'm' : ''}|${sp.heatingLength.toFixed(6)}`;
+  const slim = (sp, m, closed) => ({ heatingLength: sp.heatingLength, leadIn: sp.leadIn, leadOut: sp.leadOut, supply: { x: sp.supply.x, y: sp.supply.y }, ret: { x: sp.ret.x, y: sp.ret.y }, uncovered: m.uncovered, hole: m.largestHole, closed, sig: sig(sp) });
   const rectMemo = new Map();
-  const variantsOf = (w, h, pat) => {
-    const key = `${w.toFixed(4)}x${h.toFixed(4)}|${pat}`;
-    if (rectMemo.has(key)) return rectMemo.get(key);
-    stats.leafBuilds++;
+  // every variant of a w × h rectangle with that wall pattern (built at the origin); full = keep geometry
+  const buildVariants = (w, h, pat, full) => {
     const R0 = [{ x: 0, y: 0 }, { x: w, y: 0 }, { x: w, y: h }, { x: 0, y: h }];
     const walls0 = R0.map((p, i) => [p, R0[(i + 1) % 4]]).filter((_, i) => pat[i] === '1');
     const on0 = (q) => walls0.some(([a, c]) => G.segDist(q, a, c) < 1e-6);
@@ -112,26 +114,61 @@ export function proveLoopCount(o) {
     const eo0 = (a, c) => on0({ x: (a.x + c.x) / 2, y: (a.y + c.y) / 2 });
     const sh0 = { outer: R0, holes: [] };
     const list = [];
-    const add = (sp, m, closed) => list.push({ sp, uncovered: m.uncovered, hole: m.largestHole, closed });
+    const add = (sp, m, closed) => list.push(full ? { ...slim(sp, m, closed), sp } : slim(sp, m, closed));
+    let base = null;
     const b = bestSpiral(R0, s, { r: o.r, exitOk: ex0 });
-    if (b.ok) add(b, measure({ heating: b.heating }, s, [sh0]), false);
+    if (b.ok) {
+      const m = measure({ heating: b.heating }, s, [sh0]);
+      add(b, m, false);
+      base = { sp: b, hole: m.largestHole };
+    }
     const r = obstacleSpiral(sh0, s, { r: o.r, exitOk: ex0, edgeOk: eo0, returnAll: true, measure: 2, groupByStart: true });
-    if (r.ok) for (const x of r.ranked) add(x, { uncovered: x.uncovered, largestHole: x.largestHole }, false);
-    const entry = { list, sh0, ex0, eo0, closures: null };
-    // the centre closures (residual spacing too) of the variants that leave a patch — computed once
-    entry.closed = () => {
-      if (entry.closures) return entry.closures;
-      entry.closures = [];
-      const base = [...list].sort((a, c) => a.hole - c.hole)[0];
+    if (r.ok)
+      for (const x of r.ranked) {
+        add(x, { uncovered: x.uncovered, largestHole: x.largestHole }, false);
+        if (!base || x.largestHole < base.hole) base = { sp: x, hole: x.largestHole };
+      }
+    // the centre closures (residual spacing too) of the variant with the smallest patch
+    const closures = () => {
+      const out = [];
       if (base)
         for (const residual of [false, true]) {
           const c = closeCentre(sh0, base.sp, s, { r: o.r, exitOk: ex0, edgeOk: eo0, residual, returnAll: true });
-          for (const x of c.candidates ?? []) entry.closures.push({ sp: x, uncovered: x.uncovered, hole: x.largestHole, closed: true });
+          for (const x of c.candidates ?? []) out.push(full ? { ...slim(x, { uncovered: x.uncovered, largestHole: x.largestHole }, true), sp: x } : slim(x, { uncovered: x.uncovered, largestHole: x.largestHole }, true));
         }
+      return out;
+    };
+    // (only the base spiral's pipe is kept for its closures; the closure lists are slim too)
+    const baseKeep = base && { heating: base.sp.heating, region: base.sp.region, start: base.sp.start, supply: base.sp.supply, ret: base.sp.ret, path: base.sp.path, heatingLength: base.sp.heatingLength, leadIn: base.sp.leadIn, leadOut: base.sp.leadOut };
+    return { list, closures: full ? closures : null, baseKeep, sh0, ex0, eo0 };
+  };
+  const variantsOf = (w, h, pat) => {
+    const key = `${w.toFixed(4)}x${h.toFixed(4)}|${pat}`;
+    if (rectMemo.has(key)) return rectMemo.get(key);
+    stats.leafBuilds++;
+    const v = buildVariants(w, h, pat, false);
+    const entry = { list: v.list, closures: null };
+    entry.closed = () => {
+      if (!entry.closures) {
+        entry.closures = [];
+        if (v.baseKeep)
+          for (const residual of [false, true]) {
+            const c = closeCentre(v.sh0, v.baseKeep, s, { r: o.r, exitOk: v.ex0, edgeOk: v.eo0, residual, returnAll: true });
+            for (const x of c.candidates ?? []) entry.closures.push(slim(x, { uncovered: x.uncovered, largestHole: x.largestHole }, true));
+          }
+        v.baseKeep = null; // (its pipe is not needed any more)
+      }
       return entry.closures;
     };
     rectMemo.set(key, entry);
     return entry;
+  };
+  // the full spiral of a chosen variant (the solution's parts only): rebuilt, found by its signature
+  const materialize = (part) => {
+    const v = buildVariants(part.x1 - part.x0, part.y1 - part.y0, part.pat, true);
+    const all = [...v.list, ...(part.v.closed ? v.closures() : [])];
+    const hit = all.find((x) => x.sig === part.v.sig);
+    return hit ? hit.sp : null;
   };
   const leafMemo = new Map();
   // best cover of a rectangle as one valid loop (≤ 60 m with its leads there, no patch) or null
@@ -151,7 +188,7 @@ export function proveLoopCount(o) {
       const C = [{ x: x0, y: y0 }, { x: x1, y: y0 }, { x: x1, y: y1 }, { x: x0, y: y1 }];
       const pat = C.map((p, i) => (side(p, C[(i + 1) % 4]) ? 1 : 0)).join('');
       const e = variantsOf(w, h, pat);
-      const total = (v) => v.sp.heatingLength + v.sp.leadIn + v.sp.leadOut + leadTo({ x: v.sp.supply.x + x0, y: v.sp.supply.y + y0 }) + leadTo({ x: v.sp.ret.x + x0, y: v.sp.ret.y + y0 });
+      const total = (v) => v.heatingLength + v.leadIn + v.leadOut + leadTo({ x: v.supply.x + x0, y: v.supply.y + y0 }) + leadTo({ x: v.ret.x + x0, y: v.ret.y + y0 });
       const ok = (v) => v.hole <= MAX_LARGEST_GAP && lengthOk(total(v));
       let best = null;
       const consider = (list) => {
@@ -160,7 +197,7 @@ export function proveLoopCount(o) {
       consider(e.list);
       // the closures only where a plain variant fits the length (a closure only adds pipe)
       if (e.list.some((v) => lengthOk(total(v)))) consider(e.closed());
-      if (best) out = { cover: w * h - best.v.uncovered, total: best.total, x0, y0, x1, y1, v: best.v };
+      if (best) out = { cover: w * h - best.v.uncovered, total: best.total, x0, y0, x1, y1, pat, v: best.v };
     }
     leafMemo.set(key, out);
     return out;
@@ -271,5 +308,6 @@ export function proveLoopCount(o) {
   // the planner's count is the minimum when every smaller count is proven infeasible
   const below = results.filter((r) => r.k < (minimum ?? o.chosen));
   const provenMinimum = minimum === null && (o.chosen === bounds.FINAL_LOWER_BOUND || (below.length === o.chosen - bounds.FINAL_LOWER_BOUND && below.every((r) => r.status === 'PROVEN_INFEASIBLE')));
+  if (solution) for (const p of solution.parts) p.spiral = () => materialize(p);
   return { bounds, results, minimum: minimum ?? o.chosen, improved: minimum !== null && minimum < o.chosen, provenMinimum: minimum === null ? provenMinimum : results.slice(0, -1).every((r) => r.status === 'PROVEN_INFEASIBLE') || minimum === bounds.FINAL_LOWER_BOUND, solution, stats: { ...stats, ms: Date.now() - t0, grid } };
 }
