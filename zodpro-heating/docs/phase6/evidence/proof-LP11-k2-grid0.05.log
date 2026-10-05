@@ -1,0 +1,4 @@
+  k 2 PROVEN_INFEASIBLE 2744ms nodes 20 builds 20
+LP11 {"neededCover_m2":19.992000000000004,"leadMin":0.3999999999999993,"perLoopHeatingMax":59.2,"COVERAGE_LOWER_BOUND":2,"LEAD_AWARE_LOWER_BOUND":2,"FINAL_LOWER_BOUND":2,"RAW_PIPE_ESTIMATE":null,"RAW_PIPE_ESTIMATE_isBound":false}
+  2 PROVEN_INFEASIBLE 2744ms  no partition of the region into ≤ 2 rectangles (cuts on a 0.05 m raster) gives 2 valid loops ≤ 60 m covering ≥ 19.99 m²
+minimum 3 improved false proven true {"leafCalls":20,"leafBuilds":20,"nodes":20,"pruned":346,"ms":2750,"grid":0.05}

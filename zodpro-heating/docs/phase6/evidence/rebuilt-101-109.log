@@ -1,0 +1,13 @@
+## 101/101 k=5 PROVEN_FEASIBLE=true cov=93.47% gap=0.197 minR=85.0mm (RMIN 68) maxTotal=59.965529359 minMargin=0.034 spacing=200.0mm HYDRAULIC_LOOP_VALID  runtime=92.0s peak=1941MB
+   L1 heating 19.706 + supply 15.975 + return 16.375 = 52.055984469 | margin 7.944 | minR 85.0 | cross 0 | |Δ planner| 0.0e+0 | LOOP_VALID
+   L2 heating 25.827 + supply 16.855 + return 16.855 = 59.537251200 | margin 0.463 | minR 99.9 | cross 0 | |Δ planner| 2.8e-14 | LOOP_VALID
+   L3 heating 36.376 + supply 11.795 + return 11.795 = 59.965529359 | margin 0.034 LOW_MARGIN | minR 99.9 | cross 0 | |Δ planner| 5.0e-14 | LOOP_VALID
+   L4 heating 39.011 + supply 9.175 + return 9.175 = 57.360694883 | margin 2.639 | minR 99.9 | cross 0 | |Δ planner| 0.0e+0 | LOOP_VALID
+   L5 heating 39.411 + supply 7.915 + return 7.935 = 55.260694883 | margin 4.739 | minR 99.9 | cross 0 | |Δ planner| 2.1e-14 | LOOP_VALID
+## 101/107 k=3 PROVEN_FEASIBLE=true cov=96.62% gap=0.177 minR=95.0mm (RMIN 68) maxTotal=59.646376595 minMargin=0.354 spacing=200.0mm HYDRAULIC_LOOP_VALID  runtime=92.0s peak=1941MB
+   L1 heating 27.073 + supply 5.235 + return 5.435 = 37.743112121 | margin 22.257 | minR 99.9 | cross 0 | |Δ planner| 6.4e-14 | LOOP_VALID
+   L2 heating 58.636 + supply 0.405 + return 0.605 = 59.646376595 | margin 0.354 | minR 95.0 | cross 0 | |Δ planner| 7.1e-15 | LOOP_VALID
+   L3 heating 40.919 + supply 5.045 + return 5.045 = 51.008973041 | margin 8.991 | minR 99.9 | cross 0 | |Δ planner| 7.1e-14 | LOOP_VALID
+## 101/108 k=1 PROVEN_FEASIBLE=true cov=97.27% gap=0.000 minR=99.9mm (RMIN 68) maxTotal=58.737251200 minMargin=1.263 spacing=200.0mm HYDRAULIC_LOOP_VALID  runtime=92.0s peak=1941MB
+   L1 heating 53.547 + supply 2.595 + return 2.595 = 58.737251200 | margin 1.263 | minR 99.9 | cross 0 | |Δ planner| 7.1e-15 | LOOP_VALID
+C-01: required 9, physical outlets 6, virtual 0 → RAW_GEOMETRY_VALID / HYDRAULIC_LOOP_INVALID (outlet_shortage)

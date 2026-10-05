@@ -1,0 +1,5 @@
+## LP7 k=4 PROVEN_FEASIBLE=true cov=96.40% gap=0.000 minR=85.0mm (RMIN 68) maxTotal=59.927251200 minMargin=0.073 spacing=200.0mm HYDRAULIC_LOOP_VALID  runtime=62.4s peak=1716MB
+   L1 heating 32.771 + supply 6.200 + return 6.600 = 45.570694883 | margin 14.429 | minR 99.9 | cross 0 | |Δ planner| 1.4e-14 | LOOP_VALID
+   L2 heating 56.027 + supply 1.750 + return 2.150 = 59.927251200 | margin 0.073 LOW_MARGIN | minR 99.9 | cross 0 | |Δ planner| 2.1e-14 | LOOP_VALID
+   L3 heating 50.859 + supply 3.900 + return 4.300 = 59.059097104 | margin 0.941 | minR 85.0 | cross 0 | |Δ planner| 7.1e-15 | LOOP_VALID
+   L4 heating 38.556 + supply 10.370 + return 10.770 = 59.695529359 | margin 0.304 | minR 99.9 | cross 0 | |Δ planner| 4.3e-14 | LOOP_VALID

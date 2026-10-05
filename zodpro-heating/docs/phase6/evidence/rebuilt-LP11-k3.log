@@ -1,0 +1,4 @@
+## LP11 k=3 PROVEN_FEASIBLE=true cov=98.34% gap=0.000 minR=99.9mm (RMIN 68) maxTotal=59.964833962 minMargin=0.035 spacing=200.0mm HYDRAULIC_LOOP_VALID  runtime=17.5s peak=650MB
+   L1 heating 58.365 + supply 0.600 + return 1.000 = 59.964833962 | margin 0.035 LOW_MARGIN | minR 99.9 | cross 0 | |Δ planner| 7.1e-15 | LOOP_VALID
+   L2 heating 38.445 + supply 10.480 + return 10.880 = 59.804833962 | margin 0.195 LOW_MARGIN | minR 99.9 | cross 0 | |Δ planner| 5.7e-14 | LOOP_VALID
+   L3 heating 18.131 + supply 20.200 + return 20.600 = 58.930694883 | margin 1.069 | minR 99.9 | cross 0 | |Δ planner| 5.7e-14 | LOOP_VALID
