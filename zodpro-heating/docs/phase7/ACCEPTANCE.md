@@ -7,7 +7,7 @@ sub-phase alohida qabul qilinadi. Phase 6 baseline: `06130b3` (muzlatilgan).
 |---|---|
 | 7.0 Baseline guard + interfeys | ✅ ACCEPTED (foydalanuvchi, 2026-10-05; commit `cf1104e`) |
 | 7A Kollektor modeli | ✅ ACCEPTED (foydalanuvchi, 2026-10-05) |
-| 7B Transfer lead'lar + koridorlar | ⏳ testlar PASS, foydalanuvchi ko'rib chiqishi kutilmoqda — QABUL QILINMAGAN |
+| 7B Transfer lead'lar + real ulanish | ❌ QABUL QILINMAGAN — Phase 6 reference mismatch, real-lead 60 m, coverage, kesishmalar (pastda) |
 | 7C Lead geometriyasi | boshlanmagan |
 | 7D Haqiqiy uzunlik + qayta rejalash | boshlanmagan |
 | 7E Integratsiyalangan validatsiya | boshlanmagan |
@@ -58,36 +58,64 @@ Bu 7D ning vazifasi (haqiqiy lead + drop bilan qayta rejalash); 7A faqat hisobni
 konturlarni o'zgartirmaydi. Kollektor sig'imi: 9 kerak, 6 bor, yetishmaydi 3 — tavsiya: ≥ 9
 chiqishli fizik kollektor yoki zonani bir necha kollektorga bo'lish (modelga hech narsa qo'shilmaydi).
 
-## 7B — Transfer lead'lar, fizik koridor, U′ (holat: QABUL QILINMAGAN, ko'rib chiqish kutilmoqda)
+## 7B — Transfer lead'lar, real ulanish, topologiya (holat: QABUL QILINMAGAN)
 
-Engine: `src/engines/ufh/roomgraph.js`, `src/engines/ufh/corridor.js` (`planTransfers`); render va
-pipeline: `tools/ufh-transfer-debug.mjs` (muzlatilgan Phase 6 planner U′ ustida). Fixture'lar:
-`tests/fixtures/apartment-7b.json` (real loyiha turidagi kvartira: noto'g'ri shakldagi xonalar, ichki devorlar, eshiklar, kollektor xonasi, 4 target xona, vanna to'sig'i; heating 200 mm, hammom 150 mm), `tests/fixtures/zone-101-109-m12-7b.json`
-(101–109 xonalari, 12 chiqishli e'lon qilingan test kollektori).
+Arxitektura (foydalanuvchi qarori, 2026-10-05): **Phase 6 output = IMMUTABLE INPUT.** Phase 6 planner
+`U'` da (transit koridori ayirilgan, SPEC §5) bir marta chaqiriladi; uning heating geometriyasi, kontur
+soni / ID lari, bo'linishi va terminal closure'i 7B da o'zgarmaydi. 7B faqat: lead'larni muzlatilgan
+spiral uchlariga yotqizadi, topologiyani tekshiradi, o'lchaydi va xatolarni nomlab hisobot qiladi.
+Oldingi WIP dagi replanning (corner variantlar, xonani qayta spirallash, extra loop, routed `leadTo`,
+fixture o'zgartirish) olib tashlangan (commit `7432a50`).
 
-| # | Shart | Holat | Dalil |
-|---|---|---|---|
-| 1 | Parametrlar alohida, default / fallback yo'q | ✅ | test 7B-1 |
-| 2 | 12 lead: span (N−1)·S, eni span + OD, N·S emas (50 / 100 mm) | ✅ | test 7B-2 |
-| 3 | Maydon hisobi: C bir marta, U′ = U − C, rawcheck maxraji U′, coverage = H / U′ | ✅ | test 7B-3 |
-| 4 | Bog'langanlik: bo'linish / sliver yo'q, transition target U′ chegarasida | ✅ | test 7B-4 |
-| 5 | Lead geometriyasi: kesishma 0, devordan 50 mm, lead ↔ lead ≥ S | ✅ | test 7B-5 |
-| 6 | 101–109: 100 mm eshik sig'imsiz, 50 mm o'tadi, 108 hisoboti, devor bo'ylab | ✅ | test 7B-6 |
-| 7 | Determinizm | ✅ | test 7B-7 (hash) |
-| 8 | Phase 6 freeze 10/10, regression | ✅ | 188/188 (`evidence/7B-regression-188.log`, 382 s) |
-| 9 | Engine render: devorlar, eshiklar, kollektor, fizik chiqishlar, supply / return, lead yo'llari, o'lchangan 50 mm offset, heating qadami (o'lchangan), konturlar + ID + uzunlik, koridor, xona ID, coverage | ✅ | `pictures/7B-*.png` |
+| Savol | Javob |
+|---|---|
+| Phase 6 input geometry hash (asosiy kvartira, 50 mm) | `3e5932c0bcc59ffc…` |
+| Phase 6 geometry 7B tomonidan o'zgartirildimi | YO'Q (hash oldin = keyin = mustaqil Phase 6 chaqiruvi; test 7B-L) |
+| Kontur soni 7B da o'zgardimi | YO'Q (H 3, LR 3, BR1 3, BA 2, BR2 1 = 12) |
+| Extra loop yaratildimi | YO'Q |
+| Corner replanning bajarildimi | YO'Q |
 
-Kvartira, leadSpacing 50 mm (`evidence/7B-apartment-0.05-metrics.json`): `TRANSFERS_OK`, kesishma 0.
+Natija — asosiy fixture `apartment-7b.json` (2cfaf70 dagi bilan bir xil), leadSpacing 50 mm
+(`evidence/7B-apartment-0.05-metrics.json`, `pictures/7B-apartment-leadSpacing50*.png`):
 
-| Xona | Rol | U | C | U′ | H | coverage(U′) | Kontur | Bundle (lead / eni) |
-|---|---|---|---|---|---|---|---|---|
-| H | kollektor xonasi | 12.08 | 1.95 | 10.13 | 8.66 | 85.5 % | 3 | 10 / 0.466 → D2, D3; 8 / 0.366 → D1 |
-| LR | tranzit + target | 18.80 | 0.03 | 18.77 | 18.23 | 97.1 % | 3 | 2 / 0.066 → D4 |
-| BR1 | target | 14.50 | 0 | 14.50 | 13.75 | 94.8 % | 3 | — |
-| BA (150 mm) | target | 3.91 | 0 | 3.91 | 3.41 | 87.3 % | 2 | — |
-| BR2 | target | 12.08 | 0 | 12.08 | 11.60 | 96.0 % | 1 | — |
+| Xona | Kontur | Heating | Supply | Return | Drop | Total | Coverage (7B dan oldin) | Gap m² | Residual | Min R | Lead chuqurligi | Topologiya | Status |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| H | H.L1 | 6.58 | 15.79 | 15.55 | 0.80 | 38.72 | 97.2 % (93.4) | 0 | 150 mm | 75 mm | 50 mm | VALID | LEAD_HEATING_CLASH, PHASE6_REFERENCE_MISMATCH |
+| H | H.L2 | 27.01 | 10.95 | 11.09 | 0.80 | 49.85 | 97.5 % (97.4) | 0 | 180 mm | 100 mm | 50 mm | VALID | LEAD_HEATING_CLASH, PHASE6_REFERENCE_MISMATCH |
+| H | H.L3 | 10.15 | 6.52 | 6.50 | 0.80 | 23.97 | 92.5 % (91.6) | 0 | 170 mm | 85 mm | 208 mm | VALID | LEAD_HEATING_CLASH, PHASE6_REFERENCE_MISMATCH |
+| LR | LR.L1 | 43.33 | 2.92 | 3.27 | 0.80 | 50.33 | 98.2 % (98.1) | 0 | 160 mm | 80 mm | 150 mm | VALID | LEAD_HEATING_CLASH, PHASE6_REFERENCE_MISMATCH |
+| LR | LR.L2 | 14.79 | 11.38 | 10.93 | 0.80 | 37.89 | 94.1 % (94.1) | 0 | 180 mm | 90 mm | 50 mm | VALID | PHASE6_REFERENCE_MISMATCH |
+| LR | LR.L3 | 34.27 | 6.82 | 6.77 | 0.80 | 48.65 | 97.7 % (97.3) | 0 | 190 mm | 95 mm | 108 mm | VALID | LEAD_HEATING_CLASH, PHASE6_REFERENCE_MISMATCH |
+| BR1 | BR1.L1 | 28.67 | 2.79 | 2.54 | 0.80 | 34.79 | 96.6 % (96.2) | 0 | — | 100 mm | 100 mm | VALID | LEAD_HEATING_CLASH |
+| BR1 | BR1.L2 | 28.68 | 6.90 | 6.36 | 0.80 | 42.74 | 96.1 % (96.1) | 0 | — | 100 mm | 50 mm | VALID | LOOP_VALID |
+| BR1 | BR1.L3 | 10.46 | 9.16 | 9.21 | 0.80 | 29.64 | 88.4 % (88.3) | 0 | — | 100 mm | 50 mm | VALID | LOOP_VALID |
+| BA (150) | BA.L1 | 4.76 | 8.91 | 9.26 | 0.80 | 23.74 | 84.0 % (84.1) | 0 | — | 75 mm | 50 mm | VALID | PHASE6_COVERAGE_INSUFFICIENT |
+| BA (150) | BA.L2 | 17.49 | 7.51 | 7.17 | 0.80 | 32.97 | 88.2 % (88.2) | 0 | — | 75 mm | 150 mm | VALID | LOOP_VALID |
+| BR2 | BR2.L1 | 57.59 | 7.86 | 7.80 | 0.80 | 74.05 | 96.0 % (96.0) | 0.215 | — | 100 mm | 50 mm | VALID | REAL_LEAD_LENGTH_INVALID |
 
-Ochiq masalalar (qabuldan oldin qaror kerak):
-- `leadSpacing` real qiymati (100 mm da kvartirada kollektor xonasi bundle'i burchakka sig'maydi va H 81.9 %);
-- 101–109: C-01 eksportda devordan 0.40 m — bundle ichida → `LEAD_ORDER_INFEASIBLE`; kollektorning devordagi real joyi kerak;
-- kollektor xonasining o'z konturlari va lead → kontur chiqishi ulanishi — 7C.
+Xonalar (U, C, U′, H, coverage(U′); 7B dan oldingi = Phase 6 `U'` dagi): H 12.08 / 3.62 / 8.47 / 7.62 /
+90.0 % (85.5 %), LR 18.80 / 0.44 / 18.36 / 17.87 / 97.3 % (97.1), BR1 14.50 / 0.17 / 14.33 / 13.63 /
+95.1 % (94.8), BA 3.91 / 0.01 / 3.89 / 3.40 / 87.3 % (87.3), BR2 12.08 / 0 / 12.08 / 11.61 / 96.0 % (96.0).
+Heating geometriyasi bir xil; H va U′ farqi — 7B dagi xona ichidagi lead'lar koridori (U′ kichrayadi,
+heating band'ining bir qismi koridor ichida = LEAD_HEATING_CLASH).
+
+Lead'lar: devordan 50.0 mm (o'lchangan), lead kesishmalari 42 (asosan connection oyoqlari: muzlatilgan
+spiral uchlari lead bundle chetida / ichida — heating o'z lead'lari uchun joy qoldirilmasdan
+rejalangan), leadSpacing 100 mm → `CORRIDOR_CAPACITY_EXCEEDED` (D1 1.2 m > 0.9 m ham).
+
+A–D tasnifi:
+- A (Phase 6 reference'ga mos) — YO'Q: residual / terminal closure'li 6 konturda closure markazda
+  (`PHASE6_REFERENCE_MISMATCH`); Phase 6 generatori residual'ni o'lchamlar skanerida doim
+  0.38…0.60 en bo'yicha qo'yadi — reference'dagi "oxirgi o'tish yon polosani qoplaydi" bajarilmaydi.
+- B (reference'ga mos emas) — HA → Phase 6 qayta ochilishi kerak; 7B heating'ni o'zgartirmaydi.
+- C (coverage < 85 %) — BA.L1 84.0 % (`PHASE6_COVERAGE_INSUFFICIENT`), yashirilmagan.
+- D (real lead) — topologiya 12/12 VALID; lead ↔ lead kesishma va lead ↔ heating to'qnashuvi
+  muzlatilgan uchlar joyidan kelib chiqadi; 7B faqat yo'nalishni (exitSide) almashtira oladi.
+- 60 m: BR2.L1 real lead bilan 74.05 m (`REAL_LEAD_LENGTH_INVALID`; 7D qayta rejalaydi).
+
+Variant `apartment-7b-bathtub-endwall.json` (faqat vanna joyi; alohida hisobot,
+`evidence/7B-apartment-bathtub-endwall-0.05-metrics.json`): Phase 6 hash `9ad81f49…`, BA 1 kontur
+97.2 %, lead kesishmalari 12, BR2.L1 74.05 m — asosiy fixture o'rnini bosmaydi.
+
+Testlar: `tests/ufh-7b-loops.test.js` A–L 12/12, `tests/ufh-corridor.test.js` 7/7, freeze 2/2;
+to'liq regression — `evidence/7B-regression-full.log`.
