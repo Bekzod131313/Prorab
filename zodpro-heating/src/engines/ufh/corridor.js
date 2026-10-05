@@ -61,76 +61,6 @@ export function bundleGeometry(N, params) {
   return { N, span, width: span + params.pipeOD, depth: params.leadWallOffset + span + params.pipeOD / 2, doorNeed: 2 * params.leadWallOffset + span };
 }
 
-/**
- * The planning envelope of a room's leads: per wall edge, the depth profile of the lead
- * centrelines (+ pad) as a few rectangles — runs shorter than `minLen` (the staggered step-ins,
- * the port fan) merged into their deeper neighbour. It holds the corridor; planning heating
- * outside it gives the frozen rectilinear decomposition few cuts, and no heating pipe can come
- * near a lead. (U′ and the corridor are not changed by it: the extra strip is unheated floor.)
- */
-export function wallEnvelope(poly, lines, pad, minLen, step = 0.01) {
-  const R = G.ccw(poly);
-  const n = R.length;
-  const prof = R.map(() => new Map());
-  for (const l of lines)
-    for (const q of G.densify(l, step / 2)) {
-      let best = null;
-      for (let i = 0; i < n; i++) {
-        const a = R[i];
-        const b = R[(i + 1) % n];
-        const L = Math.hypot(b.x - a.x, b.y - a.y);
-        const t = Math.max(0, Math.min(L, ((q.x - a.x) * (b.x - a.x) + (q.y - a.y) * (b.y - a.y)) / L));
-        const d = Math.hypot(a.x + ((b.x - a.x) * t) / L - q.x, a.y + ((b.y - a.y) * t) / L - q.y);
-        if (!best || d < best.d - 1e-12) best = { i, t, d };
-      }
-      const bin = Math.floor(best.t / step);
-      const m = prof[best.i];
-      m.set(bin, Math.max(m.get(bin) ?? 0, best.d));
-    }
-  const rects = [];
-  for (let i = 0; i < n; i++) {
-    if (!prof[i].size) continue;
-    const a = R[i];
-    const b = R[(i + 1) % n];
-    const L = Math.hypot(b.x - a.x, b.y - a.y);
-    const u = { x: (b.x - a.x) / L, y: (b.y - a.y) / L };
-    const nn = { x: -u.y, y: u.x };
-    const bins = [...prof[i].keys()].sort((x, y) => x - y);
-    // runs of equal depth (1 mm), contiguous bins (a gap of ≤ 2 bins bridged)
-    let runs = [];
-    for (const k of bins) {
-      const d = Math.round(prof[i].get(k) * 1000) / 1000;
-      const last = runs[runs.length - 1];
-      if (last && k - last.b <= 3 && Math.abs(last.d - d) < 1e-9) last.b = k;
-      else if (last && k - last.b <= 3) runs.push({ a: last.b + 1, b: k, d });
-      else runs.push({ a: k, b: k, d, gap: true });
-    }
-    // merge the short runs into the deeper neighbour (the same contiguous group only)
-    for (;;) {
-      const len = (r) => (r.b - r.a + 1) * step;
-      let k = -1;
-      for (let j = 0; j < runs.length; j++) if (len(runs[j]) < minLen - 1e-12 && (j > 0 && !runs[j].gap || (j + 1 < runs.length && !runs[j + 1].gap))) if (k < 0 || len(runs[j]) < len(runs[k])) k = j;
-      if (k < 0) break;
-      const left = k > 0 && !runs[k].gap ? runs[k - 1] : null;
-      const right = k + 1 < runs.length && !runs[k + 1].gap ? runs[k + 1] : null;
-      const into = !left ? right : !right ? left : left.d >= right.d ? left : right;
-      const r = runs[k];
-      const m = { a: Math.min(r.a, into.a), b: Math.max(r.b, into.b), d: Math.max(r.d, into.d), gap: into === left ? left.gap : r.gap };
-      runs = runs.filter((x) => x !== r && x !== into);
-      runs.push(m);
-      runs.sort((x, y) => x.a - y.a);
-    }
-    for (const r of runs) {
-      const t0 = Math.max(0, r.a * step - pad);
-      const t1 = Math.min(L, (r.b + 1) * step + pad);
-      const D = r.d + pad;
-      const P = (t, d) => ({ x: a.x + u.x * t + nn.x * d, y: a.y + u.y * t + nn.y * d });
-      rects.push({ outer: [P(t0, 0), P(t1, 0), P(t1, D), P(t0, D)], holes: [] });
-    }
-  }
-  return rects.length ? G.intersection(G.union(rects), [{ outer: R, holes: [] }]) : [];
-}
-
 // ---- a closed CCW ring by arc length ----
 function ringOf(poly) {
   const R = G.ccw(poly);
@@ -276,7 +206,8 @@ export function planTransfers(o) {
         const e = exitOf(l.id);
         const mid = { x: (e.a.x + e.b.x) / 2, y: (e.a.y + e.b.y) / 2 };
         const f = ring.mod(ring.sOf(mid) - sE);
-        const side = f <= ring.T - f ? 1 : -1;
+        // the shorter way round, unless the caller sends this pair the other way (o.exitSide)
+        const side = o.exitSide?.[l.id] ?? (f <= ring.T - f ? 1 : -1);
         const u = (q) => (side > 0 ? ring.mod(ring.sOf(q) - sE) : ring.T - ring.mod(ring.sOf(q) - sE));
         return { loop: l.id, side, along: Math.min(u(e.a), u(e.b)), a: e.a, b: e.b, ha: e.ha, hb: e.hb };
       });
@@ -660,9 +591,6 @@ export function planTransfers(o) {
     }
     if (split.length) issues.push({ status: 'CORRIDOR_CAPACITY_EXCEEDED', room: rid, msg: `corridor splits / closes usable part(s): ${JSON.stringify(split)}` });
     if (slivers.length) issues.push({ status: 'CORRIDOR_CAPACITY_EXCEEDED', room: rid, msg: `corridor leaves ${slivers.length} sliver(s) narrower than the heating pitch: ${slivers.map((a) => a.toFixed(4)).join(', ')} m²` });
-    // the planning region (connected loops): U minus the corridor's wall envelope (⊇ corridor)
-    const X = mine.length ? G.union(K, wallEnvelope(room.poly, mine, OD / 2, prm.envelopeMinRun ?? 0.4)) : [];
-    const planRegion = (X.length && U.length ? G.difference(U, X) : U).filter((sh) => G.area([sh]) >= 1e-6);
     const U_m2 = G.area(U);
     const C_m2 = G.area(Craw);
     const Uprime_m2 = G.area(Uprime);
@@ -672,8 +600,6 @@ export function planTransfers(o) {
       corridor: K,
       exclusion: Craw,
       Uprime,
-      planExclusion: X,
-      planRegion,
       U_m2,
       C_m2,
       Uprime_m2,

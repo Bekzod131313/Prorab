@@ -295,61 +295,53 @@ O'lchanadigan shartlar (7B) — `tests/ufh-corridor.test.js`:
 - [ ] engine render: `tools/ufh-transfer-debug.mjs` (har bir chiziq engine qaytargan geometriya), `docs/phase7/pictures/7B-*`.
 - [ ] Phase 6 freeze 10/10, 7.0 / 7A o'zgarmagan, to'liq regression PASS.
 
-### 7B acceptance contract — 3-tahrir (FINAL CORRECTION: har bir kontur bitta fizik yo'l)
+### 7B acceptance contract — 3-tahrir (FINAL CORRECTION: Phase 6 output = IMMUTABLE INPUT)
 
 Kontur = bitta uzluksiz fizik yo'l: `COLLECTOR SUPPLY PORT → SUPPLY LEAD → (eshiklar) → TARGET ROOM →
-HEATING START → uzluksiz ikki yo'lli spiral (Phase 6, muzlatilgan) → terminal / residual closure →
-HEATING END → RETURN LEAD → (eshiklar) → o'sha juftning COLLECTOR RETURN PORT`. Serpantin yo'q.
+FROZEN HEATING START → FROZEN PHASE 6 SPIRAL (terminal closure bilan) → FROZEN HEATING END →
+RETURN LEAD → (eshiklar) → o'sha juftning COLLECTOR RETURN PORT`.
 
-Engine (Phase 6 fayllariga tegilmaydi; spiral faqat Phase 6 public API orqali olinadi):
-- `corridor.js` `planTransfers({ …, loopExits })`: `loopExits[loopId] = { a, b, ha, hb }` — muzlatilgan
-  planner bergan spiral uchlari (`spiral.supply`, `spiral.ret`) va uch stub'lari. Konturning juft
-  lead'i xona devori bo'ylab (o'z eshigidan yoki kollektordan) spiral uchigacha boradi: juft
-  bundle'ning xona tomonida, tashqi lead oldin buriladi (≥ S), uchlarga tayinlash va oyoq shakli
-  (to'g'ri / uchlar ortidan aylanib / to'g'ri burchakli) kesishmasiz variant bo'yicha tanlanadi; uch
-  kirish eshigi oldida bo'lsa — eshikdan to'g'ridan-to'g'ri. Bundle → spiral uchi kesmasi
-  "connection segment" (koridor emas). Xona ichidagi umumiy distribution yo'li = devor bo'ylab
-  bundle (alohida tunnel yo'q).
-- `looptopology.js` — har bir kontur uchun geometriya bo'yicha (1e-6 m) bayroqlar:
-  `collectorSupplyConnected, supplyLeadConnected (eshik ochiqlarini kesib o'tadi),
-  heatingStartConnected, heatingGeometryContinuous (heating = spiral path ichida uzluksiz),
-  heatingEndConnected, returnLeadConnected, collectorReturnConnected, wholeLoopConnected` (port →
-  lead → spiral → lead → port zanjiri). Bitta false → `LOOP_DISCONNECTED`; lead boshqa konturning
-  spiraliga, ikki lead bitta uchga yoki supply/return turli chiqish juftlarida →
-  `LOOP_CONNECTION_INVALID`. Rang yoki yaqinlik ulanish emas.
-- `loopreport.js` — yakuniy geometriyadan har bir kontur: heating (Phase 6), supply / return =
-  routed lead + spiral uch stub'i, `total = heating + supply + return + 2·drop` (7A `loopTotal` →
-  muzlatilgan 60 m tekshiruvi, 60.000000000 VALID / 60.000000001 INVALID, `LOW_MARGIN` < 0.25 m
-  ogohlantirish), o'z regioni ∩ `U'` dagi coverage va eng katta gap (raw check bilan bir xil band /
-  opening), residual spacing (o'lchangan), min radius, kesishmalar, lead clearance, lead chuqurligi,
-  topologiya, status.
-- Pipeline (`tools/ufh-transfer-debug.mjs`, `connect: true`): muzlatilgan planner `ctx.leadTo`
-  interfeysi orqali haqiqiy uzunlikni hisobga oladi (port → xona kirishigacha o'lchangan transfer +
-  drop + kirishdan devor bo'ylab yo'l); lead'lar spiral uchlariga yotqiziladi; spiral biror lead
-  run'iga `leadSpacing` dan yaqin bo'lsa (o'z lead'lari faqat o'z uchlari atrofida) — shu kontur
-  o'z regionida (devor envelope'i chiqarilgan) yoki xona butunlay qayta rejalanadi; har bir raund
-  ikki usul, eng yaxshi holat saqlanadi; o'z regionida 85 % dan past kontur boshqa start burchagi
-  (`toward`) bilan qayta spirallanadi. Hisobot: `converged`, `convergence`.
+**Phase 6 output o'zgarmas.** Phase 6 planner (muzlatilgan) xonaning `U'` ida (§5 oqimi: 7B transit
+koridori → `U'` → Phase 6) bir marta chaqiriladi; uning natijasi — heating geometriyasi, kontur soni,
+kontur ID lari, region bo'linishi, terminal closure — 7B uchun o'zgarmas kirish. 7B QILMAYDI: yangi
+spiral / boshqa start burchagi / xonani qayta spirallash / bo'linishni o'zgartirish / qo'shimcha
+kontur / coverage yoki 60 m uchun boshqa variant tanlash. Phase 6 natijasining hash'i 7B dan oldin
+va keyin olinadi va mustaqil Phase 6 chaqiruvi bilan solishtiriladi (`phase6GeometryHash`); farq —
+test xatosi.
 
-O'lchanadigan shartlar — `tests/ufh-7b-loops.test.js` (§18 ro'yxati):
-- [ ] 1 to'g'ri burchakli xona · 2 noto'g'ri shakl (L) · 3 1 konturli · 4 2 konturli (alohida
-  subregion, mustaqil uzluksiz spiral) · 5 3 konturli (kvartira H, LR, BR1) · 6 o'ng tomondagi
-  qoldiq en (yon polosa qoplangan, gap 0) · 7 markaziy residual closure (o'lchangan residual ≥ 0.1)
-  · 8 o'ng tomonda to'siq · 9 leadSpacing 50 (kvartira: TRANSFERS_OK, devordan 50.0 mm, qadam
-  o'lchangan 200 / 150 mm) · 10 leadSpacing 100 → `CORRIDOR_CAPACITY_EXCEEDED` (majburlanmaydi) ·
-  11 heating start / end 10 mm siljigan → `LOOP_DISCONNECTED` · 12 return port'dan 10 mm →
-  `LOOP_DISCONNECTED` · 13 supply / return boshqa konturga → `LOOP_CONNECTION_INVALID` · 14 real
-  kvartira fixture'i (determinizm bilan).
-- [ ] har bir kontur: topologiya VALID (8/8 bayroq), coverage ≥ 85 %, kesishma 0, clearance ≥ S,
-  radius ≥ RMIN, total ≤ 60 m; har bir xona `U − C = U'`, `H / U' ≥ 85 %`.
-- [ ] render faqat engine geometriyasidan: residual / terminal qism, heating start ● / end ○,
-  har bir kontur ID / chiqish / uzunlik / coverage, o'lchangan qadam va devor offset chiziqlari,
-  detail: kollektor → lead → eshik → xona → spiral → terminal closure → return.
+7B nima qiladi:
+- `corridor.js` `planTransfers({ …, loopExits, exitSide })`: lead'lar muzlatilgan spiral uchlariga
+  (`spiral.supply`, `spiral.ret`) devor bo'ylab yotqiziladi; juft bundle'ning xona tomonida, tashqi lead
+  oldin buriladi, oyoq shakli kesishmasiz variant bo'yicha; uch eshik oldida bo'lsa — eshikdan
+  to'g'ridan-to'g'ri. Kesishma bo'lsa, faqat lead yo'nalishi (xonani qaysi tomondan aylanish,
+  `exitSide`) almashtirib ko'riladi: avval yotqizib bo'lmaydigan lead / sig'imsizlik, keyin kesishmalar,
+  keyin heating bilan to'qnashuv, keyin uzunlik. Bundle → spiral uchi kesmasi connection segment
+  (koridor emas).
+- `looptopology.js` — 8 bayroq (`collectorSupplyConnected … wholeLoopConnected`), 1e-6 m;
+  `LOOP_DISCONNECTED` / `LOOP_CONNECTION_INVALID`; rang yoki yaqinlik ulanish emas.
+- `loopreport.js` — yakuniy geometriyadan har bir kontur o'lchanadi va statuslar NOMLANADI
+  (tuzatilmaydi): `PHASE6_COVERAGE_INSUFFICIENT` (o'z regioni ∩ `U'` < 85 % yoki gap),
+  `REAL_LEAD_LENGTH_INVALID` (`heating + real supply + real return + 2·drop > 60`; 7D qayta rejalaydi),
+  `LEAD_HEATING_CLASH` (lead spiralni kesadi yoki `leadSpacing` dan yaqin), `PHASE6_GEOMETRY_INVALID`,
+  `PHASE6_REFERENCE_MISMATCH`, topologiya statuslari. Coverage 7B gacha (Phase 6 `U'`) va keyin
+  (yakuniy `U'`) ikkalasi ham.
+- `phase6reference.js` — muzlatilgan natijani reference xatti-harakatiga solishtiradi (faqat o'qish):
+  spiral tashqi konturdan boshlanadi; terminal closure / oxirgi o'tish regionning YON polosasida
+  (o'rtacha masofa chegaraga ≤ 1.5·s). Mos kelmasa `PHASE6_REFERENCE_MISMATCH` — Phase 6 qayta
+  ochiladi, 7B tuzatmaydi.
 
-Cheklov (muzlatilgan Phase 6): spiral shakli, terminal closure joyi (Phase 6 generatori residual'ni
-doim markazga yaqin qo'yadi — skanerda 0.38…0.60 en bo'yicha) va region bo'linishi Phase 6 niki;
-7B ularni o'lchaydi va faqat Phase 6 public parametrlari (`region`, `toward`, `leadTo`) bilan
-qayta chaqiradi.
+O'lchanadigan shartlar — `tests/ufh-7b-loops.test.js` (A–L): A 1 konturli, B 2 konturli, C 3 konturli
+muzlatilgan geometriya + real lead; D heating start / end 10 mm → `LOOP_DISCONNECTED`; E supply
+port'dan 10 mm; F return port'dan 10 mm; G boshqa konturga ulanish → `LOOP_CONNECTION_INVALID`;
+H leadSpacing 50 (devordan 50.0 mm, qadam o'lchangan 200 / 150 mm); I leadSpacing 100 →
+`CORRIDOR_CAPACITY_EXCEEDED`; J real kvartira (har bir muzlatilgan kontur hisobotda, xatolar nomlangan,
+determinizm); K o'ng / yon residual reference tekshiruvi (nazorat namunasi OK, muzlatilgan markaziy
+closure → `PHASE6_REFERENCE_MISMATCH`); L Phase 6 output o'zgarmasligi (hash oldin = keyin = mustaqil
+Phase 6; 1 µm siljish ushlanadi).
+
+Fixture'lar: `apartment-7b.json` (asosiy, 2cfaf70 dagi bilan bir xil) va
+`apartment-7b-bathtub-endwall.json` (alohida variant: faqat vanna joyi boshqa) — ikkalasi alohida
+hisobot qilinadi; biridan ikkinchisiga yashirin o'tish yo'q.
 
 ## 10. Failure statuslari
 
@@ -369,6 +361,10 @@ qayta chaqiradi.
 | `COVERAGE_BELOW_LIMIT` | `U'` bo'yicha coverage < 0.85 yoki gap > limit | ha |
 | `LOOP_DISCONNECTED` | kontur yo'lining biror bo'g'ini geometrik ulanmagan (7B, `looptopology.js`) | ha |
 | `LOOP_CONNECTION_INVALID` | lead boshqa kontur spiraliga / supply va return turli juftda (7B) | ha |
+| `PHASE6_COVERAGE_INSUFFICIENT` | muzlatilgan Phase 6 kontur o'z regionida < 85 % (7B tuzatmaydi) | ha |
+| `REAL_LEAD_LENGTH_INVALID` | muzlatilgan kontur real lead + drop bilan > 60 m (7D qayta rejalaydi) | ha |
+| `LEAD_HEATING_CLASH` | lead muzlatilgan spiralni kesadi / `leadSpacing` dan yaqin | ha |
+| `PHASE6_REFERENCE_MISMATCH` | muzlatilgan geometriya reference xatti-harakatiga mos emas (Phase 6 qayta ochiladi) | ha |
 | `LOW_MARGIN` | `margin < 0.25 m` | yo'q (ogohlantirish) |
 | `ROUTED_VALID` | hammasi o'tdi | — |
 

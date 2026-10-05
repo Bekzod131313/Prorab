@@ -9,9 +9,19 @@
 //   total     heating + supply + return + 2 · drop (collector.js loopTotal → the frozen 60 m check)
 //   coverage  the loop's own region ∩ U′ covered by its heating band (s/2 + 3 mm, as the raw check)
 //   gap       the largest uncovered patch of that region (opening by s/2, as the raw check)
+//
+// The heating is the frozen Phase 6 output, taken as it is: a loop that fails is REPORTED with a
+// named status — nothing here (or anywhere in 7B) repairs a spiral, a region or a loop count.
+//   PHASE6_COVERAGE_INSUFFICIENT  its region (∩ U′) below 85 % or a gap over the limit
+//   REAL_LEAD_LENGTH_INVALID      heating + real supply + real return + 2 · drop > 60 m (7D replans)
+//   LEAD_HEATING_CLASH            a lead crosses the spiral or comes closer than leadSpacing
+//   PHASE6_GEOMETRY_INVALID       radius / residual spacing / Phase 6 geometry flag
+//   PHASE6_REFERENCE_MISMATCH     the reference behaviour (phase6reference.js) not met
+//   LOOP_DISCONNECTED / LOOP_CONNECTION_INVALID   topology (looptopology.js)
 
 import * as G from './geom.js';
 import { loopTotal } from './collector.js';
+import { referenceCheck, PHASE6_REFERENCE_MISMATCH } from './phase6reference.js';
 import { RMIN_CHECK, ENGINEERING_FINAL_COVERAGE, ENGINEERING_COVERAGE_TOLERANCE, ENGINEERING_FINAL_MAX_HOLE, MIN_RESIDUAL_CLOSURE_SPACING, SPACING_TOL } from './criteria.js';
 
 const bbox = (p) => G.bbox(p);
@@ -93,6 +103,10 @@ export function loopReport(o) {
         }
       }
     const coverage = A > 0 ? covered / A : 0;
+    // the same measure on the Phase 6 input region (before 7B's in-room leads changed U′)
+    const region0 = o.Uprime0 ? G.intersection([L.loop.shape], o.Uprime0[L.room] ?? []) : null;
+    const coverageBefore = region0 && G.area(region0) > 0 ? G.area(G.intersection(region0, band)) / G.area(region0) : null;
+    const reference = referenceCheck(L.loop, s);
     const checks = {
       topology: topo?.status === 'LOOP_TOPOLOGY_VALID',
       length60: len.status === 'LOOP_VALID',
@@ -107,6 +121,13 @@ export function loopReport(o) {
     const failed = Object.entries(checks)
       .filter(([, v]) => !v)
       .map(([k]) => k);
+    const statuses = [];
+    if (!checks.topology) statuses.push(topo?.status ?? 'LOOP_DISCONNECTED');
+    if (!checks.length60) statuses.push('REAL_LEAD_LENGTH_INVALID');
+    if (!checks.coverage || !checks.largestGap) statuses.push('PHASE6_COVERAGE_INSUFFICIENT');
+    if (!checks.noCrossing || !checks.clearance) statuses.push('LEAD_HEATING_CLASH');
+    if (!checks.radius || !checks.residualSpacing || !checks.geometryValid) statuses.push('PHASE6_GEOMETRY_INVALID');
+    if (reference.status === PHASE6_REFERENCE_MISMATCH) statuses.push(PHASE6_REFERENCE_MISMATCH);
     rows.push({
       room: L.room,
       loop: L.id,
@@ -122,6 +143,8 @@ export function loopReport(o) {
       region_m2: A,
       covered_m2: covered,
       coverage,
+      coverageBefore,
+      reference,
       largestGap_m2: holes[0] ?? 0,
       nominalSpacing: L.loop.nominalSpacing ?? s,
       residual,
@@ -133,7 +156,8 @@ export function loopReport(o) {
       flags: topo?.flags ?? null,
       checks,
       // LOW_MARGIN (< 0.25 m) is a warning only
-      status: failed.length ? 'LOOP_INVALID' : 'LOOP_VALID',
+      status: statuses.length ? 'LOOP_INVALID' : 'LOOP_VALID',
+      statuses,
       warnings: len.lowMargin ? ['LOW_MARGIN'] : [],
       failed,
     });
