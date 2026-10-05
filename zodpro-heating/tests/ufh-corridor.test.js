@@ -1,207 +1,208 @@
-// Phase 7B: room graph, transit corridors (physical exclusions), U' — and the three separate
-// parameters collectorPortPitch / leadWallOffset / heatingPitch (docs/phase7/SPEC.md).
+// Phase 7B: transfer leads (manifold → wall-following → door → wall-following → target-room
+// transition) as real engine geometry, the physical corridor exclusion, U' and the frozen Phase 6
+// heating loops — on a fixture of the real project type (tests/fixtures/apartment-7b.json) and on
+// 101–109.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'fs';
+import crypto from 'crypto';
 import * as G from '../src/engines/ufh/geom.js';
-import { doorChains, roomOf } from '../src/engines/ufh/roomgraph.js';
-import { planCorridors, routingParams, heatingPitchOf, slotLine } from '../src/engines/ufh/corridor.js';
-import { spiralRegions } from '../src/engines/ufh/decompose.js';
-import { planLoops } from '../src/engines/ufh/loopplanner.js';
+import { doorChains } from '../src/engines/ufh/roomgraph.js';
+import { planTransfers, routingParams, heatingPitchOf, bundleGeometry } from '../src/engines/ufh/corridor.js';
+import { portsOf } from '../src/engines/ufh/collector.js';
 import { checkZoneReport, ZONE_REPORT_VERSION } from '../src/engines/ufh/collectorcontract.js';
-import { SPACING_TOL, GEOMETRY_NUMERICAL_TOLERANCE } from '../src/engines/ufh/criteria.js';
+import { FAN_RADIUS_M } from '../src/engines/ufh/leadcriteria.js';
+import { SPACING_TOL, GEOMETRY_NUMERICAL_TOLERANCE, ENGINEERING_COVERAGE_TOLERANCE } from '../src/engines/ufh/criteria.js';
+import { usableOf, runTransfers, metricsOf } from '../tools/ufh-transfer-debug.mjs';
 
-const box = (x0, y0, x1, y1) => [{ x: x0, y: y0 }, { x: x1, y: y0 }, { x: x1, y: y1 }, { x: x0, y: y1 }];
-const man = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
-const WALL_CLEARANCE = 0.2;
-const usableOf = (rooms) => Object.fromEntries(rooms.map((r) => [r.id, G.offset([{ outer: G.ccw(r.poly), holes: [] }], -WALL_CLEARANCE, 'miter')]));
+const APT = JSON.parse(fs.readFileSync(new URL('./fixtures/apartment-7b.json', import.meta.url), 'utf8'));
+const Z101 = JSON.parse(fs.readFileSync(new URL('./fixtures/zone-101-109.json', import.meta.url), 'utf8'));
+const D101 = JSON.parse(fs.readFileSync(new URL('./fixtures/doors-101-109.json', import.meta.url), 'utf8'));
+const TOL = GEOMETRY_NUMERICAL_TOLERANCE.area_m2;
+const paramsOf = (fx, leadSpacing) => ({ heatingPitch: fx.heatingPitch, leadWallOffset: fx.leadWallOffset, leadSpacing, pipeType: fx.pipeType, wallClearance: fx.wallClearance });
+const COUNTS = { H: 3, LR: 3, BR1: 3, BA: 2, BR2: 1 };
+const transfers = (leadSpacing, over = {}) => planTransfers({ rooms: APT.rooms, doors: APT.doors, collector: APT.collector, loopsByRoom: COUNTS, usable: usableOf(APT), params: paramsOf(APT, leadSpacing), ...over });
+const hash = (x) => crypto.createHash('sha256').update(JSON.stringify(x)).digest('hex');
+// the pipeline (frozen planner on U and U′) once per spacing, shared by the tests
+const RUN50 = runTransfers(APT, { leadSpacing: 0.05 });
+const M50 = metricsOf(RUN50);
 
-// three rooms in a row (0.1 m walls): A holds the manifold, B is passed, C is the target
-const ROOMS = [
-  { id: 'A', poly: box(0, 0, 4, 4) },
-  { id: 'B', poly: box(4.1, 0, 8.1, 4) },
-  { id: 'C', poly: box(8.2, 0, 11.2, 3) },
-];
-const DOORS = [
-  { id: 'AB', between: ['A', 'B'], at: { x: 4.05, y: 0.8 }, width_m: 0.9 },
-  { id: 'BC', between: ['B', 'C'], at: { x: 8.15, y: 0.8 }, width_m: 0.9 },
-];
-const COLLECTOR = { id: 'M', at: { x: 2, y: 0 }, outlets: 6, portPitch_m: 0.05, dropPerPipe_m: 0.4, facing: { x: 0, y: 1 } };
-// the real project values: leadWallOffset 50 mm, heating 200 mm; leadSpacing is a test input
-const PARAMS = { heatingPitch: 0.2, leadWallOffset: 0.05, leadSpacing: 0.1 };
-const base = (over = {}) => ({ rooms: ROOMS, doors: DOORS, collector: COLLECTOR, loopsByRoom: { B: 1, C: 2 }, usable: usableOf(ROOMS), params: PARAMS, ...over });
-
-const planRoom = (U, s, toward) => {
-  const res = spiralRegions(U, s, { toward });
-  return planLoops(res, U, s, { leadTo: (p) => man(toward, p), manifold: null, toward });
-};
-
-test('7B parameters: heatingPitch, leadWallOffset, leadSpacing required — no default; heatingPitch only 0.15 / 0.20 m', () => {
-  assert.equal(routingParams(PARAMS).ok, true);
-  assert.equal(routingParams({ ...PARAMS, heatingPitch: 0.15 }).ok, true);
-  for (const k of ['heatingPitch', 'leadWallOffset', 'leadSpacing']) {
-    const p = { ...PARAMS };
-    delete p[k];
-    const r = routingParams(p);
+test('7B 1 parameter separation: collectorPortPitch, leadWallOffset, leadSpacing, heatingPitch — required, none a fallback for another', () => {
+  const p = paramsOf(APT, 0.05);
+  assert.equal(routingParams(p).ok, true);
+  for (const k of ['heatingPitch', 'leadWallOffset', 'leadSpacing', 'pipeType', 'wallClearance']) {
+    const q = { ...p };
+    delete q[k];
+    const r = routingParams(q);
     assert.equal(r.status, 'INPUT_INVALID', k);
-    assert.ok(r.errors.some((e) => e.startsWith(k)));
+    // no other value is taken instead (the collector has portPitch_m = 0.05 — never a leadSpacing)
+    assert.equal(transfers(0.05, { params: q }).status, 'INPUT_INVALID', k);
   }
-  // the other two values never pass as a heating pitch
-  for (const h of [0.05, 0.1, 0.25]) assert.equal(routingParams({ ...PARAMS, heatingPitch: h }).ok, false, `${h}`);
-  assert.equal(planCorridors(base({ params: { leadWallOffset: 0.05, leadSpacing: 0.1 } })).status, 'INPUT_INVALID');
-  // per room: its own heating pitch, else the zone's
-  assert.equal(heatingPitchOf({ id: 'X' }, PARAMS), 0.2);
-  assert.equal(heatingPitchOf({ id: 'X', heatingPitch: 0.15 }, PARAMS), 0.15);
-  assert.throws(() => heatingPitchOf({ id: 'X', heatingPitch: 0.05 }, PARAMS));
-});
-
-test('7B room graph: door chains by Dijkstra; 101–109: 107 (manifold) → D-03 → 108 → D-04 → 101; no door → LEAD_ROUTE_NOT_FOUND', () => {
-  const Z = JSON.parse(fs.readFileSync(new URL('./fixtures/zone-101-109.json', import.meta.url), 'utf8'));
-  const D = JSON.parse(fs.readFileSync(new URL('./fixtures/doors-101-109.json', import.meta.url), 'utf8'));
-  const rooms = Z.rooms.map((r) => ({ id: r.name, poly: r.poly }));
-  const c = doorChains({ rooms, doors: D.doors, collectorAt: Z.manifold.at });
-  assert.equal(c.collectorRoom, '107');
-  assert.deepEqual(c.rooms['107'].doors, []);
-  assert.deepEqual(c.rooms['108'].doors, ['D-03']);
-  assert.deepEqual(c.rooms['101'].doors, ['D-03', 'D-04']);
-  // the Phase 6 fixture's own chains agree
-  for (const r of Z.rooms) assert.deepEqual(c.rooms[r.name].doors, r.via);
-  const cut = doorChains({ rooms, doors: D.doors.filter((d) => d.id !== 'D-04'), collectorAt: Z.manifold.at });
-  assert.equal(cut.rooms['101'].reachable, false);
-  assert.equal(cut.rooms['101'].status, 'LEAD_ROUTE_NOT_FOUND');
-  assert.equal(roomOf(rooms, { x: -5, y: -5 }), null);
-  const pc = planCorridors({ rooms, doors: D.doors.filter((d) => d.id !== 'D-04'), collector: { ...COLLECTOR, at: Z.manifold.at }, loopsByRoom: D.loopsByRoom, usable: usableOf(rooms), params: PARAMS });
-  assert.ok(pc.reasons.includes('LEAD_ROUTE_NOT_FOUND'));
-});
-
-test('7B corridors are physical: every lead slot centreline lies in its corridor, slot j at leadWallOffset + j·leadSpacing from the wall', () => {
-  const r = planCorridors(base());
-  assert.equal(r.status, 'CORRIDORS_OK', JSON.stringify(r.issues));
-  // A carries C's and B's leads (2 + 4 = 6) to door AB; B carries C's 4 leads to BC; C: none (transition)
-  assert.deepEqual(r.rooms.A.exits, [{ door: 'AB', leads: 6 }]);
-  assert.deepEqual(r.rooms.B.exits, [{ door: 'BC', leads: 4 }]);
-  assert.equal(r.rooms.C.pieces.length, 0);
-  for (const id of ['A', 'B']) {
-    const room = [{ outer: G.ccw(ROOMS.find((x) => x.id === id).poly), holes: [] }];
-    assert.ok(r.rooms[id].pieces.length > 0);
-    for (const pc of r.rooms[id].pieces) {
-      assert.ok(Math.abs(pc.e - (PARAMS.leadWallOffset + (pc.N - 1) * PARAMS.leadSpacing + PARAMS.heatingPitch / 2)) < 1e-12);
-      for (let j = 0; j < pc.N; j++) {
-        const pts = G.densify(slotLine(pc, j, PARAMS), 0.02);
-        const want = PARAMS.leadWallOffset + j * PARAMS.leadSpacing;
-        let dmin = Infinity;
-        for (const q of pts) {
-          assert.ok(G.pointInRegion(q, pc.band) || G.distToRegionBoundary(q, pc.band) < 1e-6, `${id} slot ${j} outside its corridor`);
-          dmin = Math.min(dmin, G.distToRegionBoundary(q, room));
-        }
-        assert.ok(Math.abs(dmin - want) < 1e-9, `${id} slot ${j}: ${dmin} ≠ ${want}`);
-      }
-    }
+  for (const h of [0.05, 0.1, 0.25]) assert.equal(routingParams({ ...p, heatingPitch: h }).ok, false, `heatingPitch ${h}`);
+  assert.equal(routingParams({ ...p, pipeType: 'no-such-pipe' }).ok, false);
+  assert.equal(routingParams({ ...p, leadSpacing: 0.01 }).ok, false); // < pipe OD 16 mm
+  // per room: its own heating pitch or the zone's — never the lead offset or the port pitch
+  for (const r of APT.rooms) assert.equal(heatingPitchOf(r, routingParams(p).params), 0.2);
+  // changing the collector port pitch changes neither the lead depths nor the heating pitch
+  const a = transfers(0.05);
+  const b = transfers(0.05, { collector: { ...APT.collector, portPitch_m: 0.04 } });
+  const depthsOf = (tr) => Object.fromEntries(Object.entries(tr.rooms).map(([k, v]) => [k, [v.heatingPitch, v.bundles.map((x) => [x.N, x.depth])]]));
+  assert.deepEqual(depthsOf(b), depthsOf(a));
+  // changing the lead wall offset moves the bundles, not the heating pitch
+  const c = transfers(0.05, { params: { ...paramsOf(APT, 0.05), leadWallOffset: 0.06 } });
+  for (const [rid, x] of Object.entries(c.rooms)) {
+    assert.equal(x.heatingPitch, 0.2);
+    x.bundles.forEach((bd, i) => assert.ok(Math.abs(bd.depth - a.rooms[rid].bundles[i].depth - 0.01) < 1e-12));
+  }
+  // the heating loops of every room at 200 mm (measured), not 50 mm
+  for (const [rid, x] of Object.entries(M50.rooms)) {
+    for (const l of x.loops) assert.equal(l.nominalSpacing, 0.2, `${rid} ${l.id}`);
+    assert.ok(x.minHeatingSpacing_m >= 0.2 - SPACING_TOL, `${rid}: ${x.minHeatingSpacing_m}`);
   }
 });
 
-test('7B A: the collector port pitch (50 mm) never becomes the heating pitch — the corridor edge and the slots do not depend on it', () => {
-  const r5 = planCorridors(base());
-  const r8 = planCorridors(base({ collector: { ...COLLECTOR, portPitch_m: 0.08 } }));
-  for (const id of ['A', 'B', 'C']) assert.equal(r8.rooms[id].heatingPitch, r5.rooms[id].heatingPitch);
-  assert.deepEqual(r8.rooms.A.pieces.map((p) => [p.N, p.e]), r5.rooms.A.pieces.map((p) => [p.N, p.e]));
-  assert.ok(Math.abs(r8.rooms.B.Uprime_m2 - r5.rooms.B.Uprime_m2) < 1e-12); // (only the port row's own length in A)
-  for (const r of [r5, r8]) for (const id of ['A', 'B', 'C']) assert.notEqual(r.rooms[id].heatingPitch, COLLECTOR.portPitch_m);
+test('7B 2 corridor width: centreline span (N − 1)·S, physical width span + OD — never N·S; 12 leads at 50 and 100 mm', () => {
+  const P = (S) => routingParams(paramsOf(APT, S)).params;
+  const g50 = bundleGeometry(12, P(0.05));
+  assert.ok(Math.abs(g50.span - 0.55) < 1e-12);
+  assert.ok(Math.abs(g50.width - 0.566) < 1e-12);
+  assert.ok(Math.abs(g50.depth - (0.05 + 0.55 + 0.008)) < 1e-12);
+  assert.ok(Math.abs(g50.doorNeed - 0.65) < 1e-12);
+  assert.notEqual(g50.width, 12 * 0.05);
+  const g100 = bundleGeometry(12, P(0.1));
+  assert.ok(Math.abs(g100.span - 1.1) < 1e-12);
+  assert.ok(Math.abs(g100.width - 1.116) < 1e-12);
+  assert.ok(Math.abs(g100.depth - (0.05 + 1.1 + 0.008)) < 1e-12);
+  assert.ok(Math.abs(g100.doorNeed - 1.2) < 1e-12);
+  assert.notEqual(g100.width, 12 * 0.1);
+  // the corridor the engine cut matches its bundle: no corridor point deeper than the bundle
+  const tr = RUN50.transfers;
+  for (const rid of ['H', 'LR']) {
+    const room = [{ outer: G.ccw(APT.rooms.find((r) => r.id === rid).poly), holes: [] }];
+    const deepest = Math.max(...tr.rooms[rid].bundles.map((b) => b.depth));
+    for (const sh of tr.rooms[rid].corridor) for (const q of sh.outer) assert.ok(G.distToRegionBoundary(q, room) <= deepest + 1e-6, `${rid}: corridor point ${JSON.stringify(q)} deeper than ${deepest}`);
+  }
 });
 
-test('7B B: the lead wall offset (50 mm) never becomes the heating pitch — it moves the corridor only', () => {
-  const r5 = planCorridors(base());
-  const r8 = planCorridors(base({ params: { ...PARAMS, leadWallOffset: 0.08 } }));
-  for (const id of ['A', 'B', 'C']) {
-    assert.equal(r5.rooms[id].heatingPitch, 0.2);
-    assert.equal(r8.rooms[id].heatingPitch, 0.2);
+test("7B 3 area accounting: U, C once, U′ = U − C, H inside U′ (rawcheck's own denominator is U′), coverage = H / U′", () => {
+  assert.equal(ENGINEERING_COVERAGE_TOLERANCE, 0);
+  const tr = RUN50.transfers;
+  for (const [rid, x] of Object.entries(tr.rooms)) {
+    const m = M50.rooms[rid];
+    // C counted once: C = area(U ∩ corridor); nothing of the corridor left in U′
+    assert.ok(Math.abs(x.C_m2 - G.area(G.intersection(x.U, x.corridor))) <= TOL, rid);
+    assert.ok(G.area(G.intersection(x.Uprime, x.corridor)) <= TOL, `${rid}: U′ ∩ corridor`);
+    assert.ok(Math.abs(x.U_m2 - x.C_m2 - x.Uprime_m2) <= TOL, `${rid}: U − C ≠ U′`);
+    // the frozen rawcheck measured on U′: its usable area is U′ (the corridor is not in it, so not subtracted again)
+    assert.ok(Math.abs(m.rawcheckUsable_m2 - x.Uprime_m2) <= TOL, `${rid}: rawcheck usable ${m.rawcheckUsable_m2} vs U′ ${x.Uprime_m2}`);
+    assert.ok(Math.abs(m.H_m2 + m.rawcheckUncovered_m2 - x.Uprime_m2) <= TOL, `${rid}: H + uncovered ≠ U′`);
+    assert.ok(Math.abs(m.coverageUprime - m.H_m2 / x.Uprime_m2) < 1e-12);
+    assert.ok(m.H_m2 <= x.Uprime_m2 + TOL);
   }
-  r5.rooms.B.pieces.forEach((p, i) => assert.ok(Math.abs(r8.rooms.B.pieces[i].e - p.e - 0.03) < 1e-12));
-  assert.ok(r8.rooms.B.corridor_m2 > r5.rooms.B.corridor_m2);
-});
-
-test('7B C: heating pitch 200 mm stays 200 mm in the target room (and 150 mm stays 150) — frozen Phase 6 planner', () => {
-  for (const h of [0.2, 0.15]) {
-    const r = planCorridors(base({ params: { ...PARAMS, heatingPitch: h } }));
-    const s = r.rooms.C.heatingPitch;
-    assert.equal(s, h);
-    const plan = planRoom(r.rooms.C.Uprime, s, DOORS[1].at);
-    assert.ok(plan.loops.length > 0);
-    for (const l of plan.loops) assert.equal(l.nominalSpacing, h);
-    assert.ok(plan.check.minSpacing >= h - SPACING_TOL, `min spacing ${plan.check.minSpacing}`);
-    assert.ok(plan.check.minSpacing > PARAMS.leadWallOffset + 0.05 && plan.check.minSpacing > COLLECTOR.portPitch_m + 0.05);
-  }
-  // a different pitch per room: manifold room 150 mm, target 200 mm
-  const rooms = [{ ...ROOMS[0], heatingPitch: 0.15 }, ROOMS[1], { ...ROOMS[2], heatingPitch: 0.2 }];
-  const r = planCorridors(base({ rooms, usable: usableOf(rooms) }));
-  assert.equal(r.rooms.A.heatingPitch, 0.15);
-  assert.equal(r.rooms.C.heatingPitch, 0.2);
-  for (const l of planRoom(r.rooms.C.Uprime, r.rooms.C.heatingPitch, DOORS[1].at).loops) assert.equal(l.nominalSpacing, 0.2);
-});
-
-test("7B D: U, corridor exclusion, U', heated area and coverage(U') consistent; no heating pipe in a corridor", () => {
-  const r = planCorridors(base());
-  const tol = GEOMETRY_NUMERICAL_TOLERANCE.area_m2;
-  for (const id of ['A', 'B', 'C']) {
-    const x = r.rooms[id];
-    assert.ok(Math.abs(x.U_m2 - x.corridor_m2 - x.Uprime_m2) <= tol, `${id}`);
-    assert.ok(Math.abs(G.area(G.intersection(x.Uprime, x.corridor))) <= tol, `${id}: U′ ∩ corridor`);
-  }
-  assert.ok(r.rooms.A.corridor_m2 > 0 && r.rooms.B.corridor_m2 > 0 && r.rooms.C.corridor_m2 === 0);
-  assert.ok(Math.abs(r.areas.U_m2 - r.areas.corridor_m2 - r.areas.Uprime_m2) <= tol);
-  // the manifold room heated on U′ by the frozen planner: heated / U′, and the 7.0 contract
-  const A = r.rooms.A;
-  const plan = planRoom(A.Uprime, A.heatingPitch, COLLECTOR.at);
-  assert.ok(Math.abs(plan.check.usable_m2 - A.Uprime_m2) <= tol);
-  const heated = plan.check.usable_m2 - plan.check.uncovered_m2;
-  const coverage = heated / A.Uprime_m2;
-  assert.ok(Math.abs(coverage - plan.check.coverage) < 1e-6);
-  const report = {
-    version: ZONE_REPORT_VERSION,
-    zoneId: 'A',
-    status: 'ROUTED_VALID',
-    reasons: [],
-    collector: { id: 'M', outlets: 6, portsUsed: 0 },
-    areas: { U_m2: A.U_m2, corridor_m2: A.corridor_m2, Uprime_m2: A.Uprime_m2, heated_m2: heated, coverageUprime: heated / A.Uprime_m2 },
-    corridors: r.corridors.filter((k) => k.rooms[0] === 'A'),
-    loops: [],
-  };
+  // the 7.0 contract on the zone's areas: U′ denominator; coverage over U is rejected
+  const sum = (k) => Object.values(M50.rooms).reduce((a, r) => a + r[k], 0);
+  const areas = { U_m2: sum('U_m2'), corridor_m2: sum('C_m2'), Uprime_m2: sum('Uprime_m2'), heated_m2: sum('H_m2') };
+  areas.coverageUprime = areas.heated_m2 / areas.Uprime_m2;
+  const corridors = Object.entries(tr.rooms).filter(([, x]) => x.C_m2 > 0).map(([rid, x]) => ({ id: `K-${rid}`, rooms: [rid], doors: [], leads: Math.max(...x.bundles.map((b) => b.N)), width_m: Math.max(...x.bundles.map((b) => b.width)), area_m2: x.C_m2, poly: x.corridor }));
+  const report = { version: ZONE_REPORT_VERSION, zoneId: 'apartment', status: 'ROUTED_VALID', reasons: [], collector: { id: 'C-1', outlets: 12, portsUsed: 0 }, areas, corridors, loops: [] };
   assert.deepEqual(checkZoneReport(report), { ok: true, errors: [] });
-  // coverage over U would differ: the contract rejects it
-  assert.equal(checkZoneReport({ ...report, areas: { ...report.areas, coverageUprime: heated / A.U_m2 } }).ok, false);
-  // no collision: every heating pipe outside the corridor, ≥ heatingPitch/2 from it
-  for (const l of plan.loops)
-    for (const q of G.densify(l.spiral.heating, 0.02)) {
-      assert.ok(!G.pointInRegion(q, A.corridor), 'heating pipe inside the corridor');
-      assert.ok(G.distToRegionBoundary(q, A.corridor) >= A.heatingPitch / 2 - SPACING_TOL);
+  assert.equal(checkZoneReport({ ...report, areas: { ...areas, coverageUprime: areas.heated_m2 / areas.U_m2 } }).ok, false);
+  // no heating pipe in a corridor: ≥ heatingPitch / 2 from it
+  for (const [rid, p] of Object.entries(RUN50.plans)) {
+    const K = tr.rooms[rid].corridor;
+    if (!K.length) continue;
+    for (const l of p.loops)
+      for (const q of G.densify(l.spiral.heating, 0.02)) {
+        assert.ok(!G.pointInRegion(q, K), `${rid}: heating pipe in the corridor`);
+        assert.ok(G.distToRegionBoundary(q, K) >= tr.rooms[rid].heatingPitch / 2 - SPACING_TOL);
+      }
+  }
+});
+
+test('7B 4 connectivity: no closed / split heating area, no sliver, the transitions reach the target heating zone', () => {
+  const tr = RUN50.transfers;
+  assert.equal(tr.status, 'TRANSFERS_OK', JSON.stringify(tr.issues));
+  for (const [rid, x] of Object.entries(tr.rooms)) {
+    assert.equal(x.components.after, x.components.before, rid);
+    assert.deepEqual(x.split, []);
+    assert.deepEqual(x.slivers, []);
+    assert.ok(x.crumbs_m2 < 1e-5, `${rid}: crumbs ${x.crumbs_m2}`);
+  }
+  // every transfer lead ends on the edge of its target room's heating zone (U′, wallClearance in)
+  for (const l of tr.leads) {
+    const end = l.path.at(-1);
+    assert.ok(G.distToRegionBoundary(end, tr.rooms[l.room].Uprime) < 1e-6, `${l.id} ends ${JSON.stringify(end)}`);
+  }
+  // at 100 mm the hall cannot hold its 10-lead bundle between the manifold and the corner: reported, not hidden
+  const t100 = transfers(0.1);
+  assert.ok(t100.reasons.includes('CORRIDOR_CAPACITY_EXCEEDED'));
+  assert.ok(t100.issues.some((i) => /does not fit the wall stretch/.test(i.msg)));
+});
+
+test('7B lead geometry: manifold → wall at 50 mm → door → wall → target transition; no crossing; leads S apart', () => {
+  const tr = RUN50.transfers;
+  const prm = tr.params;
+  assert.equal(tr.crossings, 0);
+  const ports = portsOf(APT.collector);
+  const portPts = ports.flatMap((p) => [p.supply, p.ret]);
+  const chains = doorChains({ rooms: APT.rooms, doors: APT.doors, collectorAt: APT.collector.at });
+  for (const l of tr.leads) {
+    // starts on a physical port, passes its doors in order
+    assert.ok(portPts.some((q) => Math.hypot(q.x - l.path[0].x, q.y - l.path[0].y) < 1e-9), `${l.id} starts on a port`);
+    assert.deepEqual(l.doors, chains.rooms[l.room].doors);
+  }
+  // supply / return in pairs on one outlet (adjacent ports)
+  tr.portOrder.forEach((lid, i) => {
+    const s = tr.leads.find((x) => x.id === `${lid}/S`);
+    const r = tr.leads.find((x) => x.id === `${lid}/R`);
+    if (!s) return; // (the manifold room's own loops: 7C)
+    assert.deepEqual([s.path[0], r.path[0]], [ports[i].supply, ports[i].ret]);
+  });
+  // along the walls the innermost lead is exactly leadWallOffset from the wall
+  for (const rid of ['H', 'LR']) assert.ok(Math.abs(M50.rooms[rid].leadWallMin_m - prm.leadWallOffset) < 1e-9, `${rid}: ${M50.rooms[rid].leadWallMin_m}`);
+  // two leads never closer than leadSpacing (outside the manifold fan and the door openings)
+  const doorsAt = APT.doors.map((d) => d.at);
+  const far = (q) => Math.hypot(q.x - APT.collector.at.x, q.y - APT.collector.at.y) > FAN_RADIUS_M && doorsAt.every((d) => Math.hypot(q.x - d.x, q.y - d.y) > 0.6);
+  let dmin = Infinity;
+  for (let i = 0; i < tr.leads.length; i++) {
+    const A = G.densify(tr.leads[i].path, 0.01).filter(far);
+    for (let j = i + 1; j < tr.leads.length; j++) {
+      const B = tr.leads[j].path;
+      for (const q of A) for (let k = 1; k < B.length; k++) dmin = Math.min(dmin, G.segDist(q, B[k - 1], B[k]));
     }
+  }
+  assert.ok(dmin >= prm.leadSpacing - 1e-6, `lead ↔ lead ${dmin}`);
 });
 
-test('7B door capacity: 2·leadWallOffset + (N − 1)·leadSpacing ≤ width — exact boundary', () => {
-  // door BC carries 4 leads: 0.1 + 3 · 0.1 = 0.4 m
-  const at = (w) => planCorridors(base({ doors: [DOORS[0], { ...DOORS[1], width_m: w }] }));
-  assert.ok(!at(0.4).reasons.includes('DOOR_CAPACITY_EXCEEDED'));
-  assert.ok(at(0.4 - 1e-6).reasons.includes('DOOR_CAPACITY_EXCEEDED'));
-});
-
-test('7B a corridor never closes off heating area: a narrow transit room → CORRIDOR_CAPACITY_EXCEEDED', () => {
-  const rooms = [ROOMS[0], { id: 'B', poly: box(4.1, 0, 4.9, 4) }, { id: 'C', poly: box(5, 0, 8, 3) }];
-  const doors = [DOORS[0], { id: 'BC', between: ['B', 'C'], at: { x: 4.95, y: 3.2 }, width_m: 2 }];
-  const r = planCorridors({ ...base(), rooms, doors, usable: usableOf(rooms), loopsByRoom: { C: 6 } });
-  assert.ok(r.reasons.includes('CORRIDOR_CAPACITY_EXCEEDED'), JSON.stringify(r.issues));
-});
-
-test('7B on 101–109: chains, leads per door and the door capacity depend on leadSpacing (an explicit input)', () => {
-  const Z = JSON.parse(fs.readFileSync(new URL('./fixtures/zone-101-109.json', import.meta.url), 'utf8'));
-  const D = JSON.parse(fs.readFileSync(new URL('./fixtures/doors-101-109.json', import.meta.url), 'utf8'));
-  const rooms = Z.rooms.map((r) => ({ id: r.name, poly: r.poly }));
-  const run = (leadSpacing) => planCorridors({ rooms, doors: D.doors, collector: { ...COLLECTOR, at: Z.manifold.at }, loopsByRoom: D.loopsByRoom, usable: usableOf(rooms), params: { ...PARAMS, leadSpacing } });
+test('7B 101–109 (test variant: the same rooms, a declared 12-outlet manifold): 12 leads — 100 mm door failure, 50 mm passes; room 108 reported', () => {
+  const rooms = Z101.rooms.map((r) => ({ id: r.name, poly: r.poly }));
+  const fx = { rooms, wallClearance: Z101.wallClearance, obstacleClearance: Z101.obstacleClearance };
+  const col = { id: 'C-01/M12', at: Z101.manifold.at, outlets: 12, portPitch_m: 0.05, dropPerPipe_m: 0.4, facing: { x: 0, y: 1 } };
+  const run = (S) => planTransfers({ rooms, doors: D101.doors, collector: col, loopsByRoom: { 107: 3, ...D101.loopsByRoom }, usable: usableOf(fx), params: { heatingPitch: 0.2, leadWallOffset: 0.05, leadSpacing: S, pipeType: 'PERT-16x2.0', wallClearance: Z101.wallClearance } });
   const r10 = run(0.1);
-  assert.deepEqual(r10.rooms['107'].exits, [{ door: 'D-03', leads: 12 }]);
-  assert.deepEqual(r10.rooms['108'].exits, [{ door: 'D-04', leads: 10 }]);
-  // 12 leads at 100 mm: 0.1 + 11 · 0.1 = 1.2 m > 0.9 m door → DOOR_CAPACITY_EXCEEDED (D-03 and D-04)
-  assert.deepEqual(r10.issues.filter((x) => x.status === 'DOOR_CAPACITY_EXCEEDED').map((x) => x.door), ['D-03', 'D-04']);
-  // at 50 mm: 0.1 + 11 · 0.05 = 0.65 m ≤ 0.9 m
-  assert.ok(!run(0.05).reasons.includes('DOOR_CAPACITY_EXCEEDED'));
-  for (const x of Object.values(r10.rooms)) assert.ok(Math.abs(x.U_m2 - x.corridor_m2 - x.Uprime_m2) <= GEOMETRY_NUMERICAL_TOLERANCE.area_m2);
+  const d03 = r10.doors.find((d) => d.door === 'D-03');
+  assert.equal(d03.leads, 12);
+  assert.ok(Math.abs(d03.need_m - 1.2) < 1e-12 && !d03.ok);
+  assert.ok(r10.reasons.includes('DOOR_CAPACITY_EXCEEDED'));
+  const r5 = run(0.05);
+  const d03b = r5.doors.find((d) => d.door === 'D-03');
+  assert.ok(Math.abs(d03b.need_m - 0.65) < 1e-12 && d03b.ok);
+  assert.ok(!r5.reasons.includes('DOOR_CAPACITY_EXCEEDED'));
+  // room 108: transit (10 leads to 101) + target; its corridor reported
+  const b108 = r5.rooms['108'];
+  assert.match(b108.role, /transit/);
+  assert.equal(b108.bundles[0].N, 10);
+  assert.ok(Math.abs(b108.bundles[0].width - (9 * 0.05 + 0.016)) < 1e-12);
+  assert.ok(Math.abs(b108.U_m2 - b108.C_m2 - b108.Uprime_m2) <= TOL);
+  // with the 6 physical outlets of C-01: OUTLET_SHORTAGE, nothing routed
+  assert.equal(planTransfers({ rooms, doors: D101.doors, collector: { ...col, outlets: 6 }, loopsByRoom: { 107: 3, ...D101.loopsByRoom }, usable: usableOf(fx), params: { heatingPitch: 0.2, leadWallOffset: 0.05, leadSpacing: 0.05, pipeType: 'PERT-16x2.0', wallClearance: Z101.wallClearance } }).status, 'OUTLET_SHORTAGE');
+});
+
+test('7B determinism: the same input → the same leads, corridors, U′ and loops (hash)', () => {
+  const a = transfers(0.05);
+  const b = transfers(0.05);
+  const strip = (tr) => ({ leads: tr.leads, portOrder: tr.portOrder, rooms: Object.fromEntries(Object.entries(tr.rooms).map(([k, v]) => [k, [v.U_m2, v.C_m2, v.Uprime_m2, v.corridor, v.Uprime]])) });
+  assert.equal(hash(strip(a)), hash(strip(b)));
+  const again = metricsOf(runTransfers(APT, { leadSpacing: 0.05 }));
+  assert.equal(again.geometryHash, M50.geometryHash);
 });
