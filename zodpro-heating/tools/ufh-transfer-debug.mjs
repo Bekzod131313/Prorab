@@ -10,6 +10,9 @@ import { planTransfers, heatingPitchOf } from '../src/engines/ufh/corridor.js';
 import { portsOf } from '../src/engines/ufh/collector.js';
 import { spiralRegions } from '../src/engines/ufh/decompose.js';
 import { planLoops } from '../src/engines/ufh/loopplanner.js';
+import { checkRawSet } from '../src/engines/ufh/rawcheck.js';
+import { loopTopology } from '../src/engines/ufh/looptopology.js';
+import { loopReport } from '../src/engines/ufh/loopreport.js';
 import { ENGINEERING_FINAL_COVERAGE, ENGINEERING_COVERAGE_TOLERANCE } from '../src/engines/ufh/criteria.js';
 
 const man = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
@@ -30,18 +33,56 @@ export function usableOf(fx) {
  * The 7B pipeline: loop counts from the frozen planner on U, transfers + corridors, the rooms
  * planned again on U' until the loop counts hold (at most maxIter rounds).
  */
-export function runTransfers(fx, { leadSpacing, maxIter = 3 }) {
+export function runTransfers(fx, { leadSpacing, maxIter = 3, connect = false, maxConnectIter = 8, maxRounds = 6, settleMode = 'both' }) {
   const params = { heatingPitch: fx.heatingPitch, leadWallOffset: fx.leadWallOffset, leadSpacing, pipeType: fx.pipeType, wallClearance: fx.wallClearance };
   const U = usableOf(fx);
   const chains = doorChains({ rooms: fx.rooms, doors: fx.doors, collectorAt: fx.collector.at });
   const doorAt = (id) => fx.doors.find((d) => d.id === id).at;
   const toward = (rid) => (rid === chains.collectorRoom ? fx.collector.at : doorAt(chains.rooms[rid].doors.at(-1)));
-  const plan = (rid, region) => {
+  // the lead estimate the frozen planner budgets with (its own ctx.leadTo interface): unconnected
+  // runs keep the Phase 6 estimate (Manhattan from the room's entry); connected runs use the routed
+  // geometry — the measured transfer from the port to the room's entry (longest of the room's
+  // leads), the drop, and the way along the walls from the entry to the spiral end
+  const leadExtra = {};
+  const wallWay = (rid) => {
+    const R = G.ccw(fx.rooms.find((r) => r.id === rid).poly);
+    const cum = [0];
+    for (let i = 0; i < R.length; i++) cum.push(cum[i] + Math.hypot(R[(i + 1) % R.length].x - R[i].x, R[(i + 1) % R.length].y - R[i].y));
+    const T = cum[R.length];
+    const sOf = (q) => {
+      const c = G.closestOnRing(q, R);
+      return { s: cum[c.i] + c.t * (cum[c.i + 1] - cum[c.i]), d: c.d };
+    };
+    const e = sOf(toward(rid));
+    return (p) => {
+      const q = sOf(p);
+      const f = Math.abs(q.s - e.s);
+      return Math.min(f, T - f) + q.d;
+    };
+  };
+  const leadToOf = (rid) => {
+    const t = toward(rid);
+    if (leadExtra[rid] === undefined) return (p) => man(t, p);
+    const w = wallWay(rid);
+    return (p) => leadExtra[rid] + w(p);
+  };
+  const plan = (rid, region, towardAt = null) => {
     const room = fx.rooms.find((r) => r.id === rid);
     const s = heatingPitchOf(room, params);
-    const t = toward(rid);
+    const t = towardAt ?? toward(rid);
     const res = spiralRegions(region, s, { toward: t });
-    return planLoops(res, region, s, { leadTo: (p) => man(t, p), manifold: null, toward: t });
+    return planLoops(res, region, s, { leadTo: leadToOf(rid), manifold: null, toward: t });
+  };
+  // one loop's part re-spiralled alone (frozen decomposition + planner); its ends on the real walls
+  const replanPart = (rid, part, P, towardAt = null) => {
+    const room = fx.rooms.find((r) => r.id === rid);
+    const s = heatingPitchOf(room, params);
+    const t = towardAt ?? toward(rid);
+    const walls = P.map((sh) => ({ outer: sh.outer, holes: [] }));
+    const res = spiralRegions(part, s, { toward: t, walls });
+    if (!res.regions?.length) return [];
+    const pl = planLoops(res, P, s, { leadTo: leadToOf(rid), manifold: null, toward: t });
+    return pl.loops.filter((l) => l.spiral?.heating);
   };
   const served = fx.rooms.map((r) => r.id).filter((rid) => chains.rooms[rid].reachable);
   let counts = Object.fromEntries(served.map((rid) => [rid, plan(rid, U[rid]).loops.length]));
@@ -57,7 +98,373 @@ export function runTransfers(fx, { leadSpacing, maxIter = 3 }) {
     if (served.every((rid) => next[rid] === counts[rid])) break;
     counts = next;
   }
-  return { fx, params, U, transfers: tr, plans, counts, history };
+  // connected loops: the leads end at the spiral ends of the final plans (supply / ret of the frozen
+  // planner); the corridor changes with them → replan on the new U′ until the ends stand still
+  const exitsOf = (pl) => {
+    const e = {};
+    for (const [rid, p] of Object.entries(pl)) p.loops.forEach((l, i) => l.spiral?.path && (e[`${rid}.L${i + 1}`] = { a: l.spiral.supply, b: l.spiral.ret, ha: l.spiral.path.slice(0, 3), hb: l.spiral.path.slice(-3).reverse() }));
+    return e;
+  };
+  const moved = (e1, e2) => {
+    const ks = new Set([...Object.keys(e1), ...Object.keys(e2)]);
+    let m = 0;
+    for (const k of ks) {
+      if (!e1[k] || !e2[k]) return Infinity;
+      m = Math.max(m, Math.hypot(e1[k].a.x - e2[k].a.x, e1[k].a.y - e2[k].a.y), Math.hypot(e1[k].b.x - e2[k].b.x, e1[k].b.y - e2[k].b.y));
+    }
+    return m;
+  };
+  const convergence = [];
+  let converged = !connect;
+  let lastClash = [];
+  if (connect && tr?.rooms && plans) {
+    // the leads always end at the spiral ends of the loops in use. A loop whose heating comes
+    // closer than leadSpacing to a lead is re-spiralled alone in its own region minus the lead
+    // envelope (frozen spiralRegions + planLoops on that part; the room's other loops stay); the
+    // envelope only grows (monotone), so the loops never jump back into a corridor.
+    const pitch = (rid) => heatingPitchOf(fx.rooms.find((r) => r.id === rid), params);
+    const relabel = (ls) => ls.map((l, i) => ({ ...l, loopId: `L${i + 1}` }));
+    const asPlans = (lo) => Object.fromEntries(served.map((rid) => [rid, { loops: lo[rid] }]));
+    const countsOf = (lo) => Object.fromEntries(served.map((rid) => [rid, lo[rid].length]));
+    // settle: route to the loop ends, re-spiral the clashing loops (monotone envelope) until none
+    const settle = (lo0, round, mode) => {
+      let lo = lo0;
+      const reservedX = {};
+      let last = null;
+      for (let it = 0; it < maxConnectIter; it++) {
+        const trK = planTransfers({ rooms: fx.rooms, doors: fx.doors, collector: fx.collector, loopsByRoom: countsOf(lo), usable: U, params, loopExits: exitsOf(asPlans(lo)) });
+        if (!trK.rooms) {
+          convergence.push({ round, mode, iteration: it + 1, status: trK.status, counts: countsOf(lo) });
+          return { lo, tr: trK, clash: [], ok: false };
+        }
+        const clash = heatingClash(asPlans(lo), trK, params.leadSpacing);
+        convergence.push({ round, mode, iteration: it + 1, status: trK.status, clashes: clash.length, clashLoops: clash.map((c) => c.loop), counts: countsOf(lo) });
+        last = { lo, tr: trK, clash, ok: true };
+        if (!clash.length || it + 1 === maxConnectIter) return last;
+        const next = {};
+        for (const rid of served) {
+          const bad = new Set(clash.filter((c) => c.room === rid).map((c) => c.loop));
+          if (!bad.size) {
+            next[rid] = lo[rid];
+            continue;
+          }
+          reservedX[rid] = reservedX[rid] ? G.union(reservedX[rid], trK.rooms[rid].planExclusion) : trK.rooms[rid].planExclusion;
+          const P = G.difference(U[rid], reservedX[rid]).filter((sh) => G.area([sh]) >= 1e-6);
+          if (mode === 'room') {
+            next[rid] = relabel(plan(rid, P).loops);
+            continue;
+          }
+          const out = [];
+          let lost = false;
+          for (const l of lo[rid]) {
+            if (!bad.has(`${rid}.${l.loopId}`)) {
+              out.push(l);
+              continue;
+            }
+            // candidates: the loop's region minus the envelope; for a rectangle also the largest
+            // rectangle inside (stays one region). Fewer loops first, then area.
+            const cands = [];
+            const part = G.intersection([l.shape], P).filter((sh) => G.area([sh]) >= 1e-6);
+            if (part.length) cands.push(replanPart(rid, part, P));
+            const rect = trimmedRect(l.shape, P);
+            if (rect) cands.push(replanPart(rid, [rect], P));
+            const area = (ls) => ls.reduce((s, q) => s + G.area([q.shape]), 0);
+            const ok = cands.filter((c) => c.length);
+            ok.sort((x, y) => x.length - y.length || area(y) - area(x));
+            if (ok.length) out.push(...ok[0]);
+            else lost = true;
+          }
+          // (a loop with no spiral left in its part: the room is replanned whole instead)
+          next[rid] = lost ? relabel(plan(rid, P).loops) : relabel(out);
+        }
+        lo = next;
+        history.push(countsOf(lo));
+      }
+      return last;
+    };
+    const covOf = (st) => Object.fromEntries(served.map((rid) => [rid, coverageOn({ loops: st.lo[rid] }, st.tr.rooms[rid].Uprime, pitch(rid))]));
+    const scoreOf = (st) => {
+      if (!st.ok) return [9, 9, 9, 0];
+      const cov = covOf(st);
+      const low = served.filter((rid) => cov[rid] < ENGINEERING_FINAL_COVERAGE - ENGINEERING_COVERAGE_TOLERANCE);
+      const short = served.reduce((a, rid) => a + Math.max(0, ENGINEERING_FINAL_COVERAGE - cov[rid]), 0);
+      return [st.clash.length ? 1 : 0, st.tr.status === 'TRANSFERS_OK' ? 0 : 1, low.length, short];
+    };
+    const better = (a, b) => {
+      for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i] < b[i];
+      return false;
+    };
+    // rounds: a room still under the coverage limit is replanned whole on U minus the envelope of
+    // its current corridor (its own leads included), then settled again; the best state is kept
+    // the measured transfer to every room's entry (+ drop) → the rooms replanned with it
+    for (const rid of served) leadExtra[rid] = transferToEntry(fx, tr, rid) + fx.collector.dropPerPipe_m;
+    plans = Object.fromEntries(served.map((rid) => [rid, plan(rid, tr.rooms[rid].Uprime)]));
+    history.push(Object.fromEntries(served.map((rid) => [rid, plans[rid].loops.length])));
+    let lo = Object.fromEntries(served.map((rid) => [rid, relabel(plans[rid].loops)]));
+    let best = null;
+    let bestScore = null;
+    for (let round = 1; round <= maxRounds; round++) {
+      // both ways of settling a clash (the loop's own part re-spiralled / the room replanned)
+      const tries = (settleMode === 'both' ? ['loop', 'room'] : [settleMode]).map((m) => settle(lo, round, m));
+      let st = tries[0];
+      for (const x of tries.slice(1)) if (better(scoreOf(x), scoreOf(st))) st = x;
+      const sc = scoreOf(st);
+      if (!best || better(sc, bestScore)) {
+        best = st;
+        bestScore = sc;
+      }
+      if (!st.ok) break;
+      const cov = covOf(st);
+      const low = served.filter((rid) => cov[rid] < ENGINEERING_FINAL_COVERAGE - ENGINEERING_COVERAGE_TOLERANCE);
+      convergence.push({ round, coverage: Object.fromEntries(Object.entries(cov).map(([k, v]) => [k, +v.toFixed(4)])), low });
+      if (!low.length && !st.clash.length) break;
+      lo = { ...st.lo };
+      for (const rid of low) lo[rid] = relabel(plan(rid, st.tr.rooms[rid].planRegion).loops);
+    }
+    // polish: a loop under the coverage limit in its own region is re-spiralled alone in it from
+    // each corner of the region as the start side (Phase 6 `toward`); the best one loop is kept
+    // when the settled zone is not worse and has fewer such loops
+    const loopCov = (st, rid, l) => coverageOn({ loops: [l] }, G.intersection([l.shape], st.tr.rooms[rid].Uprime), pitch(rid));
+    const weakOf = (st) => (!st.ok || !st.tr?.rooms ? served.map((rid) => [rid, null]).concat([[null, null]]).concat(Array(99).fill([null, null])) : weakOfOk(st));
+    const weakOfOk = (st) => served.flatMap((rid) => st.lo[rid].filter((l) => loopCov(st, rid, l) < ENGINEERING_FINAL_COVERAGE - ENGINEERING_COVERAGE_TOLERANCE).map((l) => [rid, l]));
+    // one room at a time: its weak loops re-spiralled alone from each corner, else the room
+    // replanned from each corner (more loops only on free outlets); kept when the settled zone is
+    // not worse and has fewer weak loops
+    for (let pass = 1; pass <= 3 && best.ok; pass++) {
+      const weak = weakOf(best);
+      if (!weak.length) break;
+      let improved = false;
+      for (const rid of [...new Set(weak.map(([r]) => r))]) {
+        const P = best.tr.rooms[rid].planRegion;
+        const Up = best.tr.rooms[rid].Uprime;
+        const lc = (l) => coverageOn({ loops: [l] }, G.intersection([l.shape], Up), pitch(rid));
+        const weakIn = (ls) => ls.filter((l) => lc(l) < ENGINEERING_FINAL_COVERAGE - ENGINEERING_COVERAGE_TOLERANCE).length;
+        const cur = best.lo[rid];
+        const corners = (reg) => {
+          const bb = G.bbox(reg.flatMap((sh) => sh.outer));
+          return [{ x: bb.x0, y: bb.y0 }, { x: bb.x1, y: bb.y0 }, { x: bb.x1, y: bb.y1 }, { x: bb.x0, y: bb.y1 }];
+        };
+        const variants = [];
+        // (a) the weak loops alone
+        const alone = cur.map((l) => {
+          if (lc(l) >= ENGINEERING_FINAL_COVERAGE - ENGINEERING_COVERAGE_TOLERANCE) return l;
+          const part = G.intersection([l.shape], P).filter((sh) => G.area([sh]) >= 1e-6);
+          let pick = l;
+          let pc = lc(l);
+          if (part.length)
+            for (const c of corners(part)) {
+              const ls = replanPart(rid, part, P, c);
+              if (ls.length !== 1) continue;
+              const cv = coverageOn({ loops: ls }, G.intersection(part, Up), pitch(rid));
+              if (cv > pc + 1e-9) {
+                pick = { ...ls[0], loopId: l.loopId };
+                pc = cv;
+              }
+            }
+          return pick;
+        });
+        if (alone.some((l, i) => l !== cur[i])) variants.push(alone);
+        // (b) the room replanned
+        const used = served.reduce((a, r) => a + best.lo[r].length, 0);
+        for (const c of corners(P)) {
+          const ls = plan(rid, P, c).loops.filter((l) => l.spiral?.heating);
+          if (ls.length && ls.length <= cur.length + (fx.collector.outlets - used)) variants.push(relabel(ls));
+        }
+        const key = (ls) => [weakIn(ls), -coverageOn({ loops: ls }, Up, pitch(rid))];
+        variants.sort((x, y) => key(x)[0] - key(y)[0] || key(x)[1] - key(y)[1]);
+        for (const v of variants.slice(0, 2)) {
+          if (key(v)[0] >= weakIn(cur)) continue;
+          const lo2 = { ...best.lo, [rid]: v };
+          for (const m of ['loop', 'room']) {
+            const st2 = settle(lo2, `polish${pass}.${rid}`, m);
+            if (process.env.UFH_DEBUG) console.error('polish', rid, m, JSON.stringify(scoreOf(st2)), JSON.stringify(scoreOf(best)), weakOf(st2).length, weakOf(best).length);
+            if (st2.ok && !better(scoreOf(best), scoreOf(st2)) && weakOf(st2).length < weakOf(best).length) {
+              best = st2;
+              improved = true;
+              break;
+            }
+          }
+          if (improved) break;
+        }
+        if (improved) break;
+      }
+      if (!improved) break;
+    }
+    tr = best.tr;
+    lastClash = best.clash;
+    converged = best.ok && !best.clash.length;
+    const loopsOf = best.lo;
+    // the loop set of every room, checked by the frozen raw check against the final U′
+    plans = Object.fromEntries(
+      served.map((rid) => {
+        const loops = loopsOf[rid];
+        const loopSet = { regions: loops.map((l) => ({ poly: l.shape.outer, holes: l.shape.holes, status: 'VALID', spiral: l.spiral })) };
+        return [rid, { loops, check: checkRawSet(loopSet, tr?.rooms?.[rid]?.Uprime ?? U[rid], pitch(rid)) }];
+      }),
+    );
+    counts = Object.fromEntries(served.map((rid) => [rid, loopsOf[rid].length]));
+  }
+  const run = { fx, params, U, transfers: tr, plans, counts, history, connect, converged, convergence, clashes: lastClash };
+  if (connect && tr?.rooms && plans) Object.assign(run, connectedReport(run));
+  return run;
+}
+
+/** The longest lead length from its port to where it enters the room (0 in the manifold room). */
+export function transferToEntry(fx, tr, rid) {
+  const room = [{ outer: G.ccw(fx.rooms.find((r) => r.id === rid).poly), holes: [] }];
+  let m = 0;
+  for (const l of tr.leads.filter((x) => x.room === rid && x.path.length >= 2)) {
+    if (G.pointInRegion(l.path[0], room)) continue;
+    let s = 0;
+    for (let k = 1; k < l.path.length; k++) {
+      const a = l.path[k - 1];
+      const b = l.path[k];
+      const seg = Math.hypot(b.x - a.x, b.y - a.y);
+      if (G.pointInRegion(b, room) && G.distToRegionBoundary(b, room) > 1e-9) {
+        // the entry on this segment: walk it in small steps (the wall plane)
+        let lo = 0;
+        let hi = 1;
+        for (let it = 0; it < 40; it++) {
+          const mid = (lo + hi) / 2;
+          const q = { x: a.x + (b.x - a.x) * mid, y: a.y + (b.y - a.y) * mid };
+          if (G.pointInRegion(q, room)) hi = mid;
+          else lo = mid;
+        }
+        s += seg * hi;
+        break;
+      }
+      s += seg;
+    }
+    m = Math.max(m, s);
+  }
+  return m;
+}
+
+/** The loops of a connected run as one list: id `${room}.${loopId}`, the room's heating pitch. */
+export function loopsOfRun(run) {
+  const out = [];
+  for (const [rid, p] of Object.entries(run.plans ?? {})) {
+    const s = heatingPitchOf(run.fx.rooms.find((r) => r.id === rid), run.params);
+    for (const l of p.loops) out.push({ id: `${rid}.${l.loopId}`, room: rid, s, loop: l, spiral: l.spiral });
+  }
+  return out;
+}
+
+/** Topology (looptopology.js) and the per-loop table (loopreport.js) of a connected run. */
+export function connectedReport(run) {
+  const { fx, transfers: tr } = run;
+  const loops = loopsOfRun(run);
+  const topology = loopTopology(loops, tr.leads, { ports: portsOf(fx.collector), doors: tr.doors });
+  const keepOff = [...fx.doors.map((d) => d.at), fx.collector.at];
+  const Uprime = Object.fromEntries(Object.entries(tr.rooms).map(([rid, x]) => [rid, x.Uprime]));
+  const loopRows = loopReport({ rooms: fx.rooms, loops, leads: tr.leads, topology, Uprime, collector: fx.collector, leadSpacing: run.params.leadSpacing, keepOff });
+  return { topology, loopRows };
+}
+
+/**
+ * A rectangular loop region cut down to the largest rectangle inside P (null: not a rectangle or
+ * nothing left): the cut lines are the coordinates of the overlap, the cells a grid over them.
+ */
+export function trimmedRect(shape, P) {
+  if (shape.holes?.length) return null;
+  const bb = G.bbox(shape.outer);
+  if (Math.abs(G.area([shape]) - (bb.x1 - bb.x0) * (bb.y1 - bb.y0)) > 1e-6) return null;
+  const R = { outer: [{ x: bb.x0, y: bb.y0 }, { x: bb.x1, y: bb.y0 }, { x: bb.x1, y: bb.y1 }, { x: bb.x0, y: bb.y1 }], holes: [] };
+  // (numerical slivers along a shared edge — under 1 mm thick — are no overlap)
+  const O = G.difference([R], P).filter((sh) => {
+    const b = G.bbox(sh.outer);
+    return G.area([sh]) >= 1e-6 && Math.min(b.x1 - b.x0, b.y1 - b.y0) >= 1e-3;
+  });
+  if (!O.length) return R;
+  const cut = (v, lo, hi) => [...new Set([lo, hi, ...v.filter((x) => x > lo + 1e-9 && x < hi - 1e-9)].map((x) => Math.round(x * 1e9) / 1e9))].sort((a, b) => a - b);
+  const pts = O.flatMap((sh) => [sh.outer, ...(sh.holes ?? [])].flat());
+  const xs = cut(pts.map((p) => p.x), bb.x0, bb.x1);
+  const ys = cut(pts.map((p) => p.y), bb.y0, bb.y1);
+  const nx = xs.length - 1;
+  const ny = ys.length - 1;
+  const busy = [];
+  for (let j = 0; j < ny; j++) {
+    busy.push([]);
+    for (let i = 0; i < nx; i++) busy[j].push(G.pointInRegion({ x: (xs[i] + xs[i + 1]) / 2, y: (ys[j] + ys[j + 1]) / 2 }, O));
+  }
+  let best = null;
+  for (let j0 = 0; j0 < ny; j0++)
+    for (let i0 = 0; i0 < nx; i0++)
+      for (let j1 = j0; j1 < ny; j1++)
+        for (let i1 = i0; i1 < nx; i1++) {
+          let free = true;
+          for (let j = j0; j <= j1 && free; j++) for (let i = i0; i <= i1 && free; i++) if (busy[j][i]) free = false;
+          if (!free) break;
+          const a = (xs[i1 + 1] - xs[i0]) * (ys[j1 + 1] - ys[j0]);
+          if (!best || a > best.a + 1e-12) best = { a, x0: xs[i0], y0: ys[j0], x1: xs[i1 + 1], y1: ys[j1 + 1] };
+        }
+  if (!best) return null;
+  return { outer: [{ x: best.x0, y: best.y0 }, { x: best.x1, y: best.y0 }, { x: best.x1, y: best.y1 }, { x: best.x0, y: best.y1 }], holes: [] };
+}
+
+/** Covered share of a region by a plan's heating (band s/2 + 3 mm, as the raw check). */
+export function coverageOn(plan, region, s) {
+  const lines = plan.loops.map((l) => l.spiral?.heating).filter((h) => h && h.length >= 2);
+  const A = G.area(region);
+  if (!lines.length || A <= 0) return 0;
+  return G.area(G.intersection(G.bufferPolylines(lines, s / 2 + 0.003), region)) / A;
+}
+
+const stateKey = (plans) =>
+  JSON.stringify(Object.entries(plans).map(([rid, p]) => [rid, p.loops.map((l) => [l.spiral?.supply?.x?.toFixed(6), l.spiral?.supply?.y?.toFixed(6), l.heatingLength.toFixed(6)])]));
+
+/**
+ * Where a spiral comes too close to a lead run in a room (centre to centre < `clear`):
+ *   other loops' leads — the whole spiral path (heating + the stubs to its two ends);
+ *   its own leads — the heating, except within s + clear of its own two ends (where its pair
+ *   leaves the bundle, the outermost there by construction); and they never cross its path.
+ * The connection segments from a lead run to the spiral ends are not runs and are not counted.
+ */
+export function heatingClash(plans, tr, clear) {
+  const out = [];
+  const runsOf = new Map();
+  const all = [];
+  for (const pcs of Object.values(tr.roomPieces ?? {})) for (const pp of pcs) if (pp.length >= 2) all.push(pp);
+  if (!all.length) return out;
+  // (a run belongs to the lead whose path holds both its ends)
+  const on = (q, path) => path.some((v, k) => k > 0 && G.segDist(q, path[k - 1], v) < 1e-7);
+  const ownerOf = new Map();
+  for (const pp of all) {
+    const l = (tr.leads ?? []).find((x) => on(pp[0], x.path) && on(pp[pp.length - 1], x.path));
+    ownerOf.set(pp, l?.loop ?? null);
+  }
+  for (const [rid, p] of Object.entries(plans ?? {}))
+    for (const l of p.loops) {
+      const sp = l.spiral;
+      if (!sp?.path) continue;
+      const lid = `${rid}.${l.loopId}`;
+      const own = all.filter((pp) => ownerOf.get(pp) === lid);
+      const others = all.filter((pp) => ownerOf.get(pp) !== lid);
+      let len = 0;
+      let at = null;
+      const add = (parts) => {
+        for (const q of parts) {
+          len += G.pathLength(q);
+          at = at ?? q[0];
+        }
+      };
+      if (others.length) add(G.clipLines([sp.path], G.bufferPolylines(others, clear - 1e-9, 'butt', 'miter')));
+      if (own.length) {
+        const ends = G.bufferPolylines([[sp.supply, sp.ret]], (sp.s ?? l.nominalSpacing) + clear, 'round', 'round');
+        add(G.clipLines([sp.heating], G.difference(G.bufferPolylines(own, clear - 1e-9, 'butt', 'miter'), ends)));
+        for (const pp of own)
+          for (let i = 1; i < pp.length; i++)
+            for (let j = 1; j < sp.path.length; j++) {
+              const x = G.segmentIntersection(pp[i - 1], pp[i], sp.path[j - 1], sp.path[j]);
+              if (x) {
+                len += 1e-3;
+                at = at ?? x;
+              }
+            }
+      }
+      if (len > 1e-6) out.push({ room: rid, loop: lid, length_m: len, at });
+    }
+  return out;
 }
 
 /** The numbers of a run (per room and per door), and a hash of all geometry (determinism). */

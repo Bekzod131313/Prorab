@@ -61,6 +61,76 @@ export function bundleGeometry(N, params) {
   return { N, span, width: span + params.pipeOD, depth: params.leadWallOffset + span + params.pipeOD / 2, doorNeed: 2 * params.leadWallOffset + span };
 }
 
+/**
+ * The planning envelope of a room's leads: per wall edge, the depth profile of the lead
+ * centrelines (+ pad) as a few rectangles — runs shorter than `minLen` (the staggered step-ins,
+ * the port fan) merged into their deeper neighbour. It holds the corridor; planning heating
+ * outside it gives the frozen rectilinear decomposition few cuts, and no heating pipe can come
+ * near a lead. (U′ and the corridor are not changed by it: the extra strip is unheated floor.)
+ */
+export function wallEnvelope(poly, lines, pad, minLen, step = 0.01) {
+  const R = G.ccw(poly);
+  const n = R.length;
+  const prof = R.map(() => new Map());
+  for (const l of lines)
+    for (const q of G.densify(l, step / 2)) {
+      let best = null;
+      for (let i = 0; i < n; i++) {
+        const a = R[i];
+        const b = R[(i + 1) % n];
+        const L = Math.hypot(b.x - a.x, b.y - a.y);
+        const t = Math.max(0, Math.min(L, ((q.x - a.x) * (b.x - a.x) + (q.y - a.y) * (b.y - a.y)) / L));
+        const d = Math.hypot(a.x + ((b.x - a.x) * t) / L - q.x, a.y + ((b.y - a.y) * t) / L - q.y);
+        if (!best || d < best.d - 1e-12) best = { i, t, d };
+      }
+      const bin = Math.floor(best.t / step);
+      const m = prof[best.i];
+      m.set(bin, Math.max(m.get(bin) ?? 0, best.d));
+    }
+  const rects = [];
+  for (let i = 0; i < n; i++) {
+    if (!prof[i].size) continue;
+    const a = R[i];
+    const b = R[(i + 1) % n];
+    const L = Math.hypot(b.x - a.x, b.y - a.y);
+    const u = { x: (b.x - a.x) / L, y: (b.y - a.y) / L };
+    const nn = { x: -u.y, y: u.x };
+    const bins = [...prof[i].keys()].sort((x, y) => x - y);
+    // runs of equal depth (1 mm), contiguous bins (a gap of ≤ 2 bins bridged)
+    let runs = [];
+    for (const k of bins) {
+      const d = Math.round(prof[i].get(k) * 1000) / 1000;
+      const last = runs[runs.length - 1];
+      if (last && k - last.b <= 3 && Math.abs(last.d - d) < 1e-9) last.b = k;
+      else if (last && k - last.b <= 3) runs.push({ a: last.b + 1, b: k, d });
+      else runs.push({ a: k, b: k, d, gap: true });
+    }
+    // merge the short runs into the deeper neighbour (the same contiguous group only)
+    for (;;) {
+      const len = (r) => (r.b - r.a + 1) * step;
+      let k = -1;
+      for (let j = 0; j < runs.length; j++) if (len(runs[j]) < minLen - 1e-12 && (j > 0 && !runs[j].gap || (j + 1 < runs.length && !runs[j + 1].gap))) if (k < 0 || len(runs[j]) < len(runs[k])) k = j;
+      if (k < 0) break;
+      const left = k > 0 && !runs[k].gap ? runs[k - 1] : null;
+      const right = k + 1 < runs.length && !runs[k + 1].gap ? runs[k + 1] : null;
+      const into = !left ? right : !right ? left : left.d >= right.d ? left : right;
+      const r = runs[k];
+      const m = { a: Math.min(r.a, into.a), b: Math.max(r.b, into.b), d: Math.max(r.d, into.d), gap: into === left ? left.gap : r.gap };
+      runs = runs.filter((x) => x !== r && x !== into);
+      runs.push(m);
+      runs.sort((x, y) => x.a - y.a);
+    }
+    for (const r of runs) {
+      const t0 = Math.max(0, r.a * step - pad);
+      const t1 = Math.min(L, (r.b + 1) * step + pad);
+      const D = r.d + pad;
+      const P = (t, d) => ({ x: a.x + u.x * t + nn.x * d, y: a.y + u.y * t + nn.y * d });
+      rects.push({ outer: [P(t0, 0), P(t1, 0), P(t1, D), P(t0, D)], holes: [] });
+    }
+  }
+  return rects.length ? G.intersection(G.union(rects), [{ outer: R, holes: [] }]) : [];
+}
+
 // ---- a closed CCW ring by arc length ----
 function ringOf(poly) {
   const R = G.ccw(poly);
@@ -175,6 +245,8 @@ export function planTransfers(o) {
 
   // ---- the room tree: entry and exits of every room ----
   const entryOf = (rid) => (rid === C0 ? null : chains.rooms[rid].doors.at(-1));
+  // spiral ends of the loops (from the frozen planner): { a, b } — the leads end there
+  const exitOf = (lid) => o.loopExits?.[lid] ?? null;
   const nextRoom = (d, from) => (d.between[0] === from ? d.between[1] : d.between[0]);
   const childDoors = (rid) => o.doors.filter((d) => d.between.includes(rid) && d.id !== entryOf(rid) && chains.rooms[nextRoom(d, rid)]?.doors.at(-1) === d.id).map((d) => d.id);
   const loopsBehind = (did) => {
@@ -190,14 +262,25 @@ export function planTransfers(o) {
     const eAt = entry ? doorById.get(entry).at : o.collector.at;
     const sE = ring.sOf(eAt);
     const T = ring.at(sE, 1).u; // the ring tangent at the entry (CCW)
-    const exits = childDoors(rid)
+    const doorExits = childDoors(rid)
       .filter((did) => loopsBehind(did).length)
       .map((did) => {
         const f = ring.mod(ring.sOf(doorById.get(did).at) - sE);
         const side = f <= ring.T - f ? 1 : -1;
         return { door: did, side, along: side > 0 ? f : ring.T - f };
-      })
-      .sort((a, b) => a.along - b.along || a.door.localeCompare(b.door));
+      });
+    // the loops of this room with known spiral ends (o.loopExits): their two leads run to them
+    const loopExits = loops
+      .filter((l) => l.room === rid && exitOf(l.id))
+      .map((l) => {
+        const e = exitOf(l.id);
+        const mid = { x: (e.a.x + e.b.x) / 2, y: (e.a.y + e.b.y) / 2 };
+        const f = ring.mod(ring.sOf(mid) - sE);
+        const side = f <= ring.T - f ? 1 : -1;
+        const u = (q) => (side > 0 ? ring.mod(ring.sOf(q) - sE) : ring.T - ring.mod(ring.sOf(q) - sE));
+        return { loop: l.id, side, along: Math.min(u(e.a), u(e.b)), a: e.a, b: e.b, ha: e.ha, hb: e.hb };
+      });
+    const exits = [...doorExits, ...loopExits].sort((a, b) => a.along - b.along || (a.door ?? a.loop).localeCompare(b.door ?? b.loop));
     const L = { rid, ring, entry, sE, T, exits };
     layoutOf.set(rid, L);
     return L;
@@ -218,11 +301,17 @@ export function planTransfers(o) {
     const key = `${rid}|${side}`;
     if (slotMemo.has(key)) return slotMemo.get(key);
     const L = layout(rid);
+    // built from the last exit back: a door group is the innermost when it turns to the wall,
+    // a loop's pair the outermost when it turns into the room — always crossing-free
     let out = [];
-    for (const x of L.exits.filter((e) => e.side === side)) {
-      const ring = L.ring;
-      const tOut = { x: ring.at(ring.sOf(doorById.get(x.door).at), side).u.x * side, y: ring.at(ring.sOf(doorById.get(x.door).at), side).u.y * side };
-      out = out.concat(along(req(x.door), axisOf(x.door), tOut));
+    const ex = L.exits.filter((e) => e.side === side);
+    for (let i = ex.length - 1; i >= 0; i--) {
+      const x = ex[i];
+      if (x.door) {
+        const ring = L.ring;
+        const tOut = { x: ring.at(ring.sOf(doorById.get(x.door).at), side).u.x * side, y: ring.at(ring.sOf(doorById.get(x.door).at), side).u.y * side };
+        out = along(req(x.door), axisOf(x.door), tOut).concat(out);
+      } else out = out.concat([{ loop: x.loop, flip: false }]);
     }
     slotMemo.set(key, out);
     return out;
@@ -234,7 +323,7 @@ export function planTransfers(o) {
     const from = d.between.find((r) => chains.rooms[r].doors.length < chains.rooms[nextRoom(d, r)].doors.length) ?? d.between[0];
     const to = nextRoom(d, from);
     const L = layout(to);
-    const own = loops.filter((l) => l.room === to).map((l) => ({ loop: l.id, flip: false }));
+    const own = loops.filter((l) => l.room === to && !exitOf(l.id)).map((l) => ({ loop: l.id, flip: false }));
     // ascending along the room's ring tangent at the entry: side −1 slots, own, side +1 slots reversed
     const list = [...slotOrder(to, -1), ...own, ...rev(slotOrder(to, 1))];
     const out = along(list, axisOf(did), L.T);
@@ -243,7 +332,7 @@ export function planTransfers(o) {
   };
   // the manifold: the same rule, its own loops in the middle
   const LC = layout(C0);
-  const ownC = loops.filter((l) => l.room === C0).map((l) => ({ loop: l.id, flip: false }));
+  const ownC = loops.filter((l) => l.room === C0 && !exitOf(l.id)).map((l) => ({ loop: l.id, flip: false }));
   const ports = portsOf(o.collector);
   const uAxis = sub(ports[ports.length - 1].ret, ports[0].supply);
   // the ports stand portDepth from the wall: a lead goes from its port straight to its slot depth,
@@ -276,7 +365,11 @@ export function planTransfers(o) {
     const g = bundleGeometry(leads.length, prm);
     const w = doorById.get(did).width_m;
     const ok = g.doorNeed <= w + 1e-12;
-    doorsReport.push({ door: did, leads: leads.length, need_m: g.doorNeed, width_m: w, ok });
+    const dd = doorById.get(did);
+    const ax = axisOf(did);
+    // the opening line (mid-wall): every lead through this door crosses it
+    const opening = [{ x: dd.at.x - (ax.x * w) / 2, y: dd.at.y - (ax.y * w) / 2 }, { x: dd.at.x + (ax.x * w) / 2, y: dd.at.y + (ax.y * w) / 2 }];
+    doorsReport.push({ door: did, leads: leads.length, need_m: g.doorNeed, width_m: w, ok, opening });
     if (!ok) issues.push({ status: 'DOOR_CAPACITY_EXCEEDED', door: did, msg: `${leads.length} leads need ${g.doorNeed.toFixed(3)} m (2 × ${off} + ${leads.length - 1} × ${S}), door ${w} m` });
   }
   // lead positions in a door, ascending along its axis
@@ -298,6 +391,7 @@ export function planTransfers(o) {
     if (rid !== null) roomPieces.get(rid).push(pts);
   };
   const bundles = new Map(o.rooms.map((r) => [r.id, []]));
+  const connections = [];
   const portOf = new Map();
   portOrder.forEach((lid, i) => {
     portOf.set(`${lid}/S`, ports[i].supply);
@@ -313,75 +407,156 @@ export function planTransfers(o) {
       const slots = expand(slotOrder(rid, side));
       if (!slots.length) continue;
       const exitsHere = L.exits.filter((e) => e.side === side);
-      // the exit groups in the order the way meets them (slots: their concatenation, inner first)
-      const groups = exitsHere.map((e) => ({ door: e.door, ids: expand(req(e.door)).filter((id) => slots.includes(id)) }));
-      // distance along the way from the entry (signed: an entry point may lie behind sE)
-      // (measured along this side's way; only a point within the entry opening may lie behind)
+      // distance along the way from the entry (signed: only a point within the entry opening may lie behind)
       const behind = (L.entry ? doorById.get(L.entry).width_m / 2 : ((2 * o.collector.outlets - 1) * o.collector.portPitch_m) / 2) + S;
       const uOf = (p) => {
         const d = ring.mod((ring.sOf(p) - L.sE) * side);
         return d > ring.T - behind ? d - ring.T : d;
       };
       const sOfU = (u) => L.sE + side * u;
-      const turnU = new Map(slots.map((id) => [id, uOf(doorPos(groups.find((g) => g.ids.includes(id)).door).get(id))]));
-      // after the leads of an exit have turned, the others move in to the wall: lead of new rank r
-      // steps in at base + r · S (inner first — no crossing), base = the last turn + S
-      const removedBefore = [0];
-      for (const g of groups) removedBefore.push(removedBefore.at(-1) + g.ids.length);
-      const jogBase = groups.map((g) => Math.max(...g.ids.map((id) => turnU.get(id))) + S);
+      // the exit groups in the order the way meets them
+      const groups = exitsHere.map((e) => (e.door ? { door: e.door, ids: expand(req(e.door)).filter((id) => slots.includes(id)) } : { loop: e.loop, a: e.a, b: e.b, ha: e.ha, hb: e.hb, ids: slots.filter((id) => id.startsWith(`${e.loop}/`)) }));
+      // the bundle (inner → outer) on every stretch between two exits
+      const rankAt = [];
+      let cur = slots.slice();
+      for (const g of groups) {
+        rankAt.push(new Map(cur.map((id, k) => [id, k])));
+        const k = g.ids.length;
+        const leave = g.door ? cur.slice(0, k) : cur.slice(cur.length - k);
+        if (leave.slice().sort().join() !== g.ids.slice().sort().join()) issues.push({ status: 'LEAD_ORDER_INFEASIBLE', room: rid, msg: `exit ${g.door ?? g.loop}: its leads are not at the ${g.door ? 'wall' : 'room'} side of the bundle` });
+        cur = g.door ? cur.slice(k) : cur.slice(0, cur.length - k);
+      }
+      rankAt.push(new Map(cur.map((id, k) => [id, k])));
+      // where every lead leaves the way: a door position, or its spiral end (the outer lead of a
+      // loop's pair takes the end met first)
+      const turnU = new Map();
+      const endAt = new Map();
+      groups.forEach((g, t) => {
+        if (g.door) for (const id of g.ids) turnU.set(id, uOf(doorPos(g.door).get(id)));
+        else {
+          // the pair leaves from the room side. Candidate legs (straight; the inner lead wrapping
+          // past the ends; the outer lead turning square), both end assignments: the first with no
+          // crossing (the two legs, the inner lead's run, the spiral's end stubs), then the shortest
+          const [inn, out] = g.ids.slice().sort((x, y) => rankAt[t].get(x) - rankAt[t].get(y));
+          const dIn = off + rankAt[t].get(inn) * S;
+          const dOut = off + rankAt[t].get(out) * S;
+          const P = (u, d) => inner(ring, sOfU(u), d, side);
+          const dep = (q) => G.closestOnRing(q, ring.R).d;
+          const stubs = [g.ha, g.hb].filter((h) => h && h.length >= 2);
+          const segsOf = (pl) => pl.slice(1).map((q, k) => [pl[k], q]);
+          const meets = (A, B, ends) => {
+            let n = 0;
+            for (const [p1, p2] of segsOf(A))
+              for (const [q1, q2] of segsOf(B)) {
+                const x = G.segmentIntersection(p1, p2, q1, q2);
+                if (x && !ends.some((e) => Math.hypot(e.x - x.x, e.y - x.y) < 1e-7)) n++;
+              }
+            return n;
+          };
+          const cands = [];
+          for (const [eo, ei] of [
+            [g.a, g.b],
+            [g.b, g.a],
+          ]) {
+            const ue = uOf(eo);
+            const ui0 = uOf(ei);
+            const variants = [
+              { uo: Math.min(ue, ui0 - S), ui: ui0, lo: (uo) => [P(uo, dOut), eo], li: (ui) => [P(ui, dIn), ei] },
+              { uo: ue, ui: Math.max(ui0, ue) + S, lo: (uo) => [P(uo, dOut), eo], li: (ui) => [P(ui, dIn), P(ui, dep(ei)), ei] },
+              { uo: Math.min(ue, ui0) - S, ui: ui0, lo: (uo) => [P(uo, dOut), P(uo, dep(eo)), eo], li: (ui) => [P(ui, dIn), ei] },
+            ];
+            for (const v of variants) {
+              const lo = v.lo(v.uo);
+              const li = v.li(v.ui);
+              const runI = v.ui > v.uo ? [P(v.uo, dIn), P(v.ui, dIn)] : null;
+              let cross = meets(lo, li, []);
+              if (runI) cross += meets(lo, runI, []);
+              for (const h of stubs) cross += meets(lo, h, [eo]) + meets(li, h, [ei]);
+              cands.push({ uo: v.uo, ui: v.ui, eo, ei, lo: lo.slice(1), li: li.slice(1), cross, len: G.pathLength(lo) + G.pathLength(li) + Math.abs(v.ui - v.uo) });
+            }
+          }
+          cands.sort((x, y) => x.cross - y.cross || x.len - y.len);
+          const c = cands[0];
+          turnU.set(out, c.uo);
+          endAt.set(out, c.lo);
+          turnU.set(inn, c.ui);
+          endAt.set(inn, c.li);
+        }
+      });
+      // after a door group has turned to the wall, the others move in: new rank r at base + r · S
+      const jogU = (t, id) => Math.max(...groups[t].ids.map((x) => turnU.get(x))) + S + rankAt[t + 1].get(id) * S;
       let jogsFit = true;
-      for (let t = 1; t < groups.length; t++) {
-        const remaining = slots.length - removedBefore[t];
-        const firstNext = Math.min(...groups[t].ids.map((id) => turnU.get(id)));
-        if (jogBase[t - 1] + (remaining - 1) * S > firstNext - S / 2) jogsFit = false;
-      }
+      groups.forEach((g, t) => {
+        if (!g.door || t + 1 >= groups.length) return;
+        const remaining = [...rankAt[t + 1].keys()];
+        const lastJog = Math.max(...remaining.map((id) => jogU(t, id)));
+        const firstNext = Math.min(...groups[t + 1].ids.map((id) => turnU.get(id)));
+        if (lastJog > firstNext - S / 2) jogsFit = false;
+      });
       if (!jogsFit) issues.push({ status: 'CORRIDOR_CAPACITY_EXCEEDED', room: rid, msg: `the leads left after an exit cannot move in to the wall before the next exit (pocket between the bundle and the wall)` });
-      for (let t = 0; t < groups.length; t++) {
-        const n = slots.length - removedBefore[t];
-        bundles.get(rid).push({ side, stretch: t, leads: n, exits: groups.slice(t).map((g) => g.door), ...bundleGeometry(n, prm) });
-      }
-      for (const [j, id] of slots.entries()) {
+      groups.forEach((g, t) => bundles.get(rid).push({ side, stretch: t, leads: rankAt[t].size, exits: groups.slice(t).map((x) => x.door ?? x.loop), ...bundleGeometry(rankAt[t].size, prm) }));
+      for (const id of slots) {
         const gi = groups.findIndex((g) => g.ids.includes(id));
         const p0 = entryPos.get(id);
         const u0 = uOf(p0);
-        const d0 = L.entry ? 0 : G.closestOnRing(p0, ring.R).d;
         const uEnd = turnU.get(id);
-        // stretches: [u from, u to, depth]
+        // stretches [u from, u to, depth]: a new depth after every door group (step in)
         const stretches = [];
         let uFrom = u0;
-        for (let t = 0; t <= gi; t++) {
-          const rank = jogsFit ? j - removedBefore[t] : j;
-          const depth = off + rank * S;
-          const uTo = t < gi && jogsFit ? jogBase[t] + (j - removedBefore[t + 1]) * S : t < gi ? null : uEnd;
-          if (uTo === null) continue;
-          stretches.push([uFrom, uTo, depth]);
-          uFrom = uTo;
+        let depth = off + rankAt[0].get(id) * S;
+        for (let t = 0; t < gi; t++) {
+          const next = off + (jogsFit ? rankAt[t + 1].get(id) : rankAt[0].get(id) - 0) * S;
+          if (groups[t].door && jogsFit && Math.abs(next - depth) > 1e-12) {
+            const uj = jogU(t, id);
+            stretches.push([uFrom, uj, depth]);
+            uFrom = uj;
+            depth = next;
+          }
         }
+        stretches.push([uFrom, uEnd, depth]);
         const pts = [L.entry ? inner(ring, sOfU(u0), 0, side) : p0];
         let bad = null;
-        for (const [ua, ub, depth] of stretches) {
+        for (const [ua, ub, dep] of stretches) {
           if (ub - ua < -1e-9) {
-            bad = { depth, from: ua, to: ub };
+            bad = { depth: dep, from: ua, to: ub };
             break;
           }
           if (ub - ua < 1e-9) {
-            pts.push(inner(ring, sOfU(ua), depth, side));
+            pts.push(inner(ring, sOfU(ua), dep, side));
             continue;
           }
-          const run = shiftPath(ring.path(sOfU(ua), side, ub - ua), depth, side);
+          const run = shiftPath(ring.path(sOfU(ua), side, ub - ua), dep, side);
           if (!run) {
-            bad = { depth, from: ua, to: ub };
+            bad = { depth: dep, from: ua, to: ub };
             break;
           }
           pts.push(...run);
+        }
+        if (bad && !groups[gi].door && stretches.length === 1 && L.entry) {
+          // the spiral end lies in front of the entry door (behind the point where the lead would
+          // reach its slot): the lead connects straight from the door to it
+          const d0 = inner(ring, sOfU(u0), 0, side);
+          const e = endAt.get(id)[endAt.get(id).length - 1];
+          push(id, [d0, e]);
+          connections.push({ lead: id, room: rid, from: d0, to: e, path: [d0, e], direct: true });
+          continue;
         }
         if (bad) {
           issues.push({ status: 'CORRIDOR_CAPACITY_EXCEEDED', room: rid, lead: id, stretches, msg: `lead ${id}: slot ${bad.depth.toFixed(3)} m from the wall does not fit the wall stretch ${bad.from.toFixed(2)}…${bad.to.toFixed(2)} m along the way (a corner closer than the bundle is deep)` });
           continue;
         }
-        pts.push(inner(ring, sOfU(uEnd), 0, -side));
-        void d0;
-        push(id, cleanLine(pts), rid);
+        // the end: to the wall in a door opening, or out to the spiral end (the loop's connection point)
+        if (groups[gi].door) {
+          pts.push(inner(ring, sOfU(uEnd), 0, -side));
+          push(id, cleanLine(pts), rid);
+        } else {
+          // the connection segment from the bundle to the spiral end: a transition, not corridor
+          const run = cleanLine(pts);
+          push(id, run, rid);
+          const leg = [run[run.length - 1], ...endAt.get(id)];
+          push(id, leg);
+          connections.push({ lead: id, room: rid, from: run[run.length - 1], to: leg[leg.length - 1], path: leg });
+        }
       }
     }
   }
@@ -401,7 +576,7 @@ export function planTransfers(o) {
         push(id, ends);
       }
     }
-    if (l.room !== C0) {
+    if (l.room !== C0 && !exitOf(l.id)) {
       const did = ch.at(-1);
       const ring = rings.get(l.room);
       const pos = doorPos(did);
@@ -415,7 +590,7 @@ export function planTransfers(o) {
   // join the parts of every lead into one polyline (manifold → target transition)
   const leads = [];
   for (const l of loops) {
-    if (l.room === C0) continue;
+    if (l.room === C0 && !exitOf(l.id)) continue;
     for (const k of ['S', 'R']) {
       const id = `${l.id}/${k}`;
       const parts = pieces.get(id) ?? [];
@@ -439,7 +614,8 @@ export function planTransfers(o) {
       }
       const ok = pool.length === 0;
       if (!ok) issues.push({ status: 'LEAD_ROUTE_NOT_FOUND', msg: `lead ${id}: ${pool.length} piece(s) not joined` });
-      leads.push({ id, loop: l.id, room: l.room, kind: k === 'S' ? 'supply' : 'return', path: cleanLine(ordered), doors: chains.rooms[l.room].doors, length: G.pathLength(cleanLine(ordered)) });
+      const path = cleanLine(ordered);
+      leads.push({ id, loop: l.id, room: l.room, kind: k === 'S' ? 'supply' : 'return', path, doors: chains.rooms[l.room].doors, length: G.pathLength(path), port: portOf.get(id), outlet: portOrder.indexOf(l.id), connectsTo: exitOf(l.id) ? 'spiral' : 'transition' });
     }
   }
   // crossings between leads (none by construction — checked)
@@ -484,6 +660,9 @@ export function planTransfers(o) {
     }
     if (split.length) issues.push({ status: 'CORRIDOR_CAPACITY_EXCEEDED', room: rid, msg: `corridor splits / closes usable part(s): ${JSON.stringify(split)}` });
     if (slivers.length) issues.push({ status: 'CORRIDOR_CAPACITY_EXCEEDED', room: rid, msg: `corridor leaves ${slivers.length} sliver(s) narrower than the heating pitch: ${slivers.map((a) => a.toFixed(4)).join(', ')} m²` });
+    // the planning region (connected loops): U minus the corridor's wall envelope (⊇ corridor)
+    const X = mine.length ? G.union(K, wallEnvelope(room.poly, mine, OD / 2, prm.envelopeMinRun ?? 0.4)) : [];
+    const planRegion = (X.length && U.length ? G.difference(U, X) : U).filter((sh) => G.area([sh]) >= 1e-6);
     const U_m2 = G.area(U);
     const C_m2 = G.area(Craw);
     const Uprime_m2 = G.area(Uprime);
@@ -493,6 +672,8 @@ export function planTransfers(o) {
       corridor: K,
       exclusion: Craw,
       Uprime,
+      planExclusion: X,
+      planRegion,
       U_m2,
       C_m2,
       Uprime_m2,
@@ -511,5 +692,5 @@ export function planTransfers(o) {
     Uprime_m2: Object.values(roomsOut).reduce((a, r) => a + r.Uprime_m2, 0),
   };
   const reasons = [...new Set(issues.map((x) => x.status))];
-  return { status: reasons[0] ?? 'TRANSFERS_OK', reasons, issues, chains, capacity: cap, portOrder, leads, crossings, doors: doorsReport, rooms: roomsOut, roomPieces: Object.fromEntries(roomPieces), areas, params: prm };
+  return { status: reasons[0] ?? 'TRANSFERS_OK', reasons, issues, chains, capacity: cap, portOrder, leads, crossings, doors: doorsReport, rooms: roomsOut, roomPieces: Object.fromEntries(roomPieces), connections, areas, params: prm };
 }
