@@ -6,8 +6,8 @@ sub-phase alohida qabul qilinadi. Phase 6 baseline: `06130b3` (muzlatilgan).
 | Sub-phase | Holat |
 |---|---|
 | 7.0 Baseline guard + interfeys | ✅ checklist PASS (commit `cf1104e`) |
-| 7A Kollektor modeli | ✅ checklist PASS — tasdiqlash kutilmoqda |
-| 7B Xonalar grafi + koridorlar | boshlanmagan |
+| 7A Kollektor modeli | ✅ ACCEPTED (foydalanuvchi, 2026-10-05) |
+| 7B Transfer lead'lar + koridorlar | ⏳ testlar PASS, foydalanuvchi ko'rib chiqishi kutilmoqda — QABUL QILINMAGAN |
 | 7C Lead geometriyasi | boshlanmagan |
 | 7D Haqiqiy uzunlik + qayta rejalash | boshlanmagan |
 | 7E Integratsiyalangan validatsiya | boshlanmagan |
@@ -54,3 +54,37 @@ Phase 6 taxmini):
 Bu 7D ning vazifasi (haqiqiy lead + drop bilan qayta rejalash); 7A faqat hisobni aniq qiladi va
 konturlarni o'zgartirmaydi. Kollektor sig'imi: 9 kerak, 6 bor, yetishmaydi 3 — tavsiya: ≥ 9
 chiqishli fizik kollektor yoki zonani bir necha kollektorga bo'lish (modelga hech narsa qo'shilmaydi).
+
+## 7B — Transfer lead'lar, fizik koridor, U′ (holat: QABUL QILINMAGAN, ko'rib chiqish kutilmoqda)
+
+Engine: `src/engines/ufh/roomgraph.js`, `src/engines/ufh/corridor.js` (`planTransfers`); render va
+pipeline: `tools/ufh-transfer-debug.mjs` (muzlatilgan Phase 6 planner U′ ustida). Fixture'lar:
+`tests/fixtures/apartment-7b.json` (real loyiha turidagi kvartira), `tests/fixtures/zone-101-109-m12-7b.json`
+(101–109 xonalari, 12 chiqishli e'lon qilingan test kollektori).
+
+| # | Shart | Holat | Dalil |
+|---|---|---|---|
+| 1 | Parametrlar alohida, default / fallback yo'q | ✅ | test 7B-1 |
+| 2 | 12 lead: span (N−1)·S, eni span + OD, N·S emas (50 / 100 mm) | ✅ | test 7B-2 |
+| 3 | Maydon hisobi: C bir marta, U′ = U − C, rawcheck maxraji U′, coverage = H / U′ | ✅ | test 7B-3 |
+| 4 | Bog'langanlik: bo'linish / sliver yo'q, transition target U′ chegarasida | ✅ | test 7B-4 |
+| 5 | Lead geometriyasi: kesishma 0, devordan 50 mm, lead ↔ lead ≥ S | ✅ | test 7B-5 |
+| 6 | 101–109: 100 mm eshik sig'imsiz, 50 mm o'tadi, 108 hisoboti, devor bo'ylab | ✅ | test 7B-6 |
+| 7 | Determinizm | ✅ | test 7B-7 (hash) |
+| 8 | Phase 6 freeze 10/10, regression | ✅ | 188/188 (`evidence/7B-regression-188.log`, 382 s) |
+| 9 | Engine render | ✅ | `pictures/7B-*.png` |
+
+Kvartira, leadSpacing 50 mm (`evidence/7B-apartment-0.05-metrics.json`): `TRANSFERS_OK`, kesishma 0.
+
+| Xona | Rol | U | C | U′ | H | coverage(U′) | Kontur | Bundle (lead / eni) |
+|---|---|---|---|---|---|---|---|---|
+| H | kollektor xonasi | 12.08 | 1.95 | 10.13 | 8.66 | 85.5 % | 3 | 10 / 0.466 → D2, D3; 8 / 0.366 → D1 |
+| LR | tranzit + target | 18.80 | 0.03 | 18.77 | 18.23 | 97.1 % | 3 | 2 / 0.066 → D4 |
+| BR1 | target | 14.50 | 0 | 14.50 | 13.75 | 94.8 % | 3 | — |
+| BA | target | 3.91 | 0 | 3.91 | 3.57 | 91.3 % | 2 | — |
+| BR2 | target | 12.08 | 0 | 12.08 | 11.60 | 96.0 % | 1 | — |
+
+Ochiq masalalar (qabuldan oldin qaror kerak):
+- `leadSpacing` real qiymati (100 mm da kvartirada kollektor xonasi bundle'i burchakka sig'maydi va H 81.9 %);
+- 101–109: C-01 eksportda devordan 0.40 m — bundle ichida → `LEAD_ORDER_INFEASIBLE`; kollektorning devordagi real joyi kerak;
+- kollektor xonasining o'z konturlari va lead → kontur chiqishi ulanishi — 7C.

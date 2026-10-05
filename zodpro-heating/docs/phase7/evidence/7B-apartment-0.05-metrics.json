@@ -1,0 +1,457 @@
+{
+ "ms": 21427,
+ "status": "TRANSFERS_OK",
+ "issues": [],
+ "heatingIssues": [],
+ "leadSpacing": 0.05,
+ "portOrder": [
+  "LR.L1",
+  "LR.L2",
+  "LR.L3",
+  "BR2.L1",
+  "H.L1",
+  "H.L2",
+  "H.L3",
+  "BA.L1",
+  "BA.L2",
+  "BR1.L1",
+  "BR1.L2",
+  "BR1.L3"
+ ],
+ "leadCrossings": 0,
+ "doors": [
+  {
+   "door": "D1",
+   "leads": 8,
+   "need_m": 0.45000000000000007,
+   "width_m": 0.9,
+   "ok": true
+  },
+  {
+   "door": "D2",
+   "leads": 6,
+   "need_m": 0.35,
+   "width_m": 0.8,
+   "ok": true
+  },
+  {
+   "door": "D3",
+   "leads": 4,
+   "need_m": 0.25,
+   "width_m": 0.7,
+   "ok": true
+  },
+  {
+   "door": "D4",
+   "leads": 2,
+   "need_m": 0.15000000000000002,
+   "width_m": 0.8,
+   "ok": true
+  }
+ ],
+ "areas": {
+  "U_m2": 61.37740000000001,
+  "C_m2": 1.9847320000000008,
+  "Uprime_m2": 59.392668
+ },
+ "rooms": {
+  "H": {
+   "role": "manifold room",
+   "heatingPitch": 0.2,
+   "U_m2": 12.084000000000003,
+   "C_m2": 1.9530680000000016,
+   "Uprime_m2": 10.130932,
+   "H_m2": 8.663711335000007,
+   "coverageUprime": 0.8551741670953874,
+   "rawcheckUsable_m2": 10.130932,
+   "rawcheckUncovered_m2": 1.4672206649999922,
+   "loops": [
+    {
+     "id": "H.L1",
+     "heating_m": 6.5761479322045275,
+     "nominalSpacing": 0.2
+    },
+    {
+     "id": "H.L2",
+     "heating_m": 27.006973041328525,
+     "nominalSpacing": 0.2
+    },
+    {
+     "id": "H.L3",
+     "heating_m": 10.149706310191398,
+     "nominalSpacing": 0.2
+    }
+   ],
+   "minHeatingSpacing_m": 0.1999999999999993,
+   "bundles": [
+    {
+     "side": 1,
+     "stretch": 0,
+     "leads": 10,
+     "leadSpacing": 0.05,
+     "span_m": 0.45,
+     "width_m": 0.466,
+     "depth_m": 0.508,
+     "exits": [
+      "D2",
+      "D3"
+     ]
+    },
+    {
+     "side": 1,
+     "stretch": 1,
+     "leads": 4,
+     "leadSpacing": 0.05,
+     "span_m": 0.15000000000000002,
+     "width_m": 0.16600000000000004,
+     "depth_m": 0.20800000000000002,
+     "exits": [
+      "D3"
+     ]
+    },
+    {
+     "side": -1,
+     "stretch": 0,
+     "leads": 8,
+     "leadSpacing": 0.05,
+     "span_m": 0.35000000000000003,
+     "width_m": 0.36600000000000005,
+     "depth_m": 0.40800000000000003,
+     "exits": [
+      "D1"
+     ]
+    }
+   ],
+   "corridorComponents": 2,
+   "components": {
+    "before": 1,
+    "after": 1
+   },
+   "split": [],
+   "slivers": [],
+   "leadWallMin_m": 0.04999999999999982
+  },
+  "LR": {
+   "role": "transit + target",
+   "heatingPitch": 0.2,
+   "U_m2": 18.799999999999997,
+   "C_m2": 0.03166399999999925,
+   "Uprime_m2": 18.768336,
+   "H_m2": 18.22803340499996,
+   "coverageUprime": 0.9712120139473184,
+   "rawcheckUsable_m2": 18.768336,
+   "rawcheckUncovered_m2": 0.5403025950000426,
+   "loops": [
+    {
+     "id": "LR.L1",
+     "heating_m": 43.33269216642061,
+     "nominalSpacing": 0.2
+    },
+    {
+     "id": "LR.L2",
+     "heating_m": 14.785693829408185,
+     "nominalSpacing": 0.2
+    },
+    {
+     "id": "LR.L3",
+     "heating_m": 34.26568119766846,
+     "nominalSpacing": 0.2
+    }
+   ],
+   "minHeatingSpacing_m": 0.1999999999999993,
+   "bundles": [
+    {
+     "side": 1,
+     "stretch": 0,
+     "leads": 2,
+     "leadSpacing": 0.05,
+     "span_m": 0.05,
+     "width_m": 0.066,
+     "depth_m": 0.10800000000000001,
+     "exits": [
+      "D4"
+     ]
+    }
+   ],
+   "corridorComponents": 1,
+   "components": {
+    "before": 1,
+    "after": 1
+   },
+   "split": [],
+   "slivers": [],
+   "leadWallMin_m": 0.04999999999999982
+  },
+  "BR1": {
+   "role": "target",
+   "heatingPitch": 0.2,
+   "U_m2": 14.500399999999999,
+   "C_m2": 0,
+   "Uprime_m2": 14.500399999999999,
+   "H_m2": 13.750556315,
+   "coverageUprime": 0.9482880689498222,
+   "rawcheckUsable_m2": 14.500399999999999,
+   "rawcheckUncovered_m2": 0.7498436849999983,
+   "loops": [
+    {
+     "id": "BR1.L1",
+     "heating_m": 28.67311212069864,
+     "nominalSpacing": 0.2
+    },
+    {
+     "id": "BR1.L2",
+     "heating_m": 28.678973041328597,
+     "nominalSpacing": 0.2
+    },
+    {
+     "id": "BR1.L3",
+     "heating_m": 10.45655580321827,
+     "nominalSpacing": 0.2
+    }
+   ],
+   "minHeatingSpacing_m": 0.1999999999999993,
+   "bundles": [],
+   "corridorComponents": 1,
+   "components": {
+    "before": 1,
+    "after": 1
+   },
+   "split": [],
+   "slivers": [],
+   "leadWallMin_m": null
+  },
+  "BA": {
+   "role": "target",
+   "heatingPitch": 0.2,
+   "U_m2": 3.9090000000000025,
+   "C_m2": 0,
+   "Uprime_m2": 3.9090000000000025,
+   "H_m2": 3.5683430650000254,
+   "coverageUprime": 0.912853176004099,
+   "rawcheckUsable_m2": 3.9090000000000025,
+   "rawcheckUncovered_m2": 0.34065693499997707,
+   "loops": [
+    {
+     "id": "BA.L1",
+     "heating_m": 9.934985800818055,
+     "nominalSpacing": 0.2
+    },
+    {
+     "id": "BA.L2",
+     "heating_m": 7.710694882588316,
+     "nominalSpacing": 0.2
+    }
+   ],
+   "minHeatingSpacing_m": 0.1999999999999993,
+   "bundles": [],
+   "corridorComponents": 1,
+   "components": {
+    "before": 1,
+    "after": 1
+   },
+   "split": [],
+   "slivers": [],
+   "leadWallMin_m": null
+  },
+  "BR2": {
+   "role": "target",
+   "heatingPitch": 0.2,
+   "U_m2": 12.084000000000007,
+   "C_m2": 0,
+   "Uprime_m2": 12.084000000000007,
+   "H_m2": 11.599963380000004,
+   "coverageUprime": 0.9599440069513404,
+   "rawcheckUsable_m2": 12.084000000000007,
+   "rawcheckUncovered_m2": 0.484036620000003,
+   "loops": [
+    {
+     "id": "BR2.L1",
+     "heating_m": 57.59208567628906,
+     "nominalSpacing": 0.2
+    }
+   ],
+   "minHeatingSpacing_m": 0.1999999999999993,
+   "bundles": [],
+   "corridorComponents": 1,
+   "components": {
+    "before": 1,
+    "after": 1
+   },
+   "split": [],
+   "slivers": [],
+   "leadWallMin_m": null
+  }
+ },
+ "leads": [
+  {
+   "id": "BA.L1/S",
+   "kind": "supply",
+   "doors": [
+    "D3"
+   ],
+   "length_m": 7.135000000000003
+  },
+  {
+   "id": "BA.L1/R",
+   "kind": "return",
+   "doors": [
+    "D3"
+   ],
+   "length_m": 7.034999999999995
+  },
+  {
+   "id": "BA.L2/S",
+   "kind": "supply",
+   "doors": [
+    "D3"
+   ],
+   "length_m": 6.9350000000000005
+  },
+  {
+   "id": "BA.L2/R",
+   "kind": "return",
+   "doors": [
+    "D3"
+   ],
+   "length_m": 6.834999999999999
+  },
+  {
+   "id": "BR1.L1/S",
+   "kind": "supply",
+   "doors": [
+    "D2"
+   ],
+   "length_m": 1.884999999999996
+  },
+  {
+   "id": "BR1.L1/R",
+   "kind": "return",
+   "doors": [
+    "D2"
+   ],
+   "length_m": 1.7850000000000017
+  },
+  {
+   "id": "BR1.L2/S",
+   "kind": "supply",
+   "doors": [
+    "D2"
+   ],
+   "length_m": 1.6850000000000005
+  },
+  {
+   "id": "BR1.L2/R",
+   "kind": "return",
+   "doors": [
+    "D2"
+   ],
+   "length_m": 1.5849999999999989
+  },
+  {
+   "id": "BR1.L3/S",
+   "kind": "supply",
+   "doors": [
+    "D2"
+   ],
+   "length_m": 1.4849999999999974
+  },
+  {
+   "id": "BR1.L3/R",
+   "kind": "return",
+   "doors": [
+    "D2"
+   ],
+   "length_m": 1.384999999999997
+  },
+  {
+   "id": "BR2.L1/S",
+   "kind": "supply",
+   "doors": [
+    "D1",
+    "D4"
+   ],
+   "length_m": 7.454999999999999
+  },
+  {
+   "id": "BR2.L1/R",
+   "kind": "return",
+   "doors": [
+    "D1",
+    "D4"
+   ],
+   "length_m": 7.454999999999999
+  },
+  {
+   "id": "LR.L1/S",
+   "kind": "supply",
+   "doors": [
+    "D1"
+   ],
+   "length_m": 2.5850000000000004
+  },
+  {
+   "id": "LR.L1/R",
+   "kind": "return",
+   "doors": [
+    "D1"
+   ],
+   "length_m": 2.6850000000000005
+  },
+  {
+   "id": "LR.L2/S",
+   "kind": "supply",
+   "doors": [
+    "D1"
+   ],
+   "length_m": 2.784999999999999
+  },
+  {
+   "id": "LR.L2/R",
+   "kind": "return",
+   "doors": [
+    "D1"
+   ],
+   "length_m": 2.8849999999999967
+  },
+  {
+   "id": "LR.L3/S",
+   "kind": "supply",
+   "doors": [
+    "D1"
+   ],
+   "length_m": 2.984999999999998
+  },
+  {
+   "id": "LR.L3/R",
+   "kind": "return",
+   "doors": [
+    "D1"
+   ],
+   "length_m": 3.0849999999999995
+  }
+ ],
+ "history": [
+  {
+   "H": 2,
+   "LR": 3,
+   "BR1": 3,
+   "BA": 2,
+   "BR2": 1
+  },
+  {
+   "H": 3,
+   "LR": 3,
+   "BR1": 3,
+   "BA": 2,
+   "BR2": 1
+  },
+  {
+   "H": 3,
+   "LR": 3,
+   "BR1": 3,
+   "BA": 2,
+   "BR2": 1
+  }
+ ],
+ "geometryHash": "d6afe5113ab268914f4302e45219c6637bae8aa8bb61190580e7e4ac477dac9f"
+}

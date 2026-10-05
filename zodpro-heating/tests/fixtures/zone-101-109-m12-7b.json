@@ -1,0 +1,113 @@
+{
+ "note": "101-109 test variant: rooms/doors as zone-101-109 + doors-101-109; manifold C-01 position with a DECLARED 12-outlet manifold (test variant, not the project: C-01 has 6)",
+ "wallClearance": 0.2,
+ "obstacleClearance": 0.2,
+ "pipeType": "PERT-16x2.0",
+ "heatingPitch": 0.2,
+ "leadWallOffset": 0.05,
+ "collector": {
+  "id": "C-01/M12",
+  "at": {
+   "x": 5.315,
+   "y": 13.64
+  },
+  "outlets": 12,
+  "portPitch_m": 0.05,
+  "dropPerPipe_m": 0.4,
+  "facing": {
+   "x": 0,
+   "y": 1
+  }
+ },
+ "rooms": [
+  {
+   "id": "101",
+   "poly": [
+    {
+     "x": 0.08,
+     "y": 0.08
+    },
+    {
+     "x": 5.72,
+     "y": 0.08
+    },
+    {
+     "x": 5.72,
+     "y": 7.08
+    },
+    {
+     "x": 0.08,
+     "y": 7.08
+    }
+   ]
+  },
+  {
+   "id": "107",
+   "poly": [
+    {
+     "x": 0.08,
+     "y": 13.24
+    },
+    {
+     "x": 5.72,
+     "y": 13.24
+    },
+    {
+     "x": 5.72,
+     "y": 18.68
+    },
+    {
+     "x": 0.08,
+     "y": 18.68
+    }
+   ]
+  },
+  {
+   "id": "108",
+   "poly": [
+    {
+     "x": 3.28,
+     "y": 7.24
+    },
+    {
+     "x": 5.72,
+     "y": 7.24
+    },
+    {
+     "x": 5.72,
+     "y": 13.08
+    },
+    {
+     "x": 3.28,
+     "y": 13.08
+    }
+   ]
+  }
+ ],
+ "doors": [
+  {
+   "id": "D-03",
+   "between": [
+    "107",
+    "108"
+   ],
+   "at": {
+    "x": 4.65,
+    "y": 13.16
+   },
+   "width_m": 0.9
+  },
+  {
+   "id": "D-04",
+   "between": [
+    "108",
+    "101"
+   ],
+   "at": {
+    "x": 4.45,
+    "y": 7.16
+   },
+   "width_m": 0.9
+  }
+ ]
+}

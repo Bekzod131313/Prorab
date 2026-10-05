@@ -1,0 +1,341 @@
+{
+ "ms": 177845,
+ "status": "LEAD_ORDER_INFEASIBLE",
+ "issues": [
+  {
+   "status": "LEAD_ORDER_INFEASIBLE",
+   "room": "107",
+   "msg": "manifold ports 0.400 m from the wall lie inside the bundle (0.050…0.950 m): no crossing-free order — the manifold on the wall side (≤ 0.05 m) or behind the bundle (≥ 0.950 m)"
+  },
+  {
+   "status": "DOOR_CAPACITY_EXCEEDED",
+   "door": "D-03",
+   "msg": "10 leads need 1.000 m (2 × 0.05 + 9 × 0.1), door 0.9 m"
+  },
+  {
+   "status": "CORRIDOR_CAPACITY_EXCEEDED",
+   "room": "107",
+   "lead": "101.L1/S",
+   "stretches": [
+    [
+     0.5749999999999993,
+     0.16499999999999915,
+     0.05
+    ]
+   ],
+   "msg": "lead 101.L1/S: slot 0.050 m from the wall does not fit the wall stretch 0.57…0.16 m along the way (a corner closer than the bundle is deep)"
+  },
+  {
+   "status": "CORRIDOR_CAPACITY_EXCEEDED",
+   "room": "107",
+   "lead": "101.L1/R",
+   "stretches": [
+    [
+     0.5249999999999986,
+     0.26500000000000057,
+     0.15000000000000002
+    ]
+   ],
+   "msg": "lead 101.L1/R: slot 0.150 m from the wall does not fit the wall stretch 0.52…0.27 m along the way (a corner closer than the bundle is deep)"
+  },
+  {
+   "status": "CORRIDOR_CAPACITY_EXCEEDED",
+   "room": "107",
+   "lead": "101.L2/S",
+   "stretches": [
+    [
+     0.4750000000000014,
+     0.365000000000002,
+     0.25
+    ]
+   ],
+   "msg": "lead 101.L2/S: slot 0.250 m from the wall does not fit the wall stretch 0.48…0.37 m along the way (a corner closer than the bundle is deep)"
+  },
+  {
+   "status": "LEAD_ROUTE_NOT_FOUND",
+   "msg": "lead 101.L1/S: 4 piece(s) not joined"
+  },
+  {
+   "status": "LEAD_ROUTE_NOT_FOUND",
+   "msg": "lead 101.L1/R: 4 piece(s) not joined"
+  },
+  {
+   "status": "LEAD_ROUTE_NOT_FOUND",
+   "msg": "lead 101.L2/S: 4 piece(s) not joined"
+  }
+ ],
+ "heatingIssues": [],
+ "leadSpacing": 0.1,
+ "portOrder": [
+  "101.L1",
+  "101.L2",
+  "101.L3",
+  "101.L4",
+  "108.L1",
+  "107.L1",
+  "107.L2",
+  "107.L3"
+ ],
+ "leadCrossings": 0,
+ "doors": [
+  {
+   "door": "D-03",
+   "leads": 10,
+   "need_m": 1,
+   "width_m": 0.9,
+   "ok": false
+  },
+  {
+   "door": "D-04",
+   "leads": 8,
+   "need_m": 0.8,
+   "width_m": 0.9,
+   "ok": true
+  }
+ ],
+ "areas": {
+  "U_m2": 72.0912,
+  "C_m2": 4.498008000000013,
+  "Uprime_m2": 67.59319199999999
+ },
+ "rooms": {
+  "101": {
+   "role": "target",
+   "heatingPitch": 0.2,
+   "U_m2": 34.583999999999996,
+   "C_m2": 0,
+   "Uprime_m2": 34.583999999999996,
+   "H_m2": 33.01764505499998,
+   "coverageUprime": 0.9547086819049267,
+   "rawcheckUsable_m2": 34.583999999999996,
+   "rawcheckUncovered_m2": 1.5663549450000147,
+   "loops": [
+    {
+     "id": "101.L1",
+     "heating_m": 32.547251200068715,
+     "nominalSpacing": 0.2
+    },
+    {
+     "id": "101.L2",
+     "heating_m": 49.49794659691915,
+     "nominalSpacing": 0.2
+    },
+    {
+     "id": "101.L3",
+     "heating_m": 52.507251200068744,
+     "nominalSpacing": 0.2
+    },
+    {
+     "id": "101.L4",
+     "heating_m": 30.61069488258843,
+     "nominalSpacing": 0.2
+    }
+   ],
+   "minHeatingSpacing_m": 0.1999999999999993,
+   "bundles": [],
+   "corridorComponents": 1,
+   "components": {
+    "before": 1,
+    "after": 1
+   },
+   "split": [],
+   "slivers": [],
+   "leadWallMin_m": null
+  },
+  "107": {
+   "role": "manifold room",
+   "heatingPitch": 0.2,
+   "U_m2": 26.409600000000005,
+   "C_m2": 0.6589680000000087,
+   "Uprime_m2": 25.750631999999996,
+   "H_m2": 24.73392121999999,
+   "coverageUprime": 0.9605170552707208,
+   "rawcheckUsable_m2": 25.750631999999996,
+   "rawcheckUncovered_m2": 1.0167107800000075,
+   "loops": [
+    {
+     "id": "107.L1",
+     "heating_m": 49.11154211829841,
+     "nominalSpacing": 0.2
+    },
+    {
+     "id": "107.L2",
+     "heating_m": 49.12754211829839,
+     "nominalSpacing": 0.2
+    },
+    {
+     "id": "107.L3",
+     "heating_m": 25.17469488258835,
+     "nominalSpacing": 0.2
+    }
+   ],
+   "minHeatingSpacing_m": 0.1999999999999993,
+   "bundles": [
+    {
+     "side": -1,
+     "stretch": 0,
+     "leads": 10,
+     "leadSpacing": 0.1,
+     "span_m": 0.9,
+     "width_m": 0.916,
+     "depth_m": 0.9580000000000001,
+     "exits": [
+      "D-03"
+     ]
+    }
+   ],
+   "corridorComponents": 1,
+   "components": {
+    "before": 1,
+    "after": 1
+   },
+   "split": [],
+   "slivers": [],
+   "leadWallMin_m": 0.4947916666666661
+  },
+  "108": {
+   "role": "transit + target",
+   "heatingPitch": 0.2,
+   "U_m2": 11.097600000000003,
+   "C_m2": 3.8390400000000042,
+   "Uprime_m2": 7.258559999999999,
+   "H_m2": 6.306571034999992,
+   "coverageUprime": 0.8688460293777268,
+   "rawcheckUsable_m2": 7.258559999999999,
+   "rawcheckUncovered_m2": 0.9519889650000071,
+   "loops": [
+    {
+     "id": "108.L1",
+     "heating_m": 33.37584538956155,
+     "nominalSpacing": 0.2
+    }
+   ],
+   "minHeatingSpacing_m": 0.1999999999999993,
+   "bundles": [
+    {
+     "side": -1,
+     "stretch": 0,
+     "leads": 8,
+     "leadSpacing": 0.1,
+     "span_m": 0.7000000000000001,
+     "width_m": 0.7160000000000001,
+     "depth_m": 0.7580000000000001,
+     "exits": [
+      "D-04"
+     ]
+    }
+   ],
+   "corridorComponents": 1,
+   "components": {
+    "before": 1,
+    "after": 1
+   },
+   "split": [],
+   "slivers": [],
+   "leadWallMin_m": 0.34999999999999964
+  }
+ },
+ "leads": [
+  {
+   "id": "101.L1/S",
+   "kind": "supply",
+   "doors": [
+    "D-03",
+    "D-04"
+   ],
+   "length_m": 0
+  },
+  {
+   "id": "101.L1/R",
+   "kind": "return",
+   "doors": [
+    "D-03",
+    "D-04"
+   ],
+   "length_m": 0
+  },
+  {
+   "id": "101.L2/S",
+   "kind": "supply",
+   "doors": [
+    "D-03",
+    "D-04"
+   ],
+   "length_m": 0
+  },
+  {
+   "id": "101.L2/R",
+   "kind": "return",
+   "doors": [
+    "D-03",
+    "D-04"
+   ],
+   "length_m": 8.239999999999998
+  },
+  {
+   "id": "101.L3/S",
+   "kind": "supply",
+   "doors": [
+    "D-03",
+    "D-04"
+   ],
+   "length_m": 8.489999999999998
+  },
+  {
+   "id": "101.L3/R",
+   "kind": "return",
+   "doors": [
+    "D-03",
+    "D-04"
+   ],
+   "length_m": 8.84
+  },
+  {
+   "id": "101.L4/S",
+   "kind": "supply",
+   "doors": [
+    "D-03",
+    "D-04"
+   ],
+   "length_m": 9.189999999999998
+  },
+  {
+   "id": "101.L4/R",
+   "kind": "return",
+   "doors": [
+    "D-03",
+    "D-04"
+   ],
+   "length_m": 9.54
+  },
+  {
+   "id": "108.L1/S",
+   "kind": "supply",
+   "doors": [
+    "D-03"
+   ],
+   "length_m": 2.450000000000001
+  },
+  {
+   "id": "108.L1/R",
+   "kind": "return",
+   "doors": [
+    "D-03"
+   ],
+   "length_m": 2.799999999999999
+  }
+ ],
+ "history": [
+  {
+   "101": 4,
+   "107": 3,
+   "108": 1
+  },
+  {
+   "101": 4,
+   "107": 3,
+   "108": 1
+  }
+ ],
+ "geometryHash": "ed3d325fc0d699eebb09c436993fbd9aac1af75798fc6f295139859cd5a72825"
+}

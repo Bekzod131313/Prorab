@@ -1,0 +1,333 @@
+{
+ "ms": 273930,
+ "status": "LEAD_ORDER_INFEASIBLE",
+ "issues": [
+  {
+   "status": "LEAD_ORDER_INFEASIBLE",
+   "room": "107",
+   "msg": "manifold ports 0.400 m from the wall lie inside the bundle (0.050…0.600 m): no crossing-free order — the manifold on the wall side (≤ 0.05 m) or behind the bundle (≥ 0.600 m)"
+  },
+  {
+   "status": "CORRIDOR_CAPACITY_EXCEEDED",
+   "room": "107",
+   "lead": "101.L1/S",
+   "stretches": [
+    [
+     0.5749999999999993,
+     0.5150000000000006,
+     0.05
+    ]
+   ],
+   "msg": "lead 101.L1/S: slot 0.050 m from the wall does not fit the wall stretch 0.57…0.52 m along the way (a corner closer than the bundle is deep)"
+  },
+  {
+   "status": "LEAD_ROUTE_NOT_FOUND",
+   "msg": "lead 101.L1/S: 4 piece(s) not joined"
+  },
+  {
+   "status": "LEAD_INTERSECTION",
+   "msg": "21 lead crossing(s)"
+  }
+ ],
+ "heatingIssues": [],
+ "leadSpacing": 0.05,
+ "portOrder": [
+  "101.L1",
+  "101.L2",
+  "101.L3",
+  "101.L4",
+  "108.L1",
+  "108.L2",
+  "107.L1",
+  "107.L2",
+  "107.L3"
+ ],
+ "leadCrossings": 21,
+ "doors": [
+  {
+   "door": "D-03",
+   "leads": 12,
+   "need_m": 0.65,
+   "width_m": 0.9,
+   "ok": true
+  },
+  {
+   "door": "D-04",
+   "leads": 8,
+   "need_m": 0.45000000000000007,
+   "width_m": 0.9,
+   "ok": true
+  }
+ ],
+ "areas": {
+  "U_m2": 72.0912,
+  "C_m2": 1.9440240000000202,
+  "Uprime_m2": 70.14717599999999
+ },
+ "rooms": {
+  "101": {
+   "role": "target",
+   "heatingPitch": 0.2,
+   "U_m2": 34.583999999999996,
+   "C_m2": 0,
+   "Uprime_m2": 34.583999999999996,
+   "H_m2": 33.01764505499998,
+   "coverageUprime": 0.9547086819049267,
+   "rawcheckUsable_m2": 34.583999999999996,
+   "rawcheckUncovered_m2": 1.5663549450000147,
+   "loops": [
+    {
+     "id": "101.L1",
+     "heating_m": 32.547251200068715,
+     "nominalSpacing": 0.2
+    },
+    {
+     "id": "101.L2",
+     "heating_m": 49.49794659691915,
+     "nominalSpacing": 0.2
+    },
+    {
+     "id": "101.L3",
+     "heating_m": 52.507251200068744,
+     "nominalSpacing": 0.2
+    },
+    {
+     "id": "101.L4",
+     "heating_m": 30.61069488258843,
+     "nominalSpacing": 0.2
+    }
+   ],
+   "minHeatingSpacing_m": 0.1999999999999993,
+   "bundles": [],
+   "corridorComponents": 1,
+   "components": {
+    "before": 1,
+    "after": 1
+   },
+   "split": [],
+   "slivers": [],
+   "leadWallMin_m": null
+  },
+  "107": {
+   "role": "manifold room",
+   "heatingPitch": 0.2,
+   "U_m2": 26.409600000000005,
+   "C_m2": 0.3673840000000155,
+   "Uprime_m2": 26.04221599999999,
+   "H_m2": 25.155323285000005,
+   "coverageUprime": 0.9659440381340826,
+   "rawcheckUsable_m2": 26.04221599999999,
+   "rawcheckUncovered_m2": 0.8868927149999841,
+   "loops": [
+    {
+     "id": "107.L1",
+     "heating_m": 49.11154211829841,
+     "nominalSpacing": 0.2
+    },
+    {
+     "id": "107.L2",
+     "heating_m": 49.12754211829839,
+     "nominalSpacing": 0.2
+    },
+    {
+     "id": "107.L3",
+     "heating_m": 27.274694882588353,
+     "nominalSpacing": 0.2
+    }
+   ],
+   "minHeatingSpacing_m": 0.1999999999999993,
+   "bundles": [
+    {
+     "side": -1,
+     "stretch": 0,
+     "leads": 12,
+     "leadSpacing": 0.05,
+     "span_m": 0.55,
+     "width_m": 0.5660000000000001,
+     "depth_m": 0.6080000000000001,
+     "exits": [
+      "D-03"
+     ]
+    }
+   ],
+   "corridorComponents": 1,
+   "components": {
+    "before": 1,
+    "after": 1
+   },
+   "split": [],
+   "slivers": [],
+   "leadWallMin_m": 0.5
+  },
+  "108": {
+   "role": "transit + target",
+   "heatingPitch": 0.2,
+   "U_m2": 11.097600000000003,
+   "C_m2": 1.5766400000000047,
+   "Uprime_m2": 9.520959999999999,
+   "H_m2": 8.232322295000015,
+   "coverageUprime": 0.8646525450164707,
+   "rawcheckUsable_m2": 9.520959999999999,
+   "rawcheckUncovered_m2": 1.2886377049999833,
+   "loops": [
+    {
+     "id": "108.L1",
+     "heating_m": 20.832555803218288,
+     "nominalSpacing": 0.2
+    },
+    {
+     "id": "108.L2",
+     "heating_m": 19.632555803218292,
+     "nominalSpacing": 0.2
+    }
+   ],
+   "minHeatingSpacing_m": 0.1999999999999993,
+   "bundles": [
+    {
+     "side": -1,
+     "stretch": 0,
+     "leads": 8,
+     "leadSpacing": 0.05,
+     "span_m": 0.35000000000000003,
+     "width_m": 0.36600000000000005,
+     "depth_m": 0.40800000000000003,
+     "exits": [
+      "D-04"
+     ]
+    }
+   ],
+   "corridorComponents": 1,
+   "components": {
+    "before": 1,
+    "after": 1
+   },
+   "split": [],
+   "slivers": [],
+   "leadWallMin_m": 0.09999999999999964
+  }
+ },
+ "leads": [
+  {
+   "id": "101.L1/S",
+   "kind": "supply",
+   "doors": [
+    "D-03",
+    "D-04"
+   ],
+   "length_m": 0
+  },
+  {
+   "id": "101.L1/R",
+   "kind": "return",
+   "doors": [
+    "D-03",
+    "D-04"
+   ],
+   "length_m": 8.940000000000005
+  },
+  {
+   "id": "101.L2/S",
+   "kind": "supply",
+   "doors": [
+    "D-03",
+    "D-04"
+   ],
+   "length_m": 9.04
+  },
+  {
+   "id": "101.L2/R",
+   "kind": "return",
+   "doors": [
+    "D-03",
+    "D-04"
+   ],
+   "length_m": 9.139999999999997
+  },
+  {
+   "id": "101.L3/S",
+   "kind": "supply",
+   "doors": [
+    "D-03",
+    "D-04"
+   ],
+   "length_m": 9.239999999999998
+  },
+  {
+   "id": "101.L3/R",
+   "kind": "return",
+   "doors": [
+    "D-03",
+    "D-04"
+   ],
+   "length_m": 9.339999999999996
+  },
+  {
+   "id": "101.L4/S",
+   "kind": "supply",
+   "doors": [
+    "D-03",
+    "D-04"
+   ],
+   "length_m": 9.440000000000005
+  },
+  {
+   "id": "101.L4/R",
+   "kind": "return",
+   "doors": [
+    "D-03",
+    "D-04"
+   ],
+   "length_m": 9.540000000000003
+  },
+  {
+   "id": "108.L1/S",
+   "kind": "supply",
+   "doors": [
+    "D-03"
+   ],
+   "length_m": 1.5999999999999996
+  },
+  {
+   "id": "108.L1/R",
+   "kind": "return",
+   "doors": [
+    "D-03"
+   ],
+   "length_m": 1.799999999999999
+  },
+  {
+   "id": "108.L2/S",
+   "kind": "supply",
+   "doors": [
+    "D-03"
+   ],
+   "length_m": 2.0000000000000018
+  },
+  {
+   "id": "108.L2/R",
+   "kind": "return",
+   "doors": [
+    "D-03"
+   ],
+   "length_m": 2.200000000000001
+  }
+ ],
+ "history": [
+  {
+   "101": 4,
+   "107": 3,
+   "108": 1
+  },
+  {
+   "101": 4,
+   "107": 3,
+   "108": 2
+  },
+  {
+   "101": 4,
+   "107": 3,
+   "108": 2
+  }
+ ],
+ "geometryHash": "2dd69d83edf0a13e7b1b4bde0afd741bb609146ce2616087d3437932d11dc0c7"
+}
