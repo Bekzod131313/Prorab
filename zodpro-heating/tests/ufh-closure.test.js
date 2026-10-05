@@ -31,12 +31,22 @@ function checkClosed(name, r) {
       // terminal only: at most MAX_RESIDUAL_RINGS residual rings, the closure stretch is a part of the pipe
       const R = x.spiral.residual;
       assert.ok(R.rings <= MAX_RESIDUAL_RINGS);
-      // terminal = inside the last nominal ring: the closure stretch lies deeper than ring n−1
-      // (apart from the short transitions onto it)
-      const lastNominal = c.s / 2 + (R.n - 1) * c.s;
       const pts = G.densify(G.subPath(x.spiral.path, R.terminal[0], R.terminal[1]), 0.05);
-      const deep = pts.filter((q) => G.distToRegionBoundary(q, [{ outer: x.spiral.region, holes: [] }]) >= lastNominal - 0.01).length;
-      assert.ok(deep / pts.length >= 0.8, `${name}: residual stretch not terminal (${deep}/${pts.length})`);
+      const outline = [{ outer: x.spiral.region, holes: [] }];
+      if (R.side) {
+        // a SIDE closure (Phase 6 reopen, the reference): the terminal stretch is the final pass —
+        // the return's last lap, s/2 + ρ from the outline on side X, s/2 + s elsewhere — at the end
+        // of the pipe; the residual pair is the outermost one on that side
+        const near = pts.filter((q) => G.distToRegionBoundary(q, outline) <= c.s / 2 + c.s + 0.01).length;
+        assert.ok(near / pts.length >= 0.8, `${name}: side closure stretch not the final pass (${near}/${pts.length})`);
+        assert.ok(R.terminal[1] >= G.pathLength(x.spiral.path) - x.spiral.leadOut - 1e-6, `${name}: the side closure ends the pipe`);
+      } else {
+        // terminal = inside the last nominal ring: the closure stretch lies deeper than ring n−1
+        // (apart from the short transitions onto it)
+        const lastNominal = c.s / 2 + (R.n - 1) * c.s;
+        const deep = pts.filter((q) => G.distToRegionBoundary(q, outline) >= lastNominal - 0.01).length;
+        assert.ok(deep / pts.length >= 0.8, `${name}: residual stretch not terminal (${deep}/${pts.length})`);
+      }
       assert.ok(R.minMeasured >= MIN_RESIDUAL_CLOSURE_SPACING - SPACING_TOL);
     }
   }
@@ -107,9 +117,12 @@ test('closure C10: impossible (residual would need R < RMIN) — nothing forced,
   const r = runCase('C10');
   checkClosed('C10', r);
   const x = r.res.regions[0];
-  assert.equal(x.stats.closure.changed, false);
   assert.ok(x.stats.closure.tried > 0, 'the closure was tried');
-  assert.equal(x.stats.residualSpacing, null);
-  assert.equal(r.chk.coverage, old.chk.coverage);
+  // the CENTRE closure stays impossible (R < RMIN): no centre residual is forced; since the Phase 6
+  // reopen the SIDE closure (the reference: the final pass along the side strip) is valid here and
+  // used — every hard check holds (checkClosed), never less coverage, the strip still reported
+  assert.ok(!x.spiral.residual || x.spiral.residual.side, 'no centre residual forced');
+  if (x.spiral.residual) assert.ok(x.stats.residualSpacing >= MIN_RESIDUAL_CLOSURE_SPACING - 1e-9);
+  assert.ok(r.chk.coverage >= old.chk.coverage - 1e-9);
   assert.ok(r.chk.uncovered_m2 > 0.1, 'the strip is reported uncovered');
 });

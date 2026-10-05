@@ -1,0 +1,462 @@
+{
+ "files": {
+  "geom.js": "8712da7dafb5c82b2a31f2e64ea29539d07f28034cfa564172735830ca9db230",
+  "spiralgen.js": "96fe45dc50ff43db84326e53cfc4453d6052a7e53f9d9440e51042824e25181c",
+  "decompose.js": "5a7090365c47efac8ff9c81162ea60de46af332bf46b910ac2daa72338dcc7d9",
+  "obstaclespiral.js": "3f66d5e158ec28dd63f42b1272342c7c9660b951fed3ccdda63945e6dadd6a78",
+  "closure.js": "b57168f5ab73382164a74bd3da2b56d580ed56209bcb7491d66b44d3396987aa",
+  "rawcheck.js": "425a7530ee30cb041143217435e40dec16e500c11e913e6178d64a734060f755",
+  "criteria.js": "53f1fb1dd85428fe07d2ea91a8aa86ad09ec06e250034aa2bfd640ec9ad5e0f3",
+  "loopplanner.js": "15ebdce4ea041cdb01a72f4b1ce4e185ba875c3c6cf02513bb3e29029d359acf",
+  "loopproof.js": "3f9dd622593bc34c1536c3769af8ab9f162941e072790c018e64d5d67dbcf415",
+  "partitionsearch.js": "de6aaeb050313a5590fad771c9cd5704cdb175fe6440ab04baf23d018cefb519"
+ },
+ "cases": {
+  "right-residual 3.15×2.33 s0.2": {
+   "loops": 1,
+   "hash": "c69696aed3c41b55586a485407c7e11bd0c0b5f394f9828eea21356f456b170d",
+   "metrics": [
+    {
+     "loop": "L1",
+     "heating_m": 36.31552935880888,
+     "total_m": 37.515529358808884,
+     "coverage": 0.9737112541726276,
+     "largestGap_m2": 0,
+     "minRadius_m": 0.09985238618064476,
+     "residualSpacing": 0.13,
+     "closure": "top",
+     "terminal": {
+      "u": 0.49999999999999956,
+      "v": 0.5150214592274678,
+      "toSide_m": 0.2750386397147598
+     },
+     "reference": "PHASE6_REFERENCE_OK",
+     "ends": {
+      "supply": {
+       "x": 0,
+       "y": 0.09999999999999999
+      },
+      "ret": {
+       "x": 0,
+       "y": 0.3
+      }
+     }
+    }
+   ]
+  },
+  "right-residual 2.95×2.33 s0.2": {
+   "loops": 1,
+   "hash": "645186f8175d6473d0d6cf4ee1ecfb95dc2a74adab9e658a33ef98e8e92cda00",
+   "metrics": [
+    {
+     "loop": "L1",
+     "heating_m": 33.91552935880889,
+     "total_m": 35.11552935880889,
+     "coverage": 0.9719483843747725,
+     "largestGap_m2": 0,
+     "minRadius_m": 0.09985238618066461,
+     "residualSpacing": 0.13,
+     "closure": "top",
+     "terminal": {
+      "u": 0.49999999999999933,
+      "v": 0.5150214592274679,
+      "toSide_m": 0.2755380745264395
+     },
+     "reference": "PHASE6_REFERENCE_OK",
+     "ends": {
+      "supply": {
+       "x": 0,
+       "y": 0.1
+      },
+      "ret": {
+       "x": 0,
+       "y": 0.30000000000000004
+      }
+     }
+    }
+   ]
+  },
+  "right-residual 3.37×2.0 s0.2": {
+   "loops": 1,
+   "hash": "99e99da03e4b38e462169f51b9610c450dce0f5c92b6c6eeee22a64907338038",
+   "metrics": [
+    {
+     "loop": "L1",
+     "heating_m": 32.767251200068735,
+     "total_m": 33.96725120006874,
+     "coverage": 0.9748313412462903,
+     "largestGap_m2": 0,
+     "minRadius_m": 0.09985229674119249,
+     "residualSpacing": 0.17,
+     "closure": "right",
+     "terminal": {
+      "u": 0.5044510385756678,
+      "v": 0.49267766952966113,
+      "toSide_m": 0.29029853265902605
+     },
+     "reference": "PHASE6_REFERENCE_OK",
+     "ends": {
+      "supply": {
+       "x": 0,
+       "y": 0.1
+      },
+      "ret": {
+       "x": 0,
+       "y": 0.30000000000000004
+      }
+     }
+    }
+   ]
+  },
+  "exact 3.2×2.4 s0.2": {
+   "loops": 1,
+   "hash": "5eadd76685dbbc6af39ec6b98016fe24abde43c0ea6a81216cc2a1ec26686588",
+   "metrics": [
+    {
+     "loop": "L1",
+     "heating_m": 37.05552935880888,
+     "total_m": 41.85552935880888,
+     "coverage": 0.9733866119791669,
+     "largestGap_m2": 0,
+     "minRadius_m": 0.09985238618063857,
+     "residualSpacing": null,
+     "closure": "none",
+     "terminal": null,
+     "reference": "PHASE6_REFERENCE_NA",
+     "ends": {
+      "supply": {
+       "x": 0,
+       "y": 2.3
+      },
+      "ret": {
+       "x": 0,
+       "y": 2.0999999999999996
+      }
+     }
+    }
+   ]
+  },
+  "residual 2.62×1.9 s0.15": {
+   "loops": 1,
+   "hash": "dd68eb3326f9c52ad2d7ba46301af403f7bf898312e67c325be46978012c6e5f",
+   "metrics": [
+    {
+     "loop": "L1",
+     "heating_m": 32.067109497203276,
+     "total_m": 35.86710949720327,
+     "coverage": 0.9541696444355161,
+     "largestGap_m2": 0,
+     "minRadius_m": 0.07488873223485597,
+     "residualSpacing": 0.1,
+     "closure": "bottom",
+     "terminal": {
+      "u": 0.5000000000000002,
+      "v": 0.48684210526315796,
+      "toSide_m": 0.2071933619112075
+     },
+     "reference": "PHASE6_REFERENCE_OK",
+     "ends": {
+      "supply": {
+       "x": 0,
+       "y": 1.825
+      },
+      "ret": {
+       "x": 0,
+       "y": 1.6749999999999998
+      }
+     }
+    }
+   ]
+  }
+ },
+ "apartment": {
+  "counts": {
+   "H": 3,
+   "LR": 3,
+   "BR1": 2,
+   "BA": 1,
+   "BR2": 1
+  },
+  "hash": "04c45ac354bc229e1d9cd8979c86104e4fca37bc77f277c2bde9d3734a2fe852",
+  "rooms": {
+   "H": {
+    "loops": 3,
+    "metrics": [
+     {
+      "loop": "L1",
+      "heating_m": 8.26883396195839,
+      "total_m": 12.248833961958388,
+      "coverage": 0.9137674571396402,
+      "largestGap_m2": 0,
+      "minRadius_m": 0.09985340409983576,
+      "residualSpacing": 0.1,
+      "closure": "top",
+      "terminal": {
+       "u": 0.5,
+       "v": 0.5384615384615385,
+       "toSide_m": 0.26470404692551686
+      },
+      "reference": "PHASE6_REFERENCE_OK",
+      "ends": {
+       "supply": {
+        "x": 4.528,
+        "y": 1.2080000000000002
+       },
+       "ret": {
+        "x": 4.528,
+        "y": 1.4080000000000001
+       }
+      }
+     },
+     {
+      "loop": "L2",
+      "heating_m": 27.425112120698618,
+      "total_m": 34.62111212069862,
+      "coverage": 0.9512130709221901,
+      "largestGap_m2": 0,
+      "minRadius_m": 0.09985229674120157,
+      "residualSpacing": null,
+      "closure": "none",
+      "terminal": null,
+      "reference": "PHASE6_REFERENCE_NA",
+      "ends": {
+       "supply": {
+        "x": 4.22,
+        "y": 2.508
+       },
+       "ret": {
+        "x": 4.22,
+        "y": 2.708
+       }
+      }
+     },
+     {
+      "loop": "L3",
+      "heating_m": 10.354694882588326,
+      "total_m": 22.73469488258833,
+      "coverage": 0.908714933894232,
+      "largestGap_m2": 0,
+      "minRadius_m": 0.09985510467399202,
+      "residualSpacing": 0.192,
+      "closure": "top",
+      "terminal": {
+       "u": 0.5112651238005218,
+       "v": 0.5022321428571423,
+       "toSide_m": 0.30052442768314974
+      },
+      "reference": "PHASE6_REFERENCE_OK",
+      "ends": {
+       "supply": {
+        "x": 7.0920000000000005,
+        "y": 4.108
+       },
+       "ret": {
+        "x": 6.892,
+        "y": 4.108
+       }
+      }
+     }
+    ]
+   },
+   "LR": {
+    "loops": 3,
+    "metrics": [
+     {
+      "loop": "L1",
+      "heating_m": 43.33269216642061,
+      "total_m": 44.33669216642061,
+      "coverage": 0.9813831576599851,
+      "largestGap_m2": 0,
+      "minRadius_m": 0.0799761603826658,
+      "residualSpacing": 0.16,
+      "closure": "centre",
+      "terminal": {
+       "u": 0.5435145629103493,
+       "v": 0.5,
+       "toSide_m": 0.9048303230171039
+      },
+      "reference": "PHASE6_REFERENCE_MISMATCH",
+      "ends": {
+       "supply": {
+        "x": 3.9,
+        "y": 2.242
+       },
+       "ret": {
+        "x": 3.9,
+        "y": 2.0420000000000003
+       }
+      }
+     },
+     {
+      "loop": "L2",
+      "heating_m": 14.829112120698607,
+      "total_m": 24.233112120698607,
+      "coverage": 0.9390326776008087,
+      "largestGap_m2": 0,
+      "minRadius_m": 0.09985229674126678,
+      "residualSpacing": 0.158,
+      "closure": "top",
+      "terminal": {
+       "u": 0.5000000000000002,
+       "v": 0.5119453924914676,
+       "toSide_m": 0.2884805607218949
+      },
+      "reference": "PHASE6_REFERENCE_OK",
+      "ends": {
+       "supply": {
+        "x": 0.1,
+        "y": 2.442
+       },
+       "ret": {
+        "x": 0.1,
+        "y": 2.6420000000000003
+       }
+      }
+     },
+     {
+      "loop": "L3",
+      "heating_m": 34.22539027943878,
+      "total_m": 42.34539027943878,
+      "coverage": 0.9733837554443107,
+      "largestGap_m2": 0,
+      "minRadius_m": 0.09985229674121292,
+      "residualSpacing": 0.192,
+      "closure": "left",
+      "terminal": {
+       "u": 0.49799196787148703,
+       "v": 0.5041252566030086,
+       "toSide_m": 0.2969018609761904
+      },
+      "reference": "PHASE6_REFERENCE_OK",
+      "ends": {
+       "supply": {
+        "x": 3.892,
+        "y": 5.792000000000001
+       },
+       "ret": {
+        "x": 3.892,
+        "y": 5.5920000000000005
+       }
+      }
+     }
+    ]
+   },
+   "BR1": {
+    "loops": 2,
+    "metrics": [
+     {
+      "loop": "L1",
+      "heating_m": 40.00441400768045,
+      "total_m": 42.52441400768045,
+      "coverage": 0.9830170376534232,
+      "largestGap_m2": 0,
+      "minRadius_m": 0.0799757625534759,
+      "residualSpacing": 0.16,
+      "closure": "centre",
+      "terminal": {
+       "u": 0.456937799043062,
+       "v": 0.5000000000000001,
+       "toSide_m": 0.7066536384679941
+      },
+      "reference": "PHASE6_REFERENCE_MISMATCH",
+      "ends": {
+       "supply": {
+        "x": 6.22,
+        "y": 0.2
+       },
+       "ret": {
+        "x": 6.22,
+        "y": 0.4
+       }
+      }
+     },
+     {
+      "loop": "L2",
+      "heating_m": 34.432692166420516,
+      "total_m": 37.03269216642052,
+      "coverage": 0.9692952666979975,
+      "largestGap_m2": 0,
+      "minRadius_m": 0.07997584259014033,
+      "residualSpacing": 0.16,
+      "closure": "centre",
+      "terminal": {
+       "u": 0.34928229665071764,
+       "v": 0.5000000000000002,
+       "toSide_m": 0.6952255183534775
+      },
+      "reference": "PHASE6_REFERENCE_MISMATCH",
+      "ends": {
+       "supply": {
+        "x": 6.22,
+        "y": 2.04
+       },
+       "ret": {
+        "x": 6.22,
+        "y": 2.24
+       }
+      }
+     }
+    ]
+   },
+   "BA": {
+    "loops": 1,
+    "metrics": [
+     {
+      "loop": "L1",
+      "heating_m": 23.615924427661895,
+      "total_m": 26.335924427661894,
+      "coverage": 0.9127834011256183,
+      "largestGap_m2": 0.023566699999992835,
+      "minRadius_m": 0.07488873223485638,
+      "residualSpacing": 0.13,
+      "closure": "right",
+      "terminal": {
+       "u": 0.5034722222222219,
+       "v": 0.5,
+       "toSide_m": 0.2255518617750486
+      },
+      "reference": "PHASE6_REFERENCE_OK",
+      "ends": {
+       "supply": {
+        "x": 7.595,
+        "y": 4.1
+       },
+       "ret": {
+        "x": 7.744999999999999,
+        "y": 4.1
+       }
+      }
+     }
+    ]
+   },
+   "BR2": {
+    "loops": 1,
+    "metrics": [
+     {
+      "loop": "L1",
+      "heating_m": 57.59208567628906,
+      "total_m": 59.31208567628906,
+      "coverage": 0.9599440069513404,
+      "largestGap_m2": 0.2148472200000029,
+      "minRadius_m": 0.09985217930384246,
+      "residualSpacing": null,
+      "closure": "none",
+      "terminal": null,
+      "reference": "PHASE6_REFERENCE_NA",
+      "ends": {
+       "supply": {
+        "x": 3.8,
+        "y": 6.22
+       },
+       "ret": {
+        "x": 3.6,
+        "y": 6.22
+       }
+      }
+     }
+    ]
+   }
+  }
+ },
+ "ms": 27446
+}

@@ -33,7 +33,8 @@ function checkGeometry(name, r) {
 }
 
 // (step 4: U3, U9 — invalid in step 3 — are valid with spirals round / beside the column)
-const VALID = ['L1', 'L2', 'L3', 'L3b', 'L4a', 'L5', 'U1', 'U1c', 'U2', 'U3', 'U4', 'U5', 'U9'];
+// (Phase 6 reopen: L4b, U4b — invalid with rectangles only — are valid as one notched region)
+const VALID = ['L1', 'L2', 'L3', 'L3b', 'L4a', 'L4b', 'L5', 'U1', 'U1c', 'U2', 'U3', 'U4', 'U4b', 'U5', 'U9'];
 for (const name of VALID)
   test(`regions ${name}: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts`, () => {
     const r = runCase(name);
@@ -47,17 +48,18 @@ for (const name of VALID)
     if (r.res.acceptable) assert.ok(r.chk.coverage >= min - 1e-3, `${name}: ${r.chk.coverage}`);
   });
 
-for (const name of ['L4b', 'U4b'])
-  test(`regions ${name}: an invalid region makes the zone INVALID (no other pipe pattern) — known limitation`, () => {
+test('regions L4b / U4b: the 0.9 m arm limitations are gone (Phase 6 reopen: notched regions) — no longer known limitations', () => {
+  for (const name of ['L4b', 'U4b']) {
+    assert.equal(kl(name), undefined);
     const r = runCase(name);
     checkGeometry(name, r);
-    assert.ok(kl(name), 'recorded as a known limitation');
-    assert.equal(r.res.ok, false);
-    assert.equal(r.chk.status, 'INVALID_ZONE');
-    assert.equal(r.chk.checks.regionsValid, false);
-    assert.ok(r.res.regions.some((x) => x.status === 'INVALID_REGION'));
-    assert.equal(r.chk.loopPlannerRequired, false);
-  });
+    assert.ok(r.res.ok);
+    assert.ok(r.res.regions.every((x) => x.status === 'VALID'));
+    // the narrow arm is heated: the zone's coverage, not just a valid region beside an empty arm
+    assert.ok(r.chk.coverage >= GEOMETRY_TEST_COVERAGE_MULTI_REGION, `${name}: ${r.chk.coverage}`);
+    assert.ok(r.chk.largestHole_m2 <= GEOMETRY_TEST_MAX_HOLE);
+  }
+});
 
 test('regions U3 / U9: the step-3 limitations are gone — no longer listed as known limitations', () => {
   assert.equal(kl('U3'), undefined);
@@ -84,9 +86,13 @@ test('regions L6 / L7 / U6: raw spirals over 60 m are flagged, the zone needs th
 test('regions U10 / U7: the minimum region count with an acceptable split is chosen', () => {
   const r = runCase('U1');
   const k = r.res.regions.length;
-  assert.equal(k, 3); // a U needs three rectangles
+  // (Phase 6 reopen: the U is one notched region — one continuous spiral round the notch — where
+  // three rectangles were needed before)
+  assert.equal(k, 1);
+  assert.ok(r.res.regions[0].poly.length > 4, 'a notched region');
+  assert.ok(r.res.candidates >= 2, 'several decompositions considered'); // U7
   const ok = r.res.evaluated.filter((t) => t.ok);
-  assert.ok(ok.length >= 2, 'several valid decompositions'); // U7
+  assert.ok(ok.length >= 1);
   assert.ok(ok.every((t) => t.regions >= k), 'an acceptable split with fewer regions was skipped'); // U10
 });
 
@@ -105,8 +111,11 @@ test('regions: fewer regions win over a little more coverage (C before B unless 
   // (the region search itself — before the centre closure of step 5 improves the chosen split)
   const r = runCase('U5', { closure: false });
   const k = r.res.regions.length;
-  // a valid split with more regions and (slightly) more coverage exists — it is not taken
-  const more = r.res.evaluated.filter((t) => !t.invalid && !t.rejected && t.regions > k && t.coverage > r.chk.coverage);
-  assert.ok(more.length >= 1);
+  // the search ends at the first region count with an acceptable split: no acceptable split with
+  // fewer regions is passed over, and none with more regions is taken for its coverage
+  const ok = r.res.evaluated.filter((t) => t.ok);
+  assert.ok(ok.length >= 1);
+  assert.ok(ok.every((t) => t.regions >= k));
+  assert.ok(r.res.evaluated.every((t) => t.regions <= k || !t.ok || t.regions === k), 'a split with more regions was evaluated as the pick');
   assert.ok(r.chk.largestHole_m2 <= GEOMETRY_TEST_MAX_HOLE);
 });

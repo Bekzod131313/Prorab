@@ -67,8 +67,8 @@ export const KNOWN_LIMITATIONS = [
   { id: 'centre_gap_square_3_5', case: '3.5 × 3.5 m, s 200 mm', centreGap_m2: 0.2, fixBy: 'closed in spiralRegions by closure.js (phase 5) — generator alone only' },
   { id: 'centre_gap_square_3_5_s150', case: '3.5 × 3.5 m, s 150 mm', centreGap_m2: 0.27, fixBy: 'closed in spiralRegions by closure.js (phase 5) — generator alone only' },
   // (centre_gap_U3, obstacle_near_wall_U9: solved in phase 4 — spirals round / beside the column)
-  { id: 'narrow_corridor_0_9_U', case: 'U4b', invalidRegion: '0.9 m arm: no two-pipe spiral with R ≥ 100 mm fits', fixBy: 'obstacle-aware / local spiral (phases 4–5)' },
-  { id: 'narrow_corridor_0_9', case: 'L4b', invalidRegion: '0.9 m corridor: no two-pipe spiral with R ≥ 100 mm fits', fixBy: 'obstacle-aware / local spiral (phases 4–5)' },
+  // (narrow_corridor_0_9 L4b / U4b: solved in the Phase 6 reopen — one notched region, the rings
+  // follow the notch into the 0.9 m arm)
   // (obstacle_centre_O10: solved in phase 5 — residual closure 150 mm round the column, 98.4 %)
   { id: 'closure_impossible_C10', case: 'C10', uncoveredStrip_m: 0.1, reason: '0.3 m core: closing it needs 100 mm pipes joined by a 180° turn of R 50 mm < RMIN — a 0.1 m strip stays uncovered (thinner than s: no patch)', fixBy: '— (geometry: RMIN)' },
   { id: 'obstacle_corridor_0_3_O9', case: 'O9', uncovered_m2: 0.41, reason: '0.3 m corridor between column and wall: no pipe fits (stays uncovered, visible)', fixBy: '— (geometry: narrower than one pipe pitch + clearances)' },
