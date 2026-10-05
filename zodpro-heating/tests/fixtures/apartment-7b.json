@@ -1,5 +1,5 @@
 {
-  "note": "Phase 7B regression fixture: an apartment of the real project type (irregular rooms, 0.12 m internal walls, doors, manifold in the hall, several target rooms, one reached through another room, a bathtub). Every value is an explicit input; wallClearance 0.10 m and the pipe type are fixture inputs, leadSpacing is given per run (no default).",
+  "note": "Phase 7B regression fixture: an apartment of the real project type (irregular rooms, 0.12 m internal walls, doors, manifold in the hall, several target rooms, one reached through another room, a bathtub; heating 200 mm, the bathroom 150 mm). Every value is an explicit input; wallClearance 0.10 m and the pipe type are fixture inputs, leadSpacing is given per run (no default).",
   "wallClearance": 0.1,
   "obstacleClearance": 0.1,
   "pipeType": "PERT-16x2.0",
@@ -10,7 +10,7 @@
     { "id": "H", "name": "Hall (manifold)", "poly": [{ "x": 4.12, "y": 0 }, { "x": 6.0, "y": 0 }, { "x": 6.0, "y": 4.0 }, { "x": 7.3, "y": 4.0 }, { "x": 7.3, "y": 6.0 }, { "x": 4.12, "y": 6.0 }] },
     { "id": "LR", "name": "Living room", "poly": [{ "x": 0, "y": 0 }, { "x": 4.0, "y": 0 }, { "x": 4.0, "y": 6.0 }, { "x": 1.8, "y": 6.0 }, { "x": 1.8, "y": 4.2 }, { "x": 0, "y": 4.2 }] },
     { "id": "BR1", "name": "Bedroom 1", "poly": [{ "x": 6.12, "y": 0 }, { "x": 10.5, "y": 0 }, { "x": 10.5, "y": 2.9 }, { "x": 9.6, "y": 2.9 }, { "x": 9.6, "y": 3.88 }, { "x": 6.12, "y": 3.88 }] },
-    { "id": "BA", "name": "Bathroom", "poly": [{ "x": 7.42, "y": 4.0 }, { "x": 10.5, "y": 4.0 }, { "x": 10.5, "y": 6.0 }, { "x": 7.42, "y": 6.0 }], "obstacles": [[{ "x": 8.8, "y": 4.0 }, { "x": 10.5, "y": 4.0 }, { "x": 10.5, "y": 4.75 }, { "x": 8.8, "y": 4.75 }]] },
+    { "id": "BA", "name": "Bathroom", "heatingPitch": 0.15, "poly": [{ "x": 7.42, "y": 4.0 }, { "x": 10.5, "y": 4.0 }, { "x": 10.5, "y": 6.0 }, { "x": 7.42, "y": 6.0 }], "obstacles": [[{ "x": 8.8, "y": 4.0 }, { "x": 10.5, "y": 4.0 }, { "x": 10.5, "y": 4.75 }, { "x": 8.8, "y": 4.75 }]] },
     { "id": "BR2", "name": "Bedroom 2", "poly": [{ "x": 0, "y": 6.12 }, { "x": 4.0, "y": 6.12 }, { "x": 4.0, "y": 9.5 }, { "x": 0, "y": 9.5 }] }
   ],
   "doors": [

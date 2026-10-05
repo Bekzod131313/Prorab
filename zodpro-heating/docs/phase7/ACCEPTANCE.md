@@ -5,7 +5,7 @@ sub-phase alohida qabul qilinadi. Phase 6 baseline: `06130b3` (muzlatilgan).
 
 | Sub-phase | Holat |
 |---|---|
-| 7.0 Baseline guard + interfeys | ✅ checklist PASS (commit `cf1104e`) |
+| 7.0 Baseline guard + interfeys | ✅ ACCEPTED (foydalanuvchi, 2026-10-05; commit `cf1104e`) |
 | 7A Kollektor modeli | ✅ ACCEPTED (foydalanuvchi, 2026-10-05) |
 | 7B Transfer lead'lar + koridorlar | ⏳ testlar PASS, foydalanuvchi ko'rib chiqishi kutilmoqda — QABUL QILINMAGAN |
 | 7C Lead geometriyasi | boshlanmagan |
@@ -51,6 +51,9 @@ Phase 6 taxmini):
 | 107 L3 | 51.009 | 51.809 | LOOP_VALID |
 | 108 L1 | 58.737 | 59.537 | LOOP_VALID |
 
+Muhim: `tests/fixtures/collectors.json` dagi C-01 qiymatlari (facing +y, port pitch 0.05 m, drop
+0.40 m) faqat 7A test fixture'i — REAL PROJECT CONSTANT emas; real qiymatlar loyiha kirishidan keladi.
+
 Bu 7D ning vazifasi (haqiqiy lead + drop bilan qayta rejalash); 7A faqat hisobni aniq qiladi va
 konturlarni o'zgartirmaydi. Kollektor sig'imi: 9 kerak, 6 bor, yetishmaydi 3 — tavsiya: ≥ 9
 chiqishli fizik kollektor yoki zonani bir necha kollektorga bo'lish (modelga hech narsa qo'shilmaydi).
@@ -59,7 +62,7 @@ chiqishli fizik kollektor yoki zonani bir necha kollektorga bo'lish (modelga hec
 
 Engine: `src/engines/ufh/roomgraph.js`, `src/engines/ufh/corridor.js` (`planTransfers`); render va
 pipeline: `tools/ufh-transfer-debug.mjs` (muzlatilgan Phase 6 planner U′ ustida). Fixture'lar:
-`tests/fixtures/apartment-7b.json` (real loyiha turidagi kvartira), `tests/fixtures/zone-101-109-m12-7b.json`
+`tests/fixtures/apartment-7b.json` (real loyiha turidagi kvartira: noto'g'ri shakldagi xonalar, ichki devorlar, eshiklar, kollektor xonasi, 4 target xona, vanna to'sig'i; heating 200 mm, hammom 150 mm), `tests/fixtures/zone-101-109-m12-7b.json`
 (101–109 xonalari, 12 chiqishli e'lon qilingan test kollektori).
 
 | # | Shart | Holat | Dalil |
@@ -72,7 +75,7 @@ pipeline: `tools/ufh-transfer-debug.mjs` (muzlatilgan Phase 6 planner U′ ustid
 | 6 | 101–109: 100 mm eshik sig'imsiz, 50 mm o'tadi, 108 hisoboti, devor bo'ylab | ✅ | test 7B-6 |
 | 7 | Determinizm | ✅ | test 7B-7 (hash) |
 | 8 | Phase 6 freeze 10/10, regression | ✅ | 188/188 (`evidence/7B-regression-188.log`, 382 s) |
-| 9 | Engine render | ✅ | `pictures/7B-*.png` |
+| 9 | Engine render: devorlar, eshiklar, kollektor, fizik chiqishlar, supply / return, lead yo'llari, o'lchangan 50 mm offset, heating qadami (o'lchangan), konturlar + ID + uzunlik, koridor, xona ID, coverage | ✅ | `pictures/7B-*.png` |
 
 Kvartira, leadSpacing 50 mm (`evidence/7B-apartment-0.05-metrics.json`): `TRANSFERS_OK`, kesishma 0.
 
@@ -81,7 +84,7 @@ Kvartira, leadSpacing 50 mm (`evidence/7B-apartment-0.05-metrics.json`): `TRANSF
 | H | kollektor xonasi | 12.08 | 1.95 | 10.13 | 8.66 | 85.5 % | 3 | 10 / 0.466 → D2, D3; 8 / 0.366 → D1 |
 | LR | tranzit + target | 18.80 | 0.03 | 18.77 | 18.23 | 97.1 % | 3 | 2 / 0.066 → D4 |
 | BR1 | target | 14.50 | 0 | 14.50 | 13.75 | 94.8 % | 3 | — |
-| BA | target | 3.91 | 0 | 3.91 | 3.57 | 91.3 % | 2 | — |
+| BA (150 mm) | target | 3.91 | 0 | 3.91 | 3.41 | 87.3 % | 2 | — |
 | BR2 | target | 12.08 | 0 | 12.08 | 11.60 | 96.0 % | 1 | — |
 
 Ochiq masalalar (qabuldan oldin qaror kerak):

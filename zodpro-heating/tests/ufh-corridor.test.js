@@ -42,7 +42,8 @@ test('7B 1 parameter separation: collectorPortPitch, leadWallOffset, leadSpacing
   assert.equal(routingParams({ ...p, pipeType: 'no-such-pipe' }).ok, false);
   assert.equal(routingParams({ ...p, leadSpacing: 0.01 }).ok, false); // < pipe OD 16 mm
   // per room: its own heating pitch or the zone's — never the lead offset or the port pitch
-  for (const r of APT.rooms) assert.equal(heatingPitchOf(r, routingParams(p).params), 0.2);
+  const PITCH = { H: 0.2, LR: 0.2, BR1: 0.2, BA: 0.15, BR2: 0.2 }; // (the bathroom 150 mm, its own)
+  for (const r of APT.rooms) assert.equal(heatingPitchOf(r, routingParams(p).params), PITCH[r.id]);
   // changing the collector port pitch changes neither the lead depths nor the heating pitch
   const a = transfers(0.05);
   const b = transfers(0.05, { collector: { ...APT.collector, portPitch_m: 0.04 } });
@@ -51,13 +52,14 @@ test('7B 1 parameter separation: collectorPortPitch, leadWallOffset, leadSpacing
   // changing the lead wall offset moves the bundles, not the heating pitch
   const c = transfers(0.05, { params: { ...paramsOf(APT, 0.05), leadWallOffset: 0.06 } });
   for (const [rid, x] of Object.entries(c.rooms)) {
-    assert.equal(x.heatingPitch, 0.2);
+    assert.equal(x.heatingPitch, a.rooms[rid].heatingPitch);
     x.bundles.forEach((bd, i) => assert.ok(Math.abs(bd.depth - a.rooms[rid].bundles[i].depth - 0.01) < 1e-12));
   }
   // the heating loops of every room at 200 mm (measured), not 50 mm
   for (const [rid, x] of Object.entries(M50.rooms)) {
-    for (const l of x.loops) assert.equal(l.nominalSpacing, 0.2, `${rid} ${l.id}`);
-    assert.ok(x.minHeatingSpacing_m >= 0.2 - SPACING_TOL, `${rid}: ${x.minHeatingSpacing_m}`);
+    for (const l of x.loops) assert.equal(l.nominalSpacing, PITCH[rid], `${rid} ${l.id}`);
+    assert.ok(x.minHeatingSpacing_m >= PITCH[rid] - SPACING_TOL, `${rid}: ${x.minHeatingSpacing_m}`);
+    assert.ok(x.minHeatingSpacing_m > 0.1, `${rid}: never the 50 mm offset / port pitch`);
   }
 });
 

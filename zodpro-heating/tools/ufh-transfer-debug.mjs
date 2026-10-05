@@ -73,9 +73,16 @@ export function metricsOf(run) {
     const reg = [{ outer: G.ccw(room.poly), holes: [] }];
     const keepOff = [...run.fx.doors.filter((d) => d.between.includes(rid)).map((d) => d.at), run.fx.collector.at];
     let wallMin = Infinity;
+    let wallAt = null;
     for (const l of tr.leads.filter((x) => x.path.length >= 2))
       for (const q of G.densify(l.path, 0.02))
-        if (G.pointInRegion(q, reg) && keepOff.every((k) => Math.hypot(q.x - k.x, q.y - k.y) > 0.7)) wallMin = Math.min(wallMin, G.distToRegionBoundary(q, reg));
+        if (G.pointInRegion(q, reg) && keepOff.every((k) => Math.hypot(q.x - k.x, q.y - k.y) > 0.7)) {
+          const d = G.distToRegionBoundary(q, reg);
+          if (d < wallMin - 1e-12) {
+            wallMin = d;
+            wallAt = { lead: q, wall: G.closestOnRing(q, G.ccw(room.poly)).p };
+          }
+        }
     rooms[rid] = {
       role: x.role,
       heatingPitch: x.heatingPitch,
@@ -94,6 +101,8 @@ export function metricsOf(run) {
       split: x.split,
       slivers: x.slivers,
       leadWallMin_m: Number.isFinite(wallMin) ? wallMin : null,
+      leadWallAt: wallAt,
+      minHeatingSpacingAt: p?.check.minSpacingAt ?? null,
     };
   }
   const geometry = JSON.stringify({ leads: tr.leads.map((l) => [l.id, l.path.map((p) => [+p.x.toFixed(9), +p.y.toFixed(9)])]), rooms: Object.fromEntries(Object.entries(tr.rooms).map(([k, v]) => [k, [v.C_m2.toFixed(9), v.Uprime_m2.toFixed(9)]])), loops: Object.fromEntries(Object.entries(plans ?? {}).map(([k, p]) => [k, p.loops.map((l) => l.heatingLength.toFixed(9))])) });
@@ -186,6 +195,22 @@ export function renderTransfers(run, { title, view = null, scale = 80, notes = t
     for (const [q, col] of [[p.supply, '#d50000'], [p.ret, '#0d47a1']]) el.push(`<circle cx="${X(q)}" cy="${Y(q)}" r="${Math.max(1.5, S / 60)}" fill="${used.has(i) ? col : '#bdbdbd'}"/>`);
   });
   el.push(`<text x="${X({ x: mb.x1 + 0.08 })}" y="${Y({ y: mb.y1 + 0.1 })}" font-size="${Math.max(9, S / 8)}" font-weight="bold">${fx.collector.id} · ${fx.collector.outlets} outlets · ${tr.portOrder.length} used</text>`);
+  // measured dimensions (from the geometry above): lead ↔ wall and the heating pitch
+  const fsz = Math.max(9, S / 9);
+  for (const [rid, x] of Object.entries(m.rooms)) {
+    if (x.leadWallAt) {
+      const { lead, wall } = x.leadWallAt;
+      el.push(`<path d="${pth([wall, lead])}" stroke="#000" stroke-width="${Math.max(2, S / 60)}"/>`);
+      const lab = { x: lead.x + 0.35, y: lead.y + 0.35 };
+      el.push(`<path d="${pth([lead, lab])}" stroke="#000" stroke-width="0.8"/>`);
+      el.push(`<text x="${X(lab) + 3}" y="${Y(lab)}" font-size="${fsz}" font-weight="bold" stroke="#fff" stroke-width="3" paint-order="stroke">${rid}: lead ↔ wall ${(x.leadWallMin_m * 1000).toFixed(1)} mm (measured)</text>`);
+    }
+    if (x.minHeatingSpacingAt && x.minHeatingSpacing_m) {
+      const a = x.minHeatingSpacingAt;
+      el.push(`<circle cx="${X(a)}" cy="${Y(a)}" r="${Math.max(3, S / 25)}" fill="none" stroke="#000" stroke-width="1.2"/>`);
+      el.push(`<text x="${X(a) + 6}" y="${Y(a) - 4}" font-size="${fsz}" stroke="#fff" stroke-width="3" paint-order="stroke">pitch ${(x.minHeatingSpacing_m * 1000).toFixed(1)} mm</text>`);
+    }
+  }
   for (const r of fx.rooms) {
     const c = G.bbox(r.poly);
     const x = m.rooms[r.id];
