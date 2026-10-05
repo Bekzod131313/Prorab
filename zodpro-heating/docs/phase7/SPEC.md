@@ -232,6 +232,58 @@ Har bir sub-phase o'z checklisti bilan yopiladi; 7-bosqich hamma sub-phase yopil
 Ketma-ketlik: 7.0 → 7A → 7B → 7C → 7D → 7E; har bir sub-phase alohida acceptance qilinmasdan
 keyingisiga o'tilmaydi.
 
+### REAL UFH LEAD ROUTING RULES (2026-10-05, qat'iy — 7B dan boshlab)
+
+1. **Collector room.** Kollektor turgan xonaning heating zone'i tanlangan `heatingPitch` bilan
+   quriladi: 0.15 m yoki 0.20 m (input). Bu kollektor port pitchidan mustaqil.
+2. **Inter-room transfer.** Boshqa xonaga ketadigan supply / return lead'lari devor bo'ylab yuradi;
+   lead centerline devordan `leadWallOffset` (real loyiha: 0.05 m) masofada. Bu heating pitch emas.
+3. **Door transition.** Lead devor bo'ylab `leadWallOffset` ni saqlab eshikdan o'tadi (eshik
+   tirgaklaridan ham `leadWallOffset`); eshikdan keyin target room heating zone'iga transition.
+4. **Target room.** Target room heating loop'lari yana tanlangan `heatingPitch` bilan (0.15 / 0.20 m).
+5. **Corridor is physical geometry.** Koridor — real geometrik exclusion: `U' = U − corridor_exclusion`.
+6. **Coverage.** `coverage(U') = heated_area / area(U')`, `ENGINEERING_COVERAGE_TOLERANCE = 0`.
+7. **No collision.** Koridor ∩ heating geometriyasi = 0; faqat ruxsat etilgan connection /
+   transition segmentlari (target room'dagi eshikdan keyingi kirish) bundan mustasno.
+8. **Supply / return** lead'lari juft holda koridordan o'tadi; haqiqiy centerline geometriyasi 7C da.
+9. **Terminologiya — uchta alohida parametr, umumiy "pitch" yo'q:**
+   - `collectorPortPitch` — kollektor ulanishlari orasidagi masofa (7A modelida `collector.portPitch_m`,
+     yagona manba);
+   - `leadWallOffset` — lead centerline ↔ devor (va eshik tirgagi);
+   - `heatingPitch` — heating quvurlari qadami (xona bo'yicha `room.heatingPitch`, aks holda zona qiymati).
+10. **Default yo'q.** `heatingPitch`, `leadWallOffset` va `leadSpacing` majburiy input. `heatingPitch`
+    faqat {0.15, 0.20} m. Real loyiha modeli uchun `leadWallOffset = 0.05 m`; `collectorPortPitch`
+    mustaqil ravishda 0.05 m bo'lishi mumkin.
+
+Qo'shimcha parametr (spetsifikatsiyada nomi aniq, qiymati loyihadan): **`leadSpacing`** — bir
+koridordagi yonma-yon lead centerline'lari orasidagi masofa. Default yo'q (majburiy input). 7.0 dagi
+`TRANSIT_PITCH_M` konstantasi 7B da ishlatilmaydi.
+
+### 7B acceptance contract (yuqoridagi qoidalar asosida)
+
+Koridor geometriyasi (har bir tranzit xonada: kollektor xonasi va oraliq xonalar; target room'da
+koridor yo'q — u yerda transition):
+- yo'l: xonaning devor halqasi bo'ylab kirish nuqtasidan (kollektor proyeksiyasi yoki kirish eshigi)
+  chiqish eshigigacha, qisqa yo'nalish;
+- `N(x)` — devorning shu bo'lagidan o'tadigan lead soni (har kontur = 2: supply + return);
+- lead slotlari: centerline devordan `leadWallOffset + j · leadSpacing`, j = 0…N−1;
+- koridor chekkasi devordan `e = leadWallOffset + (N − 1) · leadSpacing + heatingPitch / 2` —
+  eng tashqi lead va eng yaqin heating quvuri orasida kamida `heatingPitch` qoladi (heating
+  quvuri region chegarasidan `heatingPitch / 2` da yotadi). Bu qoida tasdiqlash uchun ochiq;
+- `corridor_exclusion = U ∩ koridor`; `U' = U − corridor_exclusion`.
+
+O'lchanadigan shartlar (7B):
+- [ ] `heatingPitch`, `leadWallOffset`, `leadSpacing` majburiy, default yo'q; `heatingPitch ∉ {0.15, 0.20}` → `INPUT_INVALID`.
+- [ ] A: `collectorPortPitch` (0.05 m) o'zgarsa `heatingPitch`, lead slot offsetlari va koridor chekkasi `e` o'zgarmaydi (kollektor xonasidagi kirish bo'lagining uzunligi = port qatorining fizik eni, faqat shu o'zgaradi); heating spacing hech qachon 0.05 emas.
+- [ ] B: lead centerline devordan aniq `leadWallOffset` (1e-9); `leadWallOffset` o'zgarishi faqat koridorni siljitadi, `heatingPitch` ni emas.
+- [ ] C: target room'da muzlatilgan planner `heatingPitch` = 0.20 bilan: har kontur `nominalSpacing = 0.20`, o'lchangan min spacing ≥ 0.20 − `SPACING_TOL`; 0.15 bilan → 0.15.
+- [ ] D: `|area(U) − area(corridor_exclusion) − area(U')| ≤ 1e-4 m²`; `coverage(U') = heated / area(U')`; 7.0 `checkZoneReport` area qoidalari PASS.
+- [ ] Har bir lead slot centerline'i to'liq koridor ichida (fizik moslik); koridor ∩ heating quvurlari = 0 (heating ↔ koridor ≥ `heatingPitch / 2 − SPACING_TOL`).
+- [ ] Koridor regionni yopmaydi: har xonada `U'` ning bog'langan komponentlari soni = `U` niki va har biri bo'sh emas; aks holda `CORRIDOR_CAPACITY_EXCEEDED`.
+- [ ] Eshik sig'imi: `2 · leadWallOffset + (N − 1) · leadSpacing ≤ door.width_m`, aks holda `DOOR_CAPACITY_EXCEEDED`.
+- [ ] Xonalar grafi: eshiklar zanjiri (Dijkstra, deterministik); yo'l yo'q → `LEAD_ROUTE_NOT_FOUND`; 101–109: 101 ← D-04 ← 108 ← D-03 ← 107 (kollektor).
+- [ ] Phase 6 freeze 10/10, 7.0 / 7A fayllari o'zgarmagan, to'liq regression PASS.
+
 ## 10. Failure statuslari
 
 | Status | Shart | Bloklaydimi |

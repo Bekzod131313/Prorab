@@ -1,0 +1,8 @@
+{
+  "note": "Phase 7B test input for 101-109. Door positions and rooms from zone-101-109.json (unchanged); door clear widths 0.90 m are a TEST ASSUMPTION (not in the export). Loop counts per room are the Phase 6 plan (estimated leads).",
+  "doors": [
+    { "id": "D-03", "between": ["107", "108"], "at": { "x": 4.65, "y": 13.16 }, "width_m": 0.9 },
+    { "id": "D-04", "between": ["108", "101"], "at": { "x": 4.45, "y": 7.16 }, "width_m": 0.9 }
+  ],
+  "loopsByRoom": { "101": 5, "108": 1 }
+}
