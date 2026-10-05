@@ -1,5 +1,5 @@
 {
- "ms": 177845,
+ "ms": 176441,
  "status": "LEAD_ORDER_INFEASIBLE",
  "issues": [
   {
@@ -140,7 +140,15 @@
    },
    "split": [],
    "slivers": [],
-   "leadWallMin_m": null
+   "leadWallMin_m": null,
+   "leadWallAt": null,
+   "minHeatingSpacingAt": {
+    "x": 1.9270695396850304,
+    "y": 3.4799999999999995,
+    "i": 42,
+    "tx": -1,
+    "ty": 0
+   }
   },
   "107": {
    "role": "manifold room",
@@ -191,7 +199,24 @@
    },
    "split": [],
    "slivers": [],
-   "leadWallMin_m": 0.4947916666666661
+   "leadWallMin_m": 0.4947916666666661,
+   "leadWallAt": {
+    "lead": {
+     "x": 4.249999999999998,
+     "y": 13.734791666666666
+    },
+    "wall": {
+     "x": 4.249999999999998,
+     "y": 13.24
+    }
+   },
+   "minHeatingSpacingAt": {
+    "x": 0.6829304603149616,
+    "y": 18.38,
+    "i": 42,
+    "tx": 1,
+    "ty": 0
+   }
   },
   "108": {
    "role": "transit + target",
@@ -232,7 +257,24 @@
    },
    "split": [],
    "slivers": [],
-   "leadWallMin_m": 0.34999999999999964
+   "leadWallMin_m": 0.34999999999999964,
+   "leadWallAt": {
+    "lead": {
+     "x": 5.21,
+     "y": 12.73
+    },
+    "wall": {
+     "x": 5.21,
+     "y": 13.08
+    }
+   },
+   "minHeatingSpacingAt": {
+    "x": 4.543069539685033,
+    "y": 12.222,
+    "i": 42,
+    "tx": -1,
+    "ty": 0
+   }
   }
  },
  "leads": [

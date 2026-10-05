@@ -1,0 +1,64 @@
+TAP version 13
+# Subtest: 7B 1 parameter separation: collectorPortPitch, leadWallOffset, leadSpacing, heatingPitch — required, none a fallback for another
+ok 1 - 7B 1 parameter separation: collectorPortPitch, leadWallOffset, leadSpacing, heatingPitch — required, none a fallback for another
+  ---
+  duration_ms: 16.032604
+  type: 'test'
+  ...
+# Subtest: 7B 2 corridor width: centreline span (N − 1)·S, physical width span + OD — never N·S; 12 leads at 50 and 100 mm
+ok 2 - 7B 2 corridor width: centreline span (N − 1)·S, physical width span + OD — never N·S; 12 leads at 50 and 100 mm
+  ---
+  duration_ms: 0.449004
+  type: 'test'
+  ...
+# Subtest: 7B 3 area accounting: U, C once, U′ = U − C, H inside U′ (rawcheck's own denominator is U′), coverage = H / U′
+ok 3 - 7B 3 area accounting: U, C once, U′ = U − C, H inside U′ (rawcheck's own denominator is U′), coverage = H / U′
+  ---
+  duration_ms: 21.656374
+  type: 'test'
+  ...
+# Subtest: 7B 4 connectivity: no closed / split heating area, no sliver, the transitions reach the target heating zone
+ok 4 - 7B 4 connectivity: no closed / split heating area, no sliver, the transitions reach the target heating zone
+  ---
+  duration_ms: 3.625258
+  type: 'test'
+  ...
+# Subtest: 7B lead geometry: manifold → wall at 50 mm → door → wall → target transition; no crossing; leads S apart
+ok 5 - 7B lead geometry: manifold → wall at 50 mm → door → wall → target transition; no crossing; leads S apart
+  ---
+  duration_ms: 23.962185
+  type: 'test'
+  ...
+# Subtest: 7B 101–109 (test variant: the same rooms, a declared 12-outlet manifold): 12 leads — 100 mm door failure, 50 mm passes; room 108 reported
+ok 6 - 7B 101–109 (test variant: the same rooms, a declared 12-outlet manifold): 12 leads — 100 mm door failure, 50 mm passes; room 108 reported
+  ---
+  duration_ms: 13.106142
+  type: 'test'
+  ...
+# Subtest: 7B determinism: the same input → the same leads, corridors, U′ and loops (hash)
+ok 7 - 7B determinism: the same input → the same leads, corridors, U′ and loops (hash)
+  ---
+  duration_ms: 16287.910269
+  type: 'test'
+  ...
+# Subtest: Phase 6 frozen at 06130b3: 10 / 10 algorithm files byte-identical (SHA-256)
+ok 8 - Phase 6 frozen at 06130b3: 10 / 10 algorithm files byte-identical (SHA-256)
+  ---
+  duration_ms: 3.530684
+  type: 'test'
+  ...
+# Subtest: Phase 6 acceptance baseline and evidence are in the repository
+ok 9 - Phase 6 acceptance baseline and evidence are in the repository
+  ---
+  duration_ms: 1.037674
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 33295.721816

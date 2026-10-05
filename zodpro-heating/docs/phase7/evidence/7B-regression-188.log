@@ -189,5 +189,5 @@ ok 188 - radiator pairs run along the walls as one bundle and never cross
 # tests 188
 # pass 188
 # fail 0
-# duration_ms 381750.631262
-exit 0 wall 382 s
+# duration_ms 439804.120728
+exit 0 wall 441 s

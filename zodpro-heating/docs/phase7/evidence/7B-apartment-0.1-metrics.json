@@ -1,5 +1,5 @@
 {
- "ms": 13521,
+ "ms": 13453,
  "status": "CORRIDOR_CAPACITY_EXCEEDED",
  "issues": [
   {
@@ -169,7 +169,24 @@
    },
    "split": [],
    "slivers": [],
-   "leadWallMin_m": 0.04999999999999982
+   "leadWallMin_m": 0.04999999999999982,
+   "leadWallAt": {
+    "lead": {
+     "x": 5.95,
+     "y": 1.9064885496183193
+    },
+    "wall": {
+     "x": 6,
+     "y": 1.9064885496183193
+    }
+   },
+   "minHeatingSpacingAt": {
+    "x": 4.32,
+    "y": 4.199999999999999,
+    "i": 1,
+    "tx": 2.6184505297763123e-16,
+    "ty": -1
+   }
   },
   "LR": {
    "role": "transit + target",
@@ -220,7 +237,24 @@
    },
    "split": [],
    "slivers": [],
-   "leadWallMin_m": 0.1499999999999999
+   "leadWallMin_m": 0.1499999999999999,
+   "leadWallAt": {
+    "lead": {
+     "x": 3.85,
+     "y": 2.6789325842696634
+    },
+    "wall": {
+     "x": 4,
+     "y": 2.6789325842696634
+    }
+   },
+   "minHeatingSpacingAt": {
+    "x": 3.0542781587401113,
+    "y": 5.342,
+    "i": 165,
+    "tx": -1,
+    "ty": 0
+   }
   },
   "BR1": {
    "role": "target",
@@ -258,31 +292,39 @@
    },
    "split": [],
    "slivers": [],
-   "leadWallMin_m": null
+   "leadWallMin_m": null,
+   "leadWallAt": null,
+   "minHeatingSpacingAt": {
+    "x": 7.76,
+    "y": 0.5029304603149742,
+    "i": 42,
+    "tx": 0,
+    "ty": 1
+   }
   },
   "BA": {
    "role": "target",
-   "heatingPitch": 0.2,
+   "heatingPitch": 0.15,
    "U_m2": 3.9090000000000025,
    "C_m2": 0,
    "Uprime_m2": 3.9090000000000025,
-   "H_m2": 3.5683430650000254,
-   "coverageUprime": 0.912853176004099,
+   "H_m2": 3.4118078749999707,
+   "coverageUprime": 0.8728083589153156,
    "rawcheckUsable_m2": 3.9090000000000025,
-   "rawcheckUncovered_m2": 0.34065693499997707,
+   "rawcheckUncovered_m2": 0.49719212500003174,
    "loops": [
     {
      "id": "BA.L1",
-     "heating_m": 9.934985800818055,
-     "nominalSpacing": 0.2
+     "heating_m": 4.762369219036884,
+     "nominalSpacing": 0.15
     },
     {
      "id": "BA.L2",
-     "heating_m": 7.710694882588316,
-     "nominalSpacing": 0.2
+     "heating_m": 17.493554288578594,
+     "nominalSpacing": 0.15
     }
    ],
-   "minHeatingSpacing_m": 0.1999999999999993,
+   "minHeatingSpacing_m": 0.14999999999999858,
    "bundles": [],
    "corridorComponents": 1,
    "components": {
@@ -291,7 +333,15 @@
    },
    "split": [],
    "slivers": [],
-   "leadWallMin_m": null
+   "leadWallMin_m": null,
+   "leadWallAt": null,
+   "minHeatingSpacingAt": {
+    "x": 10.325,
+    "y": 5.152203732614566,
+    "i": 32,
+    "tx": 0,
+    "ty": 1
+   }
   },
   "BR2": {
    "role": "target",
@@ -319,7 +369,15 @@
    },
    "split": [],
    "slivers": [],
-   "leadWallMin_m": null
+   "leadWallMin_m": null,
+   "leadWallAt": null,
+   "minHeatingSpacingAt": {
+    "x": 3.275347698425077,
+    "y": 8.9,
+    "i": 206,
+    "tx": -1,
+    "ty": 0
+   }
   }
  },
  "leads": [
@@ -486,5 +544,5 @@
    "BR2": 1
   }
  ],
- "geometryHash": "4e9217711ad5202283988f9df7192d8f362456e902c54287bd27622f6e6beec8"
+ "geometryHash": "1277f6d4180fbbee8451f954dbec584cdd3b0f9e50208d89623d675d24413fc6"
 }
