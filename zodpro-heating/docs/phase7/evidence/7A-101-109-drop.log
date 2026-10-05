@@ -1,0 +1,10 @@
+required 9 outlets 6 {"status":"OUTLET_SHORTAGE","required":9,"available":6,"missing":3,"recommendation":"9 loops need 9 physical outlets: a manifold with ≥ 9 outlets, or the zone split over several manifolds"}
+101 L1: phase6 total 52.056 margin 7.944 → +2x0.4 drop 52.856 margin 7.144 LOOP_VALID
+101 L2: phase6 total 59.537 margin 0.463 → +2x0.4 drop 60.337 margin -0.337 LOOP_INVALID
+101 L3: phase6 total 59.966 margin 0.034 → +2x0.4 drop 60.766 margin -0.766 LOOP_INVALID
+101 L4: phase6 total 57.361 margin 2.639 → +2x0.4 drop 58.161 margin 1.839 LOOP_VALID
+101 L5: phase6 total 55.261 margin 4.739 → +2x0.4 drop 56.061 margin 3.939 LOOP_VALID
+107 L1: phase6 total 37.743 margin 22.257 → +2x0.4 drop 38.543 margin 21.457 LOOP_VALID
+107 L2: phase6 total 59.646 margin 0.354 → +2x0.4 drop 60.446 margin -0.446 LOOP_INVALID
+107 L3: phase6 total 51.009 margin 8.991 → +2x0.4 drop 51.809 margin 8.191 LOOP_VALID
+108 L1: phase6 total 58.737 margin 1.263 → +2x0.4 drop 59.537 margin 0.463 LOOP_VALID

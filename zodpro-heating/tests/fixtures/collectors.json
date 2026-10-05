@@ -1,0 +1,4 @@
+{
+  "note": "Phase 7 test collectors. C-01: position and 6 physical outlets from zone-101-109.json (unchanged); facing, port pitch and drop are TEST ASSUMPTIONS (wall y = 13.24 of room 107, facing into the room; 50 mm between connections; 0.40 m drop per pipe as the legacy engine, layout.js drop 0.8 = 2 x 0.4).",
+  "C-01": { "id": "C-01", "at": { "x": 5.315, "y": 13.64 }, "outlets": 6, "portPitch_m": 0.05, "dropPerPipe_m": 0.4, "facing": { "x": 0, "y": 1 } }
+}
