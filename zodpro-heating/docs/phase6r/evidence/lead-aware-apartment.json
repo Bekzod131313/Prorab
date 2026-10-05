@@ -1,0 +1,1635 @@
+{
+ "ms": 53123,
+ "counts": {
+  "H": 3,
+  "LR": 3,
+  "BR1": 2,
+  "BA": 1,
+  "BR2": 2
+ },
+ "hash": "06b245a35dcfac23677bd83f5f6f8252270739cf5ba1355da4aeaa69a39b0845",
+ "transfers": {
+  "status": "CORRIDOR_CAPACITY_EXCEEDED",
+  "reasons": [
+   "CORRIDOR_CAPACITY_EXCEEDED",
+   "LEAD_INTERSECTION"
+  ],
+  "crossings": 19
+ },
+ "clashes": [
+  {
+   "room": "H",
+   "loop": "H.L1",
+   "length_m": 7.139367090134716,
+   "at": {
+    "x": 4.87,
+    "y": 4.658
+   }
+  },
+  {
+   "room": "H",
+   "loop": "H.L2",
+   "length_m": 1.690078628178675,
+   "at": {
+    "x": 5.592,
+    "y": 5.35
+   }
+  },
+  {
+   "room": "H",
+   "loop": "H.L3",
+   "length_m": 0.2029999999999993,
+   "at": {
+    "x": 5.992,
+    "y": 5.5
+   }
+  },
+  {
+   "room": "LR",
+   "loop": "LR.L1",
+   "length_m": 0.35099999999999965,
+   "at": {
+    "x": 3.9,
+    "y": 2.142
+   }
+  },
+  {
+   "room": "LR",
+   "loop": "LR.L3",
+   "length_m": 3.0273713616648417,
+   "at": {
+    "x": 3.792,
+    "y": 5.692
+   }
+  }
+ ],
+ "rooms": {
+  "H": {
+   "status": "LEAD_INCOMPATIBLE",
+   "areas": {
+    "usable_m2": 10.678231999999996,
+    "reserved_m2": 0,
+    "heating_m2": 9.330706484999943,
+    "uncovered_m2": 1.3475255150000522,
+    "largestGap_m2": 0.29411222499999745
+   },
+   "history": [
+    {
+     "iteration": 1,
+     "loops": 3,
+     "reserved_m2": 0,
+     "heatingInBand_m": 4.453115124260287,
+     "coverage": 0.873806308478777
+    },
+    {
+     "iteration": 2,
+     "loops": 4,
+     "reserved_m2": 1.315700000000004,
+     "heatingInBand_m": 0,
+     "coverage": 0.7484885648672919
+    }
+   ],
+   "loops": [
+    {
+     "loopId": "L1",
+     "endpoints": {
+      "supply": {
+       "at": {
+        "x": 4.22,
+        "y": 2.508
+       },
+       "dir": {
+        "x": -1,
+        "y": 0
+       }
+      },
+      "ret": {
+       "at": {
+        "x": 4.22,
+        "y": 2.708
+       },
+       "dir": {
+        "x": -1,
+        "y": 0
+       }
+      }
+     },
+     "entryRoute_m": 3.3979999999999992,
+     "leadCompatible": true,
+     "leadClash_m": 0
+    },
+    {
+     "loopId": "L2",
+     "endpoints": {
+      "supply": {
+       "at": {
+        "x": 4.22,
+        "y": 4.858
+       },
+       "dir": {
+        "x": -1,
+        "y": 0
+       }
+      },
+      "ret": {
+       "at": {
+        "x": 4.22,
+        "y": 5.058
+       },
+       "dir": {
+        "x": -1,
+        "y": 0
+       }
+      }
+     },
+     "entryRoute_m": 5.748,
+     "leadCompatible": true,
+     "leadClash_m": 0
+    },
+    {
+     "loopId": "L3",
+     "endpoints": {
+      "supply": {
+       "at": {
+        "x": 5.992,
+        "y": 5.9
+       },
+       "dir": {
+        "x": 0,
+        "y": 1
+       }
+      },
+      "ret": {
+       "at": {
+        "x": 6.192,
+        "y": 5.9
+       },
+       "dir": {
+        "x": 0,
+        "y": 1
+       }
+      }
+     },
+     "entryRoute_m": 8.562000000000001,
+     "leadCompatible": true,
+     "leadClash_m": 0
+    }
+   ],
+   "metrics": [
+    {
+     "loop": "L1",
+     "heating_m": 31.59822475565917,
+     "total_m": 39.59422475565917,
+     "coverage": 0.8408306657351838,
+     "largestGap_m2": 0.29411222499999745,
+     "minRadius_m": 0.09985217930394448,
+     "residualSpacing": 0.134,
+     "closure": "right",
+     "terminal": {
+      "u": 0.29239569313593555,
+      "v": 0.519183198595811,
+      "toSide_m": 0.29543201635157534
+     },
+     "reference": "PHASE6_REFERENCE_OK",
+     "ends": {
+      "supply": {
+       "x": 4.22,
+       "y": 2.508
+      },
+      "ret": {
+       "x": 4.22,
+       "y": 2.708
+      }
+     }
+    },
+    {
+     "loop": "L2",
+     "heating_m": 9.086694882588315,
+     "total_m": 21.782694882588316,
+     "coverage": 0.9382153221240853,
+     "largestGap_m2": 0,
+     "minRadius_m": 0.09985220730354054,
+     "residualSpacing": 0.142,
+     "closure": "top",
+     "terminal": {
+      "u": 0.49999999999999944,
+      "v": 0.5253940455341509,
+      "toSide_m": 0.28048275860880745
+     },
+     "reference": "PHASE6_REFERENCE_OK",
+     "ends": {
+      "supply": {
+       "x": 4.22,
+       "y": 4.858
+      },
+      "ret": {
+       "x": 4.22,
+       "y": 5.058
+      }
+     }
+    },
+    {
+     "loop": "L3",
+     "heating_m": 6.686694882588309,
+     "total_m": 25.01069488258831,
+     "coverage": 0.898275299608594,
+     "largestGap_m2": 0,
+     "minRadius_m": 0.09985510467399404,
+     "residualSpacing": 0.142,
+     "closure": "bottom",
+     "terminal": {
+      "u": 0.4888037760392426,
+      "v": 0.47460595446584986,
+      "toSide_m": 0.26857164206478545
+     },
+     "reference": "PHASE6_REFERENCE_OK",
+     "ends": {
+      "supply": {
+       "x": 5.992,
+       "y": 5.9
+      },
+      "ret": {
+       "x": 6.192,
+       "y": 5.9
+      }
+     }
+    }
+   ]
+  },
+  "LR": {
+   "status": "LEAD_AWARE_VALID",
+   "areas": {
+    "usable_m2": 18.361736,
+    "reserved_m2": 0,
+    "heating_m2": 17.382681169999994,
+    "uncovered_m2": 0.9790548300000045,
+    "largestGap_m2": 0
+   },
+   "history": [
+    {
+     "iteration": 1,
+     "loops": 3,
+     "reserved_m2": 0,
+     "heatingInBand_m": 0,
+     "coverage": 0.9466796151518566
+    }
+   ],
+   "loops": [
+    {
+     "loopId": "L1",
+     "endpoints": {
+      "supply": {
+       "at": {
+        "x": 3.9,
+        "y": 2.142
+       },
+       "dir": {
+        "x": 1,
+        "y": 0
+       }
+      },
+      "ret": {
+       "at": {
+        "x": 3.9,
+        "y": 1.942
+       },
+       "dir": {
+        "x": 1,
+        "y": 0
+       }
+      }
+     },
+     "entryRoute_m": 0.20200000000000173,
+     "leadCompatible": true,
+     "leadClash_m": 0
+    },
+    {
+     "loopId": "L2",
+     "endpoints": {
+      "supply": {
+       "at": {
+        "x": 0.1,
+        "y": 3.9999999999999996
+       },
+       "dir": {
+        "x": -1,
+        "y": -2.7755575615628914e-16
+       }
+      },
+      "ret": {
+       "at": {
+        "x": 0.1,
+        "y": 3.8
+       },
+       "dir": {
+        "x": -1,
+        "y": 0
+       }
+      }
+     },
+     "entryRoute_m": 9.659999999999997,
+     "leadCompatible": true,
+     "leadClash_m": 0
+    },
+    {
+     "loopId": "L3",
+     "endpoints": {
+      "supply": {
+       "at": {
+        "x": 3.792,
+        "y": 5.692
+       },
+       "dir": {
+        "x": 1,
+        "y": 0
+       }
+      },
+      "ret": {
+       "at": {
+        "x": 3.792,
+        "y": 5.492
+       },
+       "dir": {
+        "x": 1,
+        "y": 0
+       }
+      }
+     },
+     "entryRoute_m": 3.8600000000000008,
+     "leadCompatible": true,
+     "leadClash_m": 0
+    }
+   ],
+   "metrics": [
+    {
+     "loop": "L1",
+     "heating_m": 38.62539027943881,
+     "total_m": 46.11539027943899,
+     "coverage": 0.9355524454858181,
+     "largestGap_m2": 0,
+     "minRadius_m": 0.09985229674114467,
+     "residualSpacing": 0.142,
+     "closure": "bottom",
+     "terminal": {
+      "u": 0.5000000000000002,
+      "v": 0.48646125116713346,
+      "toSide_m": 0.2783140316580574
+     },
+     "reference": "PHASE6_REFERENCE_OK",
+     "ends": {
+      "supply": {
+       "x": 3.9,
+       "y": 2.142
+      },
+      "ret": {
+       "x": 3.9,
+       "y": 1.942
+      }
+     }
+    },
+    {
+     "loop": "L2",
+     "heating_m": 16.34841400768034,
+     "total_m": 42.63841400768052,
+     "coverage": 0.9605519343708883,
+     "largestGap_m2": 0,
+     "minRadius_m": 0.07997576255347674,
+     "residualSpacing": 0.16,
+     "closure": "centre",
+     "terminal": {
+      "u": 0.4000000000000001,
+      "v": 0.5000000000000002,
+      "toSide_m": 0.6523669727437555
+     },
+     "reference": "PHASE6_REFERENCE_MISMATCH",
+     "ends": {
+      "supply": {
+       "x": 0.1,
+       "y": 3.9999999999999996
+      },
+      "ret": {
+       "x": 0.1,
+       "y": 3.8
+      }
+     }
+    },
+    {
+     "loop": "L3",
+     "heating_m": 33.787133305442175,
+     "total_m": 48.47713330544236,
+     "coverage": 0.9798055236931166,
+     "largestGap_m2": 0,
+     "minRadius_m": 0.06997194876821448,
+     "residualSpacing": 0.14,
+     "closure": "centre",
+     "terminal": {
+      "u": 0.5821117014055648,
+      "v": 0.4999999999999999,
+      "toSide_m": 0.8119629765832437
+     },
+     "reference": "PHASE6_REFERENCE_MISMATCH",
+     "ends": {
+      "supply": {
+       "x": 3.792,
+       "y": 5.692
+      },
+      "ret": {
+       "x": 3.792,
+       "y": 5.492
+      }
+     }
+    }
+   ]
+  },
+  "BR1": {
+   "status": "LEAD_AWARE_VALID",
+   "areas": {
+    "usable_m2": 14.500399999999999,
+    "reserved_m2": 0,
+    "heating_m2": 14.160928000000013,
+    "uncovered_m2": 0.3394719999999856,
+    "largestGap_m2": 0
+   },
+   "history": [
+    {
+     "iteration": 1,
+     "loops": 2,
+     "reserved_m2": 0,
+     "heatingInBand_m": 0,
+     "coverage": 0.97658878375769
+    }
+   ],
+   "loops": [
+    {
+     "loopId": "L1",
+     "endpoints": {
+      "supply": {
+       "at": {
+        "x": 6.22,
+        "y": 0.2
+       },
+       "dir": {
+        "x": -1,
+        "y": 0
+       }
+      },
+      "ret": {
+       "at": {
+        "x": 6.22,
+        "y": 0.4
+       },
+       "dir": {
+        "x": -1,
+        "y": 0
+       }
+      }
+     },
+     "entryRoute_m": 1.059999999999999,
+     "leadCompatible": true,
+     "leadClash_m": 0
+    },
+    {
+     "loopId": "L2",
+     "endpoints": {
+      "supply": {
+       "at": {
+        "x": 6.22,
+        "y": 2.04
+       },
+       "dir": {
+        "x": -1,
+        "y": 0
+       }
+      },
+      "ret": {
+       "at": {
+        "x": 6.22,
+        "y": 2.24
+       },
+       "dir": {
+        "x": -1,
+        "y": 0
+       }
+      }
+     },
+     "entryRoute_m": 1.1000000000000019,
+     "leadCompatible": true,
+     "leadClash_m": 0
+    }
+   ],
+   "metrics": [
+    {
+     "loop": "L1",
+     "heating_m": 40.00441400768045,
+     "total_m": 46.694414007680635,
+     "coverage": 0.9834120529295947,
+     "largestGap_m2": 0,
+     "minRadius_m": 0.0799757625534759,
+     "residualSpacing": 0.16,
+     "closure": "centre",
+     "terminal": {
+      "u": 0.456937799043062,
+      "v": 0.5000000000000001,
+      "toSide_m": 0.7066536384679941
+     },
+     "reference": "PHASE6_REFERENCE_MISMATCH",
+     "ends": {
+      "supply": {
+       "x": 6.22,
+       "y": 0.2
+      },
+      "ret": {
+       "x": 6.22,
+       "y": 0.4
+      }
+     }
+    },
+    {
+     "loop": "L2",
+     "heating_m": 34.432692166420516,
+     "total_m": 41.202692166420704,
+     "coverage": 0.9693680747312154,
+     "largestGap_m2": 0,
+     "minRadius_m": 0.07997584259014033,
+     "residualSpacing": 0.16,
+     "closure": "centre",
+     "terminal": {
+      "u": 0.34928229665071764,
+      "v": 0.5000000000000002,
+      "toSide_m": 0.6952255183534775
+     },
+     "reference": "PHASE6_REFERENCE_MISMATCH",
+     "ends": {
+      "supply": {
+       "x": 6.22,
+       "y": 2.04
+      },
+      "ret": {
+       "x": 6.22,
+       "y": 2.24
+      }
+     }
+    }
+   ]
+  },
+  "BA": {
+   "status": "LEAD_INCOMPATIBLE",
+   "areas": {
+    "usable_m2": 3.9090000000000025,
+    "reserved_m2": 0,
+    "heating_m2": 3.5680703150000443,
+    "uncovered_m2": 0.3409296849999581,
+    "largestGap_m2": 0.023566699999992835
+   },
+   "history": [
+    {
+     "iteration": 1,
+     "loops": 1,
+     "reserved_m2": 0,
+     "heatingInBand_m": 0.8250000000000002,
+     "coverage": 0.9127834011256183
+    },
+    {
+     "iteration": 2,
+     "loops": 3,
+     "reserved_m2": 0.09500000000000242,
+     "heatingInBand_m": 2.3420108091744227,
+     "coverage": 0.8865901023279594
+    },
+    {
+     "iteration": 3,
+     "loops": 2,
+     "reserved_m2": 0.41599999999999326,
+     "heatingInBand_m": 0.025000000000000355,
+     "coverage": 0.6508326515732963
+    },
+    {
+     "iteration": 4,
+     "loops": 2,
+     "reserved_m2": 0.22799999999999443,
+     "heatingInBand_m": 0.45114238189395245,
+     "coverage": 0.7716335763622372
+    },
+    {
+     "iteration": 5,
+     "loops": 1,
+     "reserved_m2": 0.3180000000000014,
+     "heatingInBand_m": 0.025000000000000355,
+     "coverage": 0.8223388641596384
+    }
+   ],
+   "loops": [
+    {
+     "loopId": "L1",
+     "endpoints": {
+      "supply": {
+       "at": {
+        "x": 7.595,
+        "y": 4.1
+       },
+       "dir": {
+        "x": 0,
+        "y": -1
+       }
+      },
+      "ret": {
+       "at": {
+        "x": 7.744999999999999,
+        "y": 4.1
+       },
+       "dir": {
+        "x": -5.921189464667501e-16,
+        "y": -1
+       }
+      }
+     },
+     "entryRoute_m": 1.21,
+     "leadCompatible": true,
+     "leadClash_m": 0
+    }
+   ],
+   "metrics": [
+    {
+     "loop": "L1",
+     "heating_m": 23.615924427661895,
+     "total_m": 40.80592442766208,
+     "coverage": 0.9128215643574615,
+     "largestGap_m2": 0.023566699999992835,
+     "minRadius_m": 0.07488873223485638,
+     "residualSpacing": 0.13,
+     "closure": "right",
+     "terminal": {
+      "u": 0.5034722222222219,
+      "v": 0.5,
+      "toSide_m": 0.2255518617750486
+     },
+     "reference": "PHASE6_REFERENCE_OK",
+     "ends": {
+      "supply": {
+       "x": 7.595,
+       "y": 4.1
+      },
+      "ret": {
+       "x": 7.744999999999999,
+       "y": 4.1
+      }
+     }
+    }
+   ]
+  },
+  "BR2": {
+   "status": "LEAD_AWARE_VALID",
+   "areas": {
+    "usable_m2": 12.084000000000007,
+    "reserved_m2": 0,
+    "heating_m2": 11.791811170000004,
+    "uncovered_m2": 0.2921888300000016,
+    "largestGap_m2": 0
+   },
+   "history": [
+    {
+     "iteration": 1,
+     "loops": 2,
+     "reserved_m2": 0,
+     "heatingInBand_m": 0,
+     "coverage": 0.9758201895067856
+    }
+   ],
+   "loops": [
+    {
+     "loopId": "L1",
+     "endpoints": {
+      "supply": {
+       "at": {
+        "x": 3.9,
+        "y": 6.319999999999999
+       },
+       "dir": {
+        "x": 1,
+        "y": 0
+       }
+      },
+      "ret": {
+       "at": {
+        "x": 3.9,
+        "y": 6.52
+       },
+       "dir": {
+        "x": 1,
+        "y": 0
+       }
+      }
+     },
+     "entryRoute_m": 1.0599999999999987,
+     "leadCompatible": true,
+     "leadClash_m": 0
+    },
+    {
+     "loopId": "L2",
+     "endpoints": {
+      "supply": {
+       "at": {
+        "x": 0.1,
+        "y": 9.299999999999999
+       },
+       "dir": {
+        "x": -1,
+        "y": 0
+       }
+      },
+      "ret": {
+       "at": {
+        "x": 0.1,
+        "y": 9.1
+       },
+       "dir": {
+        "x": -1,
+        "y": 0
+       }
+      }
+     },
+     "entryRoute_m": 6.240000000000001,
+     "leadCompatible": true,
+     "leadClash_m": 0
+    }
+   ],
+   "metrics": [
+    {
+     "loop": "L1",
+     "heating_m": 29.378973041328578,
+     "total_m": 47.60897304132876,
+     "coverage": 0.976409630176213,
+     "largestGap_m2": 0,
+     "minRadius_m": 0.09985208986840685,
+     "residualSpacing": 0.19,
+     "closure": "top",
+     "terminal": {
+      "u": 0.4999999999999997,
+      "v": 0.5031446540880502,
+      "toSide_m": 0.29797800606785446
+     },
+     "reference": "PHASE6_REFERENCE_OK",
+     "ends": {
+      "supply": {
+       "x": 3.9,
+       "y": 6.319999999999999
+      },
+      "ret": {
+       "x": 3.9,
+       "y": 6.52
+      }
+     }
+    },
+    {
+     "loop": "L2",
+     "heating_m": 29.378973041328564,
+     "total_m": 57.96897304132875,
+     "coverage": 0.9763156359422235,
+     "largestGap_m2": 0,
+     "minRadius_m": 0.09985208986840147,
+     "residualSpacing": 0.19,
+     "closure": "bottom",
+     "terminal": {
+      "u": 0.5000000000000002,
+      "v": 0.49685534591194946,
+      "toSide_m": 0.29798252954421267
+     },
+     "reference": "PHASE6_REFERENCE_OK",
+     "ends": {
+      "supply": {
+       "x": 0.1,
+       "y": 9.299999999999999
+      },
+      "ret": {
+       "x": 0.1,
+       "y": 9.1
+      }
+     }
+    }
+   ]
+  }
+ },
+ "loopRows": [
+  {
+   "room": "H",
+   "loop": "H.L1",
+   "outlet": 7,
+   "heating_m": 31.59822475565917,
+   "supply_m": 3.522999999999997,
+   "return_m": 3.7663034373659263,
+   "drop_m": 0.8,
+   "total_m": 39.687528193025095,
+   "margin_m": 20.312471806974905,
+   "lowMargin": false,
+   "lengthStatus": "LOOP_VALID",
+   "region_m2": 6.083499999999993,
+   "covered_m2": 5.115193354999985,
+   "coverage": 0.8408306657351838,
+   "coverageBefore": 0.850389226388411,
+   "reference": {
+    "status": "PHASE6_REFERENCE_OK",
+    "startsAtOuterContour": true,
+    "terminal": {
+     "length_m": 6.766021547637596,
+     "centre": {
+      "u": 0.29239569313593555,
+      "v": 0.519183198595811
+     },
+     "toSide_m": 0.29543201635157534,
+     "alongSide": true
+    },
+    "reasons": []
+   },
+   "largestGap_m2": 0.29411222499999745,
+   "nominalSpacing": 0.2,
+   "residual": {
+    "spacing": 0.134,
+    "measured": 0.13402198522699343,
+    "terminal": [
+     24.83220320802148,
+     31.998224755659173
+    ]
+   },
+   "minRadius_m": 0.09985217930394448,
+   "crossings": 37,
+   "leadClearance_m": 8.881784197001252e-16,
+   "wallOffset_m": 0.09999999999999964,
+   "topology": "LOOP_TOPOLOGY_VALID",
+   "flags": {
+    "collectorSupplyConnected": true,
+    "supplyLeadConnected": true,
+    "heatingStartConnected": true,
+    "heatingGeometryContinuous": true,
+    "heatingEndConnected": true,
+    "returnLeadConnected": true,
+    "collectorReturnConnected": true,
+    "wholeLoopConnected": true
+   },
+   "checks": {
+    "topology": true,
+    "length60": true,
+    "coverage": false,
+    "largestGap": true,
+    "noCrossing": false,
+    "clearance": false,
+    "radius": true,
+    "residualSpacing": true,
+    "geometryValid": true
+   },
+   "status": "LOOP_INVALID",
+   "statuses": [
+    "PHASE6_COVERAGE_INSUFFICIENT",
+    "LEAD_HEATING_CLASH"
+   ],
+   "warnings": [],
+   "failed": [
+    "coverage",
+    "noCrossing",
+    "clearance"
+   ]
+  },
+  {
+   "room": "H",
+   "loop": "H.L2",
+   "outlet": 6,
+   "heating_m": 9.086694882588315,
+   "supply_m": 6.172999999999996,
+   "return_m": 5.823000000000001,
+   "drop_m": 0.8,
+   "total_m": 21.88269488258831,
+   "margin_m": 38.11730511741169,
+   "lowMargin": false,
+   "lengthStatus": "LOOP_VALID",
+   "region_m2": 1.7664000000000009,
+   "covered_m2": 1.657263544999985,
+   "coverage": 0.9382153221240853,
+   "coverageBefore": 0.9426303534468958,
+   "reference": {
+    "status": "PHASE6_REFERENCE_OK",
+    "startsAtOuterContour": true,
+    "terminal": {
+     "length_m": 2.6366738492125688,
+     "centre": {
+      "u": 0.49999999999999944,
+      "v": 0.5253940455341509
+     },
+     "toSide_m": 0.28048275860880745,
+     "alongSide": true
+    },
+    "reasons": []
+   },
+   "largestGap_m2": 0,
+   "nominalSpacing": 0.2,
+   "residual": {
+    "spacing": 0.142,
+    "measured": 0.14194430218433524,
+    "terminal": [
+     6.450021033375746,
+     9.486694882588315
+    ]
+   },
+   "minRadius_m": 0.09985220730354054,
+   "crossings": 15,
+   "leadClearance_m": 0.0012500000000006395,
+   "wallOffset_m": 0.09999999999999964,
+   "topology": "LOOP_TOPOLOGY_VALID",
+   "flags": {
+    "collectorSupplyConnected": true,
+    "supplyLeadConnected": true,
+    "heatingStartConnected": true,
+    "heatingGeometryContinuous": true,
+    "heatingEndConnected": true,
+    "returnLeadConnected": true,
+    "collectorReturnConnected": true,
+    "wholeLoopConnected": true
+   },
+   "checks": {
+    "topology": true,
+    "length60": true,
+    "coverage": true,
+    "largestGap": true,
+    "noCrossing": false,
+    "clearance": false,
+    "radius": true,
+    "residualSpacing": true,
+    "geometryValid": true
+   },
+   "status": "LOOP_INVALID",
+   "statuses": [
+    "LEAD_HEATING_CLASH"
+   ],
+   "warnings": [],
+   "failed": [
+    "noCrossing",
+    "clearance"
+   ]
+  },
+  {
+   "room": "H",
+   "loop": "H.L3",
+   "outlet": 5,
+   "heating_m": 6.686694882588309,
+   "supply_m": 7.986999999999998,
+   "return_m": 7.536999999999998,
+   "drop_m": 0.8,
+   "total_m": 23.010694882588307,
+   "margin_m": 36.98930511741169,
+   "lowMargin": false,
+   "lengthStatus": "LOOP_VALID",
+   "region_m2": 1.483936,
+   "covered_m2": 1.3329830549999784,
+   "coverage": 0.898275299608594,
+   "coverageBefore": 0.8989426879983999,
+   "reference": {
+    "status": "PHASE6_REFERENCE_OK",
+    "startsAtOuterContour": true,
+    "terminal": {
+     "length_m": 1.2436043095275473,
+     "centre": {
+      "u": 0.4888037760392426,
+      "v": 0.47460595446584986
+     },
+     "toSide_m": 0.26857164206478545,
+     "alongSide": true
+    },
+    "reasons": []
+   },
+   "largestGap_m2": 0,
+   "nominalSpacing": 0.2,
+   "residual": {
+    "spacing": 0.142,
+    "measured": 0.1419407224302791,
+    "terminal": [
+     5.4430905730607675,
+     7.086694882588309
+    ]
+   },
+   "minRadius_m": 0.09985510467399404,
+   "crossings": 2,
+   "leadClearance_m": null,
+   "wallOffset_m": 0.09999999999999964,
+   "topology": "LOOP_TOPOLOGY_VALID",
+   "flags": {
+    "collectorSupplyConnected": true,
+    "supplyLeadConnected": true,
+    "heatingStartConnected": true,
+    "heatingGeometryContinuous": true,
+    "heatingEndConnected": true,
+    "returnLeadConnected": true,
+    "collectorReturnConnected": true,
+    "wholeLoopConnected": true
+   },
+   "checks": {
+    "topology": true,
+    "length60": true,
+    "coverage": true,
+    "largestGap": true,
+    "noCrossing": false,
+    "clearance": true,
+    "radius": true,
+    "residualSpacing": true,
+    "geometryValid": true
+   },
+   "status": "LOOP_INVALID",
+   "statuses": [
+    "LEAD_HEATING_CLASH"
+   ],
+   "warnings": [],
+   "failed": [
+    "noCrossing"
+   ]
+  },
+  {
+   "room": "LR",
+   "loop": "LR.L1",
+   "outlet": 1,
+   "heating_m": 38.62539027943881,
+   "supply_m": 3.0321869559437946,
+   "return_m": 3.426999999999997,
+   "drop_m": 0.8,
+   "total_m": 45.8845772353826,
+   "margin_m": 14.1154227646174,
+   "lowMargin": false,
+   "lengthStatus": "LOOP_VALID",
+   "region_m2": 8.043228,
+   "covered_m2": 7.524861625000004,
+   "coverage": 0.9355524454858181,
+   "coverageBefore": 0.9350317988598956,
+   "reference": {
+    "status": "PHASE6_REFERENCE_OK",
+    "startsAtOuterContour": true,
+    "terminal": {
+     "length_m": 7.892673849212565,
+     "centre": {
+      "u": 0.5000000000000002,
+      "v": 0.48646125116713346
+     },
+     "toSide_m": 0.2783140316580574,
+     "alongSide": true
+    },
+    "reasons": []
+   },
+   "largestGap_m2": 0,
+   "nominalSpacing": 0.2,
+   "residual": {
+    "spacing": 0.142,
+    "measured": 0.1420770963759277,
+    "terminal": [
+     30.73271643022623,
+     39.02539027943881
+    ]
+   },
+   "minRadius_m": 0.09985229674114467,
+   "crossings": 1,
+   "leadClearance_m": 0.007999999999998675,
+   "wallOffset_m": 0.15000000000000002,
+   "topology": "LOOP_TOPOLOGY_VALID",
+   "flags": {
+    "collectorSupplyConnected": true,
+    "supplyLeadConnected": true,
+    "heatingStartConnected": true,
+    "heatingGeometryContinuous": true,
+    "heatingEndConnected": true,
+    "returnLeadConnected": true,
+    "collectorReturnConnected": true,
+    "wholeLoopConnected": true
+   },
+   "checks": {
+    "topology": true,
+    "length60": true,
+    "coverage": true,
+    "largestGap": true,
+    "noCrossing": false,
+    "clearance": false,
+    "radius": true,
+    "residualSpacing": true,
+    "geometryValid": true
+   },
+   "status": "LOOP_INVALID",
+   "statuses": [
+    "LEAD_HEATING_CLASH"
+   ],
+   "warnings": [],
+   "failed": [
+    "noCrossing",
+    "clearance"
+   ]
+  },
+  {
+   "room": "LR",
+   "loop": "LR.L2",
+   "outlet": 0,
+   "heating_m": 16.34841400768034,
+   "supply_m": 12.335,
+   "return_m": 12.285000000000002,
+   "drop_m": 0.8,
+   "total_m": 41.76841400768034,
+   "margin_m": 18.23158599231966,
+   "lowMargin": false,
+   "lengthStatus": "LOOP_VALID",
+   "region_m2": 3.331936,
+   "covered_m2": 3.2004975699999996,
+   "coverage": 0.9605519343708883,
+   "coverageBefore": 0.9597245141131445,
+   "reference": {
+    "status": "PHASE6_REFERENCE_MISMATCH",
+    "startsAtOuterContour": true,
+    "terminal": {
+     "length_m": 2.9526490711449425,
+     "centre": {
+      "u": 0.4000000000000001,
+      "v": 0.5000000000000002
+     },
+     "toSide_m": 0.6523669727437555,
+     "alongSide": false
+    },
+    "reasons": [
+     "terminal closure 0.652 m (mean) from the region outline, centre at (0.40, 0.50) of the region — in the middle, not the side strip"
+    ]
+   },
+   "largestGap_m2": 0,
+   "nominalSpacing": 0.2,
+   "residual": {
+    "spacing": 0.16,
+    "measured": 0.15980290541269923,
+    "terminal": [
+     9.190021547637743,
+     12.142670618782752
+    ]
+   },
+   "minRadius_m": 0.07997576255347674,
+   "crossings": 0,
+   "leadClearance_m": 1.9999999999999998,
+   "wallOffset_m": 0.04999999999999982,
+   "topology": "LOOP_TOPOLOGY_VALID",
+   "flags": {
+    "collectorSupplyConnected": true,
+    "supplyLeadConnected": true,
+    "heatingStartConnected": true,
+    "heatingGeometryContinuous": true,
+    "heatingEndConnected": true,
+    "returnLeadConnected": true,
+    "collectorReturnConnected": true,
+    "wholeLoopConnected": true
+   },
+   "checks": {
+    "topology": true,
+    "length60": true,
+    "coverage": true,
+    "largestGap": true,
+    "noCrossing": true,
+    "clearance": true,
+    "radius": true,
+    "residualSpacing": true,
+    "geometryValid": true
+   },
+   "status": "LOOP_INVALID",
+   "statuses": [
+    "PHASE6_REFERENCE_MISMATCH"
+   ],
+   "warnings": [],
+   "failed": []
+  },
+  {
+   "room": "LR",
+   "loop": "LR.L3",
+   "outlet": 2,
+   "heating_m": 33.787133305442175,
+   "supply_m": 6.818999999999998,
+   "return_m": 6.768999999999998,
+   "drop_m": 0.8,
+   "total_m": 48.175133305442166,
+   "margin_m": 11.824866694557834,
+   "lowMargin": false,
+   "lengthStatus": "LOOP_VALID",
+   "region_m2": 6.3816000000000015,
+   "covered_m2": 6.252726929999994,
+   "coverage": 0.9798055236931166,
+   "coverageBefore": 0.9761419825506942,
+   "reference": {
+    "status": "PHASE6_REFERENCE_MISMATCH",
+    "startsAtOuterContour": true,
+    "terminal": {
+     "length_m": 4.463624980009085,
+     "centre": {
+      "u": 0.5821117014055648,
+      "v": 0.4999999999999999
+     },
+     "toSide_m": 0.8119629765832437,
+     "alongSide": false
+    },
+    "reasons": [
+     "terminal closure 0.812 m (mean) from the region outline, centre at (0.58, 0.50) of the region — in the middle, not the side strip"
+    ]
+   },
+   "largestGap_m2": 0,
+   "nominalSpacing": 0.2,
+   "residual": {
+    "spacing": 0.14,
+    "measured": 0.13982245067542967,
+    "terminal": [
+     16.306021547637762,
+     20.769646527646934
+    ]
+   },
+   "minRadius_m": 0.06997194876821448,
+   "crossings": 3,
+   "leadClearance_m": 0.10799999999999965,
+   "wallOffset_m": 0.20800000000000018,
+   "topology": "LOOP_TOPOLOGY_VALID",
+   "flags": {
+    "collectorSupplyConnected": true,
+    "supplyLeadConnected": true,
+    "heatingStartConnected": true,
+    "heatingGeometryContinuous": true,
+    "heatingEndConnected": true,
+    "returnLeadConnected": true,
+    "collectorReturnConnected": true,
+    "wholeLoopConnected": true
+   },
+   "checks": {
+    "topology": true,
+    "length60": true,
+    "coverage": true,
+    "largestGap": true,
+    "noCrossing": false,
+    "clearance": true,
+    "radius": true,
+    "residualSpacing": true,
+    "geometryValid": true
+   },
+   "status": "LOOP_INVALID",
+   "statuses": [
+    "LEAD_HEATING_CLASH",
+    "PHASE6_REFERENCE_MISMATCH"
+   ],
+   "warnings": [],
+   "failed": [
+    "noCrossing"
+   ]
+  },
+  {
+   "room": "BR1",
+   "loop": "BR1.L1",
+   "outlet": 10,
+   "heating_m": 40.00441400768045,
+   "supply_m": 2.384999999999999,
+   "return_m": 2.2350000000000034,
+   "drop_m": 0.8,
+   "total_m": 45.424414007680454,
+   "margin_m": 14.575585992319546,
+   "lowMargin": false,
+   "lengthStatus": "LOOP_VALID",
+   "region_m2": 7.6788799999999995,
+   "covered_m2": 7.551503145000005,
+   "coverage": 0.9834120529295947,
+   "coverageBefore": 0.9830170376534232,
+   "reference": {
+    "status": "PHASE6_REFERENCE_MISMATCH",
+    "startsAtOuterContour": true,
+    "terminal": {
+     "length_m": 12.436649071144968,
+     "centre": {
+      "u": 0.456937799043062,
+      "v": 0.5000000000000001
+     },
+     "toSide_m": 0.7066536384679941,
+     "alongSide": false
+    },
+    "reasons": [
+     "terminal closure 0.707 m (mean) from the region outline, centre at (0.46, 0.50) of the region — in the middle, not the side strip"
+    ]
+   },
+   "largestGap_m2": 0,
+   "nominalSpacing": 0.2,
+   "residual": {
+    "spacing": 0.16,
+    "measured": 0.15969680400001035,
+    "terminal": [
+     18.63802154763778,
+     31.074670618782832
+    ]
+   },
+   "minRadius_m": 0.0799757625534759,
+   "crossings": 0,
+   "leadClearance_m": 0.09999999999999964,
+   "wallOffset_m": 0.04999999999999982,
+   "topology": "LOOP_TOPOLOGY_VALID",
+   "flags": {
+    "collectorSupplyConnected": true,
+    "supplyLeadConnected": true,
+    "heatingStartConnected": true,
+    "heatingGeometryContinuous": true,
+    "heatingEndConnected": true,
+    "returnLeadConnected": true,
+    "collectorReturnConnected": true,
+    "wholeLoopConnected": true
+   },
+   "checks": {
+    "topology": true,
+    "length60": true,
+    "coverage": true,
+    "largestGap": true,
+    "noCrossing": true,
+    "clearance": true,
+    "radius": true,
+    "residualSpacing": true,
+    "geometryValid": true
+   },
+   "status": "LOOP_INVALID",
+   "statuses": [
+    "PHASE6_REFERENCE_MISMATCH"
+   ],
+   "warnings": [],
+   "failed": []
+  },
+  {
+   "room": "BR1",
+   "loop": "BR1.L2",
+   "outlet": 9,
+   "heating_m": 34.432692166420516,
+   "supply_m": 3.3250000000000037,
+   "return_m": 2.8750000000000036,
+   "drop_m": 0.8,
+   "total_m": 41.43269216642052,
+   "margin_m": 18.567307833579477,
+   "lowMargin": false,
+   "lengthStatus": "LOOP_VALID",
+   "region_m2": 6.808400000000001,
+   "covered_m2": 6.599845600000008,
+   "coverage": 0.9693680747312154,
+   "coverageBefore": 0.9692952666979975,
+   "reference": {
+    "status": "PHASE6_REFERENCE_MISMATCH",
+    "startsAtOuterContour": true,
+    "terminal": {
+     "length_m": 8.836649071144949,
+     "centre": {
+      "u": 0.34928229665071764,
+      "v": 0.5000000000000002
+     },
+     "toSide_m": 0.6952255183534775,
+     "alongSide": false
+    },
+    "reasons": [
+     "terminal closure 0.695 m (mean) from the region outline, centre at (0.35, 0.50) of the region — in the middle, not the side strip"
+    ]
+   },
+   "largestGap_m2": 0,
+   "nominalSpacing": 0.2,
+   "residual": {
+    "spacing": 0.16,
+    "measured": 0.15977976899269047,
+    "terminal": [
+     16.752160627007797,
+     25.588809698152847
+    ]
+   },
+   "minRadius_m": 0.07997584259014033,
+   "crossings": 0,
+   "leadClearance_m": 0.3699999999999992,
+   "wallOffset_m": 0.04999999999999982,
+   "topology": "LOOP_TOPOLOGY_VALID",
+   "flags": {
+    "collectorSupplyConnected": true,
+    "supplyLeadConnected": true,
+    "heatingStartConnected": true,
+    "heatingGeometryContinuous": true,
+    "heatingEndConnected": true,
+    "returnLeadConnected": true,
+    "collectorReturnConnected": true,
+    "wholeLoopConnected": true
+   },
+   "checks": {
+    "topology": true,
+    "length60": true,
+    "coverage": true,
+    "largestGap": true,
+    "noCrossing": true,
+    "clearance": true,
+    "radius": true,
+    "residualSpacing": true,
+    "geometryValid": true
+   },
+   "status": "LOOP_INVALID",
+   "statuses": [
+    "PHASE6_REFERENCE_MISMATCH"
+   ],
+   "warnings": [],
+   "failed": []
+  },
+  {
+   "room": "BA",
+   "loop": "BA.L1",
+   "outlet": 8,
+   "heating_m": 23.615924427661895,
+   "supply_m": 7.735000000000002,
+   "return_m": 7.984999999999998,
+   "drop_m": 0.8,
+   "total_m": 40.13592442766189,
+   "margin_m": 19.86407557233811,
+   "lowMargin": false,
+   "lengthStatus": "LOOP_VALID",
+   "region_m2": 3.9031999999999947,
+   "covered_m2": 3.562925130000039,
+   "coverage": 0.9128215643574615,
+   "coverageBefore": 0.9127834011256183,
+   "reference": {
+    "status": "PHASE6_REFERENCE_OK",
+    "startsAtOuterContour": true,
+    "terminal": {
+     "length_m": 6.7050832032345316,
+     "centre": {
+      "u": 0.5034722222222219,
+      "v": 0.5
+     },
+     "toSide_m": 0.2255518617750486,
+     "alongSide": true
+    },
+    "reasons": []
+   },
+   "largestGap_m2": 0.023566699999992835,
+   "nominalSpacing": 0.15,
+   "residual": {
+    "spacing": 0.13,
+    "measured": 0.13000634120653842,
+    "terminal": [
+     16.910841224427458,
+     23.915924427661892
+    ]
+   },
+   "minRadius_m": 0.07488873223485638,
+   "crossings": 0,
+   "leadClearance_m": null,
+   "wallOffset_m": 0.04999999999999982,
+   "topology": "LOOP_TOPOLOGY_VALID",
+   "flags": {
+    "collectorSupplyConnected": true,
+    "supplyLeadConnected": true,
+    "heatingStartConnected": true,
+    "heatingGeometryContinuous": true,
+    "heatingEndConnected": true,
+    "returnLeadConnected": true,
+    "collectorReturnConnected": true,
+    "wholeLoopConnected": true
+   },
+   "checks": {
+    "topology": true,
+    "length60": true,
+    "coverage": true,
+    "largestGap": true,
+    "noCrossing": true,
+    "clearance": true,
+    "radius": true,
+    "residualSpacing": true,
+    "geometryValid": true
+   },
+   "status": "LOOP_VALID",
+   "statuses": [],
+   "warnings": [],
+   "failed": []
+  },
+  {
+   "room": "BR2",
+   "loop": "BR2.L1",
+   "outlet": 4,
+   "heating_m": 29.378973041328578,
+   "supply_m": 8.154999999999996,
+   "return_m": 8.604999999999997,
+   "drop_m": 0.8,
+   "total_m": 46.938973041328566,
+   "margin_m": 13.061026958671434,
+   "lowMargin": false,
+   "lengthStatus": "LOOP_VALID",
+   "region_m2": 5.998207999999995,
+   "covered_m2": 5.856708054999997,
+   "coverage": 0.976409630176213,
+   "coverageBefore": 0.9758231057596818,
+   "reference": {
+    "status": "PHASE6_REFERENCE_OK",
+    "startsAtOuterContour": true,
+    "terminal": {
+     "length_m": 7.2926738492125285,
+     "centre": {
+      "u": 0.4999999999999997,
+      "v": 0.5031446540880502
+     },
+     "toSide_m": 0.29797800606785446,
+     "alongSide": true
+    },
+    "reasons": []
+   },
+   "largestGap_m2": 0,
+   "nominalSpacing": 0.2,
+   "residual": {
+    "spacing": 0.19,
+    "measured": 0.19007709637592773,
+    "terminal": [
+     22.086299192116005,
+     29.77897304132858
+    ]
+   },
+   "minRadius_m": 0.09985208986840685,
+   "crossings": 0,
+   "leadClearance_m": 0.09999999999999964,
+   "wallOffset_m": 0.04999999999999982,
+   "topology": "LOOP_TOPOLOGY_VALID",
+   "flags": {
+    "collectorSupplyConnected": true,
+    "supplyLeadConnected": true,
+    "heatingStartConnected": true,
+    "heatingGeometryContinuous": true,
+    "heatingEndConnected": true,
+    "returnLeadConnected": true,
+    "collectorReturnConnected": true,
+    "wholeLoopConnected": true
+   },
+   "checks": {
+    "topology": true,
+    "length60": true,
+    "coverage": true,
+    "largestGap": true,
+    "noCrossing": true,
+    "clearance": true,
+    "radius": true,
+    "residualSpacing": true,
+    "geometryValid": true
+   },
+   "status": "LOOP_VALID",
+   "statuses": [],
+   "warnings": [],
+   "failed": []
+  },
+  {
+   "room": "BR2",
+   "loop": "BR2.L2",
+   "outlet": 3,
+   "heating_m": 29.378973041328564,
+   "supply_m": 14.135000000000002,
+   "return_m": 14.084999999999997,
+   "drop_m": 0.8,
+   "total_m": 58.39897304132856,
+   "margin_m": 1.60102695867144,
+   "lowMargin": false,
+   "lengthStatus": "LOOP_VALID",
+   "region_m2": 6.031680000000009,
+   "covered_m2": 5.888823494999999,
+   "coverage": 0.9763156359422235,
+   "coverageBefore": 0.9758172732538878,
+   "reference": {
+    "status": "PHASE6_REFERENCE_OK",
+    "startsAtOuterContour": true,
+    "terminal": {
+     "length_m": 7.292673849212488,
+     "centre": {
+      "u": 0.5000000000000002,
+      "v": 0.49685534591194946
+     },
+     "toSide_m": 0.29798252954421267,
+     "alongSide": true
+    },
+    "reasons": []
+   },
+   "largestGap_m2": 0,
+   "nominalSpacing": 0.2,
+   "residual": {
+    "spacing": 0.19,
+    "measured": 0.19007709637592765,
+    "terminal": [
+     22.086299192115987,
+     29.778973041328566
+    ]
+   },
+   "minRadius_m": 0.09985208986840147,
+   "crossings": 0,
+   "leadClearance_m": null,
+   "wallOffset_m": 0.04999999999999982,
+   "topology": "LOOP_TOPOLOGY_VALID",
+   "flags": {
+    "collectorSupplyConnected": true,
+    "supplyLeadConnected": true,
+    "heatingStartConnected": true,
+    "heatingGeometryContinuous": true,
+    "heatingEndConnected": true,
+    "returnLeadConnected": true,
+    "collectorReturnConnected": true,
+    "wholeLoopConnected": true
+   },
+   "checks": {
+    "topology": true,
+    "length60": true,
+    "coverage": true,
+    "largestGap": true,
+    "noCrossing": true,
+    "clearance": true,
+    "radius": true,
+    "residualSpacing": true,
+    "geometryValid": true
+   },
+   "status": "LOOP_VALID",
+   "statuses": [],
+   "warnings": [],
+   "failed": []
+  }
+ ]
+}

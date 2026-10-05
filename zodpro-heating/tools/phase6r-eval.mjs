@@ -8,7 +8,10 @@ import * as G from '../src/engines/ufh/geom.js';
 import { spiralRegions } from '../src/engines/ufh/decompose.js';
 import { planLoops } from '../src/engines/ufh/loopplanner.js';
 import { referenceCheck } from '../src/engines/ufh/phase6reference.js';
-import { runTransfers, phase6GeometryHash } from './ufh-transfer-debug.mjs';
+import { runTransfers, phase6GeometryHash, heatingClash, connectedReport } from './ufh-transfer-debug.mjs';
+import { planLeadAware } from '../src/engines/ufh/leadaware.js';
+import { planTransfers, heatingPitchOf } from '../src/engines/ufh/corridor.js';
+import { doorChains } from '../src/engines/ufh/roomgraph.js';
 
 export const PHASE6_FILES = ['geom.js', 'spiralgen.js', 'decompose.js', 'obstaclespiral.js', 'closure.js', 'rawcheck.js', 'criteria.js', 'loopplanner.js', 'loopproof.js', 'partitionsearch.js'];
 const man = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
@@ -74,7 +77,89 @@ export function evaluate({ apartment = true } = {}) {
   return out;
 }
 
-if (process.argv[1]?.endsWith('phase6r-eval.mjs')) {
+/** The measured transit length from a port to where a lead enters room rid (longest; 0 in the manifold room). */
+function toEntryOf(fx, tr, rid) {
+  const room = [{ outer: G.ccw(fx.rooms.find((r) => r.id === rid).poly), holes: [] }];
+  let m = 0;
+  for (const l of tr.leads.filter((x) => x.room === rid && x.path.length >= 2)) {
+    if (G.pointInRegion(l.path[0], room)) continue;
+    let acc = 0;
+    for (let k = 1; k < l.path.length; k++) {
+      const a = l.path[k - 1];
+      const b = l.path[k];
+      if (G.pointInRegion(b, room) && G.distToRegionBoundary(b, room) > 1e-9) {
+        let lo = 0;
+        let hi = 1;
+        for (let it = 0; it < 40; it++) {
+          const mid = (lo + hi) / 2;
+          if (G.pointInRegion({ x: a.x + (b.x - a.x) * mid, y: a.y + (b.y - a.y) * mid }, room)) hi = mid;
+          else lo = mid;
+        }
+        acc += Math.hypot(b.x - a.x, b.y - a.y) * hi;
+        break;
+      }
+      acc += Math.hypot(b.x - a.x, b.y - a.y);
+    }
+    m = Math.max(m, acc);
+  }
+  return m;
+}
+
+/**
+ * The apartment with the LEAD-AWARE Phase 6 planner: 7B's transit corridor gives U′ and the measured
+ * transfer to each room's entry (inputs); Phase 6 plans every room with them; then 7B's own routing
+ * (unchanged code) connects the leads to the new ends — crossings, clashes, topology, 60 m measured.
+ */
+export function leadAwareApartment(fx, leadSpacing = 0.05, maxIter = 4) {
+  const base = runTransfers(fx, { leadSpacing });
+  const params = base.params;
+  const chains = doorChains({ rooms: fx.rooms, doors: fx.doors, collectorAt: fx.collector.at });
+  let plans = {};
+  let rooms = {};
+  // the transit corridor needs the loop counts, the counts come from the plans on U′ — until stable
+  let cnt = { ...base.counts };
+  const countHistory = [{ ...cnt }];
+  for (let it = 0; it < maxIter; it++) {
+    const trT = planTransfers({ rooms: fx.rooms, doors: fx.doors, collector: fx.collector, loopsByRoom: cnt, usable: base.U, params });
+    if (!trT.rooms) break;
+    plans = {};
+    rooms = {};
+    for (const rid of Object.keys(base.plans)) {
+      const room = fx.rooms.find((r) => r.id === rid);
+      const s = heatingPitchOf(room, params);
+      const isC = rid === chains.collectorRoom;
+      const at = isC ? fx.collector.at : fx.doors.find((d) => d.id === chains.rooms[rid].doors.at(-1)).at;
+      const la = planLeadAware(trT.rooms[rid].Uprime, s, { entry: { at }, leadSpacing, budget: { toEntry_m: isC ? 0 : toEntryOf(fx, trT, rid), drop_m: fx.collector.dropPerPipe_m } });
+      plans[rid] = la.plan;
+      rooms[rid] = la;
+    }
+    const next = Object.fromEntries(Object.entries(plans).map(([rid, p]) => [rid, p.loops.length]));
+    countHistory.push({ ...next });
+    if (Object.keys(next).every((rid) => next[rid] === cnt[rid])) break;
+    cnt = next;
+  }
+  const counts = Object.fromEntries(Object.entries(plans).map(([rid, p]) => [rid, p.loops.length]));
+  // the transit corridor for these counts, then the leads to the new ends (7B code as it is)
+  const tr0 = planTransfers({ rooms: fx.rooms, doors: fx.doors, collector: fx.collector, loopsByRoom: counts, usable: base.U, params });
+  const loopExits = {};
+  for (const [rid, p] of Object.entries(plans)) p.loops.forEach((l) => (loopExits[`${rid}.${l.loopId}`] = { a: l.spiral.supply, b: l.spiral.ret, ha: l.spiral.path.slice(0, 3), hb: l.spiral.path.slice(-3).reverse() }));
+  const trC = tr0.rooms ? planTransfers({ rooms: fx.rooms, doors: fx.doors, collector: fx.collector, loopsByRoom: counts, usable: base.U, params, loopExits }) : tr0;
+  const run = { fx, params, U: base.U, transfers: trC, plans, phase6Transfers: tr0 };
+  const rep = trC.rooms ? connectedReport(run) : null;
+  return { countHistory, counts, rooms, plans, transfers: trC, clashes: trC.rooms ? heatingClash(plans, trC, leadSpacing) : null, report: rep, hash: phase6GeometryHash(plans) };
+}
+
+if (process.argv[1]?.endsWith('phase6r-eval.mjs') && process.argv[3] === '--lead-aware') {
+  const fx = JSON.parse(fs.readFileSync(new URL('../tests/fixtures/apartment-7b.json', import.meta.url), 'utf8'));
+  const t0 = Date.now();
+  const la = leadAwareApartment(fx);
+  const out = { ms: Date.now() - t0, counts: la.counts, hash: la.hash, transfers: { status: la.transfers.status, reasons: la.transfers.reasons, crossings: la.transfers.crossings }, clashes: la.clashes, rooms: {}, loopRows: la.report?.loopRows };
+  for (const [rid, x] of Object.entries(la.rooms)) out.rooms[rid] = { status: x.status, areas: x.areas, history: x.history, loops: x.loops.map((l) => ({ loopId: l.loopId, endpoints: l.endpoints, entryRoute_m: l.entryRoute_m, leadCompatible: l.leadCompatible, leadClash_m: l.leadClash_m })), metrics: loopMetrics(x.plan, x.plan.check ? la.transfers.rooms?.[rid]?.Uprime ?? [] : [], x.plan.loops[0]?.nominalSpacing ?? 0.2) };
+  fs.writeFileSync(process.argv[2], JSON.stringify(out, null, 1));
+  console.log('ms', out.ms, 'countHistory', JSON.stringify(la.countHistory), 'counts', JSON.stringify(out.counts), 'transfers', out.transfers.status, 'crossings', out.transfers.crossings, 'clashes', (out.clashes ?? []).length, 'topology', la.report?.topology?.status);
+  for (const [rid, x] of Object.entries(out.rooms)) console.log(rid, x.status, 'usable', x.areas.usable_m2.toFixed(2), 'reserved', x.areas.reserved_m2.toFixed(2), 'cov', ((x.areas.heating_m2 / x.areas.usable_m2) * 100).toFixed(1), 'gap', x.areas.largestGap_m2.toFixed(3), 'iters', x.history.length, x.loops.map((l) => `${l.loopId}${l.leadCompatible ? '' : '!'}`).join(' '));
+  for (const w of out.loopRows ?? []) console.log(w.loop, 'total', w.total_m.toFixed(2), 'cov', (w.coverage * 100).toFixed(1), 'x', w.crossings, w.topology, w.reference.status, w.statuses.join(','));
+} else if (process.argv[1]?.endsWith('phase6r-eval.mjs')) {
   const t0 = Date.now();
   const out = evaluate();
   out.ms = Date.now() - t0;
