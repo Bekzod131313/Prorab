@@ -211,11 +211,26 @@ Har bir sub-phase o'z checklisti bilan yopiladi; 7-bosqich hamma sub-phase yopil
 - [ ] Determinizm: bir xil input → bir xil `ZoneReport` JSON (SHA-256 teng).
 - [ ] Unumdorlik: har bir LP / 101 holati `collectorplan` bilan ≤ 3 × (6-bosqich planner vaqti); to'liq test to'plami ≤ 15 daqiqa.
 
-Koridor maydoni haqidagi qaror (default): koridor exclusion — u `U'` dan ayiriladi va coverage
-`U'` bo'yicha hisoblanadi. Bu tranzit lead'lar to'plami isitadigan maydon. Shu bilan birga
-koridor maydoni va uning xona maydonidagi ulushi hisobotda alohida ko'rsatiladi. Agar boshqa
-qoida kerak bo'lsa (masalan, coverage `U` bo'yicha), bu 7.0 yopilishidan oldin o'zgartiriladi
-va testlar shunga yoziladi.
+### Koridor maydoni — QABUL QILINGAN QAROR (2026-10-05)
+
+1. Lead koridorlari `U` dan exclusion sifatida ayiriladi: `U' = U − corridor_exclusion`.
+2. `coverage = heated_area / area(U')`.
+3. Koridor exclusion heating uchun usable area hisoblanmaydi.
+4. Hisobotda alohida metrikalar: `U_m2` (original usable area), `corridor_m2` (exclusion),
+   `Uprime_m2` (final usable heating area), `heated_m2`, `coverageUprime`.
+   Muvofiqlik: `|U_m2 − corridor_m2 − Uprime_m2| ≤ GEOMETRY_NUMERICAL_TOLERANCE.area_m2` va
+   `coverageUprime = heated_m2 / Uprime_m2`.
+5. Koridor — haqiqiy fizik koridor: uning poligoni o'zidagi lead polyline'larini aynan o'rab oladi
+   (lead'lar koridor ichida, koridor eni = lead'lar soni × pitch); statistik maydon emas.
+6. Koridor boshqa heating regionlarini noto'g'ri yopmaydi: koridor faqat lead'lari o'tadigan
+   xonalar / eshiklar yo'lida, region bo'linishi `U'` dan qayta quriladi (yopilgan region yo'q).
+7. Koridor ∩ heating geometriyasi = 0; yagona istisno — kontur chiqishining ruxsat etilgan
+   ulanish segmenti (connection segment), hisobotda ro'yxat bilan.
+8. `ENGINEERING_COVERAGE_TOLERANCE = 0`; `GEOMETRY_NUMERICAL_TOLERANCE` (1e-4 m²) faqat
+   raqamli muvofiqlik uchun.
+
+Ketma-ketlik: 7.0 → 7A → 7B → 7C → 7D → 7E; har bir sub-phase alohida acceptance qilinmasdan
+keyingisiga o'tilmaydi.
 
 ## 10. Failure statuslari
 
