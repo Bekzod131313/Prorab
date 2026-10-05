@@ -289,9 +289,13 @@ export function planTransfers(o) {
 
   // ---- the lead polylines, room by room ----
   const pieces = new Map(); // lead id → [polyline parts in order]
-  const push = (id, pts) => {
+  // (every piece knows its room: the corridor of a room is built from the pieces inside it —
+  // never by clipping the joined leads against the room outline)
+  const roomPieces = new Map(o.rooms.map((r) => [r.id, []]));
+  const push = (id, pts, rid = null) => {
     if (!pieces.has(id)) pieces.set(id, []);
     pieces.get(id).push(pts);
+    if (rid !== null) roomPieces.get(rid).push(pts);
   };
   const bundles = new Map(o.rooms.map((r) => [r.id, []]));
   const portOf = new Map();
@@ -312,10 +316,11 @@ export function planTransfers(o) {
       // the exit groups in the order the way meets them (slots: their concatenation, inner first)
       const groups = exitsHere.map((e) => ({ door: e.door, ids: expand(req(e.door)).filter((id) => slots.includes(id)) }));
       // distance along the way from the entry (signed: an entry point may lie behind sE)
+      // (measured along this side's way; only a point within the entry opening may lie behind)
+      const behind = (L.entry ? doorById.get(L.entry).width_m / 2 : ((2 * o.collector.outlets - 1) * o.collector.portPitch_m) / 2) + S;
       const uOf = (p) => {
-        let d = ring.mod(ring.sOf(p) - L.sE);
-        if (d > ring.T / 2) d -= ring.T;
-        return d * side;
+        const d = ring.mod((ring.sOf(p) - L.sE) * side);
+        return d > ring.T - behind ? d - ring.T : d;
       };
       const sOfU = (u) => L.sE + side * u;
       const turnU = new Map(slots.map((id) => [id, uOf(doorPos(groups.find((g) => g.ids.includes(id)).door).get(id))]));
@@ -355,6 +360,10 @@ export function planTransfers(o) {
         const pts = [L.entry ? inner(ring, sOfU(u0), 0, side) : p0];
         let bad = null;
         for (const [ua, ub, depth] of stretches) {
+          if (ub - ua < -1e-9) {
+            bad = { depth, from: ua, to: ub };
+            break;
+          }
           if (ub - ua < 1e-9) {
             pts.push(inner(ring, sOfU(ua), depth, side));
             continue;
@@ -372,7 +381,7 @@ export function planTransfers(o) {
         }
         pts.push(inner(ring, sOfU(uEnd), 0, -side));
         void d0;
-        push(id, cleanLine(pts));
+        push(id, cleanLine(pts), rid);
       }
     }
   }
@@ -399,7 +408,7 @@ export function planTransfers(o) {
       for (const k of ['S', 'R']) {
         const id = `${l.id}/${k}`;
         const s = ring.sOf(pos.get(id));
-        push(id, [inner(ring, s, 0, 1), inner(ring, s, prm.wallClearance, 1)]);
+        push(id, [inner(ring, s, 0, 1), inner(ring, s, prm.wallClearance, 1)], l.room);
       }
     }
   }
@@ -450,7 +459,7 @@ export function planTransfers(o) {
     const ring = rings.get(rid);
     const region = [{ outer: ring.R, holes: [] }];
     const U = o.usable[rid] ?? [];
-    const mine = leads.map((x) => G.clipLines([x.path], region)).flat().filter((pp) => pp.length >= 2);
+    const mine = roomPieces.get(rid).filter((pp) => pp.length >= 2);
     let K = [];
     if (mine.length) {
       // the pipes, the wall strip behind the first lead, the gaps between neighbours closed
@@ -502,5 +511,5 @@ export function planTransfers(o) {
     Uprime_m2: Object.values(roomsOut).reduce((a, r) => a + r.Uprime_m2, 0),
   };
   const reasons = [...new Set(issues.map((x) => x.status))];
-  return { status: reasons[0] ?? 'TRANSFERS_OK', reasons, issues, chains, capacity: cap, portOrder, leads, crossings, doors: doorsReport, rooms: roomsOut, areas, params: prm };
+  return { status: reasons[0] ?? 'TRANSFERS_OK', reasons, issues, chains, capacity: cap, portOrder, leads, crossings, doors: doorsReport, rooms: roomsOut, roomPieces: Object.fromEntries(roomPieces), areas, params: prm };
 }

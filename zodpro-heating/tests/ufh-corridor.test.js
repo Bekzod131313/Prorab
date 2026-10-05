@@ -194,6 +194,17 @@ test('7B 101–109 (test variant: the same rooms, a declared 12-outlet manifold)
   assert.equal(b108.bundles[0].N, 10);
   assert.ok(Math.abs(b108.bundles[0].width - (9 * 0.05 + 0.016)) < 1e-12);
   assert.ok(Math.abs(b108.U_m2 - b108.C_m2 - b108.Uprime_m2) <= TOL);
+  // every lead runs along the walls: no lead point of a transit room deeper than its bundle
+  // (regression: the two ways round 108 are almost equally long — the far door positions must
+  // stay on the chosen side, never a straight cut through the room)
+  for (const rid of ['107', '108']) {
+    const room = [{ outer: G.ccw(rooms.find((r) => r.id === rid).poly), holes: [] }];
+    const deepest = Math.max(...r5.rooms[rid].bundles.map((b) => b.depth));
+    for (const pp of r5.roomPieces[rid]) for (const q of G.densify(pp, 0.02)) if (G.pointInRegion(q, room)) assert.ok(G.distToRegionBoundary(q, room) <= deepest + 1e-6, `${rid}: lead point ${JSON.stringify(q)} off the wall`);
+    assert.equal(r5.rooms[rid].components.after, r5.rooms[rid].components.before, rid);
+  }
+  // C-01 stands 0.40 m from the wall: inside the 12-lead bundle (0.05…0.60 m) — no crossing-free order, reported
+  assert.ok(r5.reasons.includes('LEAD_ORDER_INFEASIBLE'));
   // with the 6 physical outlets of C-01: OUTLET_SHORTAGE, nothing routed
   assert.equal(planTransfers({ rooms, doors: D101.doors, collector: { ...col, outlets: 6 }, loopsByRoom: { 107: 3, ...D101.loopsByRoom }, usable: usableOf(fx), params: { heatingPitch: 0.2, leadWallOffset: 0.05, leadSpacing: 0.05, pipeType: 'PERT-16x2.0', wallClearance: Z101.wallClearance } }).status, 'OUTLET_SHORTAGE');
 });
