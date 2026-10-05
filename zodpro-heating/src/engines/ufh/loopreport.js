@@ -77,14 +77,14 @@ export function loopReport(o) {
     // crossings: the spiral against every lead (its own two leads meet it at its two ends only) and
     // every other loop's spiral
     let crossings = 0;
-    for (const l of o.leads) crossings += crossCount(sp.path, l.path, l.loop === L.id ? [sp.supply, sp.ret] : []);
+    for (const l of o.leads.filter((x) => x.path.length >= 2)) crossings += crossCount(sp.path, l.path, l.loop === L.id ? [sp.supply, sp.ret] : []);
     for (const M of o.loops) if (M.id !== L.id && M.room === L.room) crossings += crossCount(sp.path, M.loop.spiral.path);
     // clearance: heating ↔ the other loops' leads (≥ leadSpacing)
     let leadClear = Infinity;
-    for (const l of o.leads) if (l.loop !== L.id && boxesMeet(bbox(sp.heating), bbox(l.path), o.leadSpacing * 2)) leadClear = Math.min(leadClear, minDist(l.path, sp.heating));
+    for (const l of o.leads.filter((x) => x.path.length >= 2)) if (l.loop !== L.id && boxesMeet(bbox(sp.heating), bbox(l.path), o.leadSpacing * 2)) leadClear = Math.min(leadClear, minDist(l.path, sp.heating));
     // wall offset of this loop's leads: measured, away from the doors and the manifold
     let wall = Infinity;
-    for (const l of own)
+    for (const l of own.filter((x) => x.path.length >= 2))
       for (const q of G.densify(l.path, 0.02)) {
         if (o.keepOff.some((k) => Math.hypot(q.x - k.x, q.y - k.y) <= 0.7)) continue;
         for (const room of o.rooms) {

@@ -534,10 +534,45 @@ export function metricsOf(run) {
   };
 }
 
+/** A measured heating pitch: from the middle of a long straight run, the nearest parallel pipe along its normal. */
+export function pitchMeasure(loops) {
+  let best = null;
+  for (const l of loops) {
+    const h = l.spiral?.heating;
+    if (!h) continue;
+    for (let i = 1; i < h.length; i++) {
+      const L = Math.hypot(h[i].x - h[i - 1].x, h[i].y - h[i - 1].y);
+      if (L < 0.6 || (best && L <= best.L)) continue;
+      const m = { x: (h[i].x + h[i - 1].x) / 2, y: (h[i].y + h[i - 1].y) / 2 };
+      const n = { x: -(h[i].y - h[i - 1].y) / L, y: (h[i].x - h[i - 1].x) / L };
+      let dmin = Infinity;
+      let hit = null;
+      for (const sgn of [1, -1]) {
+        const far = { x: m.x + n.x * sgn * 0.5, y: m.y + n.y * sgn * 0.5 };
+        for (const o of loops)
+          for (let j = 1; j < (o.spiral?.heating?.length ?? 0); j++) {
+            const H = o.spiral.heating;
+            if (o === l && Math.abs(j - i) < 1) continue;
+            const x = G.segmentIntersection(m, far, H[j - 1], H[j]);
+            if (x) {
+              const d = Math.hypot(x.x - m.x, x.y - m.y);
+              if (d > 1e-6 && d < dmin) {
+                dmin = d;
+                hit = { x: x.x, y: x.y };
+              }
+            }
+          }
+      }
+      if (hit) best = { L, a: m, b: hit, d: dmin };
+    }
+  }
+  return best;
+}
+
 const LOOP_COLORS = ['#2e7d32', '#ef6c00', '#6a1b9a', '#00838f', '#ad1457', '#4e342e', '#283593', '#9e9d24', '#5d4037', '#00695c'];
 
 /** SVG of a run; view = { x0, y0, x1, y1 } for a detail, scale px / m. */
-export function renderTransfers(run, { title, view = null, scale = 80, notes = true } = {}) {
+export function renderTransfers(run, { title, view = null, scale = 80, notes = true, focus = null } = {}) {
   const { fx, transfers: tr, plans } = run;
   const m = metricsOf(run);
   const all = fx.rooms.flatMap((r) => r.poly);
@@ -579,19 +614,36 @@ export function renderTransfers(run, { title, view = null, scale = 80, notes = t
     if (x.exclusion.length) el.push(`<path d="${reg(x.exclusion)}" fill="#ffb74d" fill-opacity="0.8" stroke="#e65100" stroke-width="0.6" fill-rule="evenodd"/>`);
     el.push(`<path d="${reg(x.Uprime)}" fill="none" stroke="#2e7d32" stroke-width="0.8" stroke-dasharray="4,3" fill-rule="evenodd"/>`);
   }
-  // heating loops (frozen Phase 6 planner on U′)
+  // heating loops (frozen Phase 6 planner on U′): the whole continuous spiral, its residual /
+  // terminal closure part highlighted (Phase 5/6 terminal interval along the heating)
   let ci = 0;
+  const rowOf = new Map((run.loopRows ?? []).map((w) => [w.loop, w]));
+  const fade = (id) => (focus && id !== focus ? ' opacity="0.25"' : '');
   for (const [rid, p] of Object.entries(plans ?? {}))
     for (const l of p.loops) {
+      const id = `${rid}.${l.loopId}`;
       const col = LOOP_COLORS[ci++ % LOOP_COLORS.length];
       const sp = l.spiral;
-      el.push(`<path d="${pth(G.subPath(sp.path, sp.leadIn, G.pathLength(sp.path) - sp.leadOut))}" fill="none" stroke="${col}" stroke-width="${Math.max(0.8, S / 90)}"/>`);
-      el.push(`<path d="${pth(G.subPath(sp.path, 0, sp.leadIn))}" fill="none" stroke="${col}" stroke-width="${Math.max(0.8, S / 90)}" stroke-dasharray="2,2"/>`);
+      const term = sp.residual?.terminal;
+      if (term && term[1] > term[0]) el.push(`<path d="${pth(G.subPath(sp.heating, term[0], term[1]))}" fill="none" stroke="#ffd600" stroke-opacity="0.75" stroke-width="${Math.max(4, S / 18)}" stroke-linecap="round"${fade(id)}/>`);
+      el.push(`<path d="${pth(sp.path)}" fill="none" stroke="${col}" stroke-width="${Math.max(0.8, S / 90)}"${fade(id)}/>`);
       const b = G.bbox(l.shape.outer);
-      el.push(`<text x="${X({ x: (b.x0 + b.x1) / 2 })}" y="${Y({ y: (b.y0 + b.y1) / 2 })}" font-size="${Math.max(9, S / 8)}" font-weight="bold" fill="${col}" text-anchor="middle" stroke="#fff" stroke-width="3" paint-order="stroke">${rid}.L${l.loopId.slice(1)} · ${l.heatingLength.toFixed(1)} m</text>`);
+      const w = rowOf.get(id);
+      const lab = w ? `${id} · o${w.outlet + 1} · heat ${w.heating_m.toFixed(1)} · total ${w.total_m.toFixed(1)} m · ${(100 * w.coverage).toFixed(1)} %` : `${id} · ${l.heatingLength.toFixed(1)} m`;
+      el.push(`<text x="${X({ x: (b.x0 + b.x1) / 2 })}" y="${Y({ y: (b.y0 + b.y1) / 2 })}" font-size="${Math.max(9, S / 9)}" font-weight="bold" fill="${col}" text-anchor="middle" stroke="#fff" stroke-width="3" paint-order="stroke"${fade(id)}>${lab}</text>`);
     }
   // transfer leads: supply red, return blue (the engine's centrelines)
-  for (const l of tr.leads.filter((x) => x.path.length >= 2)) el.push(`<path d="${pth(l.path)}" fill="none" stroke="${l.kind === 'supply' ? '#d50000' : '#0d47a1'}" stroke-width="${Math.max(0.7, S / 160)}"/>`);
+  for (const l of tr.leads.filter((x) => x.path.length >= 2)) el.push(`<path d="${pth(l.path)}" fill="none" stroke="${l.kind === 'supply' ? '#d50000' : '#0d47a1'}" stroke-width="${Math.max(0.7, S / 160)}"${fade(l.loop)}/>`);
+  // connection points (topology): the heating start (supply joins) ● and end (return joins) ○
+  for (const tl of run.topology?.loops ?? []) {
+    const r0 = Math.max(2.2, S / 35);
+    if (tl.heatingStart) el.push(`<circle cx="${X(tl.heatingStart)}" cy="${Y(tl.heatingStart)}" r="${r0}" fill="#d50000" stroke="#000" stroke-width="0.6"${fade(tl.id)}/>`);
+    if (tl.heatingEnd) el.push(`<circle cx="${X(tl.heatingEnd)}" cy="${Y(tl.heatingEnd)}" r="${r0}" fill="#fff" stroke="#0d47a1" stroke-width="${Math.max(1, S / 120)}"${fade(tl.id)}/>`);
+    if (focus === tl.id && tl.heatingStart) {
+      el.push(`<text x="${X(tl.heatingStart) + 8}" y="${Y(tl.heatingStart) + 4}" font-size="${Math.max(10, S / 14)}" font-weight="bold" stroke="#fff" stroke-width="3" paint-order="stroke">HEATING START (supply)</text>`);
+      el.push(`<text x="${X(tl.heatingEnd) + 8}" y="${Y(tl.heatingEnd) + 16}" font-size="${Math.max(10, S / 14)}" font-weight="bold" stroke="#fff" stroke-width="3" paint-order="stroke">HEATING END (return)</text>`);
+    }
+  }
   // manifold
   const P = portsOf(fx.collector);
   const used = new Set(tr.portOrder.map((_, i) => i));
@@ -612,10 +664,12 @@ export function renderTransfers(run, { title, view = null, scale = 80, notes = t
       el.push(`<path d="${pth([lead, lab])}" stroke="#000" stroke-width="0.8"/>`);
       el.push(`<text x="${X(lab) + 3}" y="${Y(lab)}" font-size="${fsz}" font-weight="bold" stroke="#fff" stroke-width="3" paint-order="stroke">${rid}: lead ↔ wall ${(x.leadWallMin_m * 1000).toFixed(1)} mm (measured)</text>`);
     }
-    if (x.minHeatingSpacingAt && x.minHeatingSpacing_m) {
-      const a = x.minHeatingSpacingAt;
-      el.push(`<circle cx="${X(a)}" cy="${Y(a)}" r="${Math.max(3, S / 25)}" fill="none" stroke="#000" stroke-width="1.2"/>`);
-      el.push(`<text x="${X(a) + 6}" y="${Y(a) - 4}" font-size="${fsz}" stroke="#fff" stroke-width="3" paint-order="stroke">pitch ${(x.minHeatingSpacing_m * 1000).toFixed(1)} mm</text>`);
+    // the heating pitch: a dimension line between two neighbouring pipe centrelines (measured)
+    const pm = plans?.[rid] ? pitchMeasure(plans[rid].loops) : null;
+    if (pm) {
+      el.push(`<path d="${pth([pm.a, pm.b])}" stroke="#000" stroke-width="${Math.max(1.2, S / 90)}"/>`);
+      for (const q of [pm.a, pm.b]) el.push(`<circle cx="${X(q)}" cy="${Y(q)}" r="${Math.max(1.5, S / 70)}" fill="#000"/>`);
+      el.push(`<text x="${X(pm.b) + 5}" y="${Y(pm.b) - 3}" font-size="${fsz}" font-weight="bold" stroke="#fff" stroke-width="3" paint-order="stroke">pitch ${(pm.d * 1000).toFixed(1)} mm (measured)</text>`);
     }
   }
   for (const r of fx.rooms) {
@@ -633,6 +687,11 @@ export function renderTransfers(run, { title, view = null, scale = 80, notes = t
     for (const [rid, x] of Object.entries(m.rooms))
       lines.push(`${rid.padEnd(3)} ${x.role.padEnd(16)} U ${x.U_m2.toFixed(2)} − C ${x.C_m2.toFixed(2)} = U′ ${x.Uprime_m2.toFixed(2)} · H ${x.H_m2.toFixed(2)} · cov(U′) ${(100 * x.coverageUprime).toFixed(1)} % · loops ${x.loops.length} · min heating spacing ${x.minHeatingSpacing_m ? (x.minHeatingSpacing_m * 1000).toFixed(1) : '—'} mm · lead↔wall ${x.leadWallMin_m ? (x.leadWallMin_m * 1000).toFixed(1) + ' mm' : '—'} · ${x.bundles.map((b) => `bundle ${b.leads} leads, span ${b.span_m.toFixed(3)}, width ${b.width_m.toFixed(3)}, depth ${b.depth_m.toFixed(3)} m → ${b.exits.join(',')}`).join(' | ')}`);
     lines.push(`doors: ${m.doors.map((d) => `${d.door} ${d.leads} leads need ${d.need_m.toFixed(3)} / ${d.width_m} m ${d.ok ? 'OK' : 'EXCEEDED'}`).join(' · ')}`);
+    if (run.loopRows?.length) {
+      lines.push(`topology ${run.topology.status} (${Object.entries(run.topology.counts).map(([k, v]) => `${k} ${v}`).join(', ')}) · settled ${run.converged ? 'yes' : 'NO'} · loop | outlet | heating | supply | return | drop | total (≤ 60) | coverage | largest gap | residual | min R | lead depth | status`);
+      for (const w of run.loopRows) lines.push(`  ${w.loop.padEnd(7)} o${String(w.outlet + 1).padEnd(3)} ${w.heating_m.toFixed(2).padStart(6)} ${w.supply_m.toFixed(2).padStart(6)} ${w.return_m.toFixed(2).padStart(6)} ${w.drop_m.toFixed(2)} ${w.total_m.toFixed(2).padStart(6)} ${(100 * w.coverage).toFixed(1).padStart(5)} % ${w.largestGap_m2.toFixed(3)} m² ${w.residual?.measured ? (w.residual.measured * 1000).toFixed(0) + ' mm' : '—'.padEnd(6)} ${(w.minRadius_m * 1000).toFixed(0)} mm ${(w.wallOffset_m * 1000).toFixed(0)} mm ${w.topology} ${w.status}${w.warnings.length ? ' ' + w.warnings.join(',') : ''}${w.failed.length ? ' [' + w.failed.join(',') + ']' : ''}`);
+    }
+    lines.push('yellow: residual / terminal closure part · ● heating start (supply joins) · ○ heating end (return joins)');
     lines.push('red / blue: supply / return transfer leads · orange: corridor exclusion C · dashed: U′ · coloured: heating loops (dashed: lead-in to its region exit — 7C) · grey: walls, bathtub');
   }
   const fs1 = Math.max(11, 12);
@@ -641,13 +700,29 @@ export function renderTransfers(run, { title, view = null, scale = 80, notes = t
 }
 
 if (process.argv[1]?.endsWith('ufh-transfer-debug.mjs')) {
-  const [file, ls, out, detail] = process.argv.slice(2);
+  // node tools/ufh-transfer-debug.mjs <fixture> <leadSpacing> <out.svg> [detail.svg [loopId]] [--connect]
+  const args = process.argv.slice(2).filter((a) => a !== '--connect');
+  const connect = process.argv.includes('--connect');
+  const [file, ls, out, detail, focusLoop] = args;
   const fx = JSON.parse(fs.readFileSync(file, 'utf8'));
   const t0 = Date.now();
-  const run = runTransfers(fx, { leadSpacing: +ls });
+  const run = runTransfers(fx, { leadSpacing: +ls, connect });
   const ms = Date.now() - t0;
   const m = metricsOf(run);
-  console.log(JSON.stringify({ ms, ...m }, null, 1));
-  fs.writeFileSync(out, renderTransfers(run, { title: `${file.split('/').pop()} — leadSpacing ${+ls * 1000} mm` }));
-  if (detail) fs.writeFileSync(detail, renderTransfers(run, { title: 'detail', view: { x0: 3.0, y0: -0.3, x1: 7.6, y1: 3.2 }, scale: 300, notes: false }));
+  console.log(JSON.stringify({ ms, ...m, converged: run.converged, convergence: run.convergence, topology: run.topology, loopRows: run.loopRows }, null, 1));
+  fs.writeFileSync(out, renderTransfers(run, { title: `${file.split('/').pop()} — leadSpacing ${+ls * 1000} mm${connect ? ' — connected loops' : ''}` }));
+  if (detail) {
+    // the chain of one loop: collector → lead → door → room → spiral → terminal closure → return
+    const focus = focusLoop ?? run.loopRows?.[0]?.loop ?? null;
+    let view = { x0: 3.0, y0: -0.3, x1: 7.6, y1: 3.2 };
+    if (focus && run.transfers.leads) {
+      const [rid, lid] = focus.split('.');
+      const lp = run.plans[rid].loops.find((l) => l.loopId === lid);
+      const pts = [...run.transfers.leads.filter((l) => l.loop === focus).flatMap((l) => l.path), ...lp.spiral.path, fx.collector.at];
+      const b = G.bbox(pts);
+      view = { x0: b.x0 - 0.4, y0: b.y0 - 0.4, x1: b.x1 + 0.4, y1: b.y1 + 0.4 };
+    }
+    const sc = Math.min(260, 1400 / Math.max(view.x1 - view.x0, view.y1 - view.y0));
+    fs.writeFileSync(detail, renderTransfers(run, { title: `detail ${focus ?? ''}: COLLECTOR → SUPPLY LEAD → DOOR → ROOM → HEATING SPIRAL → TERMINAL CLOSURE → RETURN LEAD → COLLECTOR`, view, scale: sc, notes: true, focus }));
+  }
 }
