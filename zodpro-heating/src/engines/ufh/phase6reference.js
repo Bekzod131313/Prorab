@@ -9,6 +9,7 @@
 // reported (PHASE6_REFERENCE_MISMATCH) so that Phase 6 can be reopened — 7B never corrects it.
 
 import * as G from './geom.js';
+import { SPACING_TOL } from './criteria.js';
 
 export const PHASE6_REFERENCE_OK = 'PHASE6_REFERENCE_OK';
 export const PHASE6_REFERENCE_MISMATCH = 'PHASE6_REFERENCE_MISMATCH';
@@ -39,7 +40,7 @@ export function referenceCheck(loop, s) {
   const centre = { u: ((pb.x0 + pb.x1) / 2 - bb.x0) / (bb.x1 - bb.x0), v: ((pb.y0 + pb.y1) / 2 - bb.y0) / (bb.y1 - bb.y0) };
   // the final pass along a side: on average within 1.5 pitches of the outline (the outer pass is at
   // s/2, the next ring at 1.5 s) — a closure in the middle of the region is not
-  const alongSide = toSide <= 1.5 * s + 1e-9;
+  const alongSide = toSide <= 1.5 * s + SPACING_TOL;
   if (!alongSide) reasons.push(`terminal closure ${toSide.toFixed(3)} m (mean) from the region outline, centre at (${centre.u.toFixed(2)}, ${centre.v.toFixed(2)}) of the region — in the middle, not the side strip`);
   return {
     status: startsAtOuterContour && alongSide ? PHASE6_REFERENCE_OK : PHASE6_REFERENCE_MISMATCH,

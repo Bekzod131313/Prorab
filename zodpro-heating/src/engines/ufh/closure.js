@@ -14,6 +14,9 @@
 //   F  round an obstacle: the margin variants of step 4 × the residual closures
 //   (each also mirrored: the ends stay at the same corner, the first side runs along the other wall
 //   — the hairpin then lies along the long side of an elongated core)
+//   G  SIDE residual (Phase 6 reopen, the project reference): the rest width on one side X, between
+//      the supply's first lap and the return's last lap — the final pass covers the side strip and
+//      returns (obstaclespiral.js); tried on every region, also when the centre leaves nothing open
 // Hard checks inside the generator (any failure drops the candidate): nominal pairs ≥ s − tol,
 // residual pairs ≥ MIN_RESIDUAL_CLOSURE_SPACING − tol, bends ≥ r (turns ≥ RMIN_CHECK), heating pipe ≥ s/2
 // from walls, exclusions and seams, no crossing. Scoring of the valid ones: largest uncovered patch,
@@ -22,12 +25,28 @@
 
 import * as G from './geom.js';
 import { obstacleSpiral, measure } from './obstaclespiral.js';
-import { CLOSURE_TRIGGER_UNCOVERED_SHARE, MAX_RESIDUAL_RINGS } from './criteria.js';
+import { CLOSURE_TRIGGER_UNCOVERED_SHARE, MAX_RESIDUAL_RINGS, MAX_LARGEST_GAP, ENGINEERING_FINAL_COVERAGE } from './criteria.js';
 
-/** Lexicographic candidate order (tolerances: 0.01 m² patch / uncovered). */
+const flipSide = (n) => ({ left: 'right', right: 'left' })[n] ?? n;
+
+/** Within the engineering limits: the largest gap and the region's own coverage. */
+export const withinLimits = (x) => x.largestHole <= MAX_LARGEST_GAP + 1e-9 && (!x.area || 1 - x.uncovered / x.area >= ENGINEERING_FINAL_COVERAGE);
+
+/**
+ * Lexicographic candidate order: the engineering limits first; the largest patch (0.01 m²); within
+ * the limits the reference closure (side residual — the final pass along the side strip) before a
+ * centre closure; then the uncovered floor (0.01 m²), residual penalty, pipe length, bend.
+ */
 export function closureOrder(a, b) {
+  const la = withinLimits(a);
+  const lb = withinLimits(b);
+  if (la !== lb) return la ? -1 : 1;
   const q = (v) => Math.round(v * 100);
+  // no large strip left first (the final pass must not leave one), then the reference closure
   if (q(a.largestHole) !== q(b.largestHole)) return a.largestHole - b.largestHole;
+  const sa = a.residual?.side ? 0 : 1;
+  const sb = b.residual?.side ? 0 : 1;
+  if (la && sa !== sb) return sa - sb;
   if (q(a.uncovered) !== q(b.uncovered)) return a.uncovered - b.uncovered;
   const pa = a.residualSpacing ? a.s - a.residualSpacing : 0;
   const pb = b.residualSpacing ? b.s - b.residualSpacing : 0;
@@ -54,7 +73,9 @@ export function closeCentre(shape, sp, s, o = {}) {
   const old = measure({ heating: sp.heating }, s, real);
   const area = G.area(real);
   const report = { old: { uncovered: old.uncovered, largestHole: old.largestHole }, changed: false, tried: 0 };
-  if (old.uncovered / area <= CLOSURE_TRIGGER_UNCOVERED_SHARE) return { spiral: sp, ...report, new: report.old, skipped: 'nothing to close' };
+  // nothing open in the centre: only the side residual closures (the reference) are tried
+  const sideOnly = old.uncovered / area <= CLOSURE_TRIGGER_UNCOVERED_SHARE;
+  if (sideOnly && o.residual === false) return { spiral: sp, ...report, new: report.old, skipped: 'nothing to close' };
   // the corner the ends leave at (kept)
   const corner = sp.region && sp.start !== undefined ? sp.region[sp.start] : null;
   const run = (mir) => {
@@ -68,7 +89,7 @@ export function closeCentre(shape, sp, s, o = {}) {
       edgeOk: o.edgeOk && ((a, b) => o.edgeOk(M(b), M(a))),
       cornerAt: corner && M(corner),
       supplyAt: M(sp.supply),
-      residual: o.residual ?? true,
+      residual: sideOnly ? 'side' : o.residual ?? true,
       returnAll: true,
       measure: o.measure ?? 1,
       maxSeams: 3,
@@ -80,6 +101,8 @@ export function closeCentre(shape, sp, s, o = {}) {
     return res.ranked.map((x) => ({
       ...x,
       mirrored: true,
+      // (the side names in plan coordinates: the mirror swaps left and right)
+      ...(x.residual?.side ? { residual: { ...x.residual, side: flipSide(x.residual.side) }, closureSide: flipSide(x.residual.side) } : {}),
       path: x.path.map(M),
       heating: x.heating.map(M),
       supply: M(x.supply),
@@ -93,13 +116,15 @@ export function closeCentre(shape, sp, s, o = {}) {
     }));
   };
   // terminal only: never more residual rings than allowed (the generator builds no more anyway)
-  const cands = [...run(false), ...run(true)].filter((x) => (!x.residual || x.residual.rings <= MAX_RESIDUAL_RINGS) && (!o.accept || o.accept(x)));
+  const cands = [...run(false), ...run(true)].filter((x) => (!x.residual || x.residual.rings <= MAX_RESIDUAL_RINGS) && (!o.accept || o.accept(x))).map((x) => ({ ...x, area }));
   report.tried = cands.length;
   if (!cands.length) return { spiral: sp, ...report, new: report.old, candidates: [] };
   const best = cands.sort(closureOrder)[0];
   // (o.returnAll: every measured closure, best first — the caller chooses, e.g. by its budget)
   if (o.returnAll) report.candidates = cands;
-  const better = best.largestHole < old.largestHole - 0.005 || (best.largestHole <= old.largestHole + 0.005 && best.uncovered < old.uncovered - 0.01);
+  // the reference closure within the limits replaces a centre one; otherwise only a better one
+  const oldRef = !!sp.residual?.side;
+  const better = (best.residual?.side && !oldRef && withinLimits(best) && best.largestHole <= old.largestHole + 0.005) || best.largestHole < old.largestHole - 0.005 || (best.largestHole <= old.largestHole + 0.005 && best.uncovered < old.uncovered - 0.01);
   if (!better) return { spiral: sp, ...report, new: report.old };
   return { spiral: { ...best, closure: true }, ...report, changed: true, new: { uncovered: best.uncovered, largestHole: best.largestHole } };
 }
