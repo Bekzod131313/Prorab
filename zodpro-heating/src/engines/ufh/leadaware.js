@@ -30,6 +30,8 @@ import { ENGINEERING_FINAL_COVERAGE, MAX_LARGEST_GAP } from './criteria.js';
 export const NO_VALID_SPIRAL = 'NO_VALID_SPIRAL';
 export const LEAD_AWARE_VALID = 'LEAD_AWARE_VALID';
 export const LEAD_INCOMPATIBLE = 'LEAD_INCOMPATIBLE';
+// the room search stopped at its time limit before any valid partition: not a proof of no spiral
+export const SEARCH_NOT_EXHAUSTIVE = 'SEARCH_NOT_EXHAUSTIVE';
 
 const unit = (a) => {
   const l = Math.hypot(a.x, a.y) || 1;
@@ -167,7 +169,8 @@ export function planLeadAware(U, s, ctx) {
   });
   // (an INVALID region — a crumb no spiral fits — is uncovered floor, measured below; no loop at all
   // is NO_VALID_SPIRAL)
-  const status = !plan.loops.length ? NO_VALID_SPIRAL : loops.every((x) => x.leadCompatible) && last.inBand < 1e-6 ? LEAD_AWARE_VALID : LEAD_INCOMPATIBLE;
+  const unfinished = (plan.regions ?? []).some((g) => g.search?.results?.some((q) => q.status === 'SEARCH_NOT_EXHAUSTIVE'));
+  const status = !plan.loops.length ? (unfinished ? SEARCH_NOT_EXHAUSTIVE : NO_VALID_SPIRAL) : loops.every((x) => x.leadCompatible) && last.inBand < 1e-6 ? LEAD_AWARE_VALID : LEAD_INCOMPATIBLE;
   // raw areas (Phase 6 measure: the room's usable floor U; the corridor accounting is 7B's)
   const band = G.bufferPolylines(plan.loops.map((l) => G.simplifyPath(l.spiral.heating, 0.002)), s / 2 + 0.003, 'round', 'round', 0.001);
   const unc = G.difference(region, band);
