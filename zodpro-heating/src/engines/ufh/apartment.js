@@ -22,6 +22,9 @@ import { portsOf } from './collector.js';
 import { pipeType, DEFAULT_PIPE } from './pipes.js';
 import { MAX_LOOP_M, LOOP_LENGTH_EPS, RMIN_CHECK } from './criteria.js';
 
+// (the frozen planner reads process.env for its debug switch — a browser / worker has no `process`)
+if (!globalThis.process) globalThis.process = { env: {} };
+
 export const UFH_PHASE6_ENGINE_VERSION = 'ufh-phase6/1.0';
 // lead routing inputs of the 7B fixtures (wall offset of the first lead, lead ↔ lead pitch)
 const LEAD_WALL_OFFSET = 0.05;
