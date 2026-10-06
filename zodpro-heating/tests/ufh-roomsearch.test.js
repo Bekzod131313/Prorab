@@ -61,3 +61,10 @@ test('RS-4 lead-aware planning with the room search: valid loops, or SEARCH_NOT_
   const t = planLeadAware([rect(0, 0, 6, 4)], 0.2, { entry: { at: { x: -0.06, y: 0.6 } }, leadSpacing: 0.05, budget: { toEntry_m: 6, drop_m: 0.4 }, maxIter: 1, roomSearch: { kMax: 4, timeLimit_ms: 1 } });
   assert.equal(t.status, 'SEARCH_NOT_EXHAUSTIVE');
 });
+
+test('RS-5 determinism: the same room → the same partition, loops and geometry', () => {
+  const U = [rect(0, 0, 2.55, 3.4)];
+  const { leadTo } = leadBudget(U, { x: -0.06, y: 0.6 }, { toEntry_m: 2, drop_m: 0.4 });
+  const sig = (r) => JSON.stringify(r.chosen.rows.map((x) => [x.closure, x.rho, x.start, x.mirrored, x.total.toFixed(9), x.v.sp.path.map((p) => [p.x.toFixed(9), p.y.toFixed(9)])]).concat(r.chosen.parts.map((p) => p.outer)));
+  assert.equal(sig(searchRoom(U, 0.2, { leadTo, kMax: 2 })), sig(searchRoom(U, 0.2, { leadTo, kMax: 2 })));
+});

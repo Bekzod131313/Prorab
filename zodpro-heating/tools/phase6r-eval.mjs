@@ -157,15 +157,23 @@ export function leadAwareApartment(fx, leadSpacing = 0.05, maxIter = 4) {
     if (Object.keys(next).every((rid) => next[rid] === cnt[rid])) break;
     cnt = next;
   }
+  return { countHistory, rooms, ...connectApartment(fx, plans, leadSpacing, base) };
+}
+
+/**
+ * Given Phase 6 plans per room: the transit corridor for their counts, then 7B's own routing (code
+ * as it is) connects the leads to the plans' ends — crossings, clashes, topology, 60 m measured.
+ */
+export function connectApartment(fx, plans, leadSpacing = 0.05, base = runTransfers(fx, { leadSpacing })) {
+  const params = base.params;
   const counts = Object.fromEntries(Object.entries(plans).map(([rid, p]) => [rid, p.loops.length]));
-  // the transit corridor for these counts, then the leads to the new ends (7B code as it is)
   const tr0 = planTransfers({ rooms: fx.rooms, doors: fx.doors, collector: fx.collector, loopsByRoom: counts, usable: base.U, params });
   const loopExits = {};
   for (const [rid, p] of Object.entries(plans)) p.loops.forEach((l) => (loopExits[`${rid}.${l.loopId}`] = { a: l.spiral.supply, b: l.spiral.ret, ha: l.spiral.path.slice(0, 3), hb: l.spiral.path.slice(-3).reverse() }));
   const trC = tr0.rooms ? planTransfers({ rooms: fx.rooms, doors: fx.doors, collector: fx.collector, loopsByRoom: counts, usable: base.U, params, loopExits }) : tr0;
   const run = { fx, params, U: base.U, transfers: trC, plans, phase6Transfers: tr0 };
   const rep = trC.rooms ? connectedReport(run) : null;
-  return { countHistory, counts, rooms, plans, transfers: trC, clashes: trC.rooms ? heatingClash(plans, trC, leadSpacing) : null, report: rep, hash: phase6GeometryHash(plans) };
+  return { counts, plans, transfers: trC, clashes: trC.rooms ? heatingClash(plans, trC, leadSpacing) : null, report: rep, hash: phase6GeometryHash(plans) };
 }
 
 if (process.argv[1]?.endsWith('phase6r-eval.mjs') && process.argv[3] === '--lead-aware') {

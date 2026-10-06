@@ -1,9 +1,10 @@
-BR1 s 0.2 toEntry 1.685
-ms 725770 raster 84 73 leafEvals 197 skipped 39 bounds LB 2
-{"k":"1…1","status":"PROVEN_INFEASIBLE","reason":"continuous lower bound 2 (need 12.33 m², ≤ 55.50 m heating per loop)"}
-{"k":2,"status":"PROVEN_FEASIBLE","tested":157,"feasible":68,"ms":725767,"rejected":{"narrower than a two-ring spiral":26,"total > 60 m":29,"coverage < 85 %":4,"largest gap > limit":10,"no spiral built":7,"over 60 m for 85 % even at best (lower bound)":13}}
+BR1 s 0.2 toEntry 1.785 counts {"H":2,"LR":3,"BR1":2,"BA":1,"BR2":2}
+ms 734683 raster 84 73 leafEvals 196 skipped 40 bounds LB 2
+{"k":"1…1","status":"PROVEN_INFEASIBLE","reason":"continuous lower bound 2 (need 12.33 m², ≤ 55.30 m heating per loop)"}
+{"k":2,"status":"PROVEN_FEASIBLE","tested":157,"feasible":68,"ms":734680,"secondaryOptimum":"GRID_EXHAUSTIVE","rejected":{"narrower than a two-ring spiral":26,"total > 60 m":28,"coverage < 85 %":4,"largest gap > limit":10,"no spiral built":7,"over 60 m for 85 % even at best (lower bound)":14}}
 {"k":3,"status":"NOT_RUN","reason":"a smaller count is feasible"}
+{"k":4,"status":"NOT_RUN","reason":"a smaller count is feasible"}
   part 1 (10.400,1.250) (6.220,1.250) (6.220,0.100) (10.400,0.100)
   part 2 (10.400,2.800) (9.500,2.800) (9.500,3.780) (6.220,3.780) (6.220,1.250) (10.400,1.250)
-  loop side:top rho 0.15 start 2 mir false centre hairpin heat 24.15 sup 3.35 ret 3.35 total 30.84 cov 97.7 gap 0.000 R 0.100 PHASE6_REFERENCE_OK
-  loop side:bottom rho 0.15 start 3 mir false centre side heat 46.85 sup 5.03 ret 5.43 total 57.30 cov 95.7 gap 0.000 R 0.100 PHASE6_REFERENCE_OK
+  loop side:top rho 0.15 start 2 mir false centre hairpin heat 24.15 sup 3.45 ret 3.45 total 31.04 cov 97.7 gap 0.000 R 0.100 PHASE6_REFERENCE_OK
+  loop side:bottom rho 0.15 start 3 mir false centre side heat 46.85 sup 5.13 ret 5.53 total 57.50 cov 95.7 gap 0.000 R 0.100 PHASE6_REFERENCE_OK

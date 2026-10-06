@@ -1,0 +1,10 @@
+BR2 s 0.2 toEntry 7.455 counts {"H":2,"LR":3,"BR1":2,"BA":1,"BR2":2}
+ms 452095 raster 75 63 leafEvals 169 skipped 41 bounds LB 2
+{"k":"1…1","status":"PROVEN_INFEASIBLE","reason":"continuous lower bound 2 (need 10.27 m², ≤ 43.97 m heating per loop)"}
+{"k":2,"status":"PROVEN_FEASIBLE","tested":138,"feasible":55,"ms":452092,"secondaryOptimum":"GRID_EXHAUSTIVE","rejected":{"narrower than a two-ring spiral":26,"total > 60 m":28,"coverage < 85 %":6,"over 60 m for 85 % even at best (lower bound)":15,"largest gap > limit":8}}
+{"k":3,"status":"NOT_RUN","reason":"a smaller count is feasible"}
+{"k":4,"status":"NOT_RUN","reason":"a smaller count is feasible"}
+  part 1 (3.900,7.420) (0.100,7.420) (0.100,6.220) (3.900,6.220)
+  part 2 (3.900,9.400) (0.100,9.400) (0.100,7.420) (3.900,7.420)
+  loop none rho null start 2 mir false centre hairpin heat 21.97 sup 9.92 ret 9.92 total 41.80 cov 97.4 gap 0.000 R 0.100 PHASE6_REFERENCE_NA
+  loop side:top rho 0.18 start 2 mir true centre hairpin heat 36.79 sup 10.12 ret 10.52 total 57.42 cov 97.7 gap 0.000 R 0.100 PHASE6_REFERENCE_OK

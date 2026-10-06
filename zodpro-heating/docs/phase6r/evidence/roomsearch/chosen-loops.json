@@ -1,4 +1,250 @@
 {
+ "H": {
+  "s": 0.2,
+  "toEntry_m": 0,
+  "drop_m": 0.4,
+  "search": [
+   {
+    "k": 1,
+    "status": "GRID_EXHAUSTIVE",
+    "tested": 1,
+    "feasible": 0,
+    "ms": 123,
+    "rejected": {
+     "no spiral built": 1
+    }
+   },
+   {
+    "k": 2,
+    "status": "PROVEN_FEASIBLE",
+    "tested": 186,
+    "feasible": 7,
+    "ms": 224705,
+    "secondaryOptimum": "GRID_EXHAUSTIVE",
+    "rejected": {
+     "narrower than a two-ring spiral": 44,
+     "largest gap > limit": 19,
+     "no spiral built": 75,
+     "coverage < 85 %": 41
+    }
+   },
+   {
+    "k": 3,
+    "status": "NOT_RUN",
+    "reason": "a smaller count is feasible"
+   },
+   {
+    "k": 4,
+    "status": "NOT_RUN",
+    "reason": "a smaller count is feasible"
+   }
+  ],
+  "loops": [
+   {
+    "part": 1,
+    "polygon": [
+     [
+      5.177,
+      0.308
+     ],
+     [
+      5.692,
+      0.308
+     ],
+     [
+      5.692,
+      1.108
+     ],
+     [
+      5.892,
+      1.108
+     ],
+     [
+      5.892,
+      4.108
+     ],
+     [
+      7.192,
+      4.108
+     ],
+     [
+      7.192,
+      4.758
+     ],
+     [
+      7.2,
+      4.758
+     ],
+     [
+      7.2,
+      5.1
+     ],
+     [
+      4.22,
+      5.1
+     ],
+     [
+      4.22,
+      2.408
+     ],
+     [
+      4.628,
+      2.408
+     ],
+     [
+      4.628,
+      0.508
+     ],
+     [
+      4.943,
+      0.508
+     ],
+     [
+      4.943,
+      0.1
+     ],
+     [
+      5.177,
+      0.1
+     ]
+    ],
+    "area_m2": 8.273,
+    "restWidths": {
+     "x": [
+      0,
+      0.008,
+      0.015,
+      0.023,
+      0.034,
+      0.049,
+      0.057,
+      0.064,
+      0.072,
+      0.1,
+      0.108,
+      0.115,
+      0.123,
+      0.149,
+      0.157,
+      0.164,
+      0.172,
+      0.18
+     ],
+     "y": [
+      0,
+      0.008,
+      0.05,
+      0.058,
+      0.092,
+      0.1,
+      0.108,
+      0.142,
+      0.15,
+      0.192
+     ]
+    },
+    "variantsTested": 103,
+    "validVariants": 4,
+    "validByClosure": {
+     "none": 2,
+     "side:top": 2
+    },
+    "rejected": {
+     "terminal closure not on the side (centre residual)": 15,
+     "largest gap > limit": 84
+    },
+    "chosen": {
+     "startCorner": 10,
+     "startPoint": {
+      "x": 4.22,
+      "y": 2.508
+     },
+     "mirrored": false,
+     "orientation": "cw",
+     "closure": "none",
+     "terminalSide": null,
+     "rho": null,
+     "centre": "side",
+     "terminal": null,
+     "minBendRadius_m": 0.1,
+     "heating_m": 36.138,
+     "supply_m": 3.798,
+     "return_m": 4.198,
+     "drop_m": 0.8,
+     "total_m": 44.134,
+     "coverage": 0.8856,
+     "largestGap_m2": 0.15,
+     "uncovered_m2": 0.946,
+     "reference": "PHASE6_REFERENCE_NA"
+    }
+   },
+   {
+    "part": 2,
+    "polygon": [
+     [
+      7.2,
+      5.9
+     ],
+     [
+      4.22,
+      5.9
+     ],
+     [
+      4.22,
+      5.1
+     ],
+     [
+      7.2,
+      5.1
+     ]
+    ],
+    "area_m2": 2.384,
+    "restWidths": {
+     "x": [
+      0.18
+     ],
+     "y": [
+      0
+     ]
+    },
+    "variantsTested": 4,
+    "validVariants": 4,
+    "validByClosure": {
+     "side:right": 1,
+     "side:left": 1,
+     "none": 2
+    },
+    "rejected": {},
+    "chosen": {
+     "startCorner": 1,
+     "startPoint": {
+      "x": 4.319999999999999,
+      "y": 5.9
+     },
+     "mirrored": false,
+     "orientation": "ccw",
+     "closure": "side:right",
+     "terminalSide": "right",
+     "rho": 0.18,
+     "centre": "side",
+     "terminal": [
+      8.523881954005729,
+      11.616555803218295
+     ],
+     "minBendRadius_m": 0.1,
+     "heating_m": 11.217,
+     "supply_m": 7.29,
+     "return_m": 7.69,
+     "drop_m": 0.8,
+     "total_m": 26.197,
+     "coverage": 0.9573,
+     "largestGap_m2": 0,
+     "uncovered_m2": 0.102,
+     "reference": "PHASE6_REFERENCE_OK"
+    }
+   }
+  ]
+ },
  "LR": {
   "s": 0.2,
   "toEntry_m": 2.885000000000089,
@@ -266,31 +512,37 @@
  },
  "BR1": {
   "s": 0.2,
-  "toEntry_m": 1.6850000000000933,
+  "toEntry_m": 1.7850000000000947,
   "drop_m": 0.4,
   "search": [
    {
     "k": "1…1",
     "status": "PROVEN_INFEASIBLE",
-    "reason": "continuous lower bound 2 (need 12.33 m², ≤ 55.50 m heating per loop)"
+    "reason": "continuous lower bound 2 (need 12.33 m², ≤ 55.30 m heating per loop)"
    },
    {
     "k": 2,
     "status": "PROVEN_FEASIBLE",
     "tested": 157,
     "feasible": 68,
-    "ms": 725767,
+    "ms": 734680,
+    "secondaryOptimum": "GRID_EXHAUSTIVE",
     "rejected": {
      "narrower than a two-ring spiral": 26,
-     "total > 60 m": 29,
+     "total > 60 m": 28,
      "coverage < 85 %": 4,
      "largest gap > limit": 10,
      "no spiral built": 7,
-     "over 60 m for 85 % even at best (lower bound)": 13
+     "over 60 m for 85 % even at best (lower bound)": 14
     }
    },
    {
     "k": 3,
+    "status": "NOT_RUN",
+    "reason": "a smaller count is feasible"
+   },
+   {
+    "k": 4,
     "status": "NOT_RUN",
     "reason": "a smaller count is feasible"
    }
@@ -353,10 +605,10 @@
      ],
      "minBendRadius_m": 0.1,
      "heating_m": 24.151,
-     "supply_m": 3.345,
-     "return_m": 3.345,
+     "supply_m": 3.445,
+     "return_m": 3.445,
      "drop_m": 0.8,
-     "total_m": 30.841,
+     "total_m": 31.041,
      "coverage": 0.977,
      "largestGap_m2": 0,
      "uncovered_m2": 0.111,
@@ -412,8 +664,8 @@
      "none": 5
     },
     "rejected": {
-     "largest gap > limit": 117,
-     "total > 60 m": 56,
+     "largest gap > limit": 115,
+     "total > 60 m": 58,
      "terminal closure not on the side (centre residual)": 105
     },
     "chosen": {
@@ -434,13 +686,294 @@
      ],
      "minBendRadius_m": 0.1,
      "heating_m": 46.846,
-     "supply_m": 5.025,
-     "return_m": 5.425,
+     "supply_m": 5.125,
+     "return_m": 5.525,
      "drop_m": 0.8,
-     "total_m": 57.296,
+     "total_m": 57.496,
      "coverage": 0.9568,
      "largestGap_m2": 0,
      "uncovered_m2": 0.419,
+     "reference": "PHASE6_REFERENCE_OK"
+    }
+   }
+  ]
+ },
+ "BA": {
+  "s": 0.15,
+  "toEntry_m": 6.935000000000093,
+  "drop_m": 0.4,
+  "search": [
+   {
+    "k": 1,
+    "status": "PROVEN_FEASIBLE",
+    "tested": 1,
+    "feasible": 1,
+    "ms": 1689,
+    "secondaryOptimum": "GRID_EXHAUSTIVE",
+    "rejected": {}
+   },
+   {
+    "k": 2,
+    "status": "NOT_RUN",
+    "reason": "a smaller count is feasible"
+   },
+   {
+    "k": 3,
+    "status": "NOT_RUN",
+    "reason": "a smaller count is feasible"
+   },
+   {
+    "k": 4,
+    "status": "NOT_RUN",
+    "reason": "a smaller count is feasible"
+   }
+  ],
+  "loops": [
+   {
+    "part": 1,
+    "polygon": [
+     [
+      8.7,
+      4.85
+     ],
+     [
+      10.4,
+      4.85
+     ],
+     [
+      10.4,
+      5.9
+     ],
+     [
+      7.52,
+      5.9
+     ],
+     [
+      7.52,
+      4.1
+     ],
+     [
+      8.7,
+      4.1
+     ]
+    ],
+    "area_m2": 3.909,
+    "restWidths": {
+     "x": [
+      0.03,
+      0.05,
+      0.13
+     ],
+     "y": [
+      0
+     ]
+    },
+    "variantsTested": 200,
+    "validVariants": 9,
+    "validByClosure": {
+     "side:right": 2,
+     "side:left": 3,
+     "none": 4
+    },
+    "rejected": {
+     "terminal closure not on the side (centre residual)": 52,
+     "largest gap > limit": 123,
+     "coverage < 85 %": 16
+    },
+    "chosen": {
+     "startCorner": 5,
+     "startPoint": {
+      "x": 7.595,
+      "y": 4.1
+     },
+     "mirrored": true,
+     "orientation": "cw",
+     "closure": "side:right",
+     "terminalSide": "right",
+     "rho": 0.13,
+     "centre": "hairpin",
+     "terminal": [
+      16.910841224427458,
+      23.915924427661892
+     ],
+     "minBendRadius_m": 0.075,
+     "heating_m": 23.616,
+     "supply_m": 8.545,
+     "return_m": 8.845,
+     "drop_m": 0.8,
+     "total_m": 41.006,
+     "coverage": 0.9128,
+     "largestGap_m2": 0.024,
+     "uncovered_m2": 0.341,
+     "reference": "PHASE6_REFERENCE_OK"
+    }
+   }
+  ]
+ },
+ "BR2": {
+  "s": 0.2,
+  "toEntry_m": 7.455000000000092,
+  "drop_m": 0.4,
+  "search": [
+   {
+    "k": "1…1",
+    "status": "PROVEN_INFEASIBLE",
+    "reason": "continuous lower bound 2 (need 10.27 m², ≤ 43.97 m heating per loop)"
+   },
+   {
+    "k": 2,
+    "status": "PROVEN_FEASIBLE",
+    "tested": 138,
+    "feasible": 55,
+    "ms": 452092,
+    "secondaryOptimum": "GRID_EXHAUSTIVE",
+    "rejected": {
+     "narrower than a two-ring spiral": 26,
+     "total > 60 m": 28,
+     "coverage < 85 %": 6,
+     "over 60 m for 85 % even at best (lower bound)": 15,
+     "largest gap > limit": 8
+    }
+   },
+   {
+    "k": 3,
+    "status": "NOT_RUN",
+    "reason": "a smaller count is feasible"
+   },
+   {
+    "k": 4,
+    "status": "NOT_RUN",
+    "reason": "a smaller count is feasible"
+   }
+  ],
+  "loops": [
+   {
+    "part": 1,
+    "polygon": [
+     [
+      3.9,
+      7.42
+     ],
+     [
+      0.1,
+      7.42
+     ],
+     [
+      0.1,
+      6.22
+     ],
+     [
+      3.9,
+      6.22
+     ]
+    ],
+    "area_m2": 4.56,
+    "restWidths": {
+     "x": [
+      0
+     ],
+     "y": [
+      0
+     ]
+    },
+    "variantsTested": 162,
+    "validVariants": 6,
+    "validByClosure": {
+     "none": 6
+    },
+    "rejected": {
+     "terminal closure not on the side (centre residual)": 104,
+     "largest gap > limit": 52
+    },
+    "chosen": {
+     "startCorner": 2,
+     "startPoint": {
+      "x": 3.9,
+      "y": 7.32
+     },
+     "mirrored": false,
+     "orientation": "ccw",
+     "closure": "none",
+     "terminalSide": null,
+     "rho": null,
+     "centre": "hairpin",
+     "terminal": null,
+     "minBendRadius_m": 0.0999,
+     "heating_m": 21.971,
+     "supply_m": 9.915,
+     "return_m": 9.915,
+     "drop_m": 0.8,
+     "total_m": 41.801,
+     "coverage": 0.9736,
+     "largestGap_m2": 0,
+     "uncovered_m2": 0.12,
+     "reference": "PHASE6_REFERENCE_NA"
+    }
+   },
+   {
+    "part": 2,
+    "polygon": [
+     [
+      3.9,
+      9.4
+     ],
+     [
+      0.1,
+      9.4
+     ],
+     [
+      0.1,
+      7.42
+     ],
+     [
+      3.9,
+      7.42
+     ]
+    ],
+    "area_m2": 7.524,
+    "restWidths": {
+     "x": [
+      0
+     ],
+     "y": [
+      0.18
+     ]
+    },
+    "variantsTested": 396,
+    "validVariants": 1,
+    "validByClosure": {
+     "side:top": 1
+    },
+    "rejected": {
+     "total > 60 m": 180,
+     "largest gap > limit": 185,
+     "terminal closure not on the side (centre residual)": 30
+    },
+    "chosen": {
+     "startCorner": 2,
+     "startPoint": {
+      "x": 3.9,
+      "y": 7.52
+     },
+     "mirrored": true,
+     "orientation": "cw",
+     "closure": "side:top",
+     "terminalSide": "top",
+     "rho": 0.18,
+     "centre": "hairpin",
+     "terminal": [
+      29.094577350856113,
+      37.18725120006868
+     ],
+     "minBendRadius_m": 0.1,
+     "heating_m": 36.787,
+     "supply_m": 10.115,
+     "return_m": 10.515,
+     "drop_m": 0.8,
+     "total_m": 57.417,
+     "coverage": 0.9771,
+     "largestGap_m2": 0,
+     "uncovered_m2": 0.172,
      "reference": "PHASE6_REFERENCE_OK"
     }
    }

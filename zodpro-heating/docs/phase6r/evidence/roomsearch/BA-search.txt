@@ -1,0 +1,8 @@
+BA s 0.15 toEntry 6.935 counts {"H":2,"LR":3,"BR1":2,"BA":1,"BR2":2}
+ms 1693 raster 58 35 leafEvals 1 skipped 0 bounds LB 1
+{"k":1,"status":"PROVEN_FEASIBLE","tested":1,"feasible":1,"ms":1689,"secondaryOptimum":"GRID_EXHAUSTIVE","rejected":{}}
+{"k":2,"status":"NOT_RUN","reason":"a smaller count is feasible"}
+{"k":3,"status":"NOT_RUN","reason":"a smaller count is feasible"}
+{"k":4,"status":"NOT_RUN","reason":"a smaller count is feasible"}
+  part 1 (8.700,4.850) (10.400,4.850) (10.400,5.900) (7.520,5.900) (7.520,4.100) (8.700,4.100)
+  loop side:right rho 0.13 start 5 mir true centre hairpin heat 23.62 sup 8.55 ret 8.85 total 41.01 cov 91.3 gap 0.024 R 0.075 PHASE6_REFERENCE_OK

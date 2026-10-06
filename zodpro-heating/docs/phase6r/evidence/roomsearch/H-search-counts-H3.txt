@@ -1,0 +1,9 @@
+H s 0.2 toEntry 0.000
+ms 222110 raster 65 121 leafEvals 204 skipped 44 bounds LB 1
+{"k":1,"status":"GRID_EXHAUSTIVE","tested":1,"feasible":0,"ms":126,"rejected":{"no spiral built":1}}
+{"k":2,"status":"PROVEN_FEASIBLE","tested":186,"feasible":7,"ms":221972,"rejected":{"narrower than a two-ring spiral":44,"largest gap > limit":22,"no spiral built":71,"coverage < 85 %":42}}
+{"k":3,"status":"NOT_RUN","reason":"a smaller count is feasible"}
+  part 1 (5.277,0.308) (5.692,0.308) (5.692,1.108) (5.892,1.108) (5.892,4.108) (7.192,4.108) (7.192,4.758) (7.200,4.758) (7.200,5.100) (4.220,5.100) (4.220,2.408) (4.628,2.408) (4.628,0.508) (4.943,0.508) (4.943,0.100) (5.277,0.100)
+  part 2 (7.200,5.900) (4.220,5.900) (4.220,5.100) (7.200,5.100)
+  loop none rho null start 10 mir false centre side heat 36.14 sup 3.80 ret 4.20 total 44.13 cov 88.3 gap 0.150 R 0.100 PHASE6_REFERENCE_NA
+  loop side:right rho 0.18 start 1 mir false centre side heat 11.22 sup 7.29 ret 7.69 total 26.20 cov 95.7 gap 0.000 R 0.100 PHASE6_REFERENCE_OK

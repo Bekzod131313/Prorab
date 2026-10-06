@@ -1,12 +1,14 @@
 // Phase 6 baseline guard. First frozen at 06130b3 (docs/phase6/ACCEPTANCE.md); reopened by the user
-// (lead-aware spiral / side terminal closure — docs/phase6r/ACCEPTANCE.md) and frozen again here.
+// (lead-aware spiral / side terminal closure — docs/phase6r/ACCEPTANCE.md), frozen again, reopened
+// for the room search (minimum valid loop count, joint closure — docs/phase6r/ROOMSEARCH.md) and
+// frozen here.
 // Any byte changed in these files fails here — a change to Phase 6 is a new, re-proven phase.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'fs';
 import crypto from 'crypto';
 
-const BASELINE = 'Phase 6 reopen (phase6r)';
+const BASELINE = 'Phase 6 reopen (phase6r) + room search';
 const FROZEN = {
   'geom.js': '8712da7dafb5c82b2a31f2e64ea29539d07f28034cfa564172735830ca9db230',
   'spiralgen.js': '96fe45dc50ff43db84326e53cfc4453d6052a7e53f9d9440e51042824e25181c',
@@ -18,16 +20,18 @@ const FROZEN = {
   'loopplanner.js': '15ebdce4ea041cdb01a72f4b1ce4e185ba875c3c6cf02513bb3e29029d359acf',
   'loopproof.js': '3f9dd622593bc34c1536c3769af8ab9f162941e072790c018e64d5d67dbcf415',
   'partitionsearch.js': 'de6aaeb050313a5590fad771c9cd5704cdb175fe6440ab04baf23d018cefb519',
-  'leadaware.js': '2047c55f2c4f0d2c4478d2ee6dc0181bd6cb651d56c2fac2b7945458ec842177',
+  'leadaware.js': '6eb8302d2a1474b938dd86d35a7d6f0f8cc7ce414d13db8348ba12f38c6227ce',
+  'roomsearch.js': '0352f8ba3d410b47673b00f5e48b32f22ad9a0f7b5971d19f95a6bf7d865d514',
+  'phase6reference.js': 'a476bf11733bb06972bf8d2562a9cb31ce4ed798e1a7dbaeee79084c4b78280e',
 };
 
-test(`Phase 6 frozen at ${BASELINE}: 11 / 11 algorithm files byte-identical (SHA-256)`, () => {
+test(`Phase 6 frozen at ${BASELINE}: 13 / 13 algorithm files byte-identical (SHA-256)`, () => {
   const bad = [];
   for (const [f, want] of Object.entries(FROZEN)) {
     const got = crypto.createHash('sha256').update(fs.readFileSync(new URL(`../src/engines/ufh/${f}`, import.meta.url))).digest('hex');
     if (got !== want) bad.push(`${f}: ${got}`);
   }
-  assert.equal(Object.keys(FROZEN).length, 11);
+  assert.equal(Object.keys(FROZEN).length, 13);
   assert.deepEqual(bad, [], `Phase 6 files changed since ${BASELINE}`);
 });
 
@@ -41,4 +45,8 @@ test('Phase 6 acceptance baseline and evidence are in the repository', () => {
   const r = fs.readFileSync(new URL('../docs/phase6r/ACCEPTANCE.md', import.meta.url), 'utf8');
   assert.ok(r.includes('06130b3') && r.includes(FROZEN['leadaware.js'].slice(0, 12)));
   for (const f of ['old-baseline.json', 'new-phase6.json', 'lead-aware-apartment.json']) assert.ok(fs.existsSync(new URL(`../docs/phase6r/evidence/${f}`, import.meta.url)), f);
+  // the room search: the per-case report and the evidence of every room
+  const rs = fs.readFileSync(new URL('../docs/phase6r/ROOMSEARCH.md', import.meta.url), 'utf8');
+  assert.ok(rs.includes('LR.L1') && rs.includes('BR1.L1') && rs.includes('BR1.L2') && r.includes(FROZEN['roomsearch.js'].slice(0, 12)));
+  for (const f of ['H', 'LR', 'BR1', 'BA', 'BR2'].map((x) => `${x}-search.txt`).concat(['chosen-loops.json', 'old-pieces-joint-search.json', 'apartment-connected.json'])) assert.ok(fs.existsSync(new URL(`../docs/phase6r/evidence/roomsearch/${f}`, import.meta.url)), f);
 });

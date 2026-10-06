@@ -94,12 +94,18 @@ Start corners whose supply or return end is not on the room outline are not gene
 
 ## Room-level result (final code)
 
+**Inputs.** Each room gets its inputs from 7B as they are: the usable area U′ and the transfer to the room's entry (`tools/phase6r-eval.mjs roomInputs`). Both depend on the apartment's loop counts through the transit corridor.
+
+**Fixpoint.** All the results below use the counts H 2, LR 3, BR1 2, BA 1, BR2 2. The room searches give back exactly these counts.
+
+**First pass.** The first pass used the old counts (H 3): `*-counts-H3.txt`. With H at 2 loops, the corridor in H changes. That moves H's U′ and adds 0.1 m to the transfers of BR1 and BA. LR and BR2 inputs are identical.
+
 ### BR1 — required regression (old 28.7 + 28.7 + 10.5 = 3 loops)
 
 | k | status | detail |
 |---|---|---|
-| 1 | PROVEN_INFEASIBLE | continuous lower bound 2: needs 12.33 m², ≤ 55.50 m heating per loop |
-| 2 | PROVEN_FEASIBLE | 157 partitions, 68 feasible, `secondaryOptimum` GRID_EXHAUSTIVE (726 s) |
+| 1 | PROVEN_INFEASIBLE | continuous lower bound 2: needs 12.33 m², ≤ 55.30 m heating per loop |
+| 2 | PROVEN_FEASIBLE | 157 partitions, 68 feasible, `secondaryOptimum` GRID_EXHAUSTIVE (735 s) |
 | 3 | NOT_RUN | a smaller count is feasible, so 3 loops are rejected |
 
 Rejected partitions at k=2 (first failing piece):
@@ -107,18 +113,18 @@ Rejected partitions at k=2 (first failing piece):
 | Reason | Partitions |
 |---|---|
 | narrow | 26 |
-| total > 60 m | 29 |
+| total > 60 m | 28 |
 | coverage | 4 |
 | gap | 10 |
 | no spiral | 7 |
-| length bound | 13 |
+| length bound | 14 |
 
 Selected loop count = minimum feasible count = **2**.
 
 | loop | piece | start corner | orient. | terminal side | ρ | R min | heating | supply* | return* | drop | total | coverage | gap | uncovered | reference |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| BR1.1 | 4.18 × 1.15 | 2 (6.22, 0.20) | ccw | top | 0.150 | 0.100 | 24.151 | 3.345 | 3.345 | 0.8 | 30.841 | 97.7 % | 0 | 0.111 | OK |
-| BR1.2 | notched 9.69 m² | 3 (6.32, 3.78) | ccw | bottom | 0.150 | 0.100 | 46.846 | 5.025 | 5.425 | 0.8 | 57.296 | 95.7 % | 0 | 0.419 | OK |
+| BR1.1 | 4.18 × 1.15 | 2 (6.22, 0.20) | ccw | top | 0.150 | 0.100 | 24.151 | 3.445 | 3.445 | 0.8 | 31.041 | 97.7 % | 0 | 0.111 | OK |
+| BR1.2 | notched 9.69 m² | 3 (6.32, 3.78) | ccw | bottom | 0.150 | 0.100 | 46.846 | 5.125 | 5.525 | 0.8 | 57.496 | 95.7 % | 0 | 0.419 | OK |
 
 \* Supply and return include the 0.4 m drop each. Total = heating + supply + return.
 
@@ -127,7 +133,7 @@ Rejected variants in the chosen pieces:
 | Piece | Gap > limit | Centre residual | Total > 60 m |
 |---|---|---|---|
 | BR1.1 | 56 | 48 | — |
-| BR1.2 | 117 | 105 | 56 |
+| BR1.2 | 115 | 105 | 58 |
 
 ### LR (old plan: 3 loops; LR.L1 MISMATCH)
 
@@ -165,6 +171,47 @@ Rejected variants in the chosen pieces:
 | LR.3 | 4 | — | — |
 
 An earlier, shorter run (3000 s, before the pruning) found a different 3-loop partition, also all valid with OK/NA references: `LR-search-earlier-run.txt`.
+
+### H, BA, BR2 (searched with the same model; their old loops were reference OK/NA)
+
+| room | k=1 | k=2 | selected = minimum |
+|---|---|---|---|
+| H (old 3) | GRID_EXHAUSTIVE — no spiral of the whole polygon | PROVEN_FEASIBLE, 186 partitions, 7 feasible, best GRID_EXHAUSTIVE (225 s) | **2** |
+| BA (old 1) | PROVEN_FEASIBLE, best GRID_EXHAUSTIVE | — | **1** |
+| BR2 (old 2) | PROVEN_INFEASIBLE — lower bound 2 | PROVEN_FEASIBLE, 138 partitions, 55 feasible, best GRID_EXHAUSTIVE (452 s) | **2** |
+
+All values are from the final code at the fixpoint counts, re-measured with `tools/phase6r-roomparts.mjs` (`chosen-loops.json`).
+
+| loop | closure | ρ | R min | heating | supply* | return* | total | coverage | gap | uncovered | reference |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| H.1 | none | — | 0.100 | 36.138 | 3.798 | 4.198 | 44.134 | 88.6 % | 0.150 | 0.946 | NA |
+| H.2 | side right | 0.18 | 0.100 | 11.217 | 7.290 | 7.690 | 26.197 | 95.7 % | 0 | 0.102 | OK |
+| BA.1 | side right | 0.13 | 0.075 | 23.616 | 8.545 | 8.845 | 41.006 | 91.3 % | 0.024 | 0.341 | OK |
+| BR2.1 | none | — | 0.0999 | 21.971 | 9.915 | 9.915 | 41.801 | 97.4 % | 0 | 0.120 | NA |
+| BR2.2 | side top | 0.18 | 0.100 | 36.787 | 10.115 | 10.515 | 57.417 | 97.7 % | 0 | 0.172 | OK |
+
+### Apartment
+
+| | old | new |
+|---|---|---|
+| Loops | 11 (H 3, LR 3, BR1 2, BA 1, BR2 2) | **10** (H 2, LR 3, BR1 2, BA 1, BR2 2) |
+
+- All 10 loops are LOOP_VALID.
+- References: 7 OK, 3 NA, 0 MISMATCH.
+- Max total 58.403 m (LR.1).
+- Phase 6 geometry hash: `b53cce69636f23b7…`.
+
+**7B routing (7B code unchanged), measured on these ends** — `apartment-connected.json`, `tools/phase6r-roomsearch-apartment.mjs`:
+
+| Check | Result |
+|---|---|
+| Transfers | CORRIDOR_CAPACITY_EXCEEDED, LEAD_INTERSECTION |
+| Lead crossings | 9 (lead-aware 11-loop plan: 19) |
+| Lead ↔ heating clashes | 4 loops: H.1, LR.2, LR.3, BR2.1 (before: 5) |
+| H.2 | LOOP_DISCONNECTED: the corridor in H has no capacity for its pair |
+| Every other loop | LOOP_TOPOLOGY_VALID, 7B-measured total ≤ 60 m (max 57.93) |
+
+The lead compatibility is not part of the room search's hard limits. It stays a reported FAIL for 7B to re-accept on the new Phase 6. It is not hidden.
 
 ### Status of the three failing reference cases
 

@@ -1,4 +1,4 @@
-# 6-bosqich QAYTA OCHILISHI — lead-aware spiral / terminal closure (holat: QABUL KUTILMOQDA)
+# 6-bosqich QAYTA OCHILISHI — lead-aware spiral / terminal closure (holat: QABUL KUTILMOQDA — xona qidiruvi bilan qayta muzlatilgan)
 
 Foydalanuvchi qarori (2026-10-05): 7B natijasi Phase 6 geometriyasi reference'ga mos emasligini ko'rsatdi →
 Phase 6 qayta ochildi. 7A va 7B kodi o'zgartirilmagan. Eski baseline: `06130b3`
@@ -12,10 +12,12 @@ Phase 6 qayta ochildi. 7A va 7B kodi o'zgartirilmagan. Eski baseline: `06130b3`
 | `closure.js` | `6ca1dbacb6a9…` | `b57168f5ab73…` | nomzodlar tartibi: limitlar → eng katta patch → (limit ichida) side closure markaziydan oldin → uncovered → residual → uzunlik → egilish; side closure har bir regionda sinaladi |
 | `decompose.js` | `3ee5f555a254…` | `5a7090365c47…` | notched region (to'rtburchak ∩ maydon, notch atrofida bitta uzluksiz spiral); split har bir regioni o'z maydonining ≥ ENGINEERING_FINAL_COVERAGE ini qoplasa qabul |
 | `criteria.js` | `ef07d88b6766…` | `53f1fb1dd854…` | KNOWN_LIMITATIONS dan L4b / U4b olib tashlandi (endi valid) |
-| `leadaware.js` (yangi) | — | `2047c55f2c4f…` | lead-aware planner: kirish (nuqta), LEAD_CLEARANCE (leadSpacing), 60 m uchun aniq lead byudjeti (transfer + drop + xonadagi yo'l — input), endpoint + yo'nalish, entry / exit zonalari, DOOR_TRANSITION_ZONE, lead mosligi, NO_VALID_SPIRAL |
+| `leadaware.js` (yangi) | — | `2047c55f2c4f…` → `6eb8302d2a14…` | lead-aware planner: kirish (nuqta), LEAD_CLEARANCE (leadSpacing), 60 m uchun aniq lead byudjeti (transfer + drop + xonadagi yo'l — input), endpoint + yo'nalish, entry / exit zonalari, DOOR_TRANSITION_ZONE, lead mosligi, NO_VALID_SPIRAL; `roomSearch` opsiyasi (minimal loop soni), vaqt limitida valid bo'linish topilmasa SEARCH_NOT_EXHAUSTIVE |
+| `roomsearch.js` (yangi) | — | `0352f8ba3d41…` | xona qidiruvi: PRIMARY minimal VALID loop soni (guillotine kesimlar, 0.05 m raster + uchlar), har bo'lakda birgalikdagi closure qidiruvi (start × winding × terminal tomon × ρ × closure turi × halqalar × markaz), SECONDARY faqat shu son ichida; statuslar PROVEN_INFEASIBLE / GRID_EXHAUSTIVE / PROVEN_FEASIBLE / SEARCH_NOT_EXHAUSTIVE / NOT_RUN |
+| `phase6reference.js` (bog'liqlik) | `a476bf11733b…` | `a476bf11733b…` | terminal closure tekshiruvi (o'zgarmagan; endi freeze ichida) |
 
 O'zgarmagan: `geom.js`, `spiralgen.js`, `rawcheck.js`, `loopplanner.js`, `loopproof.js`, `partitionsearch.js`.
-Freeze testi yangi 11 fayl hash'iga yangilangan (`tests/ufh-phase6-freeze.test.js`).
+Freeze testi 13 fayl hash'iga yangilangan (`tests/ufh-phase6-freeze.test.js`, baseline "Phase 6 reopen (phase6r) + room search").
 
 ## Eski / yangi (bir xil o'lchov: `tools/phase6r-eval.mjs`, `evidence/old-baseline.json` → `evidence/new-phase6.json`)
 
@@ -59,6 +61,28 @@ Reference mos kelmagan konturlar va sababi (yashirilmaydi):
 | Topologiya | 12/12 VALID | 11/11 VALID |
 | Phase 6 lead mosligi (o'z modeli) | — | LR, BR1, BR2 LEAD_AWARE_VALID; H, BA LEAD_INCOMPATIBLE |
 
+## Xona qidiruvi — minimal VALID loop soni (`ROOMSEARCH.md`, `evidence/roomsearch/`)
+
+Kontur soni fixpoint: H 2, LR 3, BR1 2, BA 1, BR2 2 = **10** (oldin 11). Hammasi LOOP_VALID; reference 7 OK, 3 NA,
+0 MISMATCH; max total 58.403 m.
+
+| Xona | k=1 | k=2 | k=3 | Tanlangan = minimal |
+|---|---|---|---|---|
+| H | GRID_EXHAUSTIVE | PROVEN_FEASIBLE (eng yaxshisi GRID_EXHAUSTIVE) | NOT_RUN | 2 (oldin 3) |
+| LR | PROVEN_INFEASIBLE | GRID_EXHAUSTIVE (194 bo'linish) | PROVEN_FEASIBLE (eng yaxshisi SEARCH_NOT_EXHAUSTIVE, 5400 s) | 3 |
+| BR1 | PROVEN_INFEASIBLE | PROVEN_FEASIBLE (eng yaxshisi GRID_EXHAUSTIVE) | NOT_RUN | 2 (eski 28.7 + 28.7 + 10.5 = 3 rad etildi) |
+| BA | PROVEN_FEASIBLE | NOT_RUN | NOT_RUN | 1 |
+| BR2 | PROVEN_INFEASIBLE | PROVEN_FEASIBLE (eng yaxshisi GRID_EXHAUSTIVE) | NOT_RUN | 2 |
+
+LR.L1, BR1.L1, BR1.L2: eski bo'laklarning o'zida side closure mumkin emasligi to'liq qidiruv bilan
+ko'rsatilgan (LR.L1 — ρ 0.042 < 0.10, geometriya bilan belgilangan; BR1.L1 — side gap 0.596 m²; BR1.L2 — side gap
+0.39 m²); minimal sondagi xona darajasidagi qayta bo'linish ularni yo'qotdi — LR va BR1 dagi barcha loop
+reference OK / NA. Tafsilot (start burchak, yo'nalish, terminal tomon, ρ, R, heating / supply / return / drop /
+total, coverage, gap, uncovered, rad etish sabablari): `ROOMSEARCH.md`.
+
+7B routing (o'zgarmagan kod) yangi uchlarda: CORRIDOR_CAPACITY_EXCEEDED, H.L2 LOOP_DISCONNECTED, 9 kesishma,
+4 to'qnashuv — lead compatibility FAIL bo'lib qoladi (yashirilmaydi), 7B yangi Phase 6 ustida qayta qabul qilinadi.
+
 ## PASS / FAIL
 
 | Shart | Natija |
@@ -72,8 +96,9 @@ Reference mos kelmagan konturlar va sababi (yashirilmaydi):
 | No serpentine / NO_VALID_SPIRAL | PASS (6R-9) |
 | 60 m (lead-aware, real byudjet) | PASS (6R-7; kvartira max 58.40) |
 | Determinizm | PASS (6R-10) |
-| Reference match (kvartira, hammasi) | FAIL — LR.L1, BR1.L1, BR1.L2 (sabablari yuqorida) |
-| Lead compatibility (7B routing bilan) | FAIL — 19 kesishma, 5 to'qnashuv (H kollektor fani, LR) |
+| Reference match (kvartira, hammasi) | PASS — xona qidiruvi bilan 10/10 (7 OK, 3 NA); eski LR.L1, BR1.L1, BR1.L2 bo'laklari minimal sondagi qayta bo'linish bilan yo'qoldi (yuqorida) |
+| Minimal VALID loop soni | PASS — H 3 → 2, BR1 2 (3 rad etildi), LR 3 (k=2 GRID_EXHAUSTIVE), BR2 2 (= quyi chegara), BA 1 |
+| Lead compatibility (7B routing bilan) | FAIL — 11 konturli rejada 19 kesishma / 5 to'qnashuv; 10 konturli xona qidiruvi rejasida 9 kesishma / 4 to'qnashuv, CORRIDOR_CAPACITY_EXCEEDED, H.L2 ulanmagan |
 | 7B testlari | 3 ta FAIL (7B-C, 7B-J, 7B-K): eski muzlatilgan Phase 6 natijasini kodlagan (BA.L1 < 85 %, markaziy closure) — 7B kodiga tegilmadi; 7B yangi Phase 6 ustida qayta qabul qilinadi |
 
 Virtual chiqish yo'q. Serpantin yo'q. Yashirin relaxation yo'q.

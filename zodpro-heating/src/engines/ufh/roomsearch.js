@@ -358,36 +358,44 @@ export function planFromSearch(U, s, ctx) {
     const { memo, ...search } = r;
     regions.push({ label: `S${i + 1}`, search: { ...search, results: r.results.map(({ best, ...q }) => q) }, chosenLoops: r.chosen?.k ?? 0 });
     if (!r.chosen) continue;
-    r.chosen.rows.forEach((row, j) => {
-      const sp = row.v.sp;
-      const loop = {
-        loopId: `L${loops.length + 1}`,
-        regionId: `S${i + 1}`,
-        kind: 'LOOP',
-        startPoint: sp.supply,
-        endPoint: sp.ret,
-        heatingLength: sp.heatingLength,
-        supplyLength: row.supplyLead,
-        returnLength: row.returnLead,
-        estimatedSupplyLead: ctx.leadTo(sp.supply),
-        estimatedReturnLead: ctx.leadTo(sp.ret),
-        totalLength: row.total,
-        nominalSpacing: s,
-        residualSpacing: sp.residualSpacing ?? null,
-        spiral: sp,
-        shape: r.chosen.parts[j],
-        estimatedLead: true,
-        search: { closure: row.closure, rho: row.rho, start: row.start, mirrored: row.mirrored, centre: row.centre, coverage: row.cover, largestGap_m2: row.v.hole, uncovered_m2: row.v.uncovered, minRadius_m: row.minR, reference: row.ref.status },
-      };
-      loop.remainingBudget = MAX_LOOP_M - loop.totalLength;
-      loop.exceeds60 = !lengthOk(loop.totalLength);
-      const v = validateLoopLength(loop, s);
-      loop.status = v.status;
-      loop.lengthValid = v.lengthValid;
-      loop.geometryValid = v.geometryValid;
-      loop.failed = v.failed;
-      loops.push(loop);
-    });
+    loops.push(...loopsOf(r.chosen.rows, r.chosen.parts, s, ctx.leadTo, { first: loops.length + 1, regionId: `S${i + 1}` }));
   }
   return { loops, regions };
+}
+
+/**
+ * Loop objects of planLoops from chosen rows (evaluatePiece) and their pieces: lengths with the
+ * explicit lead budget, the loop validation (lengths and geometry) of the planner.
+ */
+export function loopsOf(rows, parts, s, leadTo, { first = 1, regionId = 'S1' } = {}) {
+  return rows.map((row, j) => {
+    const sp = row.v.sp;
+    const loop = {
+      loopId: `L${first + j}`,
+      regionId,
+      kind: 'LOOP',
+      startPoint: sp.supply,
+      endPoint: sp.ret,
+      heatingLength: sp.heatingLength,
+      supplyLength: row.supplyLead,
+      returnLength: row.returnLead,
+      estimatedSupplyLead: leadTo(sp.supply),
+      estimatedReturnLead: leadTo(sp.ret),
+      totalLength: row.total,
+      nominalSpacing: s,
+      residualSpacing: sp.residualSpacing ?? null,
+      spiral: sp,
+      shape: parts[j],
+      estimatedLead: true,
+      search: { closure: row.closure, rho: row.rho, start: row.start, mirrored: row.mirrored, centre: row.centre, coverage: row.cover, largestGap_m2: row.v.hole, uncovered_m2: row.v.uncovered, minRadius_m: row.minR, reference: row.ref.status },
+    };
+    loop.remainingBudget = MAX_LOOP_M - loop.totalLength;
+    loop.exceeds60 = !lengthOk(loop.totalLength);
+    const v = validateLoopLength(loop, s);
+    loop.status = v.status;
+    loop.lengthValid = v.lengthValid;
+    loop.geometryValid = v.geometryValid;
+    loop.failed = v.failed;
+    return loop;
+  });
 }
