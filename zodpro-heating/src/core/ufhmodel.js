@@ -130,9 +130,12 @@ export function roomsAndDoors(project, levelId) {
 export function zoneJob(project, zone, res = null, extra = {}) {
   const col = extra.col ?? project.elements[zone.collectorId];
   if (!col) throw new Error('Zona uchun kollektor tanlanmagan');
-  const own = new Set(elementsOf(project, 'ufh_loop').filter((l) => l.zoneId === zone.id).map((l) => l.id));
+  // the other zones of the same manifold are planned together with this one (one set of leads)
+  const siblings = extra.siblings ?? [];
+  const zoneIds = new Set([zone.id, ...siblings.map((z) => z.id)]);
+  const own = new Set(elementsOf(project, 'ufh_loop').filter((l) => zoneIds.has(l.zoneId)).map((l) => l.id));
   let ports = freeCircuits(project, col, res, own);
-  if (zone.circuitIds?.length && extra.onlyCircuits) ports = ports.filter((c) => zone.circuitIds.includes(c.id));
+  if (zone.circuitIds?.length && extra.onlyCircuits && !siblings.length) ports = ports.filter((c) => zone.circuitIds.includes(c.id));
   // pipes already on the floor (manual loops, other zones) are obstacles for the router (§29)
   const avoid = elementsOf(project, 'ufh_loop', zone.levelId)
     .filter((l) => !own.has(l.id))
@@ -141,6 +144,7 @@ export function zoneJob(project, zone, res = null, extra = {}) {
   const { rooms, doors } = roomsAndDoors(project, zone.levelId);
   return {
     zone: zone.points,
+    zones: [zone, ...siblings].map((z) => ({ id: z.id, points: z.points })),
     rooms,
     doors,
     obstacles: zoneObstacles(project, zone).map((o) => ({ polygon: o.points, clearance: o.clearance ?? null, kind: o.kind })),
@@ -157,6 +161,7 @@ export function zoneJob(project, zone, res = null, extra = {}) {
     dropLength: 2 * (col.connHeight ?? 0.4),
     ...extra,
     col: undefined,
+    siblings: undefined,
   };
 }
 

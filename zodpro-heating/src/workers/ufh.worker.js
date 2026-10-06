@@ -1,5 +1,5 @@
 // UFH routing in the background (spec §40): the UI stays responsive, progress is reported.
-import { runUfhEngine } from '../engines/ufh/engine.js';
+import { runPhase6Engine as runUfhEngine } from '../engines/ufh/apartment.js';
 
 self.onmessage = (e) => {
   const { id, job } = e.data;

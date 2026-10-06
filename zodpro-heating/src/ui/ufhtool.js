@@ -6,7 +6,7 @@
 //                   progress) → preview with coverage map → APPLY / REGENERATE / AUTO REPAIR / CANCEL
 // Everything that changes the model is one Store transaction (one undo step).
 
-import { runUfhEngine } from '../engines/ufh/engine.js';
+import { runPhase6Engine as runUfhEngine } from '../engines/ufh/apartment.js';
 import * as G from '../engines/ufh/geom.js';
 import { UFH_PIPES, SPACINGS, WALL_CLEARANCES, STRATEGIES, OBSTACLE_KINDS, pipeType } from '../engines/ufh/pipes.js';
 import { UFH_RULES } from '../engines/ufh/validate.js';
@@ -16,7 +16,7 @@ import { pointInPolygon } from '../core/util.js';
 import { esc } from './reports.js';
 
 const STEP = { boundary: 'Zona chegarasi', usable_area: 'Clearance va to‘siqlar', routing: 'Quvur yo‘li yaratilmoqda', auto_repair: 'Auto Repair', coverage_map: 'Qamrov tekshirilmoqda', done: 'Tayyor' };
-export const STRATEGY_LABEL = { adaptive_spiral: 'Adaptive spiral', spiral: 'Spiral', serpentine: 'Zmeyka (serpentin)', adaptive_serpentine: 'Adaptive zmeyka' };
+export const STRATEGY_LABEL = { phase6_spiral: 'Spiral (Phase 6 yadro)', adaptive_spiral: 'Adaptive spiral', spiral: 'Spiral', serpentine: 'Zmeyka (serpentin)', adaptive_serpentine: 'Adaptive zmeyka' };
 export const OBSTACLE_LABEL = { stair: 'Zina', column: 'Kolonna', bathtub: 'Vanna', shower: 'Dush', toilet: 'Unitaz', furniture: 'Mebel', kitchen: 'Oshxona mebeli', equipment: 'Uskuna', structure: 'Konstruksiya', unheated: 'Isitilmaydigan joy' };
 const mm = (v) => `${Math.round(v * 1000)} mm`;
 
@@ -256,19 +256,22 @@ export class UfhTool {
   run(zone, isNew, extra = {}) {
     let job;
     try {
-      job = zoneJob(this.store.project, zone, this.store.results, extra);
+      const siblings = elementsOf(this.store.project, 'ufh_zone', zone.levelId).filter((z) => z.collectorId === zone.collectorId && z.id !== zone.id);
+      job = zoneJob(this.store.project, zone, this.store.results, { ...extra, siblings });
+      this.siblings = siblings;
     } catch (err) {
       return this.app.toast(err.message, 'error');
     }
     if (!job.collector.ports.length) return this.app.toast('Bo‘sh circuit qolmadi', 'error');
     const id = ++this.jobSeq;
-    this.preview = { zone, isNew, result: null, busy: true, step: 'boundary', f: 0, job };
+    const siblings = this.siblings ?? [];
+    this.preview = { zone, isNew, siblings, result: null, busy: true, step: 'boundary', f: 0, job };
     this.updateMenu();
     this.renderPanel();
     this.plan.draw();
     const done = (result) => {
       if (id !== this.jobSeq) return; // superseded
-      this.preview = { zone, isNew, result, busy: false, job };
+      this.preview = { zone, isNew, siblings, result, busy: false, job };
       this.renderPanel();
       this.plan.draw();
     };
@@ -377,7 +380,7 @@ export class UfhTool {
       <table class="tbl compact"><tr><th>Kontur</th><th>Circuit</th><th>Uzunlik</th><th>S / isitish / R</th><th></th></tr>${loops}</table>
       ${errs.length ? `<div class="ufh-errs">${Object.entries(byCode).map(([k, n]) => `<span class="pill error">${k} ×${n}</span>`).join(' ')}<ul>${errs.slice(0, 6).map((e) => `<li>${esc(e.msg)}</li>`).join('')}</ul></div>` : `<p class="good">✓ Barcha qat’iy tekshiruvlar o‘tdi${warns.length ? ` · ${warns.length} ogohlantirish` : ''}</p>`}
       <div class="btn-row">
-        <button class="btn small primary" data-a="apply" ${r.ok ? '' : 'disabled title="Xatolar bor — APPLY bloklangan (AUTO REPAIR yoki parametrlarni o‘zgartiring)"'}>APPLY</button>
+        <button class="btn small primary" data-a="apply" ${r.loops.length ? '' : 'disabled'} ${r.ok ? '' : 'title="Xatolar bor — tasdiqlash so‘raladi"'}>APPLY${r.ok ? '' : ' (xatolar bilan)'}</button>
         <button class="btn small" data-a="regen">REGENERATE</button>
         <button class="btn small" data-a="repair">AUTO REPAIR</button>
         <button class="btn small" data-a="params">Parametrlar</button>
@@ -515,10 +518,21 @@ export class UfhTool {
     ]);
   }
 
-  apply() {
+  async apply() {
     const pv = this.preview;
-    if (!pv?.result?.ok) return this.app.toast('Xatolar bor — APPLY bloklangan', 'error');
-    const cs = applyEngineResult(this.store.project, pv.zone, pv.result, pv.isNew);
+    if (!pv?.result?.loops?.length) return this.app.toast('Kontur yo‘q — APPLY qilinmaydi', 'error');
+    // errors are applied only on the user's explicit confirmation; the invalid loops stay marked
+    if (!pv.result.ok && !(await this.app.confirmBox(`Natijada ${pv.result.issues.filter((i) => i.level === 'error').length} ta xato bor (xato konturlar qizil ✕ bilan belgilanadi). Baribir qo‘llaymi?`))) return;
+    // every zone of the manifold planned together: each gets the loops of its own rooms
+    const zones = [pv.zone, ...(pv.siblings ?? [])];
+    const cs = { add: [], update: [], remove: [] };
+    for (const z of zones) {
+      const part = zones.length > 1 ? { ...pv.result, loops: pv.result.loops.filter((l) => (l.zoneId ?? pv.zone.id) === z.id) } : pv.result;
+      const c = applyEngineResult(this.store.project, z, part, z === pv.zone && pv.isNew);
+      cs.add.push(...c.add);
+      cs.update.push(...c.update);
+      cs.remove.push(...c.remove);
+    }
     this.store.apply(cs, pv.isNew ? 'ufh:zone' : 'ufh:regenerate');
     this.preview = null;
     this.renderPanel();
