@@ -87,7 +87,9 @@ total, coverage, gap, uncovered, rad etish sabablari): `ROOMSEARCH.md`.
 
 | Shart | Natija |
 |---|---|
-| Eski Phase 1–5 testlari | PASS (to'liq regression 208/211: `evidence/regression.log`; 3 ta FAIL faqat 7B testlari, pastda) |
+| Eski Phase 1–5 testlari | PASS (to'liq regression 213/216 xona qidiruvidan keyin: `evidence/roomsearch/regression.log`; avval 208/211; 3 ta FAIL faqat 7B testlari, pastda) |
+| Xona qidiruvi testlari (RS-1…RS-5, determinizm) | PASS (`tests/ufh-roomsearch.test.js`) |
+| Freeze (13 fayl) | PASS |
 | Eski Phase 6 testlari | PASS — 4 ta test yangi xatti-harakatga yangilangan, printsipi saqlangan: closure terminal (side tarmog'i), C10 (markaziy closure hali ham mumkin emas, side valid), regions L4b/U4b (cheklov hal bo'ldi), U1 (1 notched region), U5 (kam region) |
 | Reference regression (right-side residual) | PASS (`tests/ufh-phase6r.test.js` 6R-1, 6R-2) |
 | Residual faqat terminal closure'da, MAX_RESIDUAL_RINGS = 1 | PASS |

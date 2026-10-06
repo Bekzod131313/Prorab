@@ -1,0 +1,1374 @@
+
+> zodpro-heating-bim@0.1.0 test
+> node --test tests/*.test.js
+
+TAP version 13
+# Subtest: native .zph round-trip preserves every element and GUID
+ok 1 - native .zph round-trip preserves every element and GUID
+  ---
+  duration_ms: 123.791639
+  type: 'test'
+  ...
+# Subtest: migration from schema 1 file
+ok 2 - migration from schema 1 file
+  ---
+  duration_ms: 0.531251
+  type: 'test'
+  ...
+# Subtest: newer file version is rejected, corrupted file detected
+ok 3 - newer file version is rejected, corrupted file detected
+  ---
+  duration_ms: 0.722222
+  type: 'test'
+  ...
+# Subtest: duplicate GUIDs are repaired on load
+ok 4 - duplicate GUIDs are repaired on load
+  ---
+  duration_ms: 0.514162
+  type: 'test'
+  ...
+# Subtest: transactions: undo / redo / cascade delete of hosted openings
+ok 5 - transactions: undo / redo / cascade delete of hosted openings
+  ---
+  duration_ms: 2.455586
+  type: 'test'
+  ...
+# Subtest: automatic room detection and geometry operations
+ok 6 - automatic room detection and geometry operations
+  ---
+  duration_ms: 2.037268
+  type: 'test'
+  ...
+# Subtest: tee split when a pipe ends on another pipe
+ok 7 - tee split when a pipe ends on another pipe
+  ---
+  duration_ms: 0.440049
+  type: 'test'
+  ...
+# Subtest: parametric follow-up: radiator length change drags attached pipes
+ok 8 - parametric follow-up: radiator length change drags attached pipes
+  ---
+  duration_ms: 83.30787
+  type: 'test'
+  ...
+# Subtest: auto-design on an empty house connects everything
+ok 9 - auto-design on an empty house connects everything
+  ---
+  duration_ms: 24.24454
+  type: 'test'
+  ...
+# Subtest: exports: DXF (re-importable), IFC4 header/entities, SVG, CSV, Excel
+ok 10 - exports: DXF (re-importable), IFC4 header/entities, SVG, CSV, Excel
+  ---
+  duration_ms: 137.508576
+  type: 'test'
+  ...
+# Subtest: DXF import of LINE entities becomes walls
+ok 11 - DXF import of LINE entities becomes walls
+  ---
+  duration_ms: 0.40948
+  type: 'test'
+  ...
+# Subtest: product CSV import: validation and duplicate detection
+ok 12 - product CSV import: validation and duplicate detection
+  ---
+  duration_ms: 1.131304
+  type: 'test'
+  ...
+# Subtest: assistant quotes model data and asks for missing parameters
+ok 13 - assistant quotes model data and asks for missing parameters
+  ---
+  duration_ms: 69.609211
+  type: 'test'
+  ...
+# Subtest: roles, procurement shortage and plugin permissions
+ok 14 - roles, procurement shortage and plugin permissions
+  ---
+  duration_ms: 57.78606
+  type: 'test'
+  ...
+# Subtest: assembly U-value: brick 510 + 2×20 plaster
+ok 15 - assembly U-value: brick 510 + 2×20 plaster
+  ---
+  duration_ms: 1.18226
+  type: 'test'
+  ...
+# Subtest: LMTD and EN 442 correction factor
+ok 16 - LMTD and EN 442 correction factor
+  ---
+  duration_ms: 0.298418
+  type: 'test'
+  ...
+# Subtest: radiator auto-selection (Required = 1265 W example)
+ok 17 - radiator auto-selection (Required = 1265 W example)
+  ---
+  duration_ms: 0.812159
+  type: 'test'
+  ...
+# Subtest: flow from heat load
+ok 18 - flow from heat load
+  ---
+  duration_ms: 0.488782
+  type: 'test'
+  ...
+# Subtest: friction factor: laminar and Colebrook agreement
+ok 19 - friction factor: laminar and Colebrook agreement
+  ---
+  duration_ms: 0.375336
+  type: 'test'
+  ...
+# Subtest: pipe segment: R and velocity
+ok 20 - pipe segment: R and velocity
+  ---
+  duration_ms: 0.273325
+  type: 'test'
+  ...
+# Subtest: Kv relations
+ok 21 - Kv relations
+  ---
+  duration_ms: 0.139291
+  type: 'test'
+  ...
+# Subtest: pipe auto-sizing picks the smallest valid diameter and explains
+ok 22 - pipe auto-sizing picks the smallest valid diameter and explains
+  ---
+  duration_ms: 0.595378
+  type: 'test'
+  ...
+# Subtest: pump selection and operating point
+ok 23 - pump selection and operating point
+  ---
+  duration_ms: 0.691763
+  type: 'test'
+  ...
+# Subtest: boiler selection
+ok 24 - boiler selection
+  ---
+  duration_ms: 0.571347
+  type: 'test'
+  ...
+# Subtest: expansion vessel (EN 12828)
+ok 25 - expansion vessel (EN 12828)
+  ---
+  duration_ms: 0.355506
+  type: 'test'
+  ...
+# Subtest: UFH surface temperature and loop design
+ok 26 - UFH surface temperature and loop design
+  ---
+  duration_ms: 0.583712
+  type: 'test'
+  ...
+# Subtest: room heat loss: hand-calculated box room
+ok 27 - room heat loss: hand-calculated box room
+  ---
+  duration_ms: 17.274562
+  type: 'test'
+  ...
+# Subtest: ground zones sum to room area
+ok 28 - ground zones sum to room area
+  ---
+  duration_ms: 18.327017
+  type: 'test'
+  ...
+# Subtest: benchmark: every room calculated with breakdown
+ok 29 - benchmark: every room calculated with breakdown
+  ---
+  duration_ms: 1.193139
+  type: 'test'
+  ...
+# Subtest: benchmark regression: building heat loss stays in expected band
+ok 30 - benchmark regression: building heat loss stays in expected band
+  ---
+  duration_ms: 0.219267
+  type: 'test'
+  ...
+# Subtest: benchmark: network fully connected, no errors
+ok 31 - benchmark: network fully connected, no errors
+  ---
+  duration_ms: 0.202532
+  type: 'test'
+  ...
+# Subtest: flow conservation: boiler outlet carries total flow
+ok 32 - flow conservation: boiler outlet carries total flow
+  ---
+  duration_ms: 0.17909
+  type: 'test'
+  ...
+# Subtest: every heated room is covered by its emitters
+ok 33 - every heated room is covered by its emitters
+  ---
+  duration_ms: 0.160005
+  type: 'test'
+  ...
+# Subtest: balancing reaches ±15 % flow on every radiator circuit
+ok 34 - balancing reaches ±15 % flow on every radiator circuit
+  ---
+  duration_ms: 0.168752
+  type: 'test'
+  ...
+# Subtest: pump, boiler and expansion vessel selected
+ok 35 - pump, boiler and expansion vessel selected
+  ---
+  duration_ms: 0.154147
+  type: 'test'
+  ...
+# Subtest: BOM and cost are consistent
+ok 36 - BOM and cost are consistent
+  ---
+  duration_ms: 0.229595
+  type: 'test'
+  ...
+# Subtest: dependency chain: changing climate changes load, radiators, flow and cost
+ok 37 - dependency chain: changing climate changes load, radiators, flow and cost
+  ---
+  duration_ms: 50.799639
+  type: 'test'
+  ...
+# Subtest: deterministic: same input → same result
+ok 38 - deterministic: same input → same result
+  ---
+  duration_ms: 82.165029
+  type: 'test'
+  ...
+# Subtest: disconnecting a pipe is detected
+ok 39 - disconnecting a pipe is detected
+  ---
+  duration_ms: 33.055068
+  type: 'test'
+  ...
+# Subtest: performance: 1000 rooms heat loss under budget
+ok 40 - performance: 1000 rooms heat loss under budget
+  ---
+  duration_ms: 4777.286554
+  type: 'test'
+  ...
+# Subtest: sample project (2-storey, UFH ground floor, convectors upstairs) designs without errors
+ok 41 - sample project (2-storey, UFH ground floor, convectors upstairs) designs without errors
+  ---
+  duration_ms: 278.380668
+  type: 'test'
+  ...
+# Subtest: 7B-A frozen 1-loop geometry + real leads: one physical route, heating untouched
+ok 42 - 7B-A frozen 1-loop geometry + real leads: one physical route, heating untouched
+  ---
+  duration_ms: 5540.349539
+  type: 'test'
+  ...
+# Subtest: 7B-B frozen 2-loop geometry + real leads: routed without crossing, the lengths reported as they are
+ok 43 - 7B-B frozen 2-loop geometry + real leads: routed without crossing, the lengths reported as they are
+  ---
+  duration_ms: 17329.35745
+  type: 'test'
+  ...
+# Subtest: 7B-C frozen 3-loop geometry + real leads: topology, every failure named
+not ok 44 - 7B-C frozen 3-loop geometry + real leads: topology, every failure named
+  ---
+  duration_ms: 6625.822954
+  type: 'test'
+  location: '/home/user/Prorab/zodpro-heating/tests/ufh-7b-loops.test.js:112:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    1 !== 3
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 3
+  actual: 1
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/user/Prorab/zodpro-heating/tests/ufh-7b-loops.test.js:116:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: 7B-D topology negative: heating start / heating end 10 mm off → LOOP_DISCONNECTED
+ok 45 - 7B-D topology negative: heating start / heating end 10 mm off → LOOP_DISCONNECTED
+  ---
+  duration_ms: 4.042234
+  type: 'test'
+  ...
+# Subtest: 7B-E supply disconnected (10 mm off its port) → LOOP_DISCONNECTED
+ok 46 - 7B-E supply disconnected (10 mm off its port) → LOOP_DISCONNECTED
+  ---
+  duration_ms: 1.063478
+  type: 'test'
+  ...
+# Subtest: 7B-F return disconnected (10 mm off its port) → LOOP_DISCONNECTED
+ok 47 - 7B-F return disconnected (10 mm off its port) → LOOP_DISCONNECTED
+  ---
+  duration_ms: 0.722559
+  type: 'test'
+  ...
+# Subtest: 7B-G wrong loop connection → LOOP_CONNECTION_INVALID
+ok 48 - 7B-G wrong loop connection → LOOP_CONNECTION_INVALID
+  ---
+  duration_ms: 1.321391
+  type: 'test'
+  ...
+# Subtest: 7B-H leadSpacing 50 mm (apartment): leads 50 mm from the wall, heating pitch measured 200 / 150 mm
+ok 49 - 7B-H leadSpacing 50 mm (apartment): leads 50 mm from the wall, heating pitch measured 200 / 150 mm
+  ---
+  duration_ms: 73343.138905
+  type: 'test'
+  ...
+# Subtest: 7B-I leadSpacing 100 mm (apartment): the bundle does not fit → CORRIDOR_CAPACITY_EXCEEDED, not forced
+ok 50 - 7B-I leadSpacing 100 mm (apartment): the bundle does not fit → CORRIDOR_CAPACITY_EXCEEDED, not forced
+  ---
+  duration_ms: 46274.23349
+  type: 'test'
+  ...
+# Subtest: 7B-J real apartment: every frozen loop routed and reported; failures named, none hidden; deterministic
+not ok 51 - 7B-J real apartment: every frozen loop routed and reported; failures named, none hidden; deterministic
+  ---
+  duration_ms: 720.574751
+  type: 'test'
+  location: '/home/user/Prorab/zodpro-heating/tests/ufh-7b-loops.test.js:197:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    10 !== 12
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 12
+  actual: 10
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/user/Prorab/zodpro-heating/tests/ufh-7b-loops.test.js:200:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: 7B-K right-side residual (reference): checked on the frozen Phase 6 output; a centre closure → PHASE6_REFERENCE_MISMATCH
+not ok 52 - 7B-K right-side residual (reference): checked on the frozen Phase 6 output; a centre closure → PHASE6_REFERENCE_MISMATCH
+  ---
+  duration_ms: 2601.503962
+  type: 'test'
+  location: '/home/user/Prorab/zodpro-heating/tests/ufh-7b-loops.test.js:214:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    the frozen spiral ends in the centre, not along the side
+    + actual - expected
+    
+    + 'PHASE6_REFERENCE_OK'
+    - 'PHASE6_REFERENCE_MISMATCH'
+                        ^
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'PHASE6_REFERENCE_MISMATCH'
+  actual: 'PHASE6_REFERENCE_OK'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/user/Prorab/zodpro-heating/tests/ufh-7b-loops.test.js:239:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: 7B-L Phase 6 output immutability: hash before 7B = hash after 7B = an independent Phase 6 run
+ok 53 - 7B-L Phase 6 output immutability: hash before 7B = hash after 7B = an independent Phase 6 run
+  ---
+  duration_ms: 2827.858006
+  type: 'test'
+  ...
+# Subtest: closure C1: centre gap closed, every hard check holds
+ok 54 - closure C1: centre gap closed, every hard check holds
+  ---
+  duration_ms: 2304.412897
+  type: 'test'
+  ...
+# Subtest: closure C2: centre gap closed, every hard check holds
+ok 55 - closure C2: centre gap closed, every hard check holds
+  ---
+  duration_ms: 1862.528901
+  type: 'test'
+  ...
+# Subtest: closure C3: centre gap closed, every hard check holds
+ok 56 - closure C3: centre gap closed, every hard check holds
+  ---
+  duration_ms: 3824.650176
+  type: 'test'
+  ...
+# Subtest: closure C4: nothing to gain — spiral kept, every hard check holds
+ok 57 - closure C4: nothing to gain — spiral kept, every hard check holds
+  ---
+  duration_ms: 2958.700229
+  type: 'test'
+  ...
+# Subtest: closure C5: centre gap closed, every hard check holds
+ok 58 - closure C5: centre gap closed, every hard check holds
+  ---
+  duration_ms: 6636.9835
+  type: 'test'
+  ...
+# Subtest: closure C6: centre gap closed, every hard check holds
+ok 59 - closure C6: centre gap closed, every hard check holds
+  ---
+  duration_ms: 7625.033352
+  type: 'test'
+  ...
+# Subtest: closure C7: centre gap closed, every hard check holds
+ok 60 - closure C7: centre gap closed, every hard check holds
+  ---
+  duration_ms: 12347.804705
+  type: 'test'
+  ...
+# Subtest: closure C8: nothing to gain — spiral kept, every hard check holds
+ok 61 - closure C8: nothing to gain — spiral kept, every hard check holds
+  ---
+  duration_ms: 8483.087247
+  type: 'test'
+  ...
+# Subtest: closure C9: centre gap closed, every hard check holds
+ok 62 - closure C9: centre gap closed, every hard check holds
+  ---
+  duration_ms: 11135.701762
+  type: 'test'
+  ...
+# Subtest: closure regression: 3.5 × 3.5 @ 200 / 150 — the old centre gaps (0.20 / 0.27 m²) are closed
+ok 63 - closure regression: 3.5 × 3.5 @ 200 / 150 — the old centre gaps (0.20 / 0.27 m²) are closed
+  ---
+  duration_ms: 2501.699656
+  type: 'test'
+  ...
+# Subtest: closure regression: 5 × 5 and 6 × 4 @ 200 / 150 — never worse
+ok 64 - closure regression: 5 × 5 and 6 × 4 @ 200 / 150 — never worse
+  ---
+  duration_ms: 12934.73842
+  type: 'test'
+  ...
+# Subtest: residual examples: 200 + 150 (C3), 200 + 170 (C1) — the residual only at the centre
+ok 65 - residual examples: 200 + 150 (C3), 200 + 170 (C1) — the residual only at the centre
+  ---
+  duration_ms: 3432.595104
+  type: 'test'
+  ...
+# Subtest: closure C7 / C9: round obstacles — the closure keeps the obstacle clearance and gains
+ok 66 - closure C7 / C9: round obstacles — the closure keeps the obstacle clearance and gains
+  ---
+  duration_ms: 32670.77179
+  type: 'test'
+  ...
+# Subtest: closure C10: impossible (residual would need R < RMIN) — nothing forced, the thin strip stays uncovered and visible
+ok 67 - closure C10: impossible (residual would need R < RMIN) — nothing forced, the thin strip stays uncovered and visible
+  ---
+  duration_ms: 500.40081
+  type: 'test'
+  ...
+# Subtest: 7.0 contract: the statuses of step 7 — blocking ones and the LOW_MARGIN warning
+ok 68 - 7.0 contract: the statuses of step 7 — blocking ones and the LOW_MARGIN warning
+  ---
+  duration_ms: 1.307896
+  type: 'test'
+  ...
+# Subtest: 7.0 contract: a valid input passes; each input rule catches its violation
+ok 69 - 7.0 contract: a valid input passes; each input rule catches its violation
+  ---
+  duration_ms: 2.553066
+  type: 'test'
+  ...
+# Subtest: 7.0 contract: a valid ZoneReport passes; the corridor areas, lengths and ports are enforced
+ok 70 - 7.0 contract: a valid ZoneReport passes; the corridor areas, lengths and ports are enforced
+  ---
+  duration_ms: 3.095115
+  type: 'test'
+  ...
+# Subtest: 7.0 contract: a blocking report (OUTLET_SHORTAGE) carries loops without ports or leads
+ok 71 - 7.0 contract: a blocking report (OUTLET_SHORTAGE) carries loops without ports or leads
+  ---
+  duration_ms: 0.275095
+  type: 'test'
+  ...
+# Subtest: 7A ports: one supply + return pair per physical outlet, portPitch_m apart, in a row centred on the manifold
+ok 72 - 7A ports: one supply + return pair per physical outlet, portPitch_m apart, in a row centred on the manifold
+  ---
+  duration_ms: 4.943592
+  type: 'test'
+  ...
+# Subtest: 7A ports: given manufacturer ports used as they are; wrong count / pitch / overlap → MANIFOLD_PORTS_INVALID
+ok 73 - 7A ports: given manufacturer ports used as they are; wrong count / pitch / overlap → MANIFOLD_PORTS_INVALID
+  ---
+  duration_ms: 0.829817
+  type: 'test'
+  ...
+# Subtest: 7A capacity: required ≤ outlets → OUTLETS_OK; above → OUTLET_SHORTAGE, no assignment, no port added
+ok 74 - 7A capacity: required ≤ outlets → OUTLETS_OK; above → OUTLET_SHORTAGE, no assignment, no port added
+  ---
+  duration_ms: 0.389662
+  type: 'test'
+  ...
+# Subtest: 7A assignment: one loop ↔ one physical outlet, each outlet once, in the given order
+ok 75 - 7A assignment: one loop ↔ one physical outlet, each outlet once, in the given order
+  ---
+  duration_ms: 0.782079
+  type: 'test'
+  ...
+# Subtest: 7A drop: counted for supply and return — total = heating + supply + return + 2·drop; 60 m exact
+ok 76 - 7A drop: counted for supply and return — total = heating + supply + return + 2·drop; 60 m exact
+  ---
+  duration_ms: 0.649836
+  type: 'test'
+  ...
+# Subtest: 7A on 101–109 (C-01, 6 physical outlets): 9 loops → OUTLET_SHORTAGE, Phase 6 status unchanged; the drop pushes the low-margin loops over 60 m
+ok 77 - 7A on 101–109 (C-01, 6 physical outlets): 9 loops → OUTLET_SHORTAGE, Phase 6 status unchanged; the drop pushes the low-margin loops over 60 m
+  ---
+  duration_ms: 152585.56149
+  type: 'test'
+  ...
+# Subtest: 7B 1 parameter separation: collectorPortPitch, leadWallOffset, leadSpacing, heatingPitch — required, none a fallback for another
+ok 78 - 7B 1 parameter separation: collectorPortPitch, leadWallOffset, leadSpacing, heatingPitch — required, none a fallback for another
+  ---
+  duration_ms: 20.852052
+  type: 'test'
+  ...
+# Subtest: 7B 2 corridor width: centreline span (N − 1)·S, physical width span + OD — never N·S; 12 leads at 50 and 100 mm
+ok 79 - 7B 2 corridor width: centreline span (N − 1)·S, physical width span + OD — never N·S; 12 leads at 50 and 100 mm
+  ---
+  duration_ms: 0.544671
+  type: 'test'
+  ...
+# Subtest: 7B 3 area accounting: U, C once, U′ = U − C, H inside U′ (rawcheck's own denominator is U′), coverage = H / U′
+ok 80 - 7B 3 area accounting: U, C once, U′ = U − C, H inside U′ (rawcheck's own denominator is U′), coverage = H / U′
+  ---
+  duration_ms: 29.225052
+  type: 'test'
+  ...
+# Subtest: 7B 4 connectivity: no closed / split heating area, no sliver, the transitions reach the target heating zone
+ok 81 - 7B 4 connectivity: no closed / split heating area, no sliver, the transitions reach the target heating zone
+  ---
+  duration_ms: 4.404887
+  type: 'test'
+  ...
+# Subtest: 7B lead geometry: manifold → wall at 50 mm → door → wall → target transition; no crossing; leads S apart
+ok 82 - 7B lead geometry: manifold → wall at 50 mm → door → wall → target transition; no crossing; leads S apart
+  ---
+  duration_ms: 20.003468
+  type: 'test'
+  ...
+# Subtest: 7B 101–109 (test variant: the same rooms, a declared 12-outlet manifold): 12 leads — 100 mm door failure, 50 mm passes; room 108 reported
+ok 83 - 7B 101–109 (test variant: the same rooms, a declared 12-outlet manifold): 12 leads — 100 mm door failure, 50 mm passes; room 108 reported
+  ---
+  duration_ms: 14.962203
+  type: 'test'
+  ...
+# Subtest: 7B determinism: the same input → the same leads, corridors, U′ and loops (hash)
+ok 84 - 7B determinism: the same input → the same leads, corridors, U′ and loops (hash)
+  ---
+  duration_ms: 32721.685527
+  type: 'test'
+  ...
+# Subtest: geom: offset / boolean / area / orientation / sanitize
+ok 85 - geom: offset / boolean / area / orientation / sanitize
+  ---
+  duration_ms: 20.671836
+  type: 'test'
+  ...
+# Subtest: loop: bifilar pipe from a centreline tree is ONE open pipe, supply on the right of the lead
+ok 86 - loop: bifilar pipe from a centreline tree is ONE open pipe, supply on the right of the lead
+  ---
+  duration_ms: 262.209509
+  type: 'test'
+  ...
+# Subtest: TEST 01 — rectangle 3×2.5 m: one loop, ≤ 60 m, coverage ≥ 90 %, valid
+ok 87 - TEST 01 — rectangle 3×2.5 m: one loop, ≤ 60 m, coverage ≥ 90 %, valid
+  ---
+  duration_ms: 408.063835
+  type: 'test'
+  ...
+# Subtest: TEST 02 — large room 10×8 m: several loops, each ≤ 60 m, balanced
+ok 88 - TEST 02 — large room 10×8 m: several loops, each ≤ 60 m, balanced
+  ---
+  duration_ms: 2101.568656
+  type: 'test'
+  ...
+# Subtest: TEST 03 — L-shaped zone
+ok 89 - TEST 03 — L-shaped zone
+  ---
+  duration_ms: 946.151211
+  type: 'test'
+  ...
+# Subtest: TEST 04 — U-shaped zone
+ok 90 - TEST 04 — U-shaped zone
+  ---
+  duration_ms: 1715.139388
+  type: 'test'
+  ...
+# Subtest: TEST 05/14 — stair obstacle: no pipe inside obstacle + clearance
+ok 91 - TEST 05/14 — stair obstacle: no pipe inside obstacle + clearance
+  ---
+  duration_ms: 828.33118
+  type: 'test'
+  ...
+# Subtest: TEST 06 — irregular polygon
+ok 92 - TEST 06 — irregular polygon
+  ---
+  duration_ms: 910.003766
+  type: 'test'
+  ...
+# Subtest: TEST 07/08 — manifold far away / zone needing > 120 m: leads count, loops split ≤ 60 m
+ok 93 - TEST 07/08 — manifold far away / zone needing > 120 m: leads count, loops split ≤ 60 m
+  ---
+  duration_ms: 526.413513
+  type: 'test'
+  ...
+# Subtest: TEST 09 — supply/return topology: each loop starts at its supply and ends at its return connector
+ok 94 - TEST 09 — supply/return topology: each loop starts at its supply and ends at its return connector
+  ---
+  duration_ms: 635.921625
+  type: 'test'
+  ...
+# Subtest: TEST 10 — three zones on one manifold use different circuits, no crossings
+ok 95 - TEST 10 — three zones on one manifold use different circuits, no crossings
+  ---
+  duration_ms: 1697.06405
+  type: 'test'
+  ...
+# Subtest: TEST 11 — spacing 100 mm with a 80 mm pipe: bends validated against the pipe radius
+ok 96 - TEST 11 — spacing 100 mm with a 80 mm pipe: bends validated against the pipe radius
+  ---
+  duration_ms: 896.053959
+  type: 'test'
+  ...
+# Subtest: TEST 12/13 — spacing exact and wall clearance kept
+ok 97 - TEST 12/13 — spacing exact and wall clearance kept
+  ---
+  duration_ms: 426.101711
+  type: 'test'
+  ...
+# Subtest: TEST 15 — a loop over 60 m is reported and Auto Repair splits the zone
+ok 98 - TEST 15 — a loop over 60 m is reported and Auto Repair splits the zone
+  ---
+  duration_ms: 3343.160934
+  type: 'test'
+  ...
+# Subtest: determinism: the same input gives the same geometry
+ok 99 - determinism: the same input gives the same geometry
+  ---
+  duration_ms: 931.913789
+  type: 'test'
+  ...
+# Subtest: capacity: a zone needing more than 12 loops is UFH-CIRC; split into manifolds every part is valid
+ok 100 - capacity: a zone needing more than 12 loops is UFH-CIRC; split into manifolds every part is valid
+  ---
+  duration_ms: 2506.571172
+  type: 'test'
+  ...
+# Subtest: rooms: loops stay in their rooms, leads cross walls only through the doors
+ok 101 - rooms: loops stay in their rooms, leads cross walls only through the doors
+  ---
+  duration_ms: 5264.036253
+  type: 'test'
+  ...
+# Subtest: rooms: leads to a side door leave the manifold as nested L-routes (no diagonal fan)
+ok 102 - rooms: leads to a side door leave the manifold as nested L-routes (no diagonal fan)
+  ---
+  duration_ms: 4475.224405
+  type: 'test'
+  ...
+# Subtest: rooms: door in the manifold wall — nested U leads, own pairs drop past them, no crossings
+ok 103 - rooms: door in the manifold wall — nested U leads, own pairs drop past them, no crossings
+  ---
+  duration_ms: 18410.668962
+  type: 'test'
+  ...
+# Subtest: sample house: left column fed from the corridor manifold (no inner doors) — valid
+ok 104 - sample house: left column fed from the corridor manifold (no inner doors) — valid
+  ---
+  duration_ms: 6338.102951
+  type: 'test'
+  ...
+# Subtest: lower bounds: named, FINAL = max(COVERAGE, LEAD_AWARE), the raw pipe estimate is no bound
+ok 105 - lower bounds: named, FINAL = max(COVERAGE, LEAD_AWARE), the raw pipe estimate is no bound
+  ---
+  duration_ms: 1.286767
+  type: 'test'
+  ...
+# Subtest: a found partition is PROVEN_FEASIBLE: rebuilt geometry = scored numbers (tolerances named), every loop ≤ 60 m
+ok 106 - a found partition is PROVEN_FEASIBLE: rebuilt geometry = scored numbers (tolerances named), every loop ≤ 60 m
+  ---
+  duration_ms: 7524.002887
+  type: 'test'
+  ...
+# Subtest: LP11: 2 loops GRID_EXHAUSTIVE (every partition into ≤ 2 rectangles on the 0.05 m raster) — not called impossible
+ok 107 - LP11: 2 loops GRID_EXHAUSTIVE (every partition into ≤ 2 rectangles on the 0.05 m raster) — not called impossible
+  ---
+  duration_ms: 3618.957535
+  type: 'test'
+  ...
+# Subtest: LP7: 3 loops GRID_EXHAUSTIVE on the 0.2 m raster — 4 within the model, not a continuous proof
+ok 108 - LP7: 3 loops GRID_EXHAUSTIVE on the 0.2 m raster — 4 within the model, not a continuous proof
+  ---
+  duration_ms: 67124.658671
+  type: 'test'
+  ...
+# Subtest: a time limit, a guillotine-only k ≥ 5 or any k > 6: SEARCH_NOT_EXHAUSTIVE — never GRID_EXHAUSTIVE or PROVEN_INFEASIBLE
+ok 109 - a time limit, a guillotine-only k ≥ 5 or any k > 6: SEARCH_NOT_EXHAUSTIVE — never GRID_EXHAUSTIVE or PROVEN_INFEASIBLE
+  ---
+  duration_ms: 54.355222
+  type: 'test'
+  ...
+# Subtest: LP8 k = 5 (0.2 m raster): guillotine alone SEARCH_NOT_EXHAUSTIVE, with pinwheels GRID_EXHAUSTIVE; a variant cache changes nothing
+ok 110 - LP8 k = 5 (0.2 m raster): guillotine alone SEARCH_NOT_EXHAUSTIVE, with pinwheels GRID_EXHAUSTIVE; a variant cache changes nothing
+  ---
+  duration_ms: 20997.668761
+  type: 'test'
+  ...
+# Subtest: multi-region zone: the regions' minimum covers never add up to more than the zone requirement
+ok 111 - multi-region zone: the regions' minimum covers never add up to more than the zone requirement
+  ---
+  duration_ms: 0.730919
+  type: 'test'
+  ...
+# Subtest: zone acceptance: total heating-pipe coverage and the largest gap decide (region coverage only informs)
+ok 112 - zone acceptance: total heating-pipe coverage and the largest gap decide (region coverage only informs)
+  ---
+  duration_ms: 0.83879
+  type: 'test'
+  ...
+# Subtest: loops LP7: ≈ 180 m raw — ≥ 4 loop(s), each ≤ 60 m, each a spiral
+ok 113 - loops LP7: ≈ 180 m raw — ≥ 4 loop(s), each ≤ 60 m, each a spiral
+  ---
+  duration_ms: 103733.756124
+  type: 'test'
+  ...
+# Subtest: loops LP8: ≈ 300 m raw — ≥ 6 loop(s), each ≤ 60 m, each a spiral
+ok 114 - loops LP8: ≈ 300 m raw — ≥ 6 loop(s), each ≤ 60 m, each a spiral
+  ---
+  duration_ms: 355030.924564
+  type: 'test'
+  ...
+# Subtest: loops LP9: ≈ 50 m raw, manifold 7 m away (long leads) — 2 loop(s), each ≤ 60 m, each a spiral
+ok 115 - loops LP9: ≈ 50 m raw, manifold 7 m away (long leads) — 2 loop(s), each ≤ 60 m, each a spiral
+  ---
+  duration_ms: 4488.788024
+  type: 'test'
+  ...
+# Subtest: loops LP9: long leads shrink the heating budget — more loops for the same floor
+ok 116 - loops LP9: long leads shrink the heating budget — more loops for the same floor
+  ---
+  duration_ms: 1905.416275
+  type: 'test'
+  ...
+# Subtest: loops LP10: 4 loops, 3 physical outlets — HYDRAULIC_LOOP_INVALID (outlet_shortage), no virtual outlets
+ok 117 - loops LP10: 4 loops, 3 physical outlets — HYDRAULIC_LOOP_INVALID (outlet_shortage), no virtual outlets
+  ---
+  duration_ms: 890.381794
+  type: 'test'
+  ...
+# Subtest: loops LP11: narrow 1.6 × 20 m: cuts that would leave strips too narrow for R ≥ RMIN — ≥ 2 loop(s), each ≤ 60 m, each a spiral
+ok 118 - loops LP11: narrow 1.6 × 20 m: cuts that would leave strips too narrow for R ≥ RMIN — ≥ 2 loop(s), each ≤ 60 m, each a spiral
+  ---
+  duration_ms: 26747.024067
+  type: 'test'
+  ...
+# Subtest: loops LP12: column in the middle: cuts round the obstacle clearance — ≥ 3 loop(s), each ≤ 60 m, each a spiral
+ok 119 - loops LP12: column in the middle: cuts round the obstacle clearance — ≥ 3 loop(s), each ≤ 60 m, each a spiral
+  ---
+  duration_ms: 44463.155566
+  type: 'test'
+  ...
+# Subtest: loops LP11: cuts leaving strips too narrow for R ≥ RMIN are rejected — no sharp bend to fit 60 m
+ok 120 - loops LP11: cuts leaving strips too narrow for R ≥ RMIN are rejected — no sharp bend to fit 60 m
+  ---
+  duration_ms: 8.77614
+  type: 'test'
+  ...
+# Subtest: loops LP12: loops round / beside the column keep the obstacle clearance
+ok 121 - loops LP12: loops round / beside the column keep the obstacle clearance
+  ---
+  duration_ms: 8.81371
+  type: 'test'
+  ...
+# Subtest: 101–109 regression: rooms 101 / 107 / 108 need more loops than C-01 has outlets — HYDRAULIC_LOOP_INVALID, raw geometry valid
+ok 122 - 101–109 regression: rooms 101 / 107 / 108 need more loops than C-01 has outlets — HYDRAULIC_LOOP_INVALID, raw geometry valid
+  ---
+  duration_ms: 150987.930752
+  type: 'test'
+  ...
+# Subtest: validateLoopLength: 60.000 m VALID, 60.001 / 60.0001 m INVALID — no rounding
+ok 123 - validateLoopLength: 60.000 m VALID, 60.001 / 60.0001 m INVALID — no rounding
+  ---
+  duration_ms: 4.92478
+  type: 'test'
+  ...
+# Subtest: loops LP1: ≈ 50 m raw → 1 loop — 1 loop(s), each ≤ 60 m, each a spiral
+ok 124 - loops LP1: ≈ 50 m raw → 1 loop — 1 loop(s), each ≤ 60 m, each a spiral
+  ---
+  duration_ms: 1724.968436
+  type: 'test'
+  ...
+# Subtest: loops LP2: ≈ 57 m raw, total just under 60 m → 1 loop — 1 loop(s), each ≤ 60 m, each a spiral
+ok 125 - loops LP2: ≈ 57 m raw, total just under 60 m → 1 loop — 1 loop(s), each ≤ 60 m, each a spiral
+  ---
+  duration_ms: 1570.348534
+  type: 'test'
+  ...
+# Subtest: loops LP3: ≈ 63.5 m raw — just over one loop → 2 loops — 2 loop(s), each ≤ 60 m, each a spiral
+ok 126 - loops LP3: ≈ 63.5 m raw — just over one loop → 2 loops — 2 loop(s), each ≤ 60 m, each a spiral
+  ---
+  duration_ms: 3483.750533
+  type: 'test'
+  ...
+# Subtest: loops LP3b: 59.4 m raw, over 60 m with the leads — a shorter valid variant of the same spiral fits → 1 loop — 1 loop(s), each ≤ 60 m, each a spiral
+ok 127 - loops LP3b: 59.4 m raw, over 60 m with the leads — a shorter valid variant of the same spiral fits → 1 loop — 1 loop(s), each ≤ 60 m, each a spiral
+  ---
+  duration_ms: 2512.530298
+  type: 'test'
+  ...
+# Subtest: loops LP4: ≈ 100 m raw — 2 loop(s), each ≤ 60 m, each a spiral
+ok 128 - loops LP4: ≈ 100 m raw — 2 loop(s), each ≤ 60 m, each a spiral
+  ---
+  duration_ms: 26208.886506
+  type: 'test'
+  ...
+# Subtest: loops LP5: ≈ 110 m raw — 2 loop(s), each ≤ 60 m, each a spiral
+ok 129 - loops LP5: ≈ 110 m raw — 2 loop(s), each ≤ 60 m, each a spiral
+  ---
+  duration_ms: 16728.095026
+  type: 'test'
+  ...
+# Subtest: loops LP6: ≈ 120 m raw — 3 loop(s), each ≤ 60 m, each a spiral
+ok 130 - loops LP6: ≈ 120 m raw — 3 loop(s), each ≤ 60 m, each a spiral
+  ---
+  duration_ms: 58312.236032
+  type: 'test'
+  ...
+# Subtest: loops LP3 / LP3b: the 60 m budget is planned with the leads; a loop over 60 m is never accepted
+ok 131 - loops LP3 / LP3b: the 60 m budget is planned with the leads; a loop over 60 m is never accepted
+  ---
+  duration_ms: 0.851163
+  type: 'test'
+  ...
+# Subtest: obstacle O1: ONE spiral round the obstacle(s) — RAW GEOMETRY VALID
+ok 132 - obstacle O1: ONE spiral round the obstacle(s) — RAW GEOMETRY VALID
+  ---
+  duration_ms: 10816.837125
+  type: 'test'
+  ...
+# Subtest: obstacle O2: ONE spiral round the obstacle(s) — RAW GEOMETRY VALID
+ok 133 - obstacle O2: ONE spiral round the obstacle(s) — RAW GEOMETRY VALID
+  ---
+  duration_ms: 8933.847626
+  type: 'test'
+  ...
+# Subtest: obstacle O3: ONE spiral round the obstacle(s) — RAW GEOMETRY VALID
+ok 134 - obstacle O3: ONE spiral round the obstacle(s) — RAW GEOMETRY VALID
+  ---
+  duration_ms: 8495.121107
+  type: 'test'
+  ...
+# Subtest: obstacle O4: ONE spiral round the obstacle(s) — RAW GEOMETRY VALID
+ok 135 - obstacle O4: ONE spiral round the obstacle(s) — RAW GEOMETRY VALID
+  ---
+  duration_ms: 7205.749625
+  type: 'test'
+  ...
+# Subtest: obstacle O5: ONE spiral round the obstacle(s) — RAW GEOMETRY VALID
+ok 136 - obstacle O5: ONE spiral round the obstacle(s) — RAW GEOMETRY VALID
+  ---
+  duration_ms: 8985.244968
+  type: 'test'
+  ...
+# Subtest: obstacle O6: ONE spiral round the obstacle(s) — RAW GEOMETRY VALID
+ok 137 - obstacle O6: ONE spiral round the obstacle(s) — RAW GEOMETRY VALID
+  ---
+  duration_ms: 7929.849066
+  type: 'test'
+  ...
+# Subtest: obstacle O2 / O3 / O4: 0.6 / 0.8 / 1.0 m gaps — the rings that fit pass, the others end there (no squeezing)
+ok 138 - obstacle O2 / O3 / O4: 0.6 / 0.8 / 1.0 m gaps — the rings that fit pass, the others end there (no squeezing)
+  ---
+  duration_ms: 23647.859328
+  type: 'test'
+  ...
+# Subtest: obstacle O7: L / U with a column — minimum regions, the column wrapped or notched, valid
+ok 139 - obstacle O7: L / U with a column — minimum regions, the column wrapped or notched, valid
+  ---
+  duration_ms: 12756.748817
+  type: 'test'
+  ...
+# Subtest: obstacle O8: L / U with a column — minimum regions, the column wrapped or notched, valid
+ok 140 - obstacle O8: L / U with a column — minimum regions, the column wrapped or notched, valid
+  ---
+  duration_ms: 4147.285906
+  type: 'test'
+  ...
+# Subtest: obstacle O9: 0.3 m corridor between column and wall — no pipe squeezed in, the strip stays visible as uncovered
+ok 141 - obstacle O9: 0.3 m corridor between column and wall — no pipe squeezed in, the strip stays visible as uncovered
+  ---
+  duration_ms: 8869.398632
+  type: 'test'
+  ...
+# Subtest: obstacle O10: column on the spiral centre — step 4 alone under the limit (78 %); with the centre closure (step 5) valid
+ok 142 - obstacle O10: column on the spiral centre — step 4 alone under the limit (78 %); with the centre closure (step 5) valid
+  ---
+  duration_ms: 6774.921391
+  type: 'test'
+  ...
+# Subtest: obstacle L3b / U9 regressions: fewer regions than step 3, still valid
+ok 143 - obstacle L3b / U9 regressions: fewer regions than step 3, still valid
+  ---
+  duration_ms: 8368.507962
+  type: 'test'
+  ...
+# Subtest: seam spiral without seams on a rectangle: the convex generator's rings, at least as much pipe
+ok 144 - seam spiral without seams on a rectangle: the convex generator's rings, at least as much pipe
+  ---
+  duration_ms: 477.437474
+  type: 'test'
+  ...
+# Subtest: obstacle spiral: a corner without room for R is never shrunk — the variant is dropped
+ok 145 - obstacle spiral: a corner without room for R is never shrunk — the variant is dropped
+  ---
+  duration_ms: 250.111411
+  type: 'test'
+  ...
+# Subtest: lattice 6 × 6: 82 538 partitions into ≤ 6 rectangles — every one a LEAF / SLICE / PINWHEEL tree
+ok 146 - lattice 6 × 6: 82 538 partitions into ≤ 6 rectangles — every one a LEAF / SLICE / PINWHEEL tree
+  ---
+  duration_ms: 621.108462
+  type: 'test'
+  ...
+# Subtest: lead access (P7): every partition into ≤ 6 rectangles all touching the boundary is guillotine
+ok 147 - lead access (P7): every partition into ≤ 6 rectangles all touching the boundary is guillotine
+  ---
+  duration_ms: 261.42128
+  type: 'test'
+  ...
+# Subtest: modelComplete: guillotine alone to k = 4, with pinwheels to k = 6, never above
+ok 148 - modelComplete: guillotine alone to k = 4, with pinwheels to k = 6, never above
+  ---
+  duration_ms: 0.490838
+  type: 'test'
+  ...
+# Subtest: every pruning rule against brute force: same maximum cover, k = 1…6 (6 × 6 lattice, interior loops allowed)
+ok 149 - every pruning rule against brute force: same maximum cover, k = 1…6 (6 × 6 lattice, interior loops allowed)
+  ---
+  duration_ms: 8234.145707
+  type: 'test'
+  ...
+# Subtest: decision form: best(R, k, t) is null exactly when the maximum < t (targets round the maximum, early stop)
+ok 150 - decision form: best(R, k, t) is null exactly when the maximum < t (targets round the maximum, early stop)
+  ---
+  duration_ms: 2747.238728
+  type: 'test'
+  ...
+# Subtest: P7 lead access: with wall-only loops the pinwheel shortcut equals the full pinwheel enumeration and brute force
+ok 151 - P7 lead access: with wall-only loops the pinwheel shortcut equals the full pinwheel enumeration and brute force
+  ---
+  duration_ms: 835.017373
+  type: 'test'
+  ...
+# Subtest: a pinwheel-only solution: guillotine search misses it, the pinwheel model finds it
+ok 152 - a pinwheel-only solution: guillotine search misses it, the pinwheel model finds it
+  ---
+  duration_ms: 7.246325
+  type: 'test'
+  ...
+# Subtest: search statistics are counted
+ok 153 - search statistics are counted
+  ---
+  duration_ms: 0.742723
+  type: 'test'
+  ...
+# Subtest: the oracle is sharp: pinwheel-winning instances exist and are checked, an unsafe bound is caught
+ok 154 - the oracle is sharp: pinwheel-winning instances exist and are checked, an unsafe bound is caught
+  ---
+  duration_ms: 728.972028
+  type: 'test'
+  ...
+# Subtest: root shards: the union of n shards decides exactly what the unsharded search decides
+ok 155 - root shards: the union of n shards decides exactly what the unsharded search decides
+  ---
+  duration_ms: 916.031123
+  type: 'test'
+  ...
+# Subtest: resumable root: the root splits done in earlier (interrupted) runs are skipped — the same decision
+ok 156 - resumable root: the root splits done in earlier (interrupted) runs are skipped — the same decision
+  ---
+  duration_ms: 663.903542
+  type: 'test'
+  ...
+# Subtest: memory guard: the memo emptied again and again changes no result
+ok 157 - memory guard: the memo emptied again and again changes no result
+  ---
+  duration_ms: 555.646383
+  type: 'test'
+  ...
+# Subtest: Phase 6 frozen at Phase 6 reopen (phase6r) + room search: 13 / 13 algorithm files byte-identical (SHA-256)
+ok 158 - Phase 6 frozen at Phase 6 reopen (phase6r) + room search: 13 / 13 algorithm files byte-identical (SHA-256)
+  ---
+  duration_ms: 4.583141
+  type: 'test'
+  ...
+# Subtest: Phase 6 acceptance baseline and evidence are in the repository
+ok 159 - Phase 6 acceptance baseline and evidence are in the repository
+  ---
+  duration_ms: 1.110418
+  type: 'test'
+  ...
+# Subtest: 6R-1 reference regression: right-side residual — the final pass covers the right strip, not the centre
+ok 160 - 6R-1 reference regression: right-side residual — the final pass covers the right strip, not the centre
+  ---
+  duration_ms: 1395.778966
+  type: 'test'
+  ...
+# Subtest: 6R-2 the side closure ranks above the centre one within the limits (not by hiding coverage)
+ok 161 - 6R-2 the side closure ranks above the centre one within the limits (not by hiding coverage)
+  ---
+  duration_ms: 1690.313949
+  type: 'test'
+  ...
+# Subtest: 6R-3 exact width: no residual, no closure needed
+ok 162 - 6R-3 exact width: no residual, no closure needed
+  ---
+  duration_ms: 716.55511
+  type: 'test'
+  ...
+# Subtest: 6R-4 residual at 150 mm pitch: 100 ≤ ρ < 150 on the side, terminal only
+ok 163 - 6R-4 residual at 150 mm pitch: 100 ≤ ρ < 150 on the side, terminal only
+  ---
+  duration_ms: 617.309012
+  type: 'test'
+  ...
+# Subtest: 6R-5 multi-loop room (lead-aware): own subregions, no overlap, each loop valid, ≤ 60 m with the explicit lead budget
+ok 164 - 6R-5 multi-loop room (lead-aware): own subregions, no overlap, each loop valid, ≤ 60 m with the explicit lead budget
+  ---
+  duration_ms: 28139.285886
+  type: 'test'
+  ...
+# Subtest: 6R-6 lead-aware endpoints: supply / return point and direction, entry / exit zones; inputs required
+ok 165 - 6R-6 lead-aware endpoints: supply / return point and direction, entry / exit zones; inputs required
+  ---
+  duration_ms: 993.693895
+  type: 'test'
+  ...
+# Subtest: 6R-7 60 m with the real lead budget: a longer transfer → more loops, never a loop over 60 m
+ok 166 - 6R-7 60 m with the real lead budget: a longer transfer → more loops, never a loop over 60 m
+  ---
+  duration_ms: 9787.36099
+  type: 'test'
+  ...
+# Subtest: 6R-8 obstacle notch: one continuous spiral round the notch, residual on a side
+ok 167 - 6R-8 obstacle notch: one continuous spiral round the notch, residual on a side
+  ---
+  duration_ms: 422.480957
+  type: 'test'
+  ...
+# Subtest: 6R-9 no valid spiral → NO_VALID_SPIRAL (never a serpentine)
+ok 168 - 6R-9 no valid spiral → NO_VALID_SPIRAL (never a serpentine)
+  ---
+  duration_ms: 1.876413
+  type: 'test'
+  ...
+# Subtest: 6R-10 determinism: the same input → the same Phase 6 geometry
+ok 169 - 6R-10 determinism: the same input → the same Phase 6 geometry
+  ---
+  duration_ms: 1532.118699
+  type: 'test'
+  ...
+# Subtest: regions L1: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts
+ok 170 - regions L1: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts
+  ---
+  duration_ms: 2339.224586
+  type: 'test'
+  ...
+# Subtest: regions L2: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts
+ok 171 - regions L2: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts
+  ---
+  duration_ms: 2013.171634
+  type: 'test'
+  ...
+# Subtest: regions L3: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts
+ok 172 - regions L3: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts
+  ---
+  duration_ms: 15840.992478
+  type: 'test'
+  ...
+# Subtest: regions L3b: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts
+ok 173 - regions L3b: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts
+  ---
+  duration_ms: 3513.355577
+  type: 'test'
+  ...
+# Subtest: regions L4a: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts
+ok 174 - regions L4a: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts
+  ---
+  duration_ms: 1567.87319
+  type: 'test'
+  ...
+# Subtest: regions L4b: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts
+ok 175 - regions L4b: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts
+  ---
+  duration_ms: 1476.821018
+  type: 'test'
+  ...
+# Subtest: regions L5: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts
+ok 176 - regions L5: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts
+  ---
+  duration_ms: 3964.544256
+  type: 'test'
+  ...
+# Subtest: regions U1: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts
+ok 177 - regions U1: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts
+  ---
+  duration_ms: 2143.864093
+  type: 'test'
+  ...
+# Subtest: regions U1c: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts
+ok 178 - regions U1c: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts
+  ---
+  duration_ms: 2408.303129
+  type: 'test'
+  ...
+# Subtest: regions U2: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts
+ok 179 - regions U2: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts
+  ---
+  duration_ms: 3705.18803
+  type: 'test'
+  ...
+# Subtest: regions U3: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts
+ok 180 - regions U3: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts
+  ---
+  duration_ms: 6755.750951
+  type: 'test'
+  ...
+# Subtest: regions U4: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts
+ok 181 - regions U4: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts
+  ---
+  duration_ms: 1666.356006
+  type: 'test'
+  ...
+# Subtest: regions U4b: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts
+ok 182 - regions U4b: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts
+  ---
+  duration_ms: 1532.551216
+  type: 'test'
+  ...
+# Subtest: regions U5: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts
+ok 183 - regions U5: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts
+  ---
+  duration_ms: 4375.724767
+  type: 'test'
+  ...
+# Subtest: regions U9: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts
+ok 184 - regions U9: RAW GEOMETRY VALID — each region its own spiral, s kept across cuts
+  ---
+  duration_ms: 4084.409672
+  type: 'test'
+  ...
+# Subtest: regions L4b / U4b: the 0.9 m arm limitations are gone (Phase 6 reopen: notched regions) — no longer known limitations
+ok 185 - regions L4b / U4b: the 0.9 m arm limitations are gone (Phase 6 reopen: notched regions) — no longer known limitations
+  ---
+  duration_ms: 2927.521136
+  type: 'test'
+  ...
+# Subtest: regions U3 / U9: the step-3 limitations are gone — no longer listed as known limitations
+ok 186 - regions U3 / U9: the step-3 limitations are gone — no longer listed as known limitations
+  ---
+  duration_ms: 10291.298028
+  type: 'test'
+  ...
+# Subtest: regions L6 / L7 / U6: raw spirals over 60 m are flagged, the zone needs the loop planner — no loops yet
+ok 187 - regions L6 / L7 / U6: raw spirals over 60 m are flagged, the zone needs the loop planner — no loops yet
+  ---
+  duration_ms: 16715.83909
+  type: 'test'
+  ...
+# Subtest: regions U10 / U7: the minimum region count with an acceptable split is chosen
+ok 188 - regions U10 / U7: the minimum region count with an acceptable split is chosen
+  ---
+  duration_ms: 2219.068655
+  type: 'test'
+  ...
+# Subtest: regions U8 / O8: splits that fail (invalid regions, patches over the limit) are passed over, a valid one is used
+ok 189 - regions U8 / O8: splits that fail (invalid regions, patches over the limit) are passed over, a valid one is used
+  ---
+  duration_ms: 11368.318132
+  type: 'test'
+  ...
+# Subtest: regions: fewer regions win over a little more coverage (C before B unless C breaks the limits)
+ok 190 - regions: fewer regions win over a little more coverage (C before B unless C breaks the limits)
+  ---
+  duration_ms: 2525.139771
+  type: 'test'
+  ...
+# Subtest: RS-1 rest widths: ρ is fixed by the distances between parallel sides (start / winding cannot change it)
+ok 191 - RS-1 rest widths: ρ is fixed by the distances between parallel sides (start / winding cannot change it)
+  ---
+  duration_ms: 2.373279
+  type: 'test'
+  ...
+# Subtest: RS-2 joint piece evaluation: every valid variant meets the hard limits; centre residual is never valid
+ok 192 - RS-2 joint piece evaluation: every valid variant meets the hard limits; centre residual is never valid
+  ---
+  duration_ms: 5082.936044
+  type: 'test'
+  ...
+# Subtest: RS-3 minimum count: k below the continuous bound is PROVEN_INFEASIBLE; the first feasible k stops the search
+ok 193 - RS-3 minimum count: k below the continuous bound is PROVEN_INFEASIBLE; the first feasible k stops the search
+  ---
+  duration_ms: 5493.40546
+  type: 'test'
+  ...
+# Subtest: RS-4 lead-aware planning with the room search: valid loops, or SEARCH_NOT_EXHAUSTIVE — never a hidden NO_VALID_SPIRAL
+ok 194 - RS-4 lead-aware planning with the room search: valid loops, or SEARCH_NOT_EXHAUSTIVE — never a hidden NO_VALID_SPIRAL
+  ---
+  duration_ms: 12520.466969
+  type: 'test'
+  ...
+# Subtest: RS-5 determinism: the same room → the same partition, loops and geometry
+ok 195 - RS-5 determinism: the same room → the same partition, loops and geometry
+  ---
+  duration_ms: 11101.20305
+  type: 'test'
+  ...
+# Subtest: spiral 5×5 m, s 200 mm: one continuous bifilar spiral, valid bends, exact spacing, covered
+ok 196 - spiral 5×5 m, s 200 mm: one continuous bifilar spiral, valid bends, exact spacing, covered
+  ---
+  duration_ms: 1604.707014
+  type: 'test'
+  ...
+# Subtest: spiral 5×5 m, s 150 mm: one continuous bifilar spiral, valid bends, exact spacing, covered
+ok 197 - spiral 5×5 m, s 150 mm: one continuous bifilar spiral, valid bends, exact spacing, covered
+  ---
+  duration_ms: 1863.379793
+  type: 'test'
+  ...
+# Subtest: spiral 3.5×3.5 m, s 200 mm: one continuous bifilar spiral, valid bends, exact spacing, covered
+ok 198 - spiral 3.5×3.5 m, s 200 mm: one continuous bifilar spiral, valid bends, exact spacing, covered
+  ---
+  duration_ms: 487.012739
+  type: 'test'
+  ...
+# Subtest: spiral 3.5×3.5 m, s 150 mm: one continuous bifilar spiral, valid bends, exact spacing, covered
+ok 199 - spiral 3.5×3.5 m, s 150 mm: one continuous bifilar spiral, valid bends, exact spacing, covered
+  ---
+  duration_ms: 515.13952
+  type: 'test'
+  ...
+# Subtest: spiral 6×4 m, s 200 mm: one continuous bifilar spiral, valid bends, exact spacing, covered
+ok 200 - spiral 6×4 m, s 200 mm: one continuous bifilar spiral, valid bends, exact spacing, covered
+  ---
+  duration_ms: 1163.790062
+  type: 'test'
+  ...
+# Subtest: spiral 6×4 m, s 150 mm: one continuous bifilar spiral, valid bends, exact spacing, covered
+ok 201 - spiral 6×4 m, s 150 mm: one continuous bifilar spiral, valid bends, exact spacing, covered
+  ---
+  duration_ms: 1308.55046
+  type: 'test'
+  ...
+# Subtest: spiral: a non-convex region is refused (it is cut into spiral regions first)
+ok 202 - spiral: a non-convex region is refused (it is cut into spiral regions first)
+  ---
+  duration_ms: 0.411544
+  type: 'test'
+  ...
+# Subtest: spiral: no room for the bends — no spiral rather than a smaller radius
+ok 203 - spiral: no room for the bends — no spiral rather than a smaller radius
+  ---
+  duration_ms: 0.304026
+  type: 'test'
+  ...
+# Subtest: bifilar spiral: no self-crossings, both ends side by side at the entry corner, even spacing
+ok 204 - bifilar spiral: no self-crossings, both ends side by side at the entry corner, even spacing
+  ---
+  duration_ms: 9.11462
+  type: 'test'
+  ...
+# Subtest: double serpentine: closed U-turn, supply/return pair s apart, no crossings
+ok 205 - double serpentine: closed U-turn, supply/return pair s apart, no crossings
+  ---
+  duration_ms: 3.976897
+  type: 'test'
+  ...
+# Subtest: serpentine: even number of runs, return back along the entry edge
+ok 206 - serpentine: even number of runs, return back along the entry edge
+  ---
+  duration_ms: 1.148281
+  type: 'test'
+  ...
+# Subtest: corner rounding keeps the path continuous and never lengthens it
+ok 207 - corner rounding keeps the path continuous and never lengthens it
+  ---
+  duration_ms: 0.27293
+  type: 'test'
+  ...
+# Subtest: room layout: strips touch the manifold side, leads end at ports and never cross
+ok 208 - room layout: strips touch the manifold side, leads end at ports and never cross
+  ---
+  duration_ms: 27.994249
+  type: 'test'
+  ...
+# Subtest: calculation uses the real loop geometry
+ok 209 - calculation uses the real loop geometry
+  ---
+  duration_ms: 151.089315
+  type: 'test'
+  ...
+# Subtest: L-shaped room: coils stay inside the outline and leads never cross a coil
+ok 210 - L-shaped room: coils stay inside the outline and leads never cross a coil
+  ---
+  duration_ms: 5.43458
+  type: 'test'
+  ...
+# Subtest: auto UFH: whole level grouped to ≤ 12-outlet manifolds, every room connected
+ok 211 - auto UFH: whole level grouped to ≤ 12-outlet manifolds, every room connected
+  ---
+  duration_ms: 322.855072
+  type: 'test'
+  ...
+# Subtest: loops ≤ 60 m: fewest loops that fit (70 m → 2), small rooms keep one short loop
+ok 212 - loops ≤ 60 m: fewest loops that fit (70 m → 2), small rooms keep one short loop
+  ---
+  duration_ms: 7.106123
+  type: 'test'
+  ...
+# Subtest: manifold > 12 loops is split into manifolds of ≤ 12 outlets side by side
+ok 213 - manifold > 12 loops is split into manifolds of ≤ 12 outlets side by side
+  ---
+  duration_ms: 284.705723
+  type: 'test'
+  ...
+# Subtest: one big room with > 12 loops is served by several manifolds (bands), each ≤ 12
+ok 214 - one big room with > 12 loops is served by several manifolds (bands), each ≤ 12
+  ---
+  duration_ms: 371.309017
+  type: 'test'
+  ...
+# Subtest: inset polygon keeps orientation-independent inward offset
+ok 215 - inset polygon keeps orientation-independent inward offset
+  ---
+  duration_ms: 3.617909
+  type: 'test'
+  ...
+# Subtest: radiator pairs run along the walls as one bundle and never cross
+ok 216 - radiator pairs run along the walls as one bundle and never cross
+  ---
+  duration_ms: 23.60615
+  type: 'test'
+  ...
+1..216
+# tests 216
+# suites 0
+# pass 213
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 641483.017804
+EXIT 1
