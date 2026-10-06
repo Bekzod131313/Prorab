@@ -2,7 +2,6 @@
 // command line, shortcuts, files, autosave/recovery and integrations to the Store.
 import { Store, ERROR_LOG, logError } from '../core/store.js';
 import { createEmptyProject, elementsOf, sortedLevels, newElement, levelById } from '../core/model.js';
-import { createDemoProject, createSampleProject } from '../core/demo.js';
 import { autoPlaceRadiators, autoRoute, autoPlaceCollector, autoUfh, splitOverloadedCollectors } from '../core/autodesign.js';
 import { serializeProject, parseProject, exportDXF, exportIFC, exportSVG, parseDXF, dxfSegmentsToWalls, download, toExcelXml } from '../core/io.js';
 import { t, setLang, getLang, LANG_NAMES, msg } from '../core/i18n.js';
@@ -36,7 +35,7 @@ class App {
     this.role = localStore('zodpro.role') ?? 'manager';
     this.telemetry = localStore('zodpro.telemetry') === '1';
     this.applyTheme();
-    this.store = new Store(this.initialProject());
+    this.store = new Store(createEmptyProject());
     this.plan = new PlanView($('#plan-canvas'), this.store, this);
     this.ufh = new UfhTool(this);
     this.v3d = new View3D($('#three-host'), $('#toolbar-3d'), this.store, this);
@@ -62,15 +61,6 @@ class App {
     });
     window.ZODPRO = { app: this, register: (m, a) => this.plugins.register(m, a) };
     this.offerRecovery();
-  }
-
-  initialProject() {
-    const p = createSampleProject();
-    // structural grid axes from the walls (1…n, А…) as on the sample drawings
-    const g = autoGrid(p);
-    for (const a of g.x) { const e = newElement('gridline', { axis: 'x', pos: a.pos, name: a.name, levelId: null }); p.elements[e.id] = e; }
-    for (const a of g.y) { const e = newElement('gridline', { axis: 'y', pos: a.pos, name: a.name, levelId: null }); p.elements[e.id] = e; }
-    return p;
   }
 
   /** Crash recovery: offered after start-up in an in-page dialog. */
@@ -223,12 +213,6 @@ class App {
     cmd('open', t('t_open'), 'open', () => this.openFile(), 'OPEN', 'view');
     cmd('save', t('t_save'), 'save', () => this.saveFile(), 'SAVE', 'view');
     cmd('save_as', t('t_save_as'), 'save', () => this.saveFile(true), 'SAVEAS', 'view');
-    cmd('demo', t('t_demo'), 'demo', async () => {
-      if (!this.store.dirty || (await this.confirmBox(t('confirm_new')))) this.store.setProject(this.initialProject());
-    }, 'DEMO', 'view');
-    cmd('demo_small', 'Kichik uy namunasi', 'demo', async () => {
-      if (!this.store.dirty || (await this.confirmBox(t('confirm_new')))) this.store.setProject(createDemoProject());
-    }, 'DEMO2', 'view');
     cmd('imp_dxf', t('t_imp_dxf'), 'import', () => this.importDXF(), 'IMPDXF');
     cmd('imp_img', t('t_imp_img'), 'underlay', () => this.importUnderlay(), 'UNDERLAY');
     cmd('imp_ifc', 'IFC import', 'import', () => this.importIFC(), 'IMPIFC');
@@ -274,7 +258,7 @@ class App {
       systems: [['radiator', 'pipe_s', 'pipe_r', 'riser'], ['collector', 'ufh_collector', 'ufh_auto', 'ufh_pipe', 'floor_obstacle', 'ufh_room'], ['boiler', 'pump', 'thermostat', 'obstacle'], ['auto_rad', 'auto_ufh', 'split_col', 'auto_col', 'auto_route']],
       calc: [['calc', 'validate', 'balance'], ['view_reports', 'view_dashboard', 'view_schema'], ['ai']],
       docs: [['view_sheets', 'view_schedules', 'exp_pdf'], ['view_schema', 'view_riser', 'view_section', 'section'], ['revision', 'tags']],
-      export: [['new', 'open', 'save', 'save_as', 'demo', 'demo_small'], ['imp_dxf', 'imp_img', 'imp_ifc', 'calibrate'], ['exp_dxf', 'exp_ifc', 'exp_xls', 'exp_csv', 'exp_svg', 'exp_png', 'exp_pdf'], ['quote', 'sap', 'telegram'], ['send_claude', 'exp_json', 'save']],
+      export: [['new', 'open', 'save', 'save_as'], ['imp_dxf', 'imp_img', 'imp_ifc', 'calibrate'], ['exp_dxf', 'exp_ifc', 'exp_xls', 'exp_csv', 'exp_svg', 'exp_png', 'exp_pdf'], ['quote', 'sap', 'telegram'], ['send_claude', 'exp_json', 'save']],
       settings: [['view_settings', 'view_library'], ['plugins', 'errors']],
       help: [['view_help', 'palette', 'ai']],
     };
