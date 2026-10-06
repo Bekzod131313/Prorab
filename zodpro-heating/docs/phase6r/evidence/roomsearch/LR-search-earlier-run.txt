@@ -1,0 +1,11 @@
+LR s 0.2 toEntry 2.885
+ms 3003437 raster 77 117 leafEvals 6204 skipped 4842 bounds LB 2
+{"k":"1…1","status":"PROVEN_INFEASIBLE","reason":"continuous lower bound 2 (need 15.61 m², ≤ 53.10 m heating per loop)"}
+{"k":2,"status":"GRID_EXHAUSTIVE","tested":194,"feasible":0,"ms":111665,"rejected":{"narrower than a two-ring spiral":26,"over 60 m for 85 % even at best (lower bound)":100,"coverage < 85 %":2,"largest gap > limit":38,"no spiral built":23,"total > 60 m":5}}
+{"k":3,"status":"PROVEN_FEASIBLE","tested":6617,"feasible":6,"ms":2891766,"rejected":{"narrower than a two-ring spiral":4043,"no spiral built":507,"coverage < 85 %":326,"largest gap > limit":866,"total > 60 m":51,"over 60 m for 85 % even at best (lower bound)":793,"terminal closure not on the side (centre residual)":25}}
+  part 1 (0.100,4.100) (0.100,0.100) (1.300,0.100) (1.300,4.100)
+  part 2 (3.050,5.900) (1.900,5.900) (1.900,4.100) (1.300,4.100) (1.300,0.100) (3.050,0.100)
+  part 3 (3.900,2.242) (3.792,2.242) (3.792,5.792) (3.392,5.792) (3.392,5.900) (3.050,5.900) (3.050,0.100) (3.900,0.100)
+  loop none rho null start 3 mir false centre hairpin heat 23.17 sup 12.95 ret 12.95 total 49.06 cov 97.5 gap 0.000 R 0.100 PHASE6_REFERENCE_NA
+  loop side:left rho 0.15 start 5 mir false centre side heat 42.96 sup 6.40 ret 6.80 total 56.15 cov 92.9 gap 0.000 R 0.100 PHASE6_REFERENCE_OK
+  loop side:left rho 0.142 start 0 mir false centre side heat 22.17 sup 3.69 ret 3.80 total 29.66 cov 93.3 gap 0.000 R 0.100 PHASE6_REFERENCE_OK
