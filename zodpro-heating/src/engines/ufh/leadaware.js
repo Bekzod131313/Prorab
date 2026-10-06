@@ -24,6 +24,7 @@
 import * as G from './geom.js';
 import { spiralRegions } from './decompose.js';
 import { planLoops } from './loopplanner.js';
+import { planFromSearch } from './roomsearch.js';
 import { ENGINEERING_FINAL_COVERAGE, MAX_LARGEST_GAP } from './criteria.js';
 
 export const NO_VALID_SPIRAL = 'NO_VALID_SPIRAL';
@@ -94,7 +95,8 @@ export function leadBudget(U, entry, budget) {
  * @param U    usable heating area of the room (region; 7B's U′: wall clearance, obstacles and the
  *             transit corridor already off)
  * @param s    heating pitch
- * @param ctx  { entry: { at, dir }, leadSpacing, budget: { toEntry_m, drop_m }, r, maxIter }
+ * @param ctx  { entry: { at, dir }, leadSpacing, budget: { toEntry_m, drop_m }, r, maxIter,
+ *               roomSearch?: { kMax, timeLimit_ms, grid, measure } }
  */
 export function planLeadAware(U, s, ctx) {
   const S = ctx.leadSpacing;
@@ -109,8 +111,9 @@ export function planLeadAware(U, s, ctx) {
   let reserved = [];
   for (let it = 0; it < maxIter; it++) {
     const P = (reserved.length ? G.difference(region, reserved) : region).filter((sh) => G.area([sh]) >= 1e-6);
-    const res = spiralRegions(P, s, { toward: entry, r: ctx.r });
-    const plan = planLoops(res, P, s, { leadTo, manifold: null, toward: entry, r: ctx.r });
+    // ctx.roomSearch: the minimum valid loop count by the room search (roomsearch.js — joint
+    // closure search per piece, the terminal closure on the side); otherwise decompose + planner
+    const plan = ctx.roomSearch ? planFromSearch(P, s, { ...ctx.roomSearch, leadTo, r: ctx.r }) : planLoops(spiralRegions(P, s, { toward: entry, r: ctx.r }), P, s, { leadTo, manifold: null, toward: entry, r: ctx.r });
     // the routes of every loop (one per pair: to the middle of its two ends) and the band they need
     const routes = plan.loops.map((l) => routeTo({ x: (l.spiral.supply.x + l.spiral.ret.x) / 2, y: (l.spiral.supply.y + l.spiral.ret.y) / 2 }));
     const band = bandOf(routes, S, region);

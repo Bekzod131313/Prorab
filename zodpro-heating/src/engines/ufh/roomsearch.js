@@ -29,6 +29,7 @@ import * as G from './geom.js';
 import { bestSpiral } from './spiralgen.js';
 import { obstacleSpiral, measure } from './obstaclespiral.js';
 import { loopLowerBounds } from './loopproof.js';
+import { validateLoopLength } from './loopplanner.js';
 import { referenceCheck, PHASE6_REFERENCE_MISMATCH } from './phase6reference.js';
 import { MAX_LOOP_M, LOOP_LENGTH_EPS, MAX_LARGEST_GAP, ENGINEERING_FINAL_COVERAGE, RMIN_CHECK, LOOP_CUT_GRID, MIN_RESIDUAL_CLOSURE_SPACING, SPACING_TOL } from './criteria.js';
 
@@ -153,8 +154,11 @@ export function evaluatePiece(shape, s, o) {
     else if (!terminalValid) reject('terminal closure not on the side (centre residual)');
     else valid.push(row);
   }
-  // secondary order: coverage (0.1 %), largest gap (0.01 m²), uncovered, lead, pipe
-  valid.sort((a, b) => Math.round(b.cover * 1000) - Math.round(a.cover * 1000) || Math.round((a.v.hole - b.v.hole) * 100) || a.v.uncovered - b.v.uncovered || a.supplyLead + a.returnLead - (b.supplyLead + b.returnLead) || a.v.sp.heatingLength - b.v.sp.heatingLength);
+  // secondary order: coverage (0.1 %), largest gap (0.01 m²), the side closure before none (the
+  // reference: the final pass over the side strip, when it is valid and loses nothing above), the
+  // uncovered floor (the residual strip), lead, pipe
+  const sideRank = (x) => (x.closure.startsWith('side:') ? 0 : 1);
+  valid.sort((a, b) => Math.round(b.cover * 1000) - Math.round(a.cover * 1000) || Math.round(a.v.hole * 100) - Math.round(b.v.hole * 100) || sideRank(a) - sideRank(b) || a.v.uncovered - b.v.uncovered || a.supplyLead + a.returnLead - (b.supplyLead + b.returnLead) || a.v.sp.heatingLength - b.v.sp.heatingLength);
   return { area, isRect, sidePossible, rest: restWidths(shape, s), variants: variants.length, runs, rejected, valid, best: valid[0] ?? null };
 }
 
@@ -228,7 +232,22 @@ export function searchRoom(U, s, ctx) {
     return out;
   };
   // the partitions of the model with k pieces (generator: guillotine straight cuts)
+  // the same length bound for a piece of k loops (the covered floor of every loop ≤ its pipe ×
+  // (s + tol) + the end disc; every loop ≤ 60 m minus two leads to the piece's own outline): a piece
+  // that cannot hold k loops is not split further
+  const pieceLb = new Map();
+  const canHold = (pc, k) => {
+    const key = `${keyOf(pc)}#${k}`;
+    if (pieceLb.has(key)) return pieceLb.get(key);
+    const pa = G.area([pc]);
+    const lm = Math.min(...G.densify([...pc.outer, pc.outer[0]], 0.05).filter(onWall).map((q) => ctx.leadTo(q)), Infinity);
+    const need = (ENGINEERING_FINAL_COVERAGE * pa - k * Math.PI * (s / 2 + 0.003) ** 2) / (s + 0.006);
+    const ok = isFinite(lm) && need <= k * (MAX_LOOP_M + LOOP_LENGTH_EPS - 2 * lm);
+    pieceLb.set(key, ok);
+    return ok;
+  };
   function* partitions(pc, k) {
+    if (k > 1 && !canHold(pc, k)) return;
     if (k === 1) {
       yield [pc];
       return;
@@ -281,8 +300,18 @@ export function searchRoom(U, s, ctx) {
       if (seenPart.has(pk)) continue;
       seenPart.add(pk);
       tested++;
-      const ev = parts.map(leaf);
-      const bad = ev.findIndex((e) => !e.valid.length);
+      // the pieces one by one: the first without a valid loop rejects the partition (the others
+      // need not be built)
+      const ev = [];
+      let bad = -1;
+      for (const p of parts) {
+        const e = leaf(p);
+        ev.push(e);
+        if (!e.valid.length) {
+          bad = ev.length - 1;
+          break;
+        }
+      }
       if (bad >= 0) {
         // the reason of the first piece without a valid loop (its most frequent rejection)
         const r = Object.entries(ev[bad].rejected).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'no spiral built';
@@ -297,6 +326,9 @@ export function searchRoom(U, s, ctx) {
     const r = { k, tested, feasible, ms: Date.now() - tk, rejectedPartitions: why };
     if (best) {
       r.status = 'PROVEN_FEASIBLE';
+      // the count is proven (a valid partition built); the best one within it only if every
+      // partition was searched
+      r.secondaryOptimum = timedOut ? 'SEARCH_NOT_EXHAUSTIVE' : 'GRID_EXHAUSTIVE';
       r.best = best;
       results.push(r);
       chosen = { k, ...best };
@@ -309,4 +341,53 @@ export function searchRoom(U, s, ctx) {
   }
   for (let k = (chosen?.k ?? kMax) + 1; k <= kMax; k++) results.push({ k, status: 'NOT_RUN', reason: chosen ? 'a smaller count is feasible' : 'beyond kMax' });
   return { bounds, results, chosen, leafEvals, leafSkipped, xs: xs.length, ys: ys.length, ms: Date.now() - t0, memo };
+}
+
+/**
+ * The loops of a usable area from the room search (per connected shape): the minimum valid loop
+ * count, the best partition at it — as loop objects of planLoops (lengths, validation).
+ * A shape without a valid partition up to kMax gives no loop (its status says why).
+ * @param ctx { leadTo, r, grid, kMax, timeLimit_ms, measure }
+ */
+export function planFromSearch(U, s, ctx) {
+  const loops = [];
+  const regions = [];
+  for (const [i, sh] of G.asRegion(U).entries()) {
+    const shape = { outer: sh.outer, holes: sh.holes ?? [] };
+    const r = searchRoom([shape], s, ctx);
+    const { memo, ...search } = r;
+    regions.push({ label: `S${i + 1}`, search: { ...search, results: r.results.map(({ best, ...q }) => q) }, chosenLoops: r.chosen?.k ?? 0 });
+    if (!r.chosen) continue;
+    r.chosen.rows.forEach((row, j) => {
+      const sp = row.v.sp;
+      const loop = {
+        loopId: `L${loops.length + 1}`,
+        regionId: `S${i + 1}`,
+        kind: 'LOOP',
+        startPoint: sp.supply,
+        endPoint: sp.ret,
+        heatingLength: sp.heatingLength,
+        supplyLength: row.supplyLead,
+        returnLength: row.returnLead,
+        estimatedSupplyLead: ctx.leadTo(sp.supply),
+        estimatedReturnLead: ctx.leadTo(sp.ret),
+        totalLength: row.total,
+        nominalSpacing: s,
+        residualSpacing: sp.residualSpacing ?? null,
+        spiral: sp,
+        shape: r.chosen.parts[j],
+        estimatedLead: true,
+        search: { closure: row.closure, rho: row.rho, start: row.start, mirrored: row.mirrored, centre: row.centre, coverage: row.cover, largestGap_m2: row.v.hole, uncovered_m2: row.v.uncovered, minRadius_m: row.minR, reference: row.ref.status },
+      };
+      loop.remainingBudget = MAX_LOOP_M - loop.totalLength;
+      loop.exceeds60 = !lengthOk(loop.totalLength);
+      const v = validateLoopLength(loop, s);
+      loop.status = v.status;
+      loop.lengthValid = v.lengthValid;
+      loop.geometryValid = v.geometryValid;
+      loop.failed = v.failed;
+      loops.push(loop);
+    });
+  }
+  return { loops, regions };
 }
