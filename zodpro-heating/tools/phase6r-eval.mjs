@@ -106,6 +106,25 @@ function toEntryOf(fx, tr, rid) {
 }
 
 /**
+ * The Phase 6 inputs of every room of the apartment for a loop count map: U′ (7B transit corridor),
+ * the entry (door / manifold), the measured transfer to it, the drop, the pitch.
+ */
+export function roomInputs(fx, counts, leadSpacing = 0.05) {
+  const base = runTransfers(fx, { leadSpacing });
+  const params = base.params;
+  const chains = doorChains({ rooms: fx.rooms, doors: fx.doors, collectorAt: fx.collector.at });
+  const tr = planTransfers({ rooms: fx.rooms, doors: fx.doors, collector: fx.collector, loopsByRoom: counts, usable: base.U, params });
+  const out = {};
+  for (const rid of Object.keys(base.plans)) {
+    const room = fx.rooms.find((r) => r.id === rid);
+    const isC = rid === chains.collectorRoom;
+    const at = isC ? fx.collector.at : fx.doors.find((d) => d.id === chains.rooms[rid].doors.at(-1)).at;
+    out[rid] = { U: tr.rooms[rid].Uprime, s: heatingPitchOf(room, params), entry: { at }, budget: { toEntry_m: isC ? 0 : toEntryOf(fx, tr, rid), drop_m: fx.collector.dropPerPipe_m } };
+  }
+  return out;
+}
+
+/**
  * The apartment with the LEAD-AWARE Phase 6 planner: 7B's transit corridor gives U′ and the measured
  * transfer to each room's entry (inputs); Phase 6 plans every room with them; then 7B's own routing
  * (unchanged code) connects the leads to the new ends — crossings, clashes, topology, 60 m measured.

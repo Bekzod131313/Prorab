@@ -68,18 +68,11 @@ function ringWay(R) {
 }
 
 /**
- * @param U    usable heating area of the room (region; 7B's U′: wall clearance, obstacles and the
- *             transit corridor already off)
- * @param s    heating pitch
- * @param ctx  { entry: { at, dir }, leadSpacing, budget: { toEntry_m, drop_m }, r, maxIter }
+ * The explicit lead budget of a room: a lead from the entry to a point of the usable outline runs
+ * along the outline (the shorter way). leadTo(p) = transfer to the entry + drop + that way.
  */
-export function planLeadAware(U, s, ctx) {
-  const S = ctx.leadSpacing;
-  if (!(S > 0) || !ctx.entry?.at || !ctx.budget || !(ctx.budget.toEntry_m >= 0) || !(ctx.budget.drop_m >= 0)) throw new Error('planLeadAware: entry, leadSpacing and budget { toEntry_m, drop_m } are required inputs');
+export function leadBudget(U, entry, budget) {
   const region = G.asRegion(U);
-  const entry = ctx.entry.at;
-  const maxIter = ctx.maxIter ?? 5;
-  // the leads run along the room's usable outline (the wall / bundle edge) — routes on U itself
   const rings = region.map((sh) => ringWay(sh.outer));
   const routeTo = (p) => {
     let best = null;
@@ -93,8 +86,24 @@ export function planLeadAware(U, s, ctx) {
     });
     return best;
   };
-  // explicit lead budget: transfer to the entry + drop + the way in the room
-  const leadTo = (p) => ctx.budget.toEntry_m + ctx.budget.drop_m + (routeTo(p)?.total ?? Infinity);
+  const leadTo = (p) => budget.toEntry_m + budget.drop_m + (routeTo(p)?.total ?? Infinity);
+  return { routeTo, leadTo };
+}
+
+/**
+ * @param U    usable heating area of the room (region; 7B's U′: wall clearance, obstacles and the
+ *             transit corridor already off)
+ * @param s    heating pitch
+ * @param ctx  { entry: { at, dir }, leadSpacing, budget: { toEntry_m, drop_m }, r, maxIter }
+ */
+export function planLeadAware(U, s, ctx) {
+  const S = ctx.leadSpacing;
+  if (!(S > 0) || !ctx.entry?.at || !ctx.budget || !(ctx.budget.toEntry_m >= 0) || !(ctx.budget.drop_m >= 0)) throw new Error('planLeadAware: entry, leadSpacing and budget { toEntry_m, drop_m } are required inputs');
+  const region = G.asRegion(U);
+  const entry = ctx.entry.at;
+  const maxIter = ctx.maxIter ?? 5;
+  // the leads run along the room's usable outline (the wall / bundle edge) — routes on U itself
+  const { routeTo, leadTo } = leadBudget(region, entry, ctx.budget);
   const history = [];
   const states = [];
   let reserved = [];
