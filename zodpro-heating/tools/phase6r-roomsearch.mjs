@@ -1,14 +1,16 @@
 // Phase 6 reopen: the room search of one apartment room (minimum valid loop count, joint closure).
-// node tools/phase6r-roomsearch.mjs <room> [kMax] [timeLimit_ms]
+// node tools/phase6r-roomsearch.mjs <room> [kMax] [timeLimit_ms] [counts JSON — the loop counts of the
+// apartment for the transit corridor (7B inputs U′, transfer); default the lead-aware fixpoint]
 import fs from 'fs';
 import { roomInputs } from './phase6r-eval.mjs';
 import { leadBudget } from '../src/engines/ufh/leadaware.js';
 import { searchRoom } from '../src/engines/ufh/roomsearch.js';
 const fx = JSON.parse(fs.readFileSync(new URL('../tests/fixtures/apartment-7b.json', import.meta.url)));
-const inp = roomInputs(fx, { H: 3, LR: 3, BR1: 2, BA: 1, BR2: 2 });
+const counts = process.argv[5] ? JSON.parse(process.argv[5]) : { H: 2, LR: 3, BR1: 2, BA: 1, BR2: 2 };
+const inp = roomInputs(fx, counts);
 const rid = process.argv[2];
 const x = inp[rid];
-console.log(rid, 's', x.s, 'toEntry', x.budget.toEntry_m.toFixed(3));
+console.log(rid, 's', x.s, 'toEntry', x.budget.toEntry_m.toFixed(3), 'counts', JSON.stringify(counts));
 const { leadTo } = leadBudget(x.U, x.entry.at, x.budget);
 const r = searchRoom(x.U, x.s, { leadTo, kMax: +(process.argv[3] ?? 3), timeLimit_ms: +(process.argv[4] ?? 1800000) });
 console.log('ms', r.ms, 'raster', r.xs, r.ys, 'leafEvals', r.leafEvals, 'skipped', r.leafSkipped, 'bounds LB', r.bounds.FINAL_LOWER_BOUND);

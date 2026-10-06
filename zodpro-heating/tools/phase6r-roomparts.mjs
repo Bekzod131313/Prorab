@@ -6,7 +6,7 @@ import { roomInputs } from './phase6r-eval.mjs';
 import { leadBudget } from '../src/engines/ufh/leadaware.js';
 import { evaluatePiece } from '../src/engines/ufh/roomsearch.js';
 const fx = JSON.parse(fs.readFileSync(new URL('../tests/fixtures/apartment-7b.json', import.meta.url)));
-const inp = roomInputs(fx, { H: 3, LR: 3, BR1: 2, BA: 1, BR2: 2 });
+const inp = roomInputs(fx, process.env.COUNTS ? JSON.parse(process.env.COUNTS) : { H: 2, LR: 3, BR1: 2, BA: 1, BR2: 2 });
 const out = {};
 for (const [rid, file] of process.argv.slice(3).map((a) => a.split('='))) {
   const x = inp[rid];
