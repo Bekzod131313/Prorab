@@ -175,20 +175,42 @@ export function runPhase6Engine(job, onProgress = () => {}) {
     for (const k of Object.keys(out)) if (out[k] < 0.05) delete out[k];
     return out;
   };
+  // a loop's lead that ends BEHIND the lead bundle: its last leg runs back toward the wall (the end
+  // lies inside the depth of the leads passing there), or no lead could be built to the end at all
+  const roomRegion = Object.fromEntries(rooms.map((r) => [r.id, [{ outer: G.ccw(r.poly), holes: [] }]]));
+  const behindOf = (x) => {
+    const out = new Set();
+    for (const q of x.leads ?? []) {
+      if (q.connectsTo !== 'spiral') continue;
+      if (q.path.length < 2) {
+        out.add(q.loop);
+        continue;
+      }
+      const R = roomRegion[q.room];
+      const dEnd = G.distToRegionBoundary(q.path.at(-1), R);
+      const dPrev = G.distToRegionBoundary(q.path.at(-2), R);
+      if (dEnd < dPrev - 1e-6) out.add(q.loop);
+    }
+    return out;
+  };
   const connect = (pl, cnt) => {
     const loopExits = {};
     for (const [rid, p] of Object.entries(pl)) p.loops.forEach((l) => (loopExits[`${rid}.${l.loopId}`] = { a: l.spiral.supply, b: l.spiral.ret, ha: l.spiral.path.slice(0, 3), hb: l.spiral.path.slice(-3).reverse() }));
     const route = (exitSide) => {
       const x = planTransfers({ rooms, doors, collector, loopsByRoom: cnt, usable: U, params, loopExits, exitSide });
       const hard = (x.issues ?? []).filter((i) => i.status !== 'LEAD_INTERSECTION').length;
-      return { tr: x, key: [x.rooms ? 0 : 1, hard, x.crossings ?? 1e9, (x.leads ?? []).reduce((a2, l) => a2 + l.length, 0)], exitSide };
+      // validity first (a route at all, no hard issue, no crossing, no end behind the bundle), then
+      // the shortest total lead; equal keys keep the earlier variant (deterministic order)
+      const behind = x.rooms ? behindOf(x) : new Set();
+      return { tr: x, behind, key: [x.rooms ? 0 : 1, hard, x.crossings ?? 1e9, behind.size, (x.leads ?? []).reduce((a2, l) => a2 + l.length, 0)], exitSide };
     };
     // a pair whose leads cross may go the other way round its room (lead routing only)
     let best = route({});
-    for (let pass = 0, tries = 0; pass < 2 && best.tr.rooms && best.tr.crossings > 0 && tries < 6; pass++) {
+    for (let pass = 0, tries = 0; pass < 2 && best.tr.rooms && (best.tr.crossings > 0 || best.behind.size > 0) && tries < 6; pass++) {
       let improved = false;
       const L = best.tr.leads;
-      const crossing = new Set();
+      // the pairs to try the other way round: those in a crossing and those ending behind the bundle
+      const crossing = new Set(best.behind);
       for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) if (pathsCross(L[i].path, L[j].path)) (crossing.add(L[i].loop), crossing.add(L[j].loop));
       // (the pair with the longest leads first: a pair sent the long way round its room)
       const leadLen = (lid) => L.filter((q) => q.loop === lid).reduce((a2, q) => a2 + q.length, 0);
@@ -200,6 +222,7 @@ export function runPhase6Engine(job, onProgress = () => {}) {
       }
       if (!improved) break;
     }
+    best.tr.behind = best.behind;
     return best.tr;
   };
   tr = connect(plans, counts);
@@ -244,10 +267,42 @@ export function runPhase6Engine(job, onProgress = () => {}) {
   const score = (x, pl) => {
     const c = clashOf(x, pl);
     const o = realOver(x, pl);
-    return Object.values(o).reduce((a2, v) => a2 + 100 + v.o * 10, 0) + (x.crossings ?? 99) * 10 + Object.values(c).reduce((a2, v) => a2 + v, 0) + (x.issues ?? []).filter((i) => i.status !== 'LEAD_INTERSECTION').length * 20;
+    return Object.values(o).reduce((a2, v) => a2 + 100 + v.o * 10, 0) + ((x.crossings ?? 99) + (x.behind?.size ?? 0)) * 10 + Object.values(c).reduce((a2, v) => a2 + v, 0) + (x.issues ?? []).filter((i) => i.status !== 'LEAD_INTERSECTION').length * 20;
   };
   const extra = {};
   const cut = {};
+  const stalled = {};
+  // a loop over 60 m with its routed leads after two budget rounds: its own region cut in two
+  // (across x or y, at 1/2, 2/5, 3/5), each part spirals of the planner (Phase 6 rules); every cut
+  // whose loops all hold 60 m by the room's lead budget and end on the outline of the floor is a
+  // candidate plan of the room — the one with the best routed result is taken
+  const splitCandidates = (plan, x, rid, leadTo, floor) => {
+    const out = [];
+    const longL = plan.loops.filter((l) => measureLoop(x, `${rid}.${l.loopId}`, l.spiral).length > MAX_LOOP_M);
+    if (longL.length !== 1) return out;
+    const l = longL[0];
+    const keep = plan.loops.filter((q) => q !== l);
+    const sh = [{ outer: l.shape.outer, holes: l.shape.holes ?? [] }];
+    const bb = G.bbox(l.shape.outer);
+    for (const alongX of [true, false])
+      for (const f of [0.5, 0.4, 0.6]) {
+        const c = alongX ? bb.x0 + f * (bb.x1 - bb.x0) : bb.y0 + f * (bb.y1 - bb.y0);
+        const half = (lo) => [{ outer: alongX ? [{ x: lo ? bb.x0 - 1 : c, y: bb.y0 - 1 }, { x: lo ? c : bb.x1 + 1, y: bb.y0 - 1 }, { x: lo ? c : bb.x1 + 1, y: bb.y1 + 1 }, { x: lo ? bb.x0 - 1 : c, y: bb.y1 + 1 }] : [{ x: bb.x0 - 1, y: lo ? bb.y0 - 1 : c }, { x: bb.x1 + 1, y: lo ? bb.y0 - 1 : c }, { x: bb.x1 + 1, y: lo ? c : bb.y1 + 1 }, { x: bb.x0 - 1, y: lo ? c : bb.y1 + 1 }], holes: [] }];
+        // the two parts on a floor: spirals of the planner; the ends on the outline of the floor (the
+        // walls or the lead band edge — where the leads come; never on the cut inside the floor)
+        const build = (fl) => {
+          const parts = [half(true), half(false)].map((h) => G.intersection(G.intersection(sh, fl), h).filter((q) => G.area([q]) > 0.05));
+          if (parts.some((q) => !q.length)) return null;
+          const ls = parts.map((q) => planLoops(spiralRegions(q, s, { toward: entryOf(rid) }), q, s, { leadTo, manifold: null, toward: entryOf(rid) }).loops);
+          const onWall = (q) => G.distToRegionBoundary(q, fl) < 1e-6 && !(alongX ? Math.abs(q.x - c) < 1e-6 : Math.abs(q.y - c) < 1e-6);
+          if (!ls.every((q) => q.length && q.every((m) => m.totalLength <= MAX_LOOP_M + LOOP_LENGTH_EPS && onWall(m.spiral.supply) && onWall(m.spiral.ret)))) return null;
+          return { ...plan, loops: [...keep, ...ls.flat()].map((m, i) => ({ ...m, loopId: `L${i + 1}` })) };
+        };
+        const p0 = build(floor);
+        if (p0) out.push({ plan: p0, rebuild: build });
+      }
+    return out;
+  };
   let cur = score(tr, plans);
   for (let pass = 0; pass < 5 && cur > 0; pass++) {
     onProgress('auto_repair', 0.65 + pass * 0.06);
@@ -269,13 +324,38 @@ export function runPhase6Engine(job, onProgress = () => {}) {
       if (!u2.length) continue;
       const toEntry = (rid === chains.collectorRoom ? 0 : toEntryOf(rooms, tr, rid)) + (extra[rid] ?? 0);
       const { leadTo } = leadBudget(u2, entryOf(rid), { toEntry_m: toEntry, drop_m: dropPerPipe });
-      pl2[rid] = planLoops(spiralRegions(u2, s, { toward: entryOf(rid) }), u2, s, { leadTo, manifold: null, toward: entryOf(rid) });
+      if (over[rid] && (stalled[rid] ?? 0) >= 2) {
+        let bestC = null;
+        for (const c0 of splitCandidates(plans[rid], tr, rid, leadTo, u2)) {
+          let cand = c0.plan;
+          let plC = { ...pl2, [rid]: cand };
+          let cntC = { ...cnt2, [rid]: cand.loops.length };
+          let trC = connect(plC, cntC);
+          // the new pair(s) widen the bundle: ends left behind it → the new parts planned again on the
+          // floor outside the routed bundle (physical corridor exclusion), the leads routed again
+          for (let k = 0; k < 2 && trC.rooms && [...trC.behind].some((id) => id.startsWith(`${rid}.`)); k++) {
+            const band = G.intersection(G.bufferPolylines(trC.leads.filter((q) => q.path.length >= 2).map((q) => q.path), LEAD_SPACING + 0.02, 'butt', 'miter'), roomRegion[rid]);
+            const floor2 = G.difference(u2, band).filter((sh) => G.area([sh]) >= 0.05);
+            const again = c0.rebuild(floor2);
+            if (!again) break;
+            cand = again;
+            plC = { ...pl2, [rid]: cand };
+            cntC = { ...cnt2, [rid]: cand.loops.length };
+            trC = connect(plC, cntC);
+          }
+          if (!trC.rooms) continue;
+          const scC = score(trC, plC);
+          if (!bestC || scC < bestC.sc - 1e-9) bestC = { cand, sc: scC };
+        }
+        pl2[rid] = bestC?.cand ?? plans[rid];
+      } else pl2[rid] = planLoops(spiralRegions(u2, s, { toward: entryOf(rid) }), u2, s, { leadTo, manifold: null, toward: entryOf(rid) });
       cnt2[rid] = pl2[rid].loops.length;
     }
     const tr2 = connect(pl2, cnt2);
     if (!tr2.rooms) break;
     const sc = score(tr2, pl2);
     // (not better: the next round starts from the kept plan with the larger budget / band)
+    for (const rid of Object.keys(over)) if (realOver(tr2, pl2)[rid]) stalled[rid] = (stalled[rid] ?? 0) + 1;
     if (sc >= cur) continue;
     ((plans = pl2), (counts = cnt2), (tr = tr2), (cur = sc));
   }
@@ -323,6 +403,9 @@ export function runPhase6Engine(job, onProgress = () => {}) {
       errors: errs.length,
       warnings: 0,
       room: x.room,
+      key: x.id,
+      // (debug / report: the spiral part, its start and the leads' kinds)
+      spiralPath: sp.path.map((p) => ({ x: +p.x.toFixed(4), y: +p.y.toFixed(4) })),
       zoneId: zoneOfRoom[x.room],
       closure: sp.residual ? (sp.residual.side ? `side:${sp.residual.side}` : 'centre') : 'none',
     });
