@@ -731,6 +731,7 @@ window.CONFIG = {
       group_not_linked_title:'Guruh hali bog‘lanmagan',
       group_not_linked_sub:'Buyurtma berishingiz mumkin — fayl hozircha o‘zingizning botdagi chatingizga tushadi. Guruhga tushishi uchun botni guruhga qo‘shing va operatorga login‘ingizni yuboring:',
       load_failed:'Ma’lumotni yuklab bo‘lmadi', retry:'Qayta urinish',
+      db_unreachable:'Serverga ulanib bo‘lmadi. Internetni tekshiring yoki bir ozdan keyin qayta urinib ko‘ring.',
       success_excel_lichka:'Excel fayl <b>botdagi chatingizga</b> yuborildi — guruh hali bog‘lanmagan.',
       order_phone_label:'Telefon raqamingiz', order_phone_hint:'Yetkazib berish uchun — buyurtma bilan birga yuboriladi',
       toast_phone_needed:'Telefon raqamini to‘g‘ri kiriting',
@@ -826,6 +827,7 @@ window.CONFIG = {
       group_not_linked_title:'Группа ещё не привязана',
       group_not_linked_sub:'Заказ оформить можно — файл пока придёт в ваш личный чат с ботом. Чтобы он попадал в группу, добавьте бота в группу и отправьте оператору свой логин:',
       load_failed:'Не удалось загрузить данные', retry:'Повторить',
+      db_unreachable:'Не удалось подключиться к серверу. Проверьте интернет или повторите чуть позже.',
       success_excel_lichka:'Excel-файл отправлен <b>в ваш чат с ботом</b> — группа ещё не привязана.',
       order_phone_label:'Ваш телефон', order_phone_hint:'Для доставки — отправляется вместе с заказом',
       toast_phone_needed:'Введите телефон корректно',
@@ -1174,7 +1176,14 @@ window.CONFIG = {
       api('/api/notifications').then(n=>{ S.notifications = n; render(); }).catch(()=>{});
       return;
     } catch(e){
-      S.error = e.message;
+      // Server (yoki baza) javob bermasa, brauzer xatosi tushunarsiz bo'ladi:
+      // "Unexpected token 'e', \"error code: 1016\" is not valid JSON" — bu
+      // aslida HTML/matn qaytganini bildiradi. Foydalanuvchiga odam tilida
+      // yozamiz, texnik matnni esa konsolga qoldiramiz.
+      const m = String((e && e.message) || e);
+      console.error('boot:', m);
+      S.error = /valid JSON|Failed to fetch|NetworkError|Load failed|ERR_|timed? ?out/i.test(m)
+        ? tr('db_unreachable') : m;
     }
     render();
   }
@@ -2042,9 +2051,23 @@ window.CONFIG = {
 
     // Boot tugamaguncha splash (logotip) ekrani ustida turadi — ostidagi
     // bo'sh sahifa ko'rinmasligi uchun app'ga hech narsa chizmaymiz.
-    if (!S.booted && !S.error){ document.getElementById('navbarInner').innerHTML=''; return; }
+    if (!S.booted && !S.error){
+      document.getElementById('navbarInner').innerHTML='';
+      // Splash allaqachon yopilgan bo'lsa (masalan qayta urinishda) — bo'sh
+      // ekran qolmasin
+      if (!document.getElementById('splash')) app.innerHTML = loadingRow();
+      return;
+    }
     splashniYop();
-    if (S.error){ app.innerHTML = `<div class="loading-screen">⚠️ ${S.error}</div>`; return; }
+    if (S.error){
+      document.getElementById('navbarInner').innerHTML='';
+      app.innerHTML = `<div class="empty-state" style="padding-top:110px">${ICONS.alert}
+        <div>${esc(S.error)}</div>
+        <button class="btn-accent" data-boot-retry>${tr('retry')}</button></div>`;
+      const btn = app.querySelector('[data-boot-retry]');
+      if (btn) btn.onclick = () => { S.error = null; render(); boot(); };
+      return;
+    }
     if (!S.brigade){
       app.innerHTML = screenLogin();
       document.getElementById('navbarInner').innerHTML='';
