@@ -131,7 +131,7 @@ faylini butunlay nusxalab, Supabase → **SQL Editor** → **Run** qiling
 (qayta ishga tushirsangiz ham xato bermaydi).
 
 So'ng `kategoriyalar.sql` ni ham ishga tushiring — u katalog daraxtini
-(22 kategoriya, 66 brend) bazaga yozadi.
+(22 kategoriya, 67 brend) bazaga yozadi.
 
 Kategoriya rasmlari uchun Supabase → **Storage** → **New bucket** →
 nomi `katalog`, **Public** belgisi yoqilgan holda yarating. Nomni boshqacha

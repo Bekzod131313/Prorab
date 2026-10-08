@@ -45,7 +45,7 @@ alter table hs_products add column if not exists kichik_kategoriya text;
 create index if not exists hs_products_kat_idx on hs_products (kategoriya, kichik_kategoriya);
 
 -- ============================================================
---  KATALOG DARAXTI (22 kategoriya, 66 brend)
+--  KATALOG DARAXTI (22 kategoriya, 67 brend)
 -- ============================================================
 
 create table if not exists hs_categories (
@@ -84,6 +84,7 @@ delete from hs_categories;
 insert into hs_categories (nomi, ota, tartib) values
   ('AKSESSUAR', null, 10),
   ('ARMATURA', null, 20),
+  ('AQUER', 'ARMATURA', 5),
   ('BARBERI', 'ARMATURA', 10),
   ('CALEFFI', 'ARMATURA', 20),
   ('CARLO POLETTI', 'ARMATURA', 30),

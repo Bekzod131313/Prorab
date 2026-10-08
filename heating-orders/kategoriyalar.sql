@@ -41,6 +41,7 @@ delete from hs_categories;
 insert into hs_categories (nomi, ota, tartib) values
   ('AKSESSUAR', null, 10),
   ('ARMATURA', null, 20),
+  ('AQUER', 'ARMATURA', 5),
   ('BARBERI', 'ARMATURA', 10),
   ('CALEFFI', 'ARMATURA', 20),
   ('CARLO POLETTI', 'ARMATURA', 30),
@@ -129,7 +130,7 @@ insert into hs_categories (nomi, ota, tartib) values
   ('VENTILYATSIYA', null, 220)
 on conflict (nomi, coalesce(ota, '')) do update set tartib = excluded.tartib, faol = true;
 
--- Tekshirish: 22 ta kategoriya, 66 ta brend bo'lishi kerak
+-- Tekshirish: 22 ta kategoriya, 67 ta brend bo'lishi kerak
 select
   count(*) filter (where ota is null) as kategoriyalar,
   count(*) filter (where ota is not null) as brendlar
