@@ -1,0 +1,250 @@
+{
+  "Aquer": [
+    "ARMATURA",
+    "AQUER"
+  ],
+  "BWT_SOFTNER_3": [
+    "FILTR",
+    "BWT SOFTNER"
+  ],
+  "BWT_VODA-PURE": [
+    "FILTR",
+    "BWT WODA-PURE"
+  ],
+  "BWT_ZAPCHAST": [
+    "FILTR",
+    "BWT ZAPCHAST"
+  ],
+  "CALEFFI": [
+    "ARMATURA",
+    "CALEFFI"
+  ],
+  "CALIDO": [
+    "RADIATOR",
+    "CALIDO"
+  ],
+  "CALPEDA_2": [
+    "NASOS",
+    "CALPEDA"
+  ],
+  "CARLO_POLETTI_15": [
+    "ARMATURA",
+    "CARLO POLETTI"
+  ],
+  "CLIMATE_HOUSE": [
+    "AVTOMATIKA",
+    "CLIMATE HOUSE"
+  ],
+  "COX_GEELEN": [
+    "DIMAXOD",
+    "COX GEELEN"
+  ],
+  "DAB": [
+    "NASOS",
+    "DAB"
+  ],
+  "DANFOSS": [
+    "AVTOMATIKA",
+    "DANFOSS"
+  ],
+  "ENERGOFLEX_11": [
+    "IZOLYATSIYA",
+    "ENERGOFLEX"
+  ],
+  "FAR_4": [
+    "ARMATURA",
+    "FAR"
+  ],
+  "FERRO_13": [
+    "ARMATURA",
+    "FERRO"
+  ],
+  "FERRO_NASOS_2": [
+    "NASOS",
+    "FERRO"
+  ],
+  "GECA_3": [
+    "GAZ",
+    "GECA"
+  ],
+  "GIACOMINI_10": [
+    "ARMATURA",
+    "GIACOMINI"
+  ],
+  "GLOBAL_4": [
+    "RADIATOR",
+    "Global"
+  ],
+  "GRUNDFOS_13": [
+    "NASOS",
+    "GRUNDFOS"
+  ],
+  "HERZ_14": [
+    "ARMATURA",
+    "HERZ"
+  ],
+  "HUNTER_4": [
+    "POLIV",
+    "HUNTER"
+  ],
+  "IDMAR_11": [
+    "RADIATOR",
+    "IDMAR"
+  ],
+  "IMAS_11": [
+    "RADIATOR",
+    "IMAS"
+  ],
+  "IRSAP_2": [
+    "RADIATOR",
+    "IRSAP"
+  ],
+  "ISOTERM": [
+    "KONVEKTOR",
+    "ISOTERM"
+  ],
+  "IVAR_7": [
+    "ARMATURA",
+    "IVAR"
+  ],
+  "KAN_THERM_4": [
+    "ARMATURA",
+    "KAN THERM"
+  ],
+  "KAS": [
+    "ARMATURA",
+    "KAS"
+  ],
+  "KATYOL_3": [
+    "KATYOL",
+    null
+  ],
+  "LATUN_FITING_12": [
+    "LATUN FITING",
+    null
+  ],
+  "LEO": [
+    "NASOS",
+    "LEO"
+  ],
+  "MADAS_3": [
+    "GAZ",
+    "MADAS"
+  ],
+  "NEPTUN_3": [
+    "AVTOMATIKA",
+    "Neptun"
+  ],
+  "NERJAVEYKA_3": [
+    "NERJAVEYKA",
+    null
+  ],
+  "OSTENDORF_HTEM_6": [
+    "KANALIZATSIYA",
+    "OSTENDORF HTEM"
+  ],
+  "OSTENDORF_KGEM_4": [
+    "KANALIZATSIYA",
+    "OSTENDORF KGEM"
+  ],
+  "OVENTROP_3": [
+    "ARMATURA",
+    "OVENTROP"
+  ],
+  "PEDROLLO": [
+    "NASOS",
+    "PEDROLLO"
+  ],
+  "PILSA_35": [
+    "PPR",
+    "PILSA"
+  ],
+  "POELSAN": [
+    "POLIV",
+    "POELSAN"
+  ],
+  "POWER_18": [
+    "ARMATURA",
+    "POWER"
+  ],
+  "PRESS_FITING_27": [
+    "PRESS FITING",
+    null
+  ],
+  "RASHBAK_7": [
+    "RASH.BAK",
+    "RASHBAK"
+  ],
+  "RBM": [
+    "ARMATURA",
+    "RBM"
+  ],
+  "REFLEX_RASHBAK": [
+    "RASH.BAK",
+    "REFLEX"
+  ],
+  "REFLEX_6": [
+    "ARMATURA",
+    "REFLEX"
+  ],
+  "ROYAL_P_4": [
+    "RADIATOR",
+    "Royal P"
+  ],
+  "ROYAL_S_5": [
+    "RADIATOR",
+    "Royal S"
+  ],
+  "A.D.M_3": [
+    "DIMAXOD",
+    "A.D.M"
+  ],
+  "SITEM_3": [
+    "ARMATURA",
+    "SITEM"
+  ],
+  "SMART_HEAT": [
+    "AVTOMATIKA",
+    "Smartheat"
+  ],
+  "S-PRESS_2": [
+    "ARMATURA",
+    "S-PRESS"
+  ],
+  "TDS_6": [
+    "ARMATURA",
+    "TDS"
+  ],
+  "TIEMME": [
+    "ARMATURA",
+    "TIEMME"
+  ],
+  "TONLOS": [
+    "IZOLYATSIYA",
+    "TONLOS"
+  ],
+  "WILO": [
+    "NASOS",
+    "WILO"
+  ],
+  "AKFA_4": [
+    "RADIATOR",
+    "Akfa"
+  ],
+  "ALCAPLAST_9": [
+    "SANTEXNIKA",
+    "ALCAPLAST"
+  ],
+  "ARBONIA": [
+    "RADIATOR",
+    "ARBONIA"
+  ],
+  "BOYLER_3": [
+    "BOYLER",
+    null
+  ],
+  "BWT_SLIM": [
+    "FILTR",
+    "BWT SLIM"
+  ]
+}
