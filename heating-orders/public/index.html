@@ -880,6 +880,22 @@ window.CONFIG = {
     return data;
   }
 
+  // ---------- Tovarlarni tabiiy (raqamli) tartibda saralash ----------
+  // Oddiy alifbo tartibida "10 fall" "4 fall" dan oldin keladi, chunki '1' < '4'.
+  // localeCompare'ning numeric rejimi nomdagi sonlarni son sifatida taqqoslaydi,
+  // shuning uchun 2, 3, 4 ... 13 to'g'ri ketma-ketlikda chiqadi. Bu butun
+  // katalogga tegishli: "PPR 20" / "PPR 100", "DN15" / "DN100" va hokazo.
+  const nomTaqqosla = (a, b) =>
+    String(a || '').localeCompare(String(b || ''), 'uz', { numeric: true, sensitivity: 'base' });
+
+  function tabiiyTartib(tovarlar){
+    return tovarlar.slice().sort((x, y) =>
+      nomTaqqosla(x.kategoriya, y.kategoriya) ||
+      nomTaqqosla(x.kichik_kategoriya, y.kichik_kategoriya) ||
+      nomTaqqosla(x.nomi, y.nomi)
+    );
+  }
+
   // ---------- App state ----------
   const S = {
     booted: false, error: null,
@@ -1169,7 +1185,7 @@ window.CONFIG = {
       applyTheme();
       loadCart();
       loadDrafts();
-      S.products = prodRes.data || [];
+      S.products = tabiiyTartib(prodRes.data || []);
       S.catTree = (catRes && catRes.data) || [];
       S.booted = true;
       render();
