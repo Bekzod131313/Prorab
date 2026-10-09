@@ -1,4 +1,4 @@
-import { json, sbFetch, tgApi, escHtml, storageUpload } from '../_lib.js';
+import { json, sbFetch, sbAll, tgApi, escHtml, storageUpload } from '../_lib.js';
 
 // Telegram bot webhook.
 //
@@ -256,7 +256,7 @@ export async function onRequestPost({ request, env }) {
     }
 
     // Umumiy holat: bo'limlar kesimida nechtasi qolgan
-    const rows = await sbFetch(env, '/rest/v1/hs_products?faol=eq.true&select=kategoriya,rasm&limit=20000');
+    const rows = await sbAll(env, '/rest/v1/hs_products?faol=eq.true&select=kategoriya,rasm&order=id.asc');
     const hisob = {};
     let bor = 0;
     for (const r of rows || []) {

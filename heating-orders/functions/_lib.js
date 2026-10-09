@@ -38,6 +38,22 @@ export async function sbFetch(env, path, method = 'GET', body) {
   return data;
 }
 
+// Supabase (PostgREST) bitta javobda eng ko'pi bilan 1000 qator qaytaradi —
+// `limit` ni kattaroq yozish ham yordam bermaydi. Jadval bundan katta bo'lsa
+// (katalogda 3000 dan ortiq tovar bor) sahifa-sahifa o'qish kerak, aks holda
+// sanoq ham, ro'yxat ham birinchi 1000 ta bilan cheklanib qoladi.
+export async function sbAll(env, path, sahifa = 1000) {
+  const hammasi = [];
+  const ulagich = path.includes('?') ? '&' : '?';
+  for (let offset = 0; ; offset += sahifa) {
+    const qism = await sbFetch(env, `${path}${ulagich}limit=${sahifa}&offset=${offset}`);
+    if (!Array.isArray(qism) || !qism.length) break;
+    hammasi.push(...qism);
+    if (qism.length < sahifa || hammasi.length >= 50000) break;
+  }
+  return hammasi;
+}
+
 // Telegram WebApp initData imzosini tekshirish
 // https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
 export async function verifyInitData(initData, botToken) {

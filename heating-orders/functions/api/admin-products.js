@@ -1,4 +1,4 @@
-import { json, sbFetch, checkAdmin } from '../_lib.js';
+import { json, sbFetch, sbAll, checkAdmin } from '../_lib.js';
 
 // Admin panel uchun tovarlar CRUD API. Barcha so'rovlar X-Admin-Token header talab qiladi.
 
@@ -19,7 +19,8 @@ function normalizeRow(r) {
 
 export async function onRequestGet({ request, env }) {
   if (!checkAdmin(request, env)) return json({ error: 'Ruxsat yo‘q' }, 401);
-  const data = await sbFetch(env, '/rest/v1/hs_products?select=*&order=kategoriya.asc,kichik_kategoriya.asc,nomi.asc');
+  // Katalog 1000 qatordan katta — sahifalab o'qiymiz (sbAll)
+  const data = await sbAll(env, '/rest/v1/hs_products?select=*&order=kategoriya.asc,kichik_kategoriya.asc,nomi.asc');
   return json(data);
 }
 
