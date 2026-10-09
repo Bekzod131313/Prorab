@@ -79,8 +79,10 @@
 
   .photo{background:var(--tile1);border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--tile1-ink);flex:0 0 auto}
   .photo svg{width:46%;height:46%}
-  .photo.has-img{background:#fff;overflow:hidden;padding:0}
-  .photo.has-img img{width:100%;height:100%;object-fit:contain;display:block}
+  /* Rasm ikonkaning ustiga tushadi — yuklanmay qolsa ikonka ko'rinib qoladi */
+  .photo.has-img{position:relative;overflow:hidden;padding:0;background:var(--panel2)}
+  .photo.has-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;z-index:1}
+  .photo.has-img svg{opacity:.45}
   .photo.t2{background:var(--tile2);color:var(--tile2-ink)}
   .photo.t3{background:var(--tile3);color:var(--tile3-ink)}
   .photo.t4{background:var(--tile4);color:var(--tile4-ink)}
@@ -618,9 +620,15 @@ window.CONFIG = {
   };
   const catKey = (cat) => String(cat || '').trim().toUpperCase();
   const catIcon = (cat) => CAT_ICONS[catKey(cat)] || ICONS.box;
-  const photo = (size, cat) => {
+  // Tovar rasmi bo'lsa — o'zini, bo'lmasa kategoriya ikonkasini ko'rsatamiz.
+  // Rasm yuklanmay qolsa (havola buzilgan, internet uzilgan) ikonkaga qaytadi.
+  const photo = (size, cat, rasm) => {
     const cls = 'photo' + (cat ? ' ' + catTileClass(cat) : '');
     const style = size ? ` style="width:${size}px;height:${size}px"` : '';
+    if (rasm) {
+      return `<div class="${cls} has-img"${style}><img src="${esc(rasm)}" alt="" loading="lazy"
+        onerror="this.remove()">${cat ? catIcon(cat) : ICONS.photoIcon}</div>`;
+    }
     return `<div class="${cls}"${style}>${cat ? catIcon(cat) : ICONS.photoIcon}</div>`;
   };
   // Ruschada son shakli o'zgaradi: 1 вид, 2–4 вида, 5+ видов
@@ -1277,7 +1285,7 @@ window.CONFIG = {
     const hasDiscount = p.aksiya_narx!=null && p.aksiya_narx < p.narx;
     const price = hasDiscount ? p.aksiya_narx : p.narx;
     return `<div class="pcard" data-open-product="${p.id}">
-      ${photo(null, p.kategoriya)}
+      ${photo(null, p.kategoriya, p.rasm)}
       <div class="info">
         <div class="name">${esc(p.nomi)}${p.ommabop?'<span class="badge-mini">TOP</span>':''}</div>
         <div class="art">${tr('art_prefix')} ${esc(p.artikul)||'—'}</div>
@@ -1391,7 +1399,7 @@ window.CONFIG = {
     const price = hasDiscount ? p.aksiya_narx : p.narx;
     const related = S.products.filter(x=>x.kategoriya===p.kategoriya && x.id!==p.id).slice(0,4);
     return `<div class="plist-head"><div class="back" data-pop>${ICONS.back}</div></div>
-      <div style="padding:0 18px"><div class="photo ${catTileClass(p.kategoriya)} pd-photo" style="width:100%;height:150px;border-radius:16px">${catIcon(p.kategoriya)}</div></div>
+      <div style="padding:0 18px"><div class="photo ${catTileClass(p.kategoriya)} pd-photo${p.rasm?' has-img':''}" style="width:100%;height:190px;border-radius:16px">${p.rasm?`<img src="${esc(p.rasm)}" alt="" onerror="this.remove()">`:''}${catIcon(p.kategoriya)}</div></div>
       <div style="padding:16px 18px 0">
         <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">${catLabel(p.kategoriya)} &middot; ${tr('art_prefix')} ${esc(p.artikul)||'—'}</div>
         <div style="font-family:'Manrope',sans-serif;font-weight:800;font-size:19px;margin-top:6px">${esc(p.nomi)}</div>
@@ -1530,7 +1538,7 @@ window.CONFIG = {
       const p = S.products.find(x=>x.id===id); if (!p) return '';
       const price = (p.aksiya_narx!=null&&p.aksiya_narx<p.narx)?p.aksiya_narx:p.narx;
       return `<div class="cart-item" data-id="${id}">
-        ${photo(null, p.kategoriya)}
+        ${photo(null, p.kategoriya, p.rasm)}
         <div class="info">
           <div class="name">${esc(p.nomi)}</div>
           <div class="art">${tr('art_prefix')} ${esc(p.artikul)||'—'}</div>

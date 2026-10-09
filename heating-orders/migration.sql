@@ -37,6 +37,7 @@ alter table hs_orders add column if not exists telefon text;
 
 -- ---- Ikki bosqichli katalog: kategoriya -> brend/kichik kategoriya ----
 alter table hs_products add column if not exists kichik_kategoriya text;
+alter table hs_products add column if not exists rasm text;   -- tovar rasmi (Storage havolasi)
 create index if not exists hs_products_kat_idx on hs_products (kategoriya, kichik_kategoriya);
 
 -- ============================================================

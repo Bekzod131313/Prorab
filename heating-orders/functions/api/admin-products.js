@@ -12,6 +12,7 @@ function normalizeRow(r) {
     birlik: String(r.birlik || 'dona').trim() || 'dona',
     kategoriya: String(r.kategoriya || 'Boshqa').trim() || 'Boshqa',
     kichik_kategoriya: String(r.kichik_kategoriya || '').trim() || null,
+    rasm: String(r.rasm || '').trim() || null,
     faol: r.faol !== false
   };
 }
@@ -58,6 +59,7 @@ function normalizeRowPartial(body) {
   if (body.birlik !== undefined) out.birlik = String(body.birlik).trim() || 'dona';
   if (body.kategoriya !== undefined) out.kategoriya = String(body.kategoriya).trim() || 'Boshqa';
   if (body.kichik_kategoriya !== undefined) out.kichik_kategoriya = String(body.kichik_kategoriya).trim() || null;
+  if (body.rasm !== undefined) out.rasm = String(body.rasm).trim() || null;
   if (body.faol !== undefined) out.faol = !!body.faol;
   return out;
 }

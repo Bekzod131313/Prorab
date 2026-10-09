@@ -224,8 +224,54 @@ export async function onRequestPost({ request, env }) {
         (yoq.length
           ? yoq.slice(0, 60).map(nom).join('\n') + (yoq.length > 60 ? `\n… va yana ${yoq.length - 60} ta` : '')
           : 'Hammasiga rasm qo\u2018yilgan 👍') +
-        `\n\nRasm qo'yish: rasmni shu yerga tashlang va izohiga kategoriya nomini yozing.\n` +
-        `Masalan: <code>AKSESSUAR</code>\nBrend uchun: <code>ARMATURA GIACOMINI</code>`,
+        `\n\nRasm qo'yish: rasmni shu yerga tashlang va izohiga nomini yozing.\n` +
+        `Masalan: <code>AKSESSUAR</code>\nBrend uchun: <code>ARMATURA GIACOMINI</code>\n` +
+        `Tovar rasmi uchun esa artikulni yozing — /rasmsiz`,
+      parse_mode: 'HTML'
+    });
+    return json({ ok: true });
+  }
+
+  // Tovar rasmlari holati: qaysi bo'limlarda qancha rasm yetishmayotgani
+  if (cmd === '/rasmsiz') {
+    if (!isOperator(env, msg.from)) { await operatorEmas(env, msg); return json({ ok: true }); }
+
+    // Kategoriya nomi berilgan bo'lsa — o'sha bo'limdagi rasmsiz tovarlar ro'yxati
+    const bolim = parts.slice(1).join(' ').trim();
+    if (bolim) {
+      const q = pgEsc(bolim);
+      const rows = await sbFetch(env,
+        `/rest/v1/hs_products?rasm=is.null&faol=eq.true&or=(kategoriya.ilike.${encodeURIComponent(q)},kichik_kategoriya.ilike.${encodeURIComponent(q)})` +
+        `&select=artikul,nomi&order=nomi.asc&limit=40`);
+      await tgApi(env, 'sendMessage', {
+        chat_id: chat.id,
+        text: (rows || []).length
+          ? `🖼 <b>${escHtml(bolim)}</b> — rasmsiz tovarlar (birinchi ${rows.length} ta):\n\n` +
+            rows.map(r => `• <code>${escHtml(r.artikul || '—')}</code> ${escHtml(r.nomi)}`).join('\n') +
+            `\n\nRasm tashlang, izohiga artikulni yozing.`
+          : `✅ <b>${escHtml(bolim)}</b> bo‘limidagi hamma tovarda rasm bor (yoki bunday bo‘lim yo‘q).`,
+        parse_mode: 'HTML'
+      });
+      return json({ ok: true });
+    }
+
+    // Umumiy holat: bo'limlar kesimida nechtasi qolgan
+    const rows = await sbFetch(env, '/rest/v1/hs_products?faol=eq.true&select=kategoriya,rasm&limit=20000');
+    const hisob = {};
+    let bor = 0;
+    for (const r of rows || []) {
+      const k = r.kategoriya || 'Boshqa';
+      hisob[k] = hisob[k] || { bor: 0, yoq: 0 };
+      if (r.rasm) { hisob[k].bor++; bor++; } else { hisob[k].yoq++; }
+    }
+    const jami = (rows || []).length;
+    const qatorlar = Object.keys(hisob).sort()
+      .map(k => `${hisob[k].yoq ? '○' : '●'} ${escHtml(k)} — ${hisob[k].bor}/${hisob[k].bor + hisob[k].yoq}`);
+    await tgApi(env, 'sendMessage', {
+      chat_id: chat.id,
+      text: `🖼 Rasmi bor: <b>${bor}</b> / ${jami} tovar\n\n` + qatorlar.join('\n') +
+            `\n\nBo‘lim bo‘yicha ro‘yxat: <code>/rasmsiz ARMATURA</code>\n` +
+            `Rasm qo‘yish: rasmni tashlang, izohiga artikulni yozing.`,
       parse_mode: 'HTML'
     });
     return json({ ok: true });
@@ -249,13 +295,18 @@ export const BOT_COMMANDS = [
   { command: 'brigadalar', description: 'Brigadalar ro\u2018yxati (operator)' },
   { command: 'sozla', description: 'Botni sozlash (operator)' },
   { command: 'rasm', description: 'Kategoriya rasmlari holati (operator)' },
+  { command: 'rasmsiz', description: 'Rasmsiz tovarlar (operator)' },
   { command: 'admin', description: 'Admin panelni ochish (operator)' }
 ];
 
-// Kategoriya rasmi: operator botga rasm tashlaydi, izohida kategoriya nomi.
+// Rasm: operator botga rasm tashlaydi, izohida nishon yoziladi.
+//   "AK001."               -> shu artikulli TOVAR rasmi
 //   "AKSESSUAR"            -> kategoriya rasmi
 //   "ARMATURA GIACOMINI"   -> shu kategoriyadagi brend rasmi
-// Rasm Supabase Storage'ga tushadi, havolasi hs_categories.rasm ga yoziladi.
+//   "silikon germetik"     -> nomi bo'yicha bitta tovar topilsa — o'shaniki
+// Rasm Supabase Storage'ga tushadi, havolasi hs_products.rasm yoki
+// hs_categories.rasm ga yoziladi. Avval tovar qidiriladi: artikullar
+// kategoriya nomlariga o'xshamaydi, shuning uchun chalkashlik bo'lmaydi.
 async function handleCategoryPhoto(msg, env) {
   const chatId = msg.chat.id;
   const izoh = String(msg.caption || '').trim();
@@ -263,17 +314,29 @@ async function handleCategoryPhoto(msg, env) {
   if (!izoh) {
     await tgApi(env, 'sendMessage', {
       chat_id: chatId,
-      text: 'Rasm izohiga kategoriya nomini yozing.\nMasalan: <code>AKSESSUAR</code>\nBrend uchun: <code>ARMATURA GIACOMINI</code>\n\nRo\u2018yxatni ko\u2018rish: /rasm',
+      text: 'Rasm izohiga nishonni yozing:\n' +
+            '• tovar artikuli — <code>AK001.</code>\n' +
+            '• tovar nomi — <code>silikon germetik</code>\n' +
+            '• kategoriya — <code>AKSESSUAR</code>\n' +
+            '• brend — <code>ARMATURA GIACOMINI</code>\n\n' +
+            'Rasmsiz tovarlar: /rasmsiz   ·   Kategoriyalar: /rasm',
       parse_mode: 'HTML'
     });
     return;
   }
 
-  const nishon = await topCategory(env, izoh);
-  if (!nishon) {
+  const tovar = await topProduct(env, izoh);
+  const nishon = tovar ? null : await topCategory(env, izoh);
+
+  if (!tovar && !nishon) {
+    const oxshash = await oxshashTovarlar(env, izoh);
     await tgApi(env, 'sendMessage', {
       chat_id: chatId,
-      text: `❌ "${escHtml(izoh)}" topilmadi. /rasm buyrug\u2018i bilan ro\u2018yxatni ko\u2018ring.`,
+      text: `❌ "${escHtml(izoh)}" topilmadi.` +
+        (oxshash.length
+          ? '\n\nShulardan birini nazarda tutdingizmi? Izohga artikulini yozing:\n' +
+            oxshash.map(t => `• <code>${escHtml(t.artikul)}</code> — ${escHtml(t.nomi)}`).join('\n')
+          : '\n\nRasmsiz tovarlar ro\u2018yxati: /rasmsiz'),
       parse_mode: 'HTML'
     });
     return;
@@ -291,6 +354,17 @@ async function handleCategoryPhoto(msg, env) {
 
   try {
     const url = await rasmniYukla(env, fileId);
+
+    if (tovar) {
+      await sbFetch(env, `/rest/v1/hs_products?id=eq.${encodeURIComponent(tovar.id)}`, 'PATCH', { rasm: url });
+      await tgApi(env, 'sendMessage', {
+        chat_id: chatId,
+        text: `✅ <b>${escHtml(tovar.nomi)}</b>\n<code>${escHtml(tovar.artikul)}</code> rasmi saqlandi.`,
+        parse_mode: 'HTML'
+      });
+      return;
+    }
+
     const shart = nishon.ota
       ? `nomi=eq.${encodeURIComponent(nishon.nomi)}&ota=eq.${encodeURIComponent(nishon.ota)}`
       : `nomi=eq.${encodeURIComponent(nishon.nomi)}&ota=is.null`;
@@ -304,6 +378,37 @@ async function handleCategoryPhoto(msg, env) {
   } catch (e) {
     await tgApi(env, 'sendMessage', { chat_id: chatId, text: '❌ ' + (e.message || 'Rasmni saqlab bo\u2018lmadi') });
   }
+}
+
+// PostgREST filtrida ishlatiladigan belgilarni zararsizlantiradi:
+// vergul va qavs so'rovni bo'lib yuboradi, * esa izlash shabloniga aylanadi.
+const pgEsc = (s) => String(s).replace(/[,()*\\]/g, ' ').trim();
+
+// Izohni tovar bilan solishtiradi: avval artikul (aniq moslik), keyin nomi.
+async function topProduct(env, izoh) {
+  const q = pgEsc(izoh);
+  if (!q) return null;
+
+  // ilike shablonsiz = katta-kichik harfga e'tibor bermaydigan aniq moslik
+  const artikulBoyicha = await sbFetch(env,
+    `/rest/v1/hs_products?artikul=ilike.${encodeURIComponent(q)}&select=id,artikul,nomi&limit=2`);
+  if (artikulBoyicha && artikulBoyicha.length === 1) return artikulBoyicha[0];
+
+  const nomBoyicha = await sbFetch(env,
+    `/rest/v1/hs_products?nomi=ilike.${encodeURIComponent(q)}&select=id,artikul,nomi&limit=2`);
+  if (nomBoyicha && nomBoyicha.length === 1) return nomBoyicha[0];
+
+  return null;
+}
+
+// Topilmaganda tanlash uchun bir nechta o'xshash tovar
+async function oxshashTovarlar(env, izoh) {
+  const q = pgEsc(izoh);
+  if (!q) return [];
+  try {
+    return await sbFetch(env,
+      `/rest/v1/hs_products?nomi=ilike.${encodeURIComponent('*' + q + '*')}&select=artikul,nomi&limit=5`) || [];
+  } catch (e) { return []; }
 }
 
 // Izohdagi matnni katalog daraxtidan topadi.
