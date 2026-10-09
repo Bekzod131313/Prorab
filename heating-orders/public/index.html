@@ -888,6 +888,25 @@ window.CONFIG = {
   const nomTaqqosla = (a, b) =>
     String(a || '').localeCompare(String(b || ''), 'uz', { numeric: true, sensitivity: 'base' });
 
+  // Supabase (PostgREST) bitta so'rovda eng ko'pi bilan 1000 qator qaytaradi.
+  // Katalog bundan katta, shuning uchun to'lgan har bir sahifadan keyin
+  // keyingisini so'raymiz — aks holda tovarlarning faqat bir qismi ko'rinadi.
+  const SAHIFA = 1000;
+  async function hammaTovarlar(){
+    const hammasi = [];
+    for (let boshi = 0; ; boshi += SAHIFA){
+      const res = await sb.from('hs_products').select('*').eq('faol', true)
+        .order('kategoriya').order('nomi').range(boshi, boshi + SAHIFA - 1);
+      if (res && res.error) throw new Error(res.error.message || 'Tovarlarni yuklab bo‘lmadi');
+      const qism = (res && res.data) || [];
+      hammasi.push(...qism);
+      // To'liq sahifa kelmasa — oxiriga yetdik. Cheksiz aylanmaslik uchun
+      // yuqori chegara ham qo'yamiz.
+      if (qism.length < SAHIFA || hammasi.length >= 50000) break;
+    }
+    return hammasi;
+  }
+
   function tabiiyTartib(tovarlar){
     return tovarlar.slice().sort((x, y) =>
       nomTaqqosla(x.kategoriya, y.kategoriya) ||
@@ -1174,9 +1193,9 @@ window.CONFIG = {
   async function boot(){
     render(); // loading screen
     try{
-      const [authRes, prodRes, catRes] = await Promise.all([
+      const [authRes, tovarlar, catRes] = await Promise.all([
         api('/api/auth', { method:'POST', body: JSON.stringify({ code: urlCode }) }),
-        sb.from('hs_products').select('*').eq('faol', true).order('kategoriya').order('nomi'),
+        hammaTovarlar(),
         // Katalog daraxti tovarlardan mustaqil saqlanadi — tovar hali
         // yuklanmagan bo'lsa ham kategoriyalar ko'rinib tursin.
         sb.from('hs_categories').select('*').eq('faol', true).order('tartib').order('nomi')
@@ -1185,7 +1204,7 @@ window.CONFIG = {
       applyTheme();
       loadCart();
       loadDrafts();
-      S.products = tabiiyTartib(prodRes.data || []);
+      S.products = tabiiyTartib(tovarlar);
       S.catTree = (catRes && catRes.data) || [];
       S.booted = true;
       render();
