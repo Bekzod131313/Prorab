@@ -689,7 +689,7 @@ window.CONFIG = {
       products_title:'Tovarlar', position_suffix:'pozitsiya',
       need_help_title:'Yordam kerakmi?', need_help_desc:'Ushbu buyurtma bo‘yicha savollaringiz bo‘lsa, operatorga murojaat qiling.',
       write_btn:'Yozish', order_cancelled_msg:'Bu buyurtma bekor qilingan',
-      brands:'Brendlar', brands_suffix:'brend', cat_no_products:'Bu bo‘limga tovar hali yuklanmagan', other_products:'Boshqa tovarlar',
+      brands:'Brendlar', brands_suffix:'brend', types:'Tovar turlari', cat_no_products:'Bu bo‘limga tovar hali yuklanmagan', other_products:'Boshqa tovarlar',
       add_more:'Yana qo‘shish', notif_section:'Bildirishnomalar', settings_section:'Sozlamalar',
       stats_period_total:'Davr bo‘yicha jami', stats_avg_month:'O‘rtacha oylik', stats_avg_order:'O‘rtacha buyurtma',
       cart_title:'Korzina', cart_subtitle:'Tanlangan tovarlar', cart_empty:'Savat hali bo‘sh', cart_empty_sub:'Katalogdan tovar tanlang',
@@ -785,7 +785,7 @@ window.CONFIG = {
       products_title:'Товары', position_suffix:'позиция',
       need_help_title:'Нужна помощь?', need_help_desc:'Свяжитесь с нашим оператором, если у вас есть вопросы по этому заказу.',
       write_btn:'Написать', order_cancelled_msg:'Этот заказ отменён',
-      brands:'Бренды', brands_suffix:'брендов', cat_no_products:'В этот раздел товары ещё не загружены', other_products:'Другие товары',
+      brands:'Бренды', brands_suffix:'брендов', types:'Виды товаров', cat_no_products:'В этот раздел товары ещё не загружены', other_products:'Другие товары',
       add_more:'Добавить ещё', notif_section:'Уведомления', settings_section:'Настройки',
       stats_period_total:'Итого за период', stats_avg_month:'В среднем в месяц', stats_avg_order:'Средний заказ',
       cart_title:'Корзина', cart_subtitle:'Выбранные товары', cart_empty:'Корзина пока пуста', cart_empty_sub:'Выберите товар из каталога',
@@ -886,6 +886,64 @@ window.CONFIG = {
     const data = await res.json().catch(()=>({}));
     if (!res.ok) throw new Error(data.error || (tr('toast_generic_error')+' '+res.status));
     return data;
+  }
+
+  // ---------- Tovar turi va o'lchami (nomidan olinadi) ----------
+  // Katta brendlarda (OSTENDORF, PILSA) tovar nomi doim tur bilan boshlanadi:
+  // "Truba Ø110 (1 m)", "Otvod 87° 110", "Troynik 110/50/87". Shu birinchi
+  // so'zni tur deb olamiz — bazada qo'shimcha ustun talab qilmaydi va narx
+  // ro'yxati yangilanganda o'zi to'g'ri ishlaydi.
+  const GURUH_CHEGARA = 40;        // shundan ko'p tovar bo'lsa turlarga bo'linadi
+  const OLCHAM_CHEGARA = 3;        // o'lcham chipi kamida shuncha tovarda uchrasin
+
+  // Tur sifatida ishlatib bo'lmaydigan, ma'no bermaydigan boshlang'ich so'zlar
+  const SIFATLAR = new Set(['pp','pvx','ppr','hdpe','germaniya','gm','new','dlya','s','iz','k']);
+
+  function tovarTuri(p){
+    const sozlar = String(p.nomi || '').trim().split(/[\s,./]+/).filter(Boolean);
+    let i = 0;
+    while (i < sozlar.length - 1 && SIFATLAR.has(sozlar[i].toLowerCase())) i++;
+    const soz = (sozlar[i] || '').replace(/[^\p{L}\p{N}-]/gu, '');
+    if (!soz) return '';
+    return soz.charAt(0).toUpperCase() + soz.slice(1).toLowerCase();
+  }
+
+  // Nomdagi asosiy o'lcham (diametr). Nomlarda o'lcham turlicha yoziladi:
+  // "110x45", "32x1000 mm", "110/50/50*87" — shuning uchun raqamlar chegara
+  // bo'yicha emas, standart quvur o'lchamlari ro'yxati bo'yicha olinadi.
+  // Birinchi topilgani asosiy diametr: "110/50/50*87" da 110, qolgan sonlar
+  // chiqish o'lchami yoki burchak (45°, 87°) bo'ladi.
+  const OLCHAMLAR = new Set([15,20,25,32,40,50,63,70,75,90,110,125,160,200,250,315,400]);
+  function tovarOlchami(p){
+    const son = String(p.nomi || '').match(/\d+/g) || [];
+    for (const x of son){ const n = Number(x); if (OLCHAMLAR.has(n)) return n; }
+    return 0;
+  }
+
+  // Ro'yxatni turlarga bo'ladi: [{nomi, soni}], eng kattasidan boshlab
+  function turlarRoyxati(items){
+    const hisob = new Map();
+    for (const p of items){
+      const t = tovarTuri(p);
+      if (!t) continue;
+      hisob.set(t, (hisob.get(t) || 0) + 1);
+    }
+    return [...hisob.entries()]
+      .map(([nomi, soni]) => ({ nomi, soni }))
+      .sort((a, b) => b.soni - a.soni || nomTaqqosla(a.nomi, b.nomi));
+  }
+
+  // Guruh ichidagi o'lcham chiplari — kamida OLCHAM_CHEGARA ta tovarda uchraganlari
+  function olchamRoyxati(items){
+    const hisob = new Map();
+    for (const p of items){
+      const o = tovarOlchami(p);
+      if (o) hisob.set(o, (hisob.get(o) || 0) + 1);
+    }
+    return [...hisob.entries()]
+      .filter(([, n]) => n >= OLCHAM_CHEGARA)
+      .map(([o]) => o)
+      .sort((a, b) => a - b);
   }
 
   // ---------- Tovarlarni tabiiy (raqamli) tartibda saralash ----------
@@ -1354,7 +1412,8 @@ window.CONFIG = {
     const sub = params.sub || '';
     const q = (S.tmp.listQ||'').toLowerCase();
     const subs = cat === 'Barchasi' ? [] : subList(cat);
-    const sarlavha = sub ? sub : (cat==='Barchasi' ? tr('all_products') : catLabel(cat));
+    const sarlavha = (params.guruh && params.guruh !== '*') ? params.guruh
+                   : (sub ? sub : (cat==='Barchasi' ? tr('all_products') : catLabel(cat)));
 
     const head = `<div class="plist-head"><div class="back" data-pop>${ICONS.back}</div><h3>${esc(sarlavha)}</h3></div>`;
     const search = `<div class="search"><div class="search-box">${ICONS.search}<input id="listSearch" placeholder="${tr('home_search_ph')}" value="${esc(S.tmp.listQ)}"></div></div>`;
@@ -1377,6 +1436,32 @@ window.CONFIG = {
     let items = catProducts(cat, sub === '*' ? '' : sub);
     if (q) items = items.filter(p => p.nomi.toLowerCase().includes(q) || (p.artikul||'').toLowerCase().includes(q));
 
+    // --- Uchinchi daraja: tovar turlari (Truba, Otvod, Troynik ...) ---
+    // Ro'yxat uzun bo'lsa, avval turlar ko'rsatiladi: ustaga 245 ta tovarni
+    // varaqlashdan ko'ra "Truba -> Ø110" deb tanlash qulayroq.
+    const guruh = params.guruh || '';
+    if (!q && !guruh && items.length > GURUH_CHEGARA){
+      const turlar = turlarRoyxati(items);
+      if (turlar.length > 2){
+        return `${head}${search}
+          <div class="sec-head"><h3>${tr('types')}</h3><a data-open-cat="${esc(cat)}" data-sub="${esc(sub||'*')}" data-guruh="*">${tr('all_products')} ${ICONS.chev}</a></div>
+          <div class="brand-list">${turlar.map(t=>`
+            <div class="brand-row" data-open-cat="${esc(cat)}" data-sub="${esc(sub||'*')}" data-guruh="${esc(t.nomi)}">
+              ${catTile(t.nomi, cat, 'ic')}
+              <div class="n">${esc(t.nomi)}</div><div class="c">${t.soni}</div>${ICONS.chev}</div>`).join('')}</div>`;
+      }
+    }
+
+    // Tur tanlangan bo'lsa — faqat shu turdagilar, ustida o'lcham chiplari
+    let olchamlar = [];
+    const olcham = S.tmp.olcham || 0;
+    if (guruh && guruh !== '*'){
+      items = items.filter(p => tovarTuri(p) === guruh);
+      olchamlar = olchamRoyxati(items);
+      if (olcham && olchamlar.includes(olcham))
+        items = items.filter(p => tovarOlchami(p) === olcham);
+    }
+
     // Chiplar: brend ichida bo'lsak — birodar brendlar, aks holda kategoriyalar
     const chips = subs.length
       ? [['', tr('all')], ...subs.map(b=>[b, b])].map(([v,l])=>
@@ -1384,8 +1469,14 @@ window.CONFIG = {
       : ['Barchasi', ...catList()].map(c=>
           `<div class="chip ${c===cat?'active':''}" data-set-cat="${esc(c)}">${c==='Barchasi'?tr('all'):catLabel(c)}</div>`).join('');
 
+    // Tur ichida — o'lcham chiplari (Ø50, Ø110 ...), aks holda odatdagi chiplar
+    const olchamChips = olchamlar.length
+      ? `<div class="chips">${[['0', tr('all')], ...olchamlar.map(o=>[String(o), 'Ø' + o])]
+          .map(([v,l])=>`<div class="chip ${String(olcham)===v?'active':''}" data-set-olcham="${v}">${l}</div>`).join('')}</div>`
+      : '';
+
     return `${head}
-      <div class="chips">${chips}</div>
+      ${olchamChips || `<div class="chips">${chips}</div>`}
       ${search}
       <div class="plist">${items.length ? items.map(productCard).join('') : `<div class="empty-state">${ICONS.box}<div>${q ? tr('nothing_found') : tr('cat_no_products')}</div></div>`}</div>`;
   }
@@ -2179,8 +2270,12 @@ window.CONFIG = {
     app.querySelectorAll('[data-open-notif]').forEach(el=>el.onclick=()=>push('notifications'));
     app.querySelectorAll('[data-pop]').forEach(el=>el.onclick=pop);
     app.querySelectorAll('[data-open-cat]').forEach(el=>el.onclick=()=>{
-      S.tmp.listQ='';
-      push('list', { cat: el.dataset.openCat, sub: el.dataset.sub || '' });
+      S.tmp.listQ=''; S.tmp.olcham = 0;
+      push('list', { cat: el.dataset.openCat, sub: el.dataset.sub || '', guruh: el.dataset.guruh || '' });
+    });
+    app.querySelectorAll('[data-set-olcham]').forEach(el=>el.onclick=()=>{
+      S.tmp.olcham = Number(el.dataset.setOlcham) || 0;
+      window.scrollTo(0,0); render();
     });
     app.querySelectorAll('[data-set-cat]').forEach(el=>el.onclick=()=>{ top().params.cat = el.dataset.setCat; top().params.sub = ''; render(); });
     app.querySelectorAll('[data-set-sub]').forEach(el=>el.onclick=()=>{
