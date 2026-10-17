@@ -292,3 +292,19 @@ kiritasiz. Telefonda ham ishlaydi. Besh bo'lim:
   faqat o'zbek tilida — to'liq ikki tillilik keyingi bosqich.
 - **Ommabop tovarlar**: hozircha admin qo'lda belgilaydi (`ommabop` katagi);
   avtomatik hisoblash (eng ko'p sotilganlar) keyinroq qo'shilishi mumkin.
+
+## Tovar rasmlarini ommaviy yuklash
+
+Rasmlar papkada, fayl nomi artikul bo'lsa (`AK001..jpg`, `154aq.png`) — bitta
+buyruq bilan hammasi Storage'ga tushadi va `hs_products.rasm` ga yoziladi:
+
+```bash
+export SUPABASE_URL=https://djreovvpojsiccndlgzu.supabase.co
+export SUPABASE_SERVICE_ROLE_KEY=...        # Supabase -> Settings -> API
+python3 heating-orders/tools/rasm-yukla.py rasmlar/ --dry   # avval tekshirib ko'ring
+python3 heating-orders/tools/rasm-yukla.py rasmlar/         # keyin yuklang
+```
+
+`--dry` hech narsa yozmaydi, faqat qaysi fayl qaysi tovarga tushishini
+ko'rsatadi. Nuqta, probel va katta-kichik harf farqi hisobga olinmaydi.
+Artikuli topilmagan fayllar ro'yxati oxirida chiqadi.
