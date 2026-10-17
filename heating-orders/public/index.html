@@ -596,8 +596,77 @@ window.CONFIG = {
     bak:        I('<circle cx="12" cy="12" r="9"/><path d="M3.5 14.5c3-2 5-2 8.5 0s5.5 2 8.5 0"/>'),
     santexnika: I('<path d="M7 3v6a5 5 0 0 0 5 5h5"/><path d="M5 21h8a2 2 0 0 0 2-2v-3H3v3a2 2 0 0 0 2 2z"/><path d="M5 3h4"/>'),
     shlang:     I('<path d="M3 6h4a5 5 0 0 1 0 10 5 5 0 0 0 0 10h0"/><path d="M3 4v4"/>', 1.8),
-    ventilyats: I('<circle cx="12" cy="12" r="2"/><path d="M12 10c0-4 1-8-2-8S7 7 10 10M14 12c4 0 8 1 8-2s-5-3-8 0M12 14c0 4-1 8 2 8s3-5 0-8M10 12c-4 0-8-1-8 2s5 3 8 0"/>')
+    ventilyats: I('<circle cx="12" cy="12" r="2"/><path d="M12 10c0-4 1-8-2-8S7 7 10 10M14 12c4 0 8 1 8-2s-5-3-8 0M12 14c0 4-1 8 2 8s3-5 0-8M10 12c-4 0-8-1-8 2s5 3 8 0"/>'),
+
+    // --- Tovar turlari (nomidan aniqlanadi) ---
+    otvod:      I('<path d="M4 8h8a4 4 0 0 1 4 4v8"/><path d="M4 16h4a0 0 0 0 0 0 0"/><path d="M4 6v4M4 14v4M12 20h8"/>'),
+    troynik:    I('<path d="M2 9h20v6H2z"/><path d="M9 9V3h6v6"/><path d="M2 9v6M22 9v6M9 3h6"/>'),
+    krestovina: I('<path d="M2 9h20v6H2z"/><path d="M9 9V2h6v7M9 15v7h6v-7"/>'),
+    mufta:      I('<rect x="3" y="8" width="18" height="8" rx="1"/><path d="M8 8v8M16 8v8"/>'),
+    reduktsiya: I('<path d="M3 7h6l6 3v4l-6 3H3z"/><path d="M15 10h6v4h-6M3 7v10"/>'),
+    zaglushka:  I('<path d="M6 7h8a4 5 0 0 1 0 10H6z"/><path d="M6 5v14"/>'),
+    reviziya:   I('<rect x="2" y="8" width="20" height="8" rx="1"/><rect x="8" y="4" width="8" height="6" rx="1"/><path d="M12 4v2"/>'),
+    patrubok:   I('<path d="M4 6v12M20 8v8"/><rect x="4" y="9" width="16" height="6" rx="1"/><path d="M2 6h4M2 18h4"/>'),
+    manjeta:    I('<ellipse cx="12" cy="12" rx="9" ry="6"/><ellipse cx="12" cy="12" rx="4.5" ry="2.5"/>'),
+    xomut:      I('<path d="M17 6.5a8 8 0 1 0 0 11"/><path d="M17 4v16M20 8h-3M20 16h-3"/>'),
+    klapan:     I('<circle cx="12" cy="12" r="8"/><path d="m9 9 6 3-6 3z"/><path d="M4 12H2M22 12h-2"/>'),
+    kran:       I('<path d="M2 12h20"/><path d="m8 8 8 8M16 8l-8 8"/><rect x="9" y="2" width="6" height="3" rx="1"/><path d="M12 5v3"/>'),
+    kollektor:  I('<rect x="2" y="9" width="20" height="6" rx="1.5"/><path d="M7 9V4M12 9V4M17 9V4"/><path d="M5 4h4M10 4h4M15 4h4"/>'),
+    termostat:  I('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/><path d="m12 12 3.5-3"/><path d="M12 4v1.5M20 12h-1.5M12 20v-1.5M4 12h1.5"/>'),
+    schetchik:  I('<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="3.2"/><path d="m12 12 2-1.5"/>'),
+    sifon:      I('<path d="M7 3v8a5 5 0 0 0 10 0V8"/><path d="M4 3h6M14 8h6"/>'),
+    smesitel:   I('<path d="M6 21h12"/><path d="M12 21V9a5 5 0 0 1 5-5h3"/><path d="M8 9h8"/><path d="M20 2v4"/>'),
+    sprinkler:  I('<path d="M12 22v-8"/><path d="M8 22h8"/><circle cx="12" cy="12" r="2"/><path d="M5 9c2-3 5-4 7-4s5 1 7 4"/><path d="M3 13c1-1 2-1 3 0M18 13c1-1 2-1 3 0"/>'),
+    gofra:      I('<path d="M2 12c1.5-3 3-3 4.5 0s3 3 4.5 0 3-3 4.5 0 3 3 4.5 0"/><path d="M2 7v10M22 7v10"/>'),
+    germetik:   I('<path d="M9 8h6l2 13H7z"/><path d="M10 8V4h4v4"/><path d="M12 2v2"/>'),
+    klips:      I('<path d="M17 5a7 7 0 1 0 0 14"/><path d="M17 5v14"/>'),
+    nippel:     I('<rect x="7" y="9" width="10" height="6" rx="1"/><path d="M2 10h5M2 14h5M17 10h5M17 14h5"/>')
   };
+  // Tovar nomidan turini topib, mos chizmani beradi. Nomlar har xil yozilgan
+  // (ruscha, o'zbekcha, brend bilan boshlanadi), shuning uchun nomning ichidan
+  // kalit so'z qidiriladi. Tartib muhim: aniqrog'i yuqorida turadi, masalan
+  // "obratniy klapan" kran emas, klapan bo'lishi kerak.
+  const TUR_IKONA = [
+    [/krestovin/,                                   'krestovina'],
+    [/troynik|teyn/,                                'troynik'],
+    [/otvod|ugolnik|kolen|dugoobr/,                 'otvod'],
+    [/reviziy|prochistk/,                           'reviziya'],
+    [/patrubok|kompensator/,                        'patrubok'],
+    [/reduktsiy|perexod|redukts/,                   'reduktsiya'],
+    [/zaglushk|zagluzhk|probka/,                    'zaglushka'],
+    [/manjet|uplotnit|prokladk|kolts|gaset|rezinov/,'manjeta'],
+    [/xomut|skoba|kleym|derjatel/,                  'xomut'],
+    [/klips|klipsi|fiksator/,                       'klips'],
+    [/klapan/,                                      'klapan'],
+    [/gofr|fanovay/,                                'gofra'],
+    [/kollektor|grebenk/,                           'kollektor'],
+    [/termostat|termoregul|termogolov|datchik|zond|programmator/, 'termostat'],
+    [/schetchik|rasxodomer|manometr|termometr|izmerit/, 'schetchik'],
+    [/sifon/,                                       'sifon'],
+    [/smesitel|izliv|dush|leyk/,                    'smesitel'],
+    [/sopl|sprinkler|forsunk|dojdevat|rotator|kapeln|minisprinkler/, 'sprinkler'],
+    [/germetik|penka|smazk|lenta|klei|fum/,         'germetik'],
+    [/mufta|sgon|amerikank|soedinit/,               'mufta'],
+    [/nippel|evrokonus|adapter|fiting|press-/,      'nippel'],
+    [/nasos/,                                       'nasos'],
+    [/radiator|konvektor|sektsiy/,                  'radiator'],
+    [/filtr|umyagchit|kartridj|ochistk|mineraliz|obezjelez/, 'filtr'],
+    [/kotel|katyol|gorelk/,                         'katyol'],
+    [/boyler|yomkost|rasshirit|membran|bak/,        'bak'],
+    [/dimoxod|dimox|zont|deflektor/,                'dimaxod'],
+    [/izolyats|energoflex|teploizol|utepl/,         'izol'],
+    [/shlang/,                                      'shlang'],
+    [/unitaz|rakovin|instalyats|bachok|pissuar|vanna/, 'santexnika'],
+    [/kran|ventil|zadvizhk|babochk|vozduxootvod/,   'kran'],
+    [/trub(a|i|y|ka|ki)?\b|truba|trubka/,           'truba']
+  ];
+
+  function tovarIkona(p){
+    const n = String(p && p.nomi || '').toLowerCase();
+    for (const [re, nom] of TUR_IKONA) if (re.test(n)) return SVG[nom];
+    return null;
+  }
+
   const CAT_ICONS = {
     'AKSESSUAR': SVG.kalit,      'ARMATURA': SVG.ventil,       'AVTOMATIKA': SVG.chip,
     'BOYLER': SVG.boyler,        'DIMAXOD': SVG.dimaxod,       'FILTR': SVG.filtr,
@@ -622,14 +691,17 @@ window.CONFIG = {
   const catIcon = (cat) => CAT_ICONS[catKey(cat)] || ICONS.box;
   // Tovar rasmi bo'lsa — o'zini, bo'lmasa kategoriya ikonkasini ko'rsatamiz.
   // Rasm yuklanmay qolsa (havola buzilgan, internet uzilgan) ikonkaga qaytadi.
-  const photo = (size, cat, rasm) => {
+  // Tovar rasmi bo'lsa — o'zini; bo'lmasa tovar turining chizmasi (truba,
+  // otvod, kran ...), u ham topilmasa kategoriya ikonkasi.
+  const photo = (size, cat, rasm, p) => {
     const cls = 'photo' + (cat ? ' ' + catTileClass(cat) : '');
     const style = size ? ` style="width:${size}px;height:${size}px"` : '';
+    const ik = (p && tovarIkona(p)) || (cat ? catIcon(cat) : ICONS.photoIcon);
     if (rasm) {
       return `<div class="${cls} has-img"${style}><img src="${esc(rasm)}" alt="" loading="lazy"
-        onerror="this.remove()">${cat ? catIcon(cat) : ICONS.photoIcon}</div>`;
+        onerror="this.remove()">${ik}</div>`;
     }
-    return `<div class="${cls}"${style}>${cat ? catIcon(cat) : ICONS.photoIcon}</div>`;
+    return `<div class="${cls}"${style}>${ik}</div>`;
   };
   // Ruschada son shakli o'zgaradi: 1 вид, 2–4 вида, 5+ видов
   function ruPlural(n, bir, ikki, kop){
@@ -1343,7 +1415,7 @@ window.CONFIG = {
     const hasDiscount = p.aksiya_narx!=null && p.aksiya_narx < p.narx;
     const price = hasDiscount ? p.aksiya_narx : p.narx;
     return `<div class="pcard" data-open-product="${p.id}">
-      ${photo(null, p.kategoriya, p.rasm)}
+      ${photo(null, p.kategoriya, p.rasm, p)}
       <div class="info">
         <div class="name">${esc(p.nomi)}${p.ommabop?'<span class="badge-mini">TOP</span>':''}</div>
         <div class="art">${tr('art_prefix')} ${esc(p.artikul)||'—'}</div>
@@ -1490,7 +1562,7 @@ window.CONFIG = {
     const price = hasDiscount ? p.aksiya_narx : p.narx;
     const related = S.products.filter(x=>x.kategoriya===p.kategoriya && x.id!==p.id).slice(0,4);
     return `<div class="plist-head"><div class="back" data-pop>${ICONS.back}</div></div>
-      <div style="padding:0 18px"><div class="photo ${catTileClass(p.kategoriya)} pd-photo${p.rasm?' has-img':''}" style="width:100%;height:190px;border-radius:16px">${p.rasm?`<img src="${esc(p.rasm)}" alt="" onerror="this.remove()">`:''}${catIcon(p.kategoriya)}</div></div>
+      <div style="padding:0 18px"><div class="photo ${catTileClass(p.kategoriya)} pd-photo${p.rasm?' has-img':''}" style="width:100%;height:190px;border-radius:16px">${p.rasm?`<img src="${esc(p.rasm)}" alt="" onerror="this.remove()">`:''}${tovarIkona(p) || catIcon(p.kategoriya)}</div></div>
       <div style="padding:16px 18px 0">
         <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">${catLabel(p.kategoriya)} &middot; ${tr('art_prefix')} ${esc(p.artikul)||'—'}</div>
         <div style="font-family:'Manrope',sans-serif;font-weight:800;font-size:19px;margin-top:6px">${esc(p.nomi)}</div>
@@ -1629,7 +1701,7 @@ window.CONFIG = {
       const p = S.products.find(x=>x.id===id); if (!p) return '';
       const price = (p.aksiya_narx!=null&&p.aksiya_narx<p.narx)?p.aksiya_narx:p.narx;
       return `<div class="cart-item" data-id="${id}">
-        ${photo(null, p.kategoriya, p.rasm)}
+        ${photo(null, p.kategoriya, p.rasm, p)}
         <div class="info">
           <div class="name">${esc(p.nomi)}</div>
           <div class="art">${tr('art_prefix')} ${esc(p.artikul)||'—'}</div>
