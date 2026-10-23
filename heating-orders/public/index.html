@@ -661,10 +661,34 @@ window.CONFIG = {
     [/trub(a|i|y|ka|ki)?\b|truba|trubka/,           'truba']
   ];
 
-  function tovarIkona(p){
+  // Tovarning o'z rasmi bo'lmasa — shu brend+tur uchun umumiy rasm qidiriladi:
+  //   OSTENDORF HTEM + truba  ->  /assets/tovar-tur/ostendorf-htem--truba.webp
+  // Fayl bo'lmasa <img> yuklanmaydi va ostidagi chizma ko'rinib qoladi, ya'ni
+  // rasmlarni bir-bir qo'shib borish mumkin — kod o'zgarmaydi.
+  const slugla = (s) => String(s || '').toLowerCase()
+    .replace(/[.\u02bb\u2018\u2019']/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+  function turRasmi(p){
+    if (!p) return '';
+    const tur = tovarTuriNomi(p);
+    if (!tur) return '';
+    const bolim = (p.kichik_kategoriya || '').trim() || (p.kategoriya || '').trim();
+    if (!bolim) return '';
+    return `/assets/tovar-tur/${slugla(bolim)}--${tur}.webp`;
+  }
+
+  // Ikonka jadvalidagi tur nomi (truba, otvod, kran ...) — rasm fayli ham
+  // shu nom bilan ataladi, ya'ni ikkalasi bir xil qoidadan kelib chiqadi.
+  function tovarTuriNomi(p){
     const n = String(p && p.nomi || '').toLowerCase();
-    for (const [re, nom] of TUR_IKONA) if (re.test(n)) return SVG[nom];
-    return null;
+    for (const [re, nom] of TUR_IKONA) if (re.test(n)) return nom;
+    return '';
+  }
+
+  function tovarIkona(p){
+    const nom = tovarTuriNomi(p);
+    return nom ? SVG[nom] : null;
   }
 
   const CAT_ICONS = {
@@ -697,8 +721,9 @@ window.CONFIG = {
     const cls = 'photo' + (cat ? ' ' + catTileClass(cat) : '');
     const style = size ? ` style="width:${size}px;height:${size}px"` : '';
     const ik = (p && tovarIkona(p)) || (cat ? catIcon(cat) : ICONS.photoIcon);
-    if (rasm) {
-      return `<div class="${cls} has-img"${style}><img src="${esc(rasm)}" alt="" loading="lazy"
+    const src = rasm || turRasmi(p);
+    if (src) {
+      return `<div class="${cls} has-img"${style}><img src="${esc(src)}" alt="" loading="lazy"
         onerror="this.remove()">${ik}</div>`;
     }
     return `<div class="${cls}"${style}>${ik}</div>`;
@@ -1562,7 +1587,8 @@ window.CONFIG = {
     const price = hasDiscount ? p.aksiya_narx : p.narx;
     const related = S.products.filter(x=>x.kategoriya===p.kategoriya && x.id!==p.id).slice(0,4);
     return `<div class="plist-head"><div class="back" data-pop>${ICONS.back}</div></div>
-      <div style="padding:0 18px"><div class="photo ${catTileClass(p.kategoriya)} pd-photo${p.rasm?' has-img':''}" style="width:100%;height:190px;border-radius:16px">${p.rasm?`<img src="${esc(p.rasm)}" alt="" onerror="this.remove()">`:''}${tovarIkona(p) || catIcon(p.kategoriya)}</div></div>
+      <div style="padding:0 18px">${(()=>{ const src = p.rasm || turRasmi(p);
+        return `<div class="photo ${catTileClass(p.kategoriya)} pd-photo${src?' has-img':''}" style="width:100%;height:190px;border-radius:16px">${src?`<img src="${esc(src)}" alt="" onerror="this.remove()">`:''}${tovarIkona(p) || catIcon(p.kategoriya)}</div>`; })()}</div>
       <div style="padding:16px 18px 0">
         <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">${catLabel(p.kategoriya)} &middot; ${tr('art_prefix')} ${esc(p.artikul)||'—'}</div>
         <div style="font-family:'Manrope',sans-serif;font-weight:800;font-size:19px;margin-top:6px">${esc(p.nomi)}</div>
