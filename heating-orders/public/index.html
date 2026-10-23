@@ -628,14 +628,14 @@ window.CONFIG = {
   // "obratniy klapan" kran emas, klapan bo'lishi kerak.
   const TUR_IKONA = [
     [/krestovin/,                                   'krestovina'],
-    [/troynik|teyn/,                                'troynik'],
+    [/troynik/,                                     'troynik'],
     [/otvod|ugolnik|kolen|dugoobr/,                 'otvod'],
     [/reviziy|prochistk/,                           'reviziya'],
     [/patrubok|kompensator/,                        'patrubok'],
     [/reduktsiy|perexod|redukts/,                   'reduktsiya'],
     [/zaglushk|zagluzhk|probka/,                    'zaglushka'],
     [/manjet|uplotnit|prokladk|kolts|gaset|rezinov/,'manjeta'],
-    [/xomut|skoba|kleym|derjatel/,                  'xomut'],
+    [/xomut|skoba|kleym|derjatel|kronshteyn|kranshteyn/, 'xomut'],
     [/klips|klipsi|fiksator/,                       'klips'],
     [/klapan/,                                      'klapan'],
     [/gofr|fanovay/,                                'gofra'],
@@ -648,16 +648,16 @@ window.CONFIG = {
     [/germetik|penka|smazk|lenta|klei|fum/,         'germetik'],
     [/mufta|sgon|amerikank|soedinit/,               'mufta'],
     [/nippel|evrokonus|adapter|fiting|press-/,      'nippel'],
+    [/kran|ventil|zadvizhk|babochk|vozduxootvod/,   'kran'],
     [/nasos/,                                       'nasos'],
     [/radiator|konvektor|sektsiy/,                  'radiator'],
-    [/filtr|umyagchit|kartridj|ochistk|mineraliz|obezjelez/, 'filtr'],
+    [/filtr|umyagchit|kartridj|ochistk|mineraliz|obezjelez|deshlamator|separator/, 'filtr'],
     [/kotel|katyol|gorelk/,                         'katyol'],
-    [/boyler|yomkost|rasshirit|membran|bak/,        'bak'],
-    [/dimoxod|dimox|zont|deflektor/,                'dimaxod'],
+    [/boyler|yomkost|rasshirit|membran|\bbak\b/,    'bak'],
+    [/dimoxod|\bdimox|\bzont\b|deflektor/,          'dimaxod'],
     [/izolyats|energoflex|teploizol|utepl/,         'izol'],
     [/shlang/,                                      'shlang'],
     [/unitaz|rakovin|instalyats|bachok|pissuar|vanna/, 'santexnika'],
-    [/kran|ventil|zadvizhk|babochk|vozduxootvod/,   'kran'],
     [/trub(a|i|y|ka|ki)?\b|truba|trubka/,           'truba']
   ];
 
