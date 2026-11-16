@@ -44,6 +44,11 @@ export async function onRequestPost({ request, env }) {
   const isPrivate = chat.type === 'private';
   const isGroup = chat.type === 'group' || chat.type === 'supergroup';
 
+  // Operatorlar: ADMIN_CHAT_ID (o'zgarmas) + hs_operators jadvali (botdan
+  // qo'shiladi). Har bir xabar uchun bir marta o'qiymiz.
+  const ops = await operatorlar(env);
+  const operatorMi = (from) => !!from && ops.has(String(from.id));
+
   if (msg.location && isPrivate) {
     await handleLocationMessage(msg, env);
     return json({ ok: true });
@@ -51,11 +56,11 @@ export async function onRequestPost({ request, env }) {
 
   // Operator kategoriya rasmini shu yerga tashlaydi: rasm + izohda kategoriya nomi
   if (isPrivate && (msg.photo || (msg.document && /^image\//.test(msg.document.mime_type || '')))) {
-    if (isOperator(env, msg.from)) {
+    if (operatorMi(msg.from)) {
       await handleCategoryPhoto(msg, env);
       return json({ ok: true });
     }
-    await operatorEmas(env, msg);
+    await operatorEmas(env, msg, ops.size);
   }
 
   if (!msg.text) return json({ ok: true });
@@ -92,7 +97,7 @@ export async function onRequestPost({ request, env }) {
   // Usta o'zi mini-appda ro'yxatdan o'tadi, lekin qaysi guruhga buyurtma
   // tushishini faqat operator hal qiladi.
   if (cmd === '/bogla' || cmd === '/link') {
-    if (!isOperator(env, msg.from)) { await operatorEmas(env, msg); return json({ ok: true }); }
+    if (!operatorMi(msg.from)) { await operatorEmas(env, msg, ops.size); return json({ ok: true }); }
 
     if (!isGroup) {
       await tgApi(env, 'sendMessage', {
@@ -145,7 +150,7 @@ export async function onRequestPost({ request, env }) {
 
   // Operator uchun: hali guruhga bog'lanmagan brigadalar ro'yxati
   if (cmd === '/brigadalar') {
-    if (!isOperator(env, msg.from)) { await operatorEmas(env, msg); return json({ ok: true }); }
+    if (!operatorMi(msg.from)) { await operatorEmas(env, msg, ops.size); return json({ ok: true }); }
     const rows = await sbFetch(env, '/rest/v1/hs_brigades?select=nomi,login,chat_id&order=created_at.desc&limit=50');
     const bosh = (rows || []).filter(b => b.chat_id == null);
     const bogli = (rows || []).filter(b => b.chat_id != null);
@@ -164,7 +169,7 @@ export async function onRequestPost({ request, env }) {
   // Operator uchun: yozuv maydoni yonidagi doimiy "Ochish" tugmasini va bot
   // buyruqlarini hamma uchun o'rnatadi. Admin panelsiz ham ishlaydi.
   if (cmd === '/sozla') {
-    if (!isOperator(env, msg.from)) { await operatorEmas(env, msg); return json({ ok: true }); }
+    if (!operatorMi(msg.from)) { await operatorEmas(env, msg, ops.size); return json({ ok: true }); }
     const url = env.MINIAPP_URL;
     const menu = await tgApi(env, 'setChatMenuButton', {
       menu_button: { type: 'web_app', text: 'Ochish', web_app: { url } }
@@ -180,7 +185,7 @@ export async function onRequestPost({ request, env }) {
 
   // Admin panelga bir bosishda kirish havolasi (faqat operatorga)
   if (cmd === '/admin') {
-    if (!isOperator(env, msg.from)) { await operatorEmas(env, msg); return json({ ok: true }); }
+    if (!operatorMi(msg.from)) { await operatorEmas(env, msg, ops.size); return json({ ok: true }); }
     if (!isPrivate) {
       await tgApi(env, 'sendMessage', { chat_id: chat.id, text: 'Bu buyruqni menga shaxsiy chatda yozing.' });
       return json({ ok: true });
@@ -212,7 +217,7 @@ export async function onRequestPost({ request, env }) {
 
   // Qaysi kategoriyalarda rasm yo'qligini ko'rsatadi
   if (cmd === '/rasm') {
-    if (!isOperator(env, msg.from)) { await operatorEmas(env, msg); return json({ ok: true }); }
+    if (!operatorMi(msg.from)) { await operatorEmas(env, msg, ops.size); return json({ ok: true }); }
     const rows = await sbFetch(env, '/rest/v1/hs_categories?select=nomi,ota,rasm&order=ota.asc,tartib.asc');
     const yoq = (rows || []).filter(r => !r.rasm);
     const bor = (rows || []).filter(r => r.rasm);
@@ -234,7 +239,7 @@ export async function onRequestPost({ request, env }) {
 
   // Tovar rasmlari holati: qaysi bo'limlarda qancha rasm yetishmayotgani
   if (cmd === '/rasmsiz') {
-    if (!isOperator(env, msg.from)) { await operatorEmas(env, msg); return json({ ok: true }); }
+    if (!operatorMi(msg.from)) { await operatorEmas(env, msg, ops.size); return json({ ok: true }); }
 
     // Kategoriya nomi berilgan bo'lsa — o'sha bo'limdagi rasmsiz tovarlar ro'yxati
     const bolim = parts.slice(1).join(' ').trim();
@@ -277,6 +282,80 @@ export async function onRequestPost({ request, env }) {
     return json({ ok: true });
   }
 
+  // Operatorlar ro'yxati — kim rasm yuklay oladi, kim guruh bog'lay oladi
+  if (cmd === '/operatorlar') {
+    if (!operatorMi(msg.from)) { await operatorEmas(env, msg, ops.size); return json({ ok: true }); }
+    let jadval = [];
+    try { jadval = await sbFetch(env, '/rest/v1/hs_operators?select=*&order=created_at.asc'); } catch (e) {}
+    const qotgan = String(env.ADMIN_CHAT_ID || '').split(',').map(x => x.trim()).filter(Boolean);
+    await tgApi(env, 'sendMessage', {
+      chat_id: chat.id,
+      text:
+        '👤 <b>Operatorlar</b>\n\n' +
+        (qotgan.length ? qotgan.map(id => `• <code>${escHtml(id)}</code> — asosiy (sozlamada)`).join('\n') + '\n' : '') +
+        ((jadval || []).length
+          ? jadval.map(r => `• <code>${escHtml(r.telegram_id)}</code> — ${escHtml(r.ism || 'nomsiz')}`).join('\n')
+          : (qotgan.length ? '' : 'Boshqa hech kim yo‘q')) +
+        '\n\nQo‘shish: <code>/operator 123456789</code>\n' +
+        'Yoki o‘sha odamning xabariga javob qilib <code>/operator</code>\n' +
+        'O‘chirish: <code>/operator ochir 123456789</code>\n\n' +
+        'ID ni bilish: o‘sha odam botga <code>/id</code> yozsin.',
+      parse_mode: 'HTML'
+    });
+    return json({ ok: true });
+  }
+
+  if (cmd === '/operator') {
+    if (!operatorMi(msg.from)) { await operatorEmas(env, msg, ops.size); return json({ ok: true }); }
+
+    const ochirish = (parts[1] || '').toLowerCase() === 'ochir';
+    const javob = msg.reply_to_message && msg.reply_to_message.from;
+    const raqam = (ochirish ? parts[2] : parts[1]) || (javob ? String(javob.id) : '');
+    const id = String(raqam || '').replace(/\D/g, '');
+
+    if (!id) {
+      await tgApi(env, 'sendMessage', {
+        chat_id: chat.id,
+        text: 'Kimni qo‘shay?\n\n<code>/operator 123456789</code>\n' +
+              'yoki o‘sha odamning xabariga javob qilib <code>/operator</code>\n\n' +
+              'Ro‘yxat: /operatorlar',
+        parse_mode: 'HTML'
+      });
+      return json({ ok: true });
+    }
+
+    try {
+      if (ochirish) {
+        await sbFetch(env, `/rest/v1/hs_operators?telegram_id=eq.${id}`, 'DELETE');
+        await tgApi(env, 'sendMessage', {
+          chat_id: chat.id,
+          text: `✅ <code>${escHtml(id)}</code> operatorlar ro‘yxatidan olindi.\n\n` +
+                'Sozlamadagi asosiy operator bu yo‘l bilan olinmaydi.',
+          parse_mode: 'HTML'
+        });
+      } else {
+        const ism = javob
+          ? [javob.first_name, javob.last_name].filter(Boolean).join(' ') || javob.username || ''
+          : '';
+        await sbFetch(env, '/rest/v1/hs_operators', 'POST',
+          { telegram_id: Number(id), ism, qoshgan: msg.from.id });
+        await tgApi(env, 'sendMessage', {
+          chat_id: chat.id,
+          text: `✅ <code>${escHtml(id)}</code>${ism ? ' — ' + escHtml(ism) : ''} operator qilindi.\n\n` +
+                'Endi u rasm yuklay oladi, guruh bog‘lay oladi va admin panelga kira oladi.',
+          parse_mode: 'HTML'
+        });
+      }
+    } catch (e) {
+      const takror = /duplicate|23505/i.test(e.message || '');
+      await tgApi(env, 'sendMessage', {
+        chat_id: chat.id,
+        text: takror ? 'Bu odam allaqachon operator.' : '❌ ' + (e.message || 'Saqlab bo‘lmadi')
+      });
+    }
+    return json({ ok: true });
+  }
+
   if (cmd === '/register') {
     await tgApi(env, 'sendMessage', {
       chat_id: chat.id,
@@ -296,6 +375,7 @@ export const BOT_COMMANDS = [
   { command: 'sozla', description: 'Botni sozlash (operator)' },
   { command: 'rasm', description: 'Kategoriya rasmlari holati (operator)' },
   { command: 'rasmsiz', description: 'Rasmsiz tovarlar (operator)' },
+  { command: 'operatorlar', description: 'Operatorlar ro\u2018yxati (operator)' },
   { command: 'admin', description: 'Admin panelni ochish (operator)' }
 ];
 
@@ -449,8 +529,8 @@ async function rasmniYukla(env, fileId) {
 // Operator buyrug'i ishlamaganda sababini aytamiz — lekin faqat
 // ADMIN_CHAT_ID umuman sozlanmagan bo'lsa. Sozlangan bo'lsa, begona odamga
 // hech narsa demaymiz: bunday buyruq borligini ham bilmasin.
-async function operatorEmas(env, msg) {
-  if (env.ADMIN_CHAT_ID) return;
+async function operatorEmas(env, msg, bormi) {
+  if (bormi) return;
   await tgApi(env, 'sendMessage', {
     chat_id: msg.chat.id,
     text:
@@ -464,12 +544,19 @@ async function operatorEmas(env, msg) {
   });
 }
 
-// Operator — ADMIN_CHAT_ID da ko'rsatilgan shaxs (vergul bilan bir nechta
-// bo'lishi ham mumkin). Faqat u guruhni brigadaga bog'lay oladi.
-function isOperator(env, from) {
-  if (!from || !env.ADMIN_CHAT_ID) return false;
-  const ids = String(env.ADMIN_CHAT_ID).split(',').map(x => x.trim()).filter(Boolean);
-  return ids.includes(String(from.id));
+// Operatorlar ro'yxati: ADMIN_CHAT_ID dagilar (Cloudflare sozlamasi, deploy
+// talab qiladi) va hs_operators jadvalidagilar (botning o'zidan qo'shiladi,
+// deploy kerak emas). Jadval o'qilmasa ham ADMIN_CHAT_ID ishlayveradi —
+// shunda asosiy operator hech qachon eshikdan tashqarida qolmaydi.
+async function operatorlar(env) {
+  const royxat = new Set(
+    String(env.ADMIN_CHAT_ID || '').split(',').map(x => x.trim()).filter(Boolean)
+  );
+  try {
+    const rows = await sbFetch(env, '/rest/v1/hs_operators?select=telegram_id');
+    for (const r of rows || []) royxat.add(String(r.telegram_id));
+  } catch (e) { /* jadval hali yaratilmagan bo'lishi mumkin */ }
+  return royxat;
 }
 
 // Mini-app'ni ochadigan ikkita tugmani beradi:

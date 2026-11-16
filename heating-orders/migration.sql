@@ -38,6 +38,15 @@ alter table hs_orders add column if not exists telefon text;
 -- ---- Ikki bosqichli katalog: kategoriya -> brend/kichik kategoriya ----
 alter table hs_products add column if not exists kichik_kategoriya text;
 alter table hs_products add column if not exists rasm text;   -- tovar rasmi (Storage havolasi)
+
+-- Operatorlar: botdan qo'shiladi (ADMIN_CHAT_ID ga tegmasdan, deploy kerak emas)
+create table if not exists hs_operators (
+  telegram_id bigint primary key,
+  ism         text,
+  qoshgan     bigint,
+  created_at  timestamptz default now()
+);
+alter table hs_operators enable row level security;   -- anon kalit ko'rmasin
 create index if not exists hs_products_kat_idx on hs_products (kategoriya, kichik_kategoriya);
 
 -- ============================================================
