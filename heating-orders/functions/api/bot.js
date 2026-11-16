@@ -396,12 +396,20 @@ async function handleCategoryPhoto(msg, env) {
       chat_id: chatId,
       text: 'Rasm izohiga nishonni yozing:\n' +
             '• tovar artikuli — <code>AK001.</code>\n' +
+            '• butun guruh — <code>hamma OSTENDORF HTEM truba</code>\n' +
             '• tovar nomi — <code>silikon germetik</code>\n' +
             '• kategoriya — <code>AKSESSUAR</code>\n' +
             '• brend — <code>ARMATURA GIACOMINI</code>\n\n' +
             'Rasmsiz tovarlar: /rasmsiz   ·   Kategoriyalar: /rasm',
       parse_mode: 'HTML'
     });
+    return;
+  }
+
+  // "hamma OSTENDORF HTEM truba" — bitta rasm butun guruhga
+  const ommaviy = /^(hamma|hammasi|all)\s+(.+)$/i.exec(izoh);
+  if (ommaviy) {
+    await ommaviyRasm(env, msg, chatId, ommaviy[2].trim());
     return;
   }
 
@@ -457,6 +465,87 @@ async function handleCategoryPhoto(msg, env) {
     });
   } catch (e) {
     await tgApi(env, 'sendMessage', { chat_id: chatId, text: '❌ ' + (e.message || 'Rasmni saqlab bo\u2018lmadi') });
+  }
+}
+
+// "hamma <brend> <so'z>" — bitta rasmni shu brendning shu turdagi hamma
+// tovariga qo'yadi. Masalan: "hamma OSTENDORF HTEM truba" -> 51 ta truba.
+// Brend nomi bir necha so'zdan iborat bo'lishi mumkin ("OSTENDORF HTEM"),
+// shuning uchun katalog daraxtidan eng uzun mos keluvchi nom qidiriladi.
+export function bolakla(matn, nomlar) {
+  const past = String(matn || '').trim().toLowerCase();
+  let eng = null;
+  for (const nom of nomlar) {
+    const n = String(nom).toLowerCase();
+    if (past === n) continue;                       // so'z qolmaydi
+    if (past.startsWith(n + ' ') && (!eng || n.length > eng.length)) eng = n;
+  }
+  if (!eng) return null;
+  const soz = past.slice(eng.length).trim();
+  return soz ? { bolim: matn.trim().slice(0, eng.length), soz } : null;
+}
+
+async function ommaviyRasm(env, msg, chatId, matn) {
+  const kat = await sbFetch(env, '/rest/v1/hs_categories?select=nomi,ota');
+  const nomlar = [...new Set((kat || []).map(r => r.nomi))];
+  const qism = bolakla(matn, nomlar);
+
+  if (!qism) {
+    await tgApi(env, 'sendMessage', {
+      chat_id: chatId,
+      text: 'Qaysi bo‘limning qaysi tovarlariga qo‘yay?\n\n' +
+            'Izohga shunday yozing:\n<code>hamma OSTENDORF HTEM truba</code>\n' +
+            '<code>hamma TIEMME kran</code>\n\n' +
+            'Avval bo‘lim yoki brend nomi, keyin tovar nomidagi so‘z.',
+      parse_mode: 'HTML'
+    });
+    return;
+  }
+
+  const q = encodeURIComponent(pgEsc(qism.bolim));
+  const soz = encodeURIComponent('*' + pgEsc(qism.soz) + '*');
+
+  // Avval brend (kichik_kategoriya), topilmasa kategoriya bo'yicha
+  let shart = `kichik_kategoriya=ilike.${q}&nomi=ilike.${soz}`;
+  let topilgan = await sbFetch(env, `/rest/v1/hs_products?${shart}&select=id,nomi&limit=5`);
+  if (!topilgan || !topilgan.length) {
+    shart = `kategoriya=ilike.${q}&nomi=ilike.${soz}`;
+    topilgan = await sbFetch(env, `/rest/v1/hs_products?${shart}&select=id,nomi&limit=5`);
+  }
+
+  if (!topilgan || !topilgan.length) {
+    await tgApi(env, 'sendMessage', {
+      chat_id: chatId,
+      text: `❌ <b>${escHtml(qism.bolim)}</b> bo‘limida nomida «${escHtml(qism.soz)}» bor tovar topilmadi.\n\n` +
+            'Bo‘lim ro‘yxati: /rasmsiz',
+      parse_mode: 'HTML'
+    });
+    return;
+  }
+
+  let fileId;
+  if (msg.photo && msg.photo.length) {
+    const tartibli = [...msg.photo].sort((a, b) => a.width - b.width);
+    fileId = (tartibli.find(p => p.width >= 500) || tartibli[tartibli.length - 1]).file_id;
+  } else {
+    fileId = msg.document.file_id;
+  }
+
+  try {
+    const url = await rasmniYukla(env, fileId);
+    // Bitta so'rov bilan hammasiga yoziladi; qaytgan qatorlar sonini sanaymiz
+    const yangilangan = await sbFetch(env, `/rest/v1/hs_products?${shart}&select=id`, 'PATCH', { rasm: url });
+    const soni = (yangilangan || []).length;
+    await tgApi(env, 'sendMessage', {
+      chat_id: chatId,
+      text: `✅ <b>${soni} ta tovarga</b> rasm qo‘yildi.\n` +
+            `${escHtml(qism.bolim)} · «${escHtml(qism.soz)}»\n\n` +
+            topilgan.slice(0, 3).map(t => `• ${escHtml(t.nomi)}`).join('\n') +
+            (soni > 3 ? `\n• … va yana ${soni - 3} ta` : ''),
+      parse_mode: 'HTML'
+    });
+  } catch (e) {
+    await tgApi(env, 'sendMessage', { chat_id: chatId, text: '❌ ' + (e.message || 'Saqlab bo‘lmadi') });
   }
 }
 
