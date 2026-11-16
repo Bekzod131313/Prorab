@@ -1088,8 +1088,23 @@ window.CONFIG = {
     tmp: {} // screen-local scratch (search text, active category, active object subtab...)
   };
 
-  function push(screen, params){ S.stack.push({ screen, params: params||{} }); render(); window.scrollTo(0,0); }
-  function pop(){ if (S.stack.length>1) S.stack.pop(); render(); window.scrollTo(0,0); }
+  // Ekrandan chiqishda qayerda turganimiz eslab qolinadi va orqaga
+  // qaytganda o'sha joyga tushamiz — uzun ro'yxatda tovar ochib, orqaga
+  // qaytgach yana tepadan qidirib o'tirmaslik uchun.
+  function push(screen, params){
+    top().scroll = window.scrollY || 0;
+    S.stack.push({ screen, params: params||{} });
+    render(); window.scrollTo(0,0);
+  }
+  function pop(){
+    if (S.stack.length>1) S.stack.pop();
+    const joy = top().scroll || 0;
+    render();
+    // Ro'yxat chizilgandan keyin tiklaymiz, aks holda sahifa hali kalta
+    // bo'lib, brauzer bu joyga sura olmaydi.
+    window.scrollTo(0, joy);
+    requestAnimationFrame(() => window.scrollTo(0, joy));
+  }
   function switchTab(screen){ S.stack = [{ screen, params:{} }]; render(); window.scrollTo(0,0); }
   function top(){ return S.stack[S.stack.length-1]; }
 
